@@ -1,0 +1,15 @@
+# -----------------------------------------------------------------------
+# Copyright (c) DCSV. All rights reserved.
+# -----------------------------------------------------------------------
+# Standalone public OSS workspace (D2-Public). Installed by Export to public.
+# Paths are relative to the public repo root (flattened public/ tree).
+#
+# Factory tools (ts-codegen, contract-gate, release-runner, …) are monorepo-
+# private only — never retarget private tools into the export workspace.
+# Published packages already contain committed generated output.
+
+packages:
+  - "packages/typescript/**"
+
+onlyBuiltDependencies:
+  - "@bufbuild/buf"

@@ -1,0 +1,21 @@
+{
+  "name": "d2-public",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=10.15.0"
+  },
+  "packageManager": "pnpm@10.15.0",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.0",
+    "typescript": "5.9.3",
+    "vitest": "4.0.18"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["@bufbuild/buf"]
+  }
+}

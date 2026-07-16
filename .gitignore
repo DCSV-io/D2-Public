@@ -1,0 +1,40 @@
+# -----------------------------------------------------------------------
+# Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
+# -----------------------------------------------------------------------
+#
+# Public OSS clone .gitignore (copied to D2-Public root on export).
+# Build / restore / IDE artifacts must never ship — releases pack from source.
+#
+# -----------------------------------------------------------------------
+
+# .NET
+[Bb]in/
+[Oo]bj/
+[Rr]elease/
+[Dd]ebug/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.pdb
+*.cache
+project.lock.json
+artifacts/
+TestResults/
+[Tt]est[Rr]esult*/
+
+# Node
+node_modules/
+dist/
+.pnpm-store/
+*.tsbuildinfo
+coverage/
+.turbo/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vs/
+.idea/
+*.swp
+*~

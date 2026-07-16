@@ -1,0 +1,131 @@
+# -----------------------------------------------------------------------
+# Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
+# -----------------------------------------------------------------------
+#
+# Public OSS CI (D2-Public). Runs only after export flattens monorepo public/
+# to the repo root. Paths are relative to that root — not public/packages/….
+#
+# Does NOT run product Edge suites (those stay on D2-Private-WORX).
+
+name: Test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  public-build:
+    name: Public build (D2.Public.slnx)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - run: dotnet build D2.Public.slnx --configuration Release
+
+  dotnet-shared-unit-tests:
+    name: .NET Shared Unit Tests
+    runs-on: ubuntu-latest
+    needs: [public-build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - run: >
+          dotnet test packages/dotnet/tests/DcsvIo.D2.Tests.csproj
+          --configuration Release
+          -- --filter-namespace "DcsvIo.D2.Tests.Unit*"
+
+  dotnet-shared-integration-tests:
+    name: .NET Shared Integration Tests
+    runs-on: ubuntu-latest
+    needs: [public-build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - run: >
+          dotnet test packages/dotnet/tests/DcsvIo.D2.Tests.csproj
+          --configuration Release
+          -- --filter-namespace "DcsvIo.D2.Tests.Integration*"
+
+  contract-fixtures:
+    name: Contract fixture emission (.NET → fixtures)
+    runs-on: ubuntu-latest
+    needs: [public-build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - run: >
+          dotnet test packages/dotnet/tests/DcsvIo.D2.Tests.csproj
+          --configuration Release
+          -- --filter-trait "Category=ContractFixtures"
+
+  ts-shared-unit-tests:
+    name: TS Shared Unit Tests
+    runs-on: ubuntu-latest
+    env:
+      # Skip monorepo-private product-home byte-parity (typespec private/**).
+      PUBLIC_ONLY: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: pnpm/action-setup@v4
+      # Factory (ts-codegen) is monorepo-only — not exported. Packages skip prebuild
+      # regen when it is absent and build from committed *.g.ts.
+      - run: pnpm install --fail-if-no-match --filter "./packages/typescript/**..."
+      - run: pnpm --fail-if-no-match --filter "./packages/typescript/**" -r build
+      - run: pnpm --fail-if-no-match --filter "./packages/typescript/**" -r test
+
+  pack-smoke:
+    name: Pack smoke (.NET nupkg + TS tgz)
+    runs-on: ubuntu-latest
+    needs: [public-build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: pnpm/action-setup@v4
+      - name: Pack sample .NET consumable
+        run: >
+          dotnet pack packages/dotnet/result/core/DcsvIo.D2.Result.csproj
+          --configuration Release --output /tmp/pack-smoke
+      # Mirror private pack-smoke: install subtree, build workspace deps first
+      # (`^...`), then the package itself. Building only @dcsv-io/d2-result leaves
+      # @dcsv-io/d2-error-category (and siblings) unbuilt → TS2307 on public CI.
+      - name: pnpm install (@dcsv-io/d2-result subtree)
+        run: pnpm install --fail-if-no-match --filter "@dcsv-io/d2-result..."
+      - name: build @dcsv-io/d2-result workspace dependencies
+        run: pnpm --fail-if-no-match --filter "@dcsv-io/d2-result^..." build
+      - name: build @dcsv-io/d2-result
+        run: pnpm --fail-if-no-match --filter "@dcsv-io/d2-result" build
+      - name: pnpm pack @dcsv-io/d2-result
+        run: pnpm --fail-if-no-match --filter "@dcsv-io/d2-result" pack --pack-destination /tmp/pack-smoke
+      - name: Assert pack artifacts exist
+        run: |
+          set -euo pipefail
+          ls /tmp/pack-smoke/DcsvIo.D2.Result.*.nupkg
+          ls /tmp/pack-smoke/dcsv-io-d2-result-*.tgz
+
+  proto-checks:
+    name: Proto checks (buf lint + format)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-setup-action@v1.50.0
+      - run: buf lint contracts/protos
+        working-directory: .
+      - run: buf format --diff --exit-code contracts/protos

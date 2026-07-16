@@ -1,0 +1,48 @@
+<!--
+Copyright (c) DCSV. All rights reserved.
+-->
+<!--
+  Root Directory.Build.props for the standalone public OSS clone (D2-Public).
+  Installed by Export to public when flattening monorepo stage → public root.
+  Differs from monorepo root props: D2PublicRoot == repo root (no nested public/).
+-->
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- Public OSS: the clone root IS the public tree. -->
+  <PropertyGroup>
+    <D2RepoRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)'))</D2RepoRoot>
+    <D2PublicRoot>$(D2RepoRoot)</D2PublicRoot>
+    <!-- Private tree is not present; leave a non-colliding dead path. -->
+    <D2PrivateRoot>$(D2RepoRoot).private-absent\</D2PrivateRoot>
+    <D2PublicContractsRoot>$(D2PublicRoot)contracts\</D2PublicContractsRoot>
+    <D2PrivateContractsRoot>$(D2PrivateRoot)contracts\</D2PrivateContractsRoot>
+    <D2PublicPackagesDotnetRoot>$(D2PublicRoot)packages\dotnet\</D2PublicPackagesDotnetRoot>
+    <D2PrivatePackagesDotnetRoot>$(D2PrivateRoot)packages\dotnet\</D2PrivatePackagesDotnetRoot>
+    <D2PrivateServicesRoot>$(D2PrivateRoot)services\</D2PrivateServicesRoot>
+    <D2PublicToolsRoot>$(D2PublicRoot)tools\</D2PublicToolsRoot>
+    <D2PrivateToolsRoot>$(D2PrivateRoot)tools\</D2PrivateToolsRoot>
+    <D2SourceGenSharedRoot>$(D2PublicPackagesDotnetRoot)source-gen-shared\core\</D2SourceGenSharedRoot>
+    <D2ErrorCodesEmitRoot>$(D2PublicPackagesDotnetRoot)source-gen-shared\error-codes-emit\</D2ErrorCodesEmitRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="StyleCop.Analyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- Default StyleCop stamp for public OSS (Apache). Package tree may override. -->
+  <ItemGroup>
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)stylecop.public.json" Link="stylecop.json"
+      Condition="Exists('$(MSBuildThisFileDirectory)stylecop.public.json')" />
+  </ItemGroup>
+</Project>

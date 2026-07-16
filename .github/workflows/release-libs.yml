@@ -1,0 +1,149 @@
+# -----------------------------------------------------------------------
+# Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
+# -----------------------------------------------------------------------
+#
+# Public OSS library release (D2-Public ONLY).
+#
+# Packs consumable open libraries, optionally publishes to nuget.org / npmjs,
+# and can create a GitHub Release. Secrets live on this repo — never on the
+# private monorepo for public package IDs.
+#
+# Operator secrets (repo Settings → Secrets → Actions):
+#   NUGET_API_KEY   — nuget.org API key (optional until first publish)
+#   NPM_TOKEN       — npmjs automation token (optional until first publish)
+#
+# You do NOT create a NuGet/npm "project" per package in advance for public
+# open-source packages: first `dotnet nuget push` / `npm publish` creates the
+# package ID on the registry (scoped npm packages require org/user to exist:
+# @dcsv-io must already exist on npmjs — one org, not one resource per package).
+
+name: Release libraries
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish to nuget.org + npmjs (requires secrets)"
+        type: boolean
+        required: true
+        default: false
+      create_github_release:
+        description: "Create a GitHub Release and attach pack artifacts"
+        type: boolean
+        required: true
+        default: false
+      tag:
+        description: "Release tag (default: libs-YYYY.MM.DD)"
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  release-libs:
+    name: Pack (+ optional publish)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Derive tag
+        id: tag
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          if [ -n "$INPUT_TAG" ]; then
+            echo "value=$INPUT_TAG" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=libs-$(date +%Y.%m.%d)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: pnpm install (release-runner + public packages)
+        run: pnpm install --filter "release-runner..." --filter "./packages/typescript/**..." --filter "ts-codegen..."
+
+      - name: Build release-runner + public TS packages
+        run: |
+          pnpm --filter "release-runner^..." build
+          pnpm --filter "./packages/typescript/**" -r build
+
+      - name: List consumable inventory
+        run: pnpm --filter release-runner exec tsx src/cli.ts --list
+
+      - name: Pack .NET consumables (solution packable projects)
+        run: |
+          set -euo pipefail
+          mkdir -p bundle/nuget
+          # Pack via public solution graph — packable projects emit nupkgs.
+          dotnet pack D2.Public.slnx --configuration Release --output bundle/nuget -p:ContinuousIntegrationBuild=true
+
+      - name: Pack TS consumables
+        run: |
+          set -euo pipefail
+          mkdir -p bundle/npm
+          pnpm --filter "./packages/typescript/**" -r exec pnpm pack --pack-destination "$GITHUB_WORKSPACE/bundle/npm" || true
+          # Prefer filter-pack for workspace packages that support it:
+          for pkg in $(pnpm --filter "./packages/typescript/**" -r list --json | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{JSON.parse(d).forEach(p=>p.name&&console.log(p.name))})"); do
+            pnpm --filter "$pkg" pack --pack-destination bundle/npm 2>/dev/null || true
+          done
+          ls -la bundle/npm || true
+
+      - name: Upload pack artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: d2-libs-${{ steps.tag.outputs.value }}
+          path: bundle/
+
+      - name: Publish to nuget.org
+        if: ${{ inputs.publish }}
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NUGET_API_KEY:-}" ]; then
+            echo "::error::NUGET_API_KEY secret missing"
+            exit 1
+          fi
+          shopt -s nullglob
+          for nupkg in bundle/nuget/*.nupkg; do
+            echo "Pushing $nupkg"
+            dotnet nuget push "$nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done
+
+      - name: Publish to npmjs
+        if: ${{ inputs.publish }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "::error::NPM_TOKEN secret missing"
+            exit 1
+          fi
+          shopt -s nullglob
+          for tgz in bundle/npm/*.tgz; do
+            echo "Publishing $tgz"
+            npm publish "$tgz" --access public
+          done
+
+      - name: GitHub Release
+        if: ${{ inputs.create_github_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.tag.outputs.value }}"
+          gh release create "$TAG" bundle/nuget/* bundle/npm/* \
+            --title "$TAG" \
+            --notes "Public library pack from D2-Public @ ${GITHUB_SHA}"
