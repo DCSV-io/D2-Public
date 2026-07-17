@@ -163,7 +163,14 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.1</Version>
+    <!--
+      Prerelease while OpenTelemetry.Exporter.Prometheus.AspNetCore,
+      Instrumentation.GrpcNetClient, and Instrumentation.Process remain
+      non-stable (beta/rc only on nuget.org). NuGet NU5104 forbids a
+      stable package version from depending on prerelease packages.
+      Graduate to a non-prerelease Version when those three ship stable.
+    -->
+    <Version>0.1.2-beta.1</Version>
     <PackageId>DcsvIo.D2.Telemetry</PackageId>
     <Description>OpenTelemetry SDK setup for D2 — traces, metrics, logs, OTLP exporters, an IP-restricted Prometheus endpoint, and aggregation of every shared library's ActivitySource and Meter.</Description>
     <IsPackable>true</IsPackable>

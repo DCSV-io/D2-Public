@@ -6,9 +6,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 **Apache-2.0 libraries for .NET and TypeScript** — errors-as-values, typed
 error catalogs, auth vocabulary & request context, resilient callers, tiered
-caches, payload encryption, RabbitMQ messaging, geo/reference data, validation,
-i18n, handlers, ASP.NET helpers, logging & OpenTelemetry — as installable NuGet
-and npm packages.
+caches, payload encryption, RabbitMQ messaging, geo & reference data, contacts
+& location value objects, validation, i18n, handlers, ASP.NET helpers, logging
+& OpenTelemetry — as installable NuGet and npm packages.
 
 This repo is **portable app-building libs only**. Full inbound JWT runtime,
 ServiceDefaults-style host mega-aggregators, BFF gRPC clients, TypeSpec factory
@@ -51,7 +51,9 @@ you need and wire it into *your* services.
 | **Caches that stay coherent** | [`DcsvIo.D2.Caching.*`](packages/dotnet/caching/abstractions/README.md) / [`@dcsv-io/d2-caching-*`](packages/typescript/caching/abstractions/README.md) — local, Redis, tiered + invalidation backplane |
 | **Encrypted async messaging** | [`DcsvIo.D2.Messaging.RabbitMq`](packages/dotnet/messaging/rabbitmq/README.md) / [`@dcsv-io/d2-messaging-rabbitmq`](packages/typescript/messaging/rabbitmq/README.md) + [`DcsvIo.D2.Encryption`](packages/dotnet/encryption/core/README.md) / [`@dcsv-io/d2-encryption`](packages/typescript/encryption/README.md) |
 | **PII that doesn’t leak into logs** | [`DcsvIo.D2.Logging`](packages/dotnet/logging/README.md), [`DcsvIo.D2.Contacts`](packages/dotnet/contacts/core/README.md), [`DcsvIo.D2.DataGovernance.*`](packages/dotnet/data-governance/abstractions/README.md) |
-| **Real-world reference data** | [`DcsvIo.D2.Geo.Default`](packages/dotnet/geo/default/README.md) / [`@dcsv-io/d2-geo-default`](packages/typescript/geo/default/README.md) — countries, subdivisions, currencies, languages, locales, timezones |
+| **Geo & world reference data** | [`DcsvIo.D2.Geo.Default`](packages/dotnet/geo/default/README.md) / [`@dcsv-io/d2-geo-default`](packages/typescript/geo/default/README.md) — full typed catalogs for **countries, subdivisions, currencies, languages, locales, timezones, and geopolitical entities**, with O(1) lookups, nested accessors (e.g. `Subdivisions.US.NY`), cross-links between catalogs, and free-text name resolution — driven from [`contracts/geo/`](contracts/geo/) on both stacks |
+| **Locations you can store and dedupe** | [`DcsvIo.D2.Location`](packages/dotnet/location/core/README.md) — coordinates (lat/lon, geohash, plus-code), street addresses, admin hierarchy, content-addressable hashes |
+| **Contact details as value objects** | [`DcsvIo.D2.Contacts`](packages/dotnet/contacts/core/README.md) — personal name, affixes, demographics, professional, email, phone — smart constructors, redaction-aware |
 | **Validation that matches on both stacks** | [`DcsvIo.D2.Validation`](packages/dotnet/validation/default/README.md) / [`@dcsv-io/d2-validation`](packages/typescript/validation/default/README.md) — email, phone (E.164), postal codes |
 | **i18n you can type-check** | [`DcsvIo.D2.I18n.Keys`](packages/dotnet/i18n/keys/README.md) / [`@dcsv-io/d2-i18n-keys`](packages/typescript/i18n-keys/README.md) + runtimes |
 | **Handlers with observability baked in** | [`DcsvIo.D2.Handler`](packages/dotnet/handler/core/README.md) — scopes, OTel, log scope, universal catch |
@@ -103,13 +105,14 @@ Package IDs: **NuGet** `DcsvIo.D2.<Name>` · **npm** `@dcsv-io/d2-<name>`
 | Encryption | [`DcsvIo.D2.Encryption`](packages/dotnet/encryption/core/README.md) | [`@dcsv-io/d2-encryption`](packages/typescript/encryption/README.md) · [`@dcsv-io/d2-encryption-abstractions`](packages/typescript/encryption-abstractions/README.md) | AES-256-GCM + sealed ECDH frames; KAT-pinned cross-language |
 | Messaging | [`DcsvIo.D2.Messaging.Abstractions`](packages/dotnet/messaging/abstractions/README.md) · [`DcsvIo.D2.Messaging.RabbitMq`](packages/dotnet/messaging/rabbitmq/README.md) | [`@dcsv-io/d2-messaging-abstractions`](packages/typescript/messaging-abstractions/README.md) · [`@dcsv-io/d2-messaging-rabbitmq`](packages/typescript/messaging/rabbitmq/README.md) | Topology, encrypt-on-publish, DLQ metadata, idempotency seam |
 
-### Domain value objects & data
+### Domain value objects & reference data
 
 | Concern | .NET | TypeScript | Why it matters |
 | --- | --- | --- | --- |
-| Geo catalogs | [`DcsvIo.D2.Geo.Abstractions`](packages/dotnet/geo/abstractions/README.md) · [`DcsvIo.D2.Geo.Default`](packages/dotnet/geo/default/README.md) | [`@dcsv-io/d2-geo-abstractions`](packages/typescript/geo/abstractions/README.md) · [`@dcsv-io/d2-geo-default`](packages/typescript/geo/default/README.md) | ISO-ish reference data, typed lookups, name resolution |
-| Location | [`DcsvIo.D2.Location`](packages/dotnet/location/core/README.md) · [`DcsvIo.D2.Location.EntityFrameworkCore`](packages/dotnet/location/entity-framework-core/README.md) | — | Hash-deduplicatable coordinates & addresses |
-| Contacts | [`DcsvIo.D2.Contacts`](packages/dotnet/contacts/core/README.md) · [`DcsvIo.D2.Contacts.EntityFrameworkCore`](packages/dotnet/contacts/entity-framework-core/README.md) | — | Name, email, phone, demographics — composable, redaction-aware |
+| Geo types & codes | [`DcsvIo.D2.Geo.Abstractions`](packages/dotnet/geo/abstractions/README.md) | [`@dcsv-io/d2-geo-abstractions`](packages/typescript/geo/abstractions/README.md) | Typed codes/records for countries, subdivisions, currencies, languages, locales, timezones, geopolitical entities; name resolution helpers |
+| Geo catalog data | [`DcsvIo.D2.Geo.Default`](packages/dotnet/geo/default/README.md) | [`@dcsv-io/d2-geo-default`](packages/typescript/geo/default/README.md) | Full generated data for all seven catalogs — lookups, nested accessors, cross-catalog links |
+| Location | [`DcsvIo.D2.Location`](packages/dotnet/location/core/README.md) · [`DcsvIo.D2.Location.EntityFrameworkCore`](packages/dotnet/location/entity-framework-core/README.md) | — | Coordinates, street address, admin location; hash-deduplicatable |
+| Contacts | [`DcsvIo.D2.Contacts`](packages/dotnet/contacts/core/README.md) · [`DcsvIo.D2.Contacts.EntityFrameworkCore`](packages/dotnet/contacts/entity-framework-core/README.md) | — | Name, email, phone, demographics, professional — composable, redaction-aware |
 | Validation | [`DcsvIo.D2.Validation`](packages/dotnet/validation/default/README.md) · [`DcsvIo.D2.Validation.Abstractions`](packages/dotnet/validation/abstractions/README.md) | [`@dcsv-io/d2-validation`](packages/typescript/validation/default/README.md) · [`@dcsv-io/d2-validation-abstractions`](packages/typescript/validation/abstractions/README.md) | Email / phone / postal — shared fixture corpus |
 | Data governance | [`DcsvIo.D2.DataGovernance.Abstractions`](packages/dotnet/data-governance/abstractions/README.md) · [`DcsvIo.D2.DataGovernance.EntityFrameworkCore`](packages/dotnet/data-governance/entity-framework-core/README.md) | — | GDPR-style anonymization markers + EF wiring |
 | EF helpers | [`DcsvIo.D2.EntityFrameworkCore`](packages/dotnet/entity-framework-core/core/README.md) · [`DcsvIo.D2.EntityFrameworkCore.Postgres`](packages/dotnet/entity-framework-core/postgres/README.md) | — | Migrations, advisory-lock startup, complex-property indexes |
