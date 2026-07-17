@@ -65,7 +65,7 @@ public sealed class TKGeneratorTests
             catalogs:
             [
                 ("public/contracts/messages/en-US.json", _PUBLIC_EN_US),
-                ("private/contracts/messages/en-US.json", _PRIVATE_EN_US),
+                ("host/contracts/messages/en-US.json", _PRIVATE_EN_US),
             ]);
 
         var result = driver.GetRunResult();

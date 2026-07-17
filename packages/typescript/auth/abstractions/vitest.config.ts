@@ -11,7 +11,7 @@ export default defineConfig({
       provider: "v8",
       include: ["src/**/*.ts"],
       // Codegen-emitted files (`*.g.ts` — auth-error-codes / auth-failures /
-      // scopes / jwt-claim-types) are covered by private/tools/ts-codegen emitter
+      // scopes / jwt-claim-types) are covered by catalog-codegen emitter
       // snapshots + per-VALUE pin tests in this package; the hand-written
       // `index.ts` is a pure re-export and excluded from the 100/100/100/100
       // threshold.

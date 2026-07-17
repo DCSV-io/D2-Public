@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Time
 
-> Parent: [`public/packages/dotnet/`](../README.md)
+> Parent: [`packages/dotnet/`](../README.md)
 >
 > **Audience**: backend .NET service engineers who need deterministic timestamp handling, a dependency-injected clock seam for tests, and NodaTime ↔ PostgreSQL EF Core wiring.
 
@@ -66,8 +66,8 @@ which both .NET and TS test packages load and assert against.
 ## Construction (smart-constructor pattern)
 
 `ZonedInstant` and `LocalAnchoredEvent` use the smart-constructor pattern
-from `docs/PATTERNS.md` (monorepo-only — not on public export): private positional constructor + `static
-D2Result<T> Create(...)` factory that validates the IANA identifier and
+(private positional constructor + `static
+D2Result<T> Create(...)` factory) that validates the IANA identifier and
 canonicalizes deprecated aliases (e.g. `"US/Pacific"` →
 `"America/Los_Angeles"`, `"Asia/Saigon"` → `"Asia/Ho_Chi_Minh"`).
 

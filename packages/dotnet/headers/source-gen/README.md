@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Headers.SourceGen
 
-> Parent: [`public/packages/dotnet/`](../README.md)
+> Parent: [`packages/dotnet/`](../README.md)
 
 **Input contract:** [`contracts/headers/`](../../../../contracts/headers/README.md)
 
@@ -12,7 +12,7 @@ Roslyn incremental source generator that emits per-transport header catalog clas
 
 The spec file is the single source of truth for every D2 wire header (HTTP / gRPC / AMQP). Cross-transport entries appear in multiple per-transport catalogs at identical wire values — codegen-guaranteed and verified by `HeaderCatalogConsistencyTests`.
 
-**Convention**: spec-driven Roslyn IIncrementalGenerator pattern. See [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) for the framework-wide convention (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
+**Convention**: spec-driven Roslyn `IIncrementalGenerator` (netstandard2.0 analyzer; spec via `<AdditionalFiles>`).
 
 ---
 
@@ -93,8 +93,6 @@ This convention applies uniformly to every per-transport catalog consumed by [`D
 
 ## Reference
 
-- [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) — canonical how-to-author guide for D² Roslyn source generators
 - [`contracts/headers/schema.json`](../../../../contracts/headers/schema.json) — JSON Schema for the spec
 - [`contracts/headers/headers.spec.json`](../../../../contracts/headers/headers.spec.json) — the source-of-truth catalog
-- `DcsvIo.D2.Private.Auth.ErrorCodes.SourceGen` (`private/packages/dotnet/auth/error-codes-source-gen/` — monorepo product, not public SoT) — sibling SrcGen this one mirrors (same incremental-generator + diagnostic-split pattern)
 - [`DcsvIo.D2.InProcessKeys.SourceGen`](../../encryption/in-process-keys-source-gen/README.md) — sibling SrcGen for cross-binding in-process slot keys

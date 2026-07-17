@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Logging
 
-> Parent: [`public/packages/dotnet/`](../README.md)
+> Parent: [`packages/dotnet/`](../README.md)
 
 Serilog configuration + the `[RedactData]` enforcement layer + an ASP.NET Core request-logging middleware. Foundation lib that other shared libs and per-service composition roots call to wire the Serilog pipeline + the `[RedactData]` destructuring policy + the request-logging middleware (services call `AddD2Logging` instead of duplicating ~30 lines of `LoggerConfiguration` boilerplate per service). Also usable standalone by any host that wants the same Serilog setup without an aggregator.
 
@@ -281,7 +281,7 @@ Reason rendering uses the enum name (`PersonalInformation`, `FinancialInformatio
 ## Edge cases / gotchas
 
 - **`Log.Logger` is a process-global static.** `AddD2Logging` SETS it. Tests that build multiple hosts in one process see the LATEST host's logger on the static. The lib's integration tests pin this behavior with `[Collection("LogLoggerStaticState")]` to serialize against any other test that touches the static.
-- **`Microsoft.NET.Sdk.Web` defaults `OutputType` to `Exe`.** This csproj overrides to `Library` explicitly — same shape as other ASP.NET-library siblings (e.g. monorepo-private `DcsvIo.D2.Private.Auth.Http` PackageId).
+- **`Microsoft.NET.Sdk.Web` defaults `OutputType` to `Exe`.** This csproj overrides to `Library` explicitly — same shape as other ASP.NET-library siblings.
 - **No `Microsoft.Extensions.{DependencyInjection,Logging,Options}.Abstractions` PackageReferences.** The framework reference (`Microsoft.AspNetCore.App`) ships them; explicit references would trigger NU1510 ("will not be pruned"). Versions remain pinned via `Directory.Packages.props`.
 - **`InfrastructurePathMatcher` lives in `DcsvIo.D2.AspNetCore` — single source of truth.** `UseD2RequestLogging`'s level callback consumes the public matcher; `DcsvIo.D2.Telemetry`'s AspNetCore-instrumentation `Filter` consumes the same one. The path set (`/health`, `/alive`, `/metrics`, `/.well-known`) stays aligned across the two consumers without per-lib duplication.
 - **The integration-test contract pins the absent PII fields.** `RequestContextEnricherIntegrationTests` enumerates every `IRequestContext` NOT-LOGGED field (the 8 enumerated above: `ClientIp`, `City`, `Region`, `SubdivisionCode`, `PostalCode`, `Latitude`, `Longitude`, `Geohash`) and asserts NONE appear in the rendered JSON output. Adding a new PII field to the spec without a coverage update is a contract failure that surfaces at test time.

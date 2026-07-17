@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Caching.Distributed.Redis
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 Redis-backed implementation of [`IDistributedCache`](../abstractions/README.md) and
 [`ICacheInvalidationBackplane`](../abstractions/README.md). Wraps `StackExchange.Redis`.
@@ -124,7 +124,6 @@ isolation.
 
 ## References
 
-- [PATTERNS.md (monorepo-only — not on public export)](../../../../../docs/PATTERNS.md) cache section
 - [`abstractions/README.md`](../abstractions/README.md) — interface + result-mapping
   reference
 - [`tiered/README.md`](../tiered/README.md) — composes Local + this lib for L1+L2

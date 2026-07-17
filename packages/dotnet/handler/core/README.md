@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Handler
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 `BaseHandler<TSelf, TInput, TOutput>` — the abstract base every handler in every service inherits (CQRS handlers, repo handlers, messaging consumers, scheduled jobs, anything handler-shaped). Provides per-handler scope pre-check, OTel activity + 4 metrics + log scope + stopwatch + universal try/catch around the subclass's `ExecuteAsync`. Sibling `DcsvIo.D2.Handler.Repo` adds EF / PG exception → `D2Result` mapping on top.
 
@@ -16,7 +16,7 @@ JWT signature / expiry / audience / fingerprint-binding validation is a transpor
 
 `BaseHandler` logs handler input via Serilog destructuring (`{@Input}`) at `Debug` level, gated by `HandlerOptions.LogInput` (default `true`). Without proper redaction wiring, ANY field on the input that contains PII (email, phone, name, address, raw IP, etc.) will appear verbatim in logs whenever Debug-level logging is enabled.
 
-**Every consuming service MUST register the `[RedactData]`-aware Serilog destructuring policy at startup.** Open hosts compose this themselves with `DcsvIo.D2.Logging` / Serilog wiring — `BaseHandler` does **not** require monorepo-private ServiceDefaults. Product monorepo hosts often get the policy via `DcsvIo.D2.Private.ServiceDefaults` (PackageId; not on public export); if you bootstrap logging manually, register the policy yourself.
+**Every consuming service MUST register the `[RedactData]`-aware Serilog destructuring policy at startup.** Hosts compose this themselves with `DcsvIo.D2.Logging` / Serilog wiring — `BaseHandler` does **not** require a host mega-aggregator. If you bootstrap logging manually, register the policy yourself.
 
 If you can't guarantee the redaction policy is in place (e.g. a one-off tool, an early bootstrap path), set `LogInput = false` in `DefaultOptions` for every handler that touches PII. Prefer registering the redaction policy once at host startup over relying on per-handler `LogInput = false`.
 
@@ -114,7 +114,7 @@ Tests provide a `MutableRequestContext` test fixture builder.
 | `d2.handler.failed`    | Counter (long)     | `{calls}` | Handler invocations that returned `Success == false` OR threw |
 | `d2.handler.duration`  | Histogram (double) | `ms`      | Handler invocation wall-clock duration                        |
 
-All instruments tag with `d2.handler.name = typeof(TSelf).Name`. Open hosts register the OTel SDK via public `DcsvIo.D2.Telemetry` (`AddD2Telemetry`) so `MeterProvider` / `TracerProvider` capture the `DcsvIo.D2.Handler` source. Product monorepo hosts often compose that call through monorepo-private `DcsvIo.D2.Private.ServiceDefaults` (PackageId; not on public export) — optional composition, not a public install requirement.
+All instruments tag with `d2.handler.name = typeof(TSelf).Name`. Hosts register the OTel SDK via `DcsvIo.D2.Telemetry` (`AddD2Telemetry`) so `MeterProvider` / `TracerProvider` capture the `DcsvIo.D2.Handler` source.
 
 ---
 
@@ -152,5 +152,4 @@ Handler primary-constructor parameters do NOT take the `r_` prefix (carve-out fr
 
 - [`DcsvIo.D2.Handler.Abstractions`](../abstractions/README.md) — `IHandler` + `HandlerOptions` + `IHandlerContext`
 - [`DcsvIo.D2.Handler.Repo`](../repo/README.md) — EF/PG exception remapping subclass
-- [`docs/PATTERNS.md` (monorepo-only — not on public export)](../../../../../docs/PATTERNS.md) "Handler" section — handler pattern, primary-constructor carve-out
-- ADR-0020 (private product — not public SoT) — per-op handler folder structure (`Application/Handlers/{Commands,Queries}/<Op>/`)
+- Recommended layout: per-op handler folders (`Application/Handlers/{Commands,Queries}/<Op>/`) with primary-constructor handlers (ctor params do not take the `r_` field prefix)

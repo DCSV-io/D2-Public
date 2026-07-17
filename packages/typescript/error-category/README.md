@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-error-category
 
-> Parent: [`public/packages/typescript/`](../README.md)
+> Parent: [`packages/typescript/`](../README.md)
 
 Foundational zero-dependency leaf that exports the closed `ErrorCategory` classification — the nine-value semantic/telemetry class every `D2Result` and every error code carries. Mirrors `DcsvIo.D2.ErrorCodes.Category` on the .NET side. Lives here so `@dcsv-io/d2-result` and `@dcsv-io/d2-error-codes-registry` can import `ErrorCategory` without risking a circular dependency.
 
@@ -18,7 +18,7 @@ The category is the producer's coarse signal — `infrastructure_unavailable`, `
 | `ErrorCategoryWire`    | `const` object mapping each PascalCase member name → wire string (e.g. `ErrorCategoryWire.NotFound === "not_found"`). Mirrors the .NET `ErrorCategory` members. |
 | `ALL_ERROR_CATEGORIES` | Readonly array of every wire string in canonical (ordinal) order.                                                                                               |
 
-All three are auto-generated from `contracts/error-category/error-category.spec.json` by `private/tools/ts-codegen`. Do not edit `src/generated/error-category.g.ts` by hand — changes are overwritten on the next codegen run.
+All three are generated from `contracts/error-category/error-category.spec.json` (sources committed). Do not edit `src/generated/error-category.g.ts` by hand — changes are overwritten on the next codegen run.
 
 ## Dependencies
 

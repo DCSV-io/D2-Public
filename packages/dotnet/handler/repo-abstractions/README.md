@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Handler.Repo.Abstractions
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 Vocabulary for repo-flavored handlers — what app-layer code touches when it needs to discriminate database failures (unique violation, FK violation, deadlock, concurrency conflict, connection failure, etc.). Pure abstractions: zero infrastructure dependencies. EF Core, Npgsql, and any provider knowledge live in sibling packages (`DcsvIo.D2.Handler.Repo`, `DcsvIo.D2.Handler.Repo.Postgres`).
 

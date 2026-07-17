@@ -15,21 +15,22 @@ per-package semver + build-free-diff convention.
 
 ### Added
 
-- Consumer-side crypto: `CryptoBodyOpener` (sealed / symmetric) +
-  `assertOpenerMatchesDomain`, and `BodyOpener.open` may now return a `Promise` —
-  a decrypting WebCrypto opener is inherently async and the delivery pipeline
-  awaits it; the default plaintext opener stays synchronous.
-- The auto-encrypting publisher fusion — `createPublisher` / `publishVia` (+ the
-  `D2Publisher`, `CreatePublisherOptions`, `PublishEnvelope`, `PublishSender`
-  types), the `composeBody` composer, and the `DomainCryptoMap` mode-branded type
-  witness (`ComposerFor`, `EncryptedDomain`, `PublishableKey`, `PublishableKeyOf`,
-  `CatalogEncryption`) plus `readEncryptionKid`. An unwired encrypted
-  domain is a COMPILE error, with a runtime default-deny second lock — retiring
-  the prior consumer-only fence. The publisher's `message-id` is minted by
-  `uuidv7`, now homed in `@dcsv-io/d2-utilities` (was briefly exported here).
+### Changed
 
 ### Fixed
 
+## 0.1.1 - 2026-07-17
+### Changed
+
+- Dependency update: @dcsv-io/d2-encryption bumped.
+- Dependency update: @dcsv-io/d2-encryption-abstractions bumped.
+- Dependency update: @dcsv-io/d2-headers-amqp bumped.
+- Dependency update: @dcsv-io/d2-logging bumped.
+- Dependency update: @dcsv-io/d2-messaging-abstractions bumped.
+- Dependency update: @dcsv-io/d2-request-context-abstractions bumped.
+- Dependency update: @dcsv-io/d2-result bumped.
+- Dependency update: @dcsv-io/d2-telemetry bumped.
+- Dependency update: @dcsv-io/d2-utilities bumped.
 ## 0.1.0
 
 Initial release: the service-agnostic RabbitMQ **consumer** runtime — the

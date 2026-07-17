@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.WireShapes.SourceGen
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 **Input contracts:** [`contracts/tk-message/`](../../../../contracts/tk-message/README.md) + [`contracts/input-error/`](../../../../contracts/input-error/README.md)
 
@@ -12,7 +12,7 @@ Roslyn `IIncrementalGenerator` (netstandard2.0) that emits per-wire-shape JSON p
 
 This source-gen enforces the spec-driven wire-identifier contract — every cross-language wire-format identifier is spec-declared + parity-tested — on the `TKMessage` (`{key, params?}`) and `InputError` (`{field, errors}`) wire shapes. Both ship across the .NET ↔ TS boundary inside the `D2Result` envelope; spec-driving the property names means the .NET serializer and the TS parser share one source of truth for the JSON keys, so cross-language drift on the property names is structurally impossible.
 
-**Convention**: spec-driven Roslyn IIncrementalGenerator pattern. See [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) for the framework-wide convention (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
+**Convention**: spec-driven Roslyn `IIncrementalGenerator` (netstandard2.0 analyzer; spec via `<AdditionalFiles>`).
 
 ---
 
@@ -42,4 +42,4 @@ Adding a new wire-shape catalog: add a `DispatchEntry` to `sr_dispatch` in `Wire
 
 ## Cross-language parity
 
-The TS-side mirror lives at monorepo-private `private/tools/ts-codegen` (not on public export) — a single multi-target emitter exporting `runTkMessageEmit` and `runInputErrorEmit`. Both sides read the SAME `contracts/tk-message/tk-message.spec.json` + `contracts/input-error/input-error.spec.json` files, so the .NET-emitted constants and the TS-emitted constants share byte-equal wire values for every property name. Parity is asserted by `private/packages/typescript/contract-tests/tests/tk-message.parity.test.ts` + `input-error.parity.test.ts` (fixture-driven per-VALUE pins).
+The TS-side packages commit matching catalogs from the SAME `contracts/tk-message/tk-message.spec.json` + `contracts/input-error/input-error.spec.json` files, so the .NET-emitted constants and the TS-emitted constants share byte-equal wire values for every property name.

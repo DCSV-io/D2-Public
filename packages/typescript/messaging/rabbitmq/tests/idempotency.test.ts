@@ -48,8 +48,8 @@ describe("InMemoryMessageIdempotencyStore", () => {
 
   it("enforces the hard entry cap, evicting the oldest-marked id first", async () => {
     // now() fixed + a huge TTL so nothing EXPIRES — any eviction here is the
-    // hard cap doing its job (unbounded-growth pin: the pre-fix lazy-only store
-    // retained every id, so the oldest would still report seen).
+    // hard cap doing its job (unbounded-growth pin: the lazy-only store before
+    // the cap existed retained every id, so the oldest would still report seen).
     const store = new InMemoryMessageIdempotencyStore(1_000_000, () => 0, 2);
     await store.markSeen("a");
     await store.markSeen("b");

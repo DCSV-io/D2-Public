@@ -117,7 +117,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <PackageId>DcsvIo.D2.AspNetCore</PackageId>
     <Description>Cross-cutting ASP.NET Core middleware and endpoint primitives for D2 service composition roots (security headers, CORS, health endpoints, ProblemDetails, mTLS, infrastructure-path matching).</Description>
     <IsPackable>true</IsPackable>

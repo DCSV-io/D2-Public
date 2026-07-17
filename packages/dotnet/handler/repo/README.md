@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Handler.Repo
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 EF-flavored `BaseRepoHandler<TSelf, TInput, TOutput>` — sits on top of `BaseHandler` from `DcsvIo.D2.Handler`. Overrides `HandleAsync` to convert any database exception captured during `ExecuteAsync` into a typed `D2Result` failure (concurrency conflict, unique violation, deadlock, connection failure, etc.) so callers can branch on what actually went wrong instead of getting a generic 500.
 

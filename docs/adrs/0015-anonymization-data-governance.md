@@ -2,9 +2,6 @@
 Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 
-
-> **Visibility: PUBLIC** — ships with the open surface (`public/`).  
-> Do not add product IP, private paths, or non-exportable runbooks.
 # ADR-0015: Anonymization / data-governance architecture — `DcsvIo.D2.DataGovernance`
 
 - **Status**: Accepted

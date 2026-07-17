@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.EntityFrameworkCore
 
-> Parent: [`public/packages/dotnet/`](../README.md)
+> Parent: [`packages/dotnet/`](../README.md)
 >
 > **Audience**: backend .NET service engineers writing EF Core migrations that need to declare indexes on `ComplexProperty` member columns.
 

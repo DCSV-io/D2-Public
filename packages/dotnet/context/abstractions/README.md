@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Context.Abstractions
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 Single-lib home for every spec-driven context primitive. The spec
 (`contracts/request-context/IRequestContext.spec.json`) is the source of
@@ -31,14 +31,14 @@ JWT-claim parsing semantics — RFCs do — so these stay imperative):
 | `MalformedActorChainException.cs` | —             | Surface for actor-chain parse failures.                                                                                                                    |
 
 Two in-host establishment boundaries plus their shared call-path helper ship here
-too ([ADR-0025](../../../../../public/docs/adrs/0025-request-context-establishment.md)):
+too:
 
 | File                             | Purpose                                                                                                                                                                                                                                                            |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `InProcessModuleBoundary.cs`     | Extension method `IRequestContext.EstablishInProcessModule(callingModuleId, targetModuleId, IClock)` — the generated in-host module façade (the `I<Module>Api` leaf) calls this before dispatching into another module inside the same host. Sets `Origin = RequestOrigin.InProcessModule`, `ImmediateCaller` = the calling module's own id, and appends a `CallPathKind.ModuleHop` entry. No-op-safe when the context is not a `MutableRequestContext` (e.g. a read-only test double). |
 | `SystemRequestContextBootstrap.cs` | Extension method `IServiceProvider.EstablishSystemContext(hostServiceId, IClock)` — low-level bootstrap used by `ISystemWorkScopeFactory` (not for direct module use). Resolves the scope's `MutableRequestContext` (throws `InvalidOperationException` if the scope does not register one), sets `Origin = RequestOrigin.System`, `ImmediateCaller` = the host's own service id, and starts a fresh single-entry `CallPath` with a `CallPathKind.System` entry. |
-| `ISystemWorkScope` / `ISystemWorkScopeFactory` + `AddD2SystemWorkPlane()` | **Platform System work plane** — the only sanctioned entry for hosted/background authority-bearing work. `BeginAsync` creates a DI scope, always calls `EstablishSystemContext` (host service id from `D2WorkloadIdentityOptions`), and returns a disposable scope with `Services`. Modules **consume** the factory; they never register `IRequestContext` / `MutableRequestContext` themselves. Hosts wire `AddD2SystemWorkPlane()` once (via monorepo-private `AddD2ServiceDefaults` (Private.ServiceDefaults)). Auth HTTP/gRPC dual-path resolvers replace the plain Mutable default so inbound requests still prefer `HttpContext.Items[REQUEST_CONTEXT]` while System workers fall through to scoped Mutable. |
-| `CallPathOps.cs`                 | Pure static helper `Append(existing, id, kind, timestamp) → IReadOnlyList<CallPathEntry>` shared by every establishment boundary (in this lib and in the `DcsvIo.D2.Private.Auth.Http` (PackageId; monorepo-private) / `DcsvIo.D2.Private.Auth.Grpc` (PackageId; monorepo-private) transport bindings). Depth-bounds the accumulated call-path at `MAX_CALL_PATH_DEPTH` (16) by trimming the oldest entries — keeps the field bounded even though a request cannot grow it without limit hop-by-hop. Throws `ArgumentException` on a null/empty/whitespace `id` (a missing self-identity is a misconfiguration, not a silently-dropped entry). |
+| `ISystemWorkScope` / `ISystemWorkScopeFactory` + `AddD2SystemWorkPlane()` | **Platform System work plane** — the only sanctioned entry for hosted/background authority-bearing work. `BeginAsync` creates a DI scope, always calls `EstablishSystemContext` (host service id from `D2WorkloadIdentityOptions`), and returns a disposable scope with `Services`. Modules **consume** the factory; they never register `IRequestContext` / `MutableRequestContext` themselves. Hosts wire `AddD2SystemWorkPlane()` once at composition root. Host JWT / gRPC dual-path resolvers replace the plain Mutable default so inbound requests still prefer `HttpContext.Items[REQUEST_CONTEXT]` while System workers fall through to scoped Mutable. |
+| `CallPathOps.cs`                 | Pure static helper `Append(existing, id, kind, timestamp) → IReadOnlyList<CallPathEntry>` shared by every establishment boundary (in this lib and in host-supplied HTTP/gRPC transport bindings). Depth-bounds the accumulated call-path at `MAX_CALL_PATH_DEPTH` (16) by trimming the oldest entries — keeps the field bounded even though a request cannot grow it without limit hop-by-hop. Throws `ArgumentException` on a null/empty/whitespace `id` (a missing self-identity is a misconfiguration, not a silently-dropped entry). |
 
 `Origin` / `ImmediateCaller` are never propagated (recomputed fresh, locally, by
 every establishment boundary); `CallPath` is the one field here that IS

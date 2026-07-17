@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Context.SourceGen
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 **Input contracts:** [`contracts/auth-context/`](../../../../contracts/auth-context/README.md) + [`contracts/request-context/`](../../../../contracts/request-context/README.md)
 
@@ -19,7 +19,7 @@ shape. Adding a property is a one-line change to
 mutable concrete, and the two factory methods (`FromClaims`,
 `FromJwtPayloadNoValidation`) all update on next build.
 
-**Convention**: spec-driven Roslyn IIncrementalGenerator pattern. See [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) for the framework-wide convention (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
+**Convention**: spec-driven Roslyn `IIncrementalGenerator` (netstandard2.0 analyzer; spec via `<AdditionalFiles>`; diagnostic IDs `D2…`).
 
 > **Cross-hop propagation does NOT go through codegen.** The small subset of
 > fields a downstream consumer can't recompute (`RequestId`, `RequestPath`,
@@ -68,12 +68,12 @@ property on `MutableRequestContext`. The Serilog destructuring policy
 on the runtime instance type at log time, so the attribute on the concrete
 is what makes redaction fire; the attribute on the interface is what
 keeps the cross-spec parity gate
-(`public/packages/dotnet/tests/Unit/SpecsConsistency/RedactDataVsSpecRedactConsistencyTests.cs`)
+(`packages/dotnet/tests/Unit/SpecsConsistency/RedactDataVsSpecRedactConsistencyTests.cs`)
 honest. The two MUST stay in lockstep — codegen places both unconditionally
 when the spec says `redact: true`, so divergence requires hand-editing
 the generated output (which is fenced by the auto-generated banner).
 
-The TS-side codegen (monorepo-private `private/tools/ts-codegen` (not on public export))
+The TS-side packages (generated catalogs committed in `@dcsv-io/d2-*`)
 emits a sibling `<TypeName>RedactPaths` constant from the same spec field,
 fed into `setupLogger({ redactPaths })` for Pino's redact configuration.
 The spec is the single source of truth across both languages.
@@ -115,7 +115,6 @@ These hand-written helpers live in `DcsvIo.D2.Context.Abstractions` — the pars
 
 ## Reference
 
-- [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) — canonical how-to-author guide for D² Roslyn source generators
 - [`contracts/auth-context/`](../../../../contracts/auth-context/) — auth-context spec + JSON Schema
 - [`contracts/request-context/`](../../../../contracts/request-context/) — request-context spec + JSON Schema
 - [`DcsvIo.D2.Auth.Scopes.SourceGen`](../../auth/scopes-source-gen/README.md) — sibling SrcGen this one mirrors (same incremental-generator + diagnostic-split pattern)

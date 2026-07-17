@@ -4,13 +4,13 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.EncryptionFrame.SourceGen
 
-> Parent: [`public/packages/dotnet/`](../README.md)
+> Parent: [`packages/dotnet/`](../README.md)
 
 **Input contracts:** [`contracts/encryption-frame/`](../../../../contracts/encryption-frame/README.md) (symmetric, version 1) + [`contracts/encryption-frame-sealed/`](../../../../contracts/encryption-frame-sealed/README.md) (sealed, version 2)
 
 Roslyn incremental source generators (two arms in one analyzer project) that emit the closed catalogs of binary-layout offsets, byte lengths, and constraints for the D2 on-wire encryption frames: `EncryptionFrameLayout` from `contracts/encryption-frame/encryption-frame.spec.json` (the symmetric version-1 frame) and `SealedFrameLayout` from the sibling `contracts/encryption-frame-sealed/encryption-frame-sealed.spec.json` (the sealed version-2 frame). The two generators filter on different spec file names, so neither ever reads the other's catalog and the version-1 artifacts stay byte-identical while the sealed layout evolves.
 
-**Convention**: spec-driven Roslyn IIncrementalGenerator pattern. See [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) for the framework-wide convention (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
+**Convention**: spec-driven Roslyn `IIncrementalGenerator` (netstandard2.0 analyzer; spec via `<AdditionalFiles>`).
 
 ## What this emits
 
@@ -29,7 +29,7 @@ The TS-side `@dcsv-io/d2-encryption-abstractions` package exposes the same binar
 
 ## Cross-language parity
 
-The SAME specs drive `@dcsv-io/d2-encryption-abstractions` via monorepo-private `private/tools/ts-codegen` (not on public export) (v1) and monorepo-private `private/tools/ts-codegen` (not on public export) (v2 sealed). Both sides reference identical offsets + lengths; cross-language wire drift is structurally impossible.
+The SAME specs drive `@dcsv-io/d2-encryption-abstractions` (v1 + v2 sealed layouts; sources committed). Both sides reference identical offsets + lengths; cross-language wire drift is structurally impossible.
 
 ## Diagnostics
 

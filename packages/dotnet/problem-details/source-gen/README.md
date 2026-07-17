@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.ProblemDetails.SourceGen
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 **Input contract:** [`contracts/problem-details/`](../../../../contracts/problem-details/README.md)
 
@@ -12,12 +12,12 @@ Roslyn incremental source generator that emits the static class `DcsvIo.D2.Probl
 
 The spec file is the single source of truth for the RFC 7807 wire shape emitted by every .NET ProblemDetails site:
 
-- monorepo-private Auth.Http path A (`DcsvIo.D2.Private.Auth.Http` PackageId) `D2ProblemDetailsExtensions.ToProblemDetails`
+- Host-supplied auth middleware path A `ToProblemDetails`
 - `DcsvIo.D2.AspNetCore.Internal.D2ProblemDetailsCustomizer.Apply` (ASP.NET Core `IProblemDetailsService` pipeline emit path B)
 
-The same spec drives the TS-side `@dcsv-io/d2-problem-details-abstractions` catalog (re-exported from `@dcsv-io/d2-private-headers` (private monorepo composition) for compatibility) via monorepo-private `private/tools/ts-codegen` (not on public export), so cross-language drift on the URI prefix, content type, extension keys, and per-status titles is structurally impossible.
+The same spec drives the TS-side `@dcsv-io/d2-problem-details-abstractions` catalog (sources committed), so cross-language drift on the URI prefix, content type, extension keys, and per-status titles is structurally impossible.
 
-**Convention**: spec-driven Roslyn IIncrementalGenerator pattern. See [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) for the framework-wide convention (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
+**Convention**: spec-driven Roslyn `IIncrementalGenerator` (netstandard2.0 analyzer; spec via `<AdditionalFiles>`).
 
 ---
 
@@ -89,16 +89,13 @@ One `.g.cs` file emitted into the consuming assembly (`DcsvIo.D2.ProblemDetails.
 - One `public const string TITLE_*` per title entry.
 - One `public static string TitleFor(HttpStatusCode statusCode)` switch helper.
 
-The abstractions csproj is referenced by monorepo-private Auth.Http (path A) and public `DcsvIo.D2.AspNetCore` (path B Customizer); both transport-binding csprojs share a single emitted constant set.
+The abstractions csproj is referenced by host auth middleware (path A) and public `DcsvIo.D2.AspNetCore` (path B Customizer); both emit paths share a single emitted constant set.
 
 ---
 
 ## Reference
 
-- [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) — canonical how-to-author guide for D² Roslyn source generators
 - [`contracts/problem-details/schema.json`](../../../../contracts/problem-details/schema.json) — JSON Schema for the spec
 - [`contracts/problem-details/problem-details.spec.json`](../../../../contracts/problem-details/problem-details.spec.json) — the source-of-truth catalog
 - [`DcsvIo.D2.ProblemDetails.Abstractions`](../abstractions/README.md) — the consuming csproj (single emit target)
-- `DcsvIo.D2.Private.Auth.ErrorCodes.SourceGen` (`private/packages/dotnet/auth/error-codes-source-gen/` — monorepo product, not public SoT) — sibling SrcGen this one mirrors (same incremental-generator + diagnostic-split pattern)
-- monorepo-private `private/tools/ts-codegen` (not on public export) — TS-side emitter consuming the same spec
 - [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807) — Problem Details for HTTP APIs

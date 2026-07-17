@@ -4,10 +4,10 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-auth-context-abstractions
 
-> Parent: [`public/packages/typescript/`](../../README.md)
+> Parent: [`packages/typescript/`](../../README.md)
 
 `IAuthContext` interface + supporting enums/types. Emitted from
-`contracts/auth-context/IAuthContext.spec.json` via `private/tools/ts-codegen`.
+`contracts/auth-context/IAuthContext.spec.json` (generated sources committed).
 Mirrors `DcsvIo.D2.AuthContext.Abstractions` (.NET).
 
 ## Public API
@@ -33,7 +33,7 @@ pnpm --filter ts-codegen codegen --force
 ## Dependencies
 
 None at the package level (interfaces only). The codegen runner
-(`private/tools/ts-codegen`) is a build-time dependency, not a runtime one.
+(codegen tooling when present) is a build-time dependency, not a runtime one.
 
 ## Usage example
 
@@ -67,7 +67,7 @@ Mirrors `DcsvIo.D2.AuthContext.Abstractions`:
 - `ActorEntry` — same field shape.
 
 The .NET-side codegen lives in `DcsvIo.D2.Context.SourceGen` (Roslyn
-incremental generator); the TS-side codegen lives in `private/tools/ts-codegen`.
+incremental generator); the TS-side catalogs are committed generated sources.
 Both consume the same `IAuthContext.spec.json`.
 
 ## Nullability convention

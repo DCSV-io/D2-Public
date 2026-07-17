@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.I18n.Abstractions
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 Domain-safe slice of the i18n stack: the `TKMessage` primitive and the `ITranslator` interface. **Zero external deps** (no NuGet packages, no other shared-lib references — only what the .NET runtime ships) so domain layers can reference this without dragging in DI containers, configuration loading, or file IO.
 
@@ -127,7 +127,7 @@ The csproj has no `<PackageReference>`s and no runtime `<ProjectReference>`s. Th
 
 ## Tests
 
-`public/packages/dotnet/tests/Unit/I18n/` — comprehensive coverage across abstractions surface (every `TKMessage` operation + immutability + JSON roundtrip + adversarial inputs) plus broad coverage of the SrcGen emitter and decomposer pure-logic paths. Categories:
+`packages/dotnet/tests/Unit/I18n/` — comprehensive coverage across abstractions surface (every `TKMessage` operation + immutability + JSON roundtrip + adversarial inputs) plus broad coverage of the SrcGen emitter and decomposer pure-logic paths. Categories:
 
 - `TKMessageTests` — equality (incl. order-independent params), JSON roundtrip, malformed JSON handling, immutability of `With()`, integration as part of `D2Result.Messages` arrays.
 - `SourceGen/KeyDecomposerTests` — happy path + every invalid edge (leading/trailing/consecutive underscores, identifier-starts-with-digit, unicode rejection, reserved word collision), plus property test against every real key in `en-US.json`.

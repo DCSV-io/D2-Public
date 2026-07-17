@@ -8,10 +8,9 @@ RFC 7807 problem-details extension-key catalog — the `type` URI prefix and the
 
 ## Consumed by
 
-- **.NET** — [`public/packages/dotnet/problem-details/source-gen/`](../../packages/dotnet/problem-details/source-gen/README.md) (Roslyn source-gen → `D2ProblemDetailsKeys` constants in `DcsvIo.D2.ProblemDetails.Abstractions`)
-- **TypeScript** — monorepo-private `private/tools/ts-codegen` › `problem-details-emit.ts` (not on public export) (→ matching `D2ProblemDetailsKeys` constants in `@dcsv-io/d2-problem-details-abstractions`)
+- **.NET** — [`packages/dotnet/problem-details/source-gen/`](../../packages/dotnet/problem-details/source-gen/README.md) (Roslyn source-gen → `D2ProblemDetailsKeys` constants in `DcsvIo.D2.ProblemDetails.Abstractions`)
+- **TypeScript** — constants/types in `@dcsv-io/d2-problem-details-abstractions` (generated from this spec; sources committed)
 
 ## See also
 
-- Codegen pattern + diagnostics: [docs/SRC_GEN.md](../../../docs/SRC_GEN.md)
 - All contracts: [contracts catalog](../README.md)

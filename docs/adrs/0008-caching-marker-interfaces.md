@@ -2,9 +2,6 @@
 Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 
-
-> **Visibility: PUBLIC** — ships with the open surface (`public/`).  
-> Do not add product IP, private paths, or non-exportable runbooks.
 # ADR-0008: Caching — marker-interface model (`ILocalCache` / `IDistributedCache` / `ITieredCache`) with `D2Result` ops + broadcast invalidation
 
 - **Status**: Accepted
@@ -65,7 +62,7 @@ TTL-only invalidation would require implausibly short TTLs (defeating L1) or acc
 
 ## Alternatives considered
 
-**Use `Microsoft.Extensions.Caching.Abstractions.IDistributedCache` directly.** No `SetNx`/`Increment`/lock primitives, `null` for both miss and failure, no broadcast surface, no behavioral declaration at the dependency site. Adopting it as the primary abstraction would force each caller to reimplement atomics + miss/failure discrimination + L1 coherency ad hoc. `PATTERNS.md` permits the framework `IDistributedCache` only where plain get/set/refresh/remove suffices.
+**Use `Microsoft.Extensions.Caching.Abstractions.IDistributedCache` directly.** No `SetNx`/`Increment`/lock primitives, `null` for both miss and failure, no broadcast surface, no behavioral declaration at the dependency site. Adopting it as the primary abstraction would force each caller to reimplement atomics + miss/failure discrimination + L1 coherency ad hoc. The framework `IDistributedCache` is appropriate only where plain get/set/refresh/remove suffices.
 
 **A single `ICache` interface.** Eliminates the structural-identity hazard but removes all behavioral declaration at the dependency site — callers would need docs/conventions to communicate local vs cluster vs tiered intent, weaker than the marker approach.
 
@@ -75,12 +72,10 @@ TTL-only invalidation would require implausibly short TTLs (defeating L1) or acc
 
 ## References
 
-> **Monorepo-private process paths** (`docs/PATTERNS.md`, `docs/dev/rules.md`, and similar) are illustration only in the product monorepo that embeds this open tree — **not required for a public clone** of this ADR (monorepo dual-tree / export layout is private monorepo law — not required for a public clone of this ADR).
-- `public/packages/dotnet/caching/abstractions/` — `ILocalCache.cs`, `IDistributedCache.cs`, `ITieredCache.cs`, the four building-block interfaces, `ICacheInvalidationBackplane.cs`, `InputFailures.cs`, `LocalCacheOptions.cs`, and the README (result-mapping table + "everyone acts" rationale).
-- `public/packages/dotnet/caching/local-default/DefaultLocalCache.cs` — `IMemoryCache` + `ConcurrentDictionary`; `Size=1`; direct dispatch.
-- `public/packages/dotnet/caching/distributed-redis/` — `RedisDistributedCache.cs`, `RedisLuaScripts.cs`, `RedisCacheInvalidationBackplane.cs`.
-- `public/packages/dotnet/caching/tiered/DefaultTieredCache.cs` — L2-first writes, populate-on-hit, backplane subscription.
-- TypeScript twin cluster: `public/packages/typescript/caching/` — `@dcsv-io/d2-caching-abstractions`, `@dcsv-io/d2-caching-local-default`, `@dcsv-io/d2-caching-distributed-redis`, `@dcsv-io/d2-caching-tiered` (behavioral runtime twin of this ADR; package READMEs under each folder). Markers are **not** method-for-method identical across distributed vs tiered: `ICacheSet` is distributed-only (see Decision §1).
-- Dual-runtime constants/semantics parity: `private/packages/typescript/contract-tests/fixtures/caching-twin/constants.json` + `tests/caching-twin.parity.test.ts` (emitted by `CachingTwinFixtureEmitter`) — defaults / meters / Lua / channel / tiered EventId bindings; not a full algorithm interop harness.
-- `docs/PATTERNS.md` (Cache section); `docs/PARITY.md` (caching stack RUNTIME row); `docs/dev/rules.md` (backplane unsubscribe-on-dispose; broadcast-variant for cluster-wide L1 invalidation).
+- `packages/dotnet/caching/abstractions/` — `ILocalCache.cs`, `IDistributedCache.cs`, `ITieredCache.cs`, the four building-block interfaces, `ICacheInvalidationBackplane.cs`, `InputFailures.cs`, `LocalCacheOptions.cs`, and the README (result-mapping table + "everyone acts" rationale).
+- `packages/dotnet/caching/local-default/DefaultLocalCache.cs` — `IMemoryCache` + `ConcurrentDictionary`; `Size=1`; direct dispatch.
+- `packages/dotnet/caching/distributed-redis/` — `RedisDistributedCache.cs`, `RedisLuaScripts.cs`, `RedisCacheInvalidationBackplane.cs`.
+- `packages/dotnet/caching/tiered/DefaultTieredCache.cs` — L2-first writes, populate-on-hit, backplane subscription.
+- TypeScript twin cluster: `packages/typescript/caching/` — `@dcsv-io/d2-caching-abstractions`, `@dcsv-io/d2-caching-local-default`, `@dcsv-io/d2-caching-distributed-redis`, `@dcsv-io/d2-caching-tiered` (behavioral runtime twin of this ADR; package READMEs under each folder). Markers are **not** method-for-method identical across distributed vs tiered: `ICacheSet` is distributed-only (see Decision §1).
+- Dual-runtime constants/semantics parity tests pin defaults / meters / Lua / channel / tiered EventId bindings across .NET and TypeScript twins (not a full algorithm interop harness).
 - [ADR-0006](0006-abstractions-implementation-split.md) — the abstractions/impl split. [ADR-0003](0003-d2result-errors-as-values.md) — the errors-as-values surface. [ADR-0005](0005-handler-pipeline.md) — the `DefaultLocalCache` no-`BaseHandler` carve-out.

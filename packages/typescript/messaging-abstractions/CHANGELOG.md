@@ -11,9 +11,8 @@ Keep a Changelog, and this package adheres to Semantic Versioning.
 
 ### Added
 
-- `MqMessagesCatalog` — the literal-typed (`as const`) per-message catalog plus
-  the `MqMessageCatalogKey` union: the compile-time type-witness input the
-  @dcsv-io/d2-messaging-rabbitmq publisher consumes (same data as `MqMessagesRegistry`,
-  but each `encryption` value keeps its literal type).
+### Changed
 
 ### Fixed
+
+## 0.1.1 - 2026-07-17

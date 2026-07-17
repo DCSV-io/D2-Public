@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.I18n.Keys
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 Foundational slice that exposes the type-safe `TK` constants catalog — one `static readonly TKMessage` per translation key, Source-Generated from `contracts/messages/en-US.json`. Every producer that emits a user-facing message references a `TK.*` constant (e.g. `TK.Common.Errors.NOT_FOUND`) rather than a raw string, so the wire stays language-neutral and the client resolves the final copy.
 
@@ -100,4 +100,4 @@ Runtime reference to Abstractions (for `TKMessage`). The TK generator is referen
 
 ## Tests
 
-The TK catalog is covered by `public/packages/dotnet/tests/Unit/I18n/` — `TKGeneratedTests` round-trips every emitted constant back to a key in `en-US.json`, and the `SourceGen/` tests exercise the generator's emitter and decomposer pure-logic paths (key decomposition, emitter determinism, all six `D2I18N###` diagnostics).
+The TK catalog is covered by `packages/dotnet/tests/Unit/I18n/` — `TKGeneratedTests` round-trips every emitted constant back to a key in `en-US.json`, and the `SourceGen/` tests exercise the generator's emitter and decomposer pure-logic paths (key decomposition, emitter determinism, all six `D2I18N###` diagnostics).

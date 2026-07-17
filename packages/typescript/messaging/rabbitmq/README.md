@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-messaging-rabbitmq
 
-> Parent: [`public/packages/typescript/`](../../README.md)
+> Parent: [`packages/typescript/`](../../README.md)
 
 The TypeScript **CONSUMER** runtime twin of the .NET
 [`DcsvIo.D2.Messaging.RabbitMq`](../../../../dotnet/messaging/rabbitmq/README.md)
@@ -38,7 +38,7 @@ paths: the descriptor's domain mode is consulted unconditionally, and a missing
 composer for an encrypted domain, or an unknown domain, fails loud before any
 socket write. The body is composed once (a resend reuses the exact bytes — no
 re-encrypt under a fresh nonce). The KC-backed composer instances are wired by
-the host via `@dcsv-io/d2-private-key-custodian-client`'s `createSealedCryptoViaKeyCustodian`.
+the host via `host composition packages`'s `createSealedCryptoViaKeyCustodian`.
 
 On the consume side, `CryptoBodyOpener` (sealed / symmetric) plugs the real
 crypto into the body-decompose seam: a wrong-version frame, a plaintext body on
@@ -153,7 +153,7 @@ queue lock).
   encrypted-frame → DLQ, handler-failure DLQ metadata, idempotency dedup, and
   competing consumers.
 - **Descriptor mirror** — `MqMessages` / `MqMessagesRegistry` (in
-  `@dcsv-io/d2-messaging-abstractions`, emitted by `private/tools/ts-codegen/src/mq-messages-emit.ts`)
+  `@dcsv-io/d2-messaging-abstractions`, generated from the messaging specs; sources committed)
   is asserted byte-equal to the .NET `MqMessagesRegistry` by
   `contract-tests/tests/mq-messages.parity.test.ts`.
 

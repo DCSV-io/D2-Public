@@ -14,6 +14,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 | `DcsvIo.D2.AuthContext.Abstractions` | Auth context shape consumed by request-context |
 | `scopes|audiences|protocol-audiences|jwt-claims-source-gen` | Catalog generators |
 
-## Private product composition (not under `public/`)
+## Host-supplied (not in this repo)
 
-Full inbound JWT runtime, transport bindings, outbound mint/forward, events, ServiceDefaults, and related source-gens live under **`private/packages/dotnet/auth/*`** and **`private/packages/dotnet/service-defaults/`** as `DcsvIo.D2.Private.*` PackageIds (AssemblyName policy A keeps open pre-move assembly names for IVT/generators). See monorepo `private/packages/README.md` and private ADR-0012 / ADR-0022.
+Full inbound JWT runtime, transport bindings, outbound mint/forward, and related host composition are **not published here**. Hosts supply JWT middleware and session/liveness adapters that bind the catalogs and ports above.

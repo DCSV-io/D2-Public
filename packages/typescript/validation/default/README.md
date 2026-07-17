@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-validation
 
-> Parent: [`public/packages/typescript/`](../../README.md)
+> Parent: [`packages/typescript/`](../../README.md)
 >
 > **Audience**: backend Node/TypeScript engineers + BFF code that needs to validate and normalize emails, phone numbers, and postal codes against the same rules the .NET services enforce.
 
@@ -56,7 +56,7 @@ const postal = postalCodeValidator.validate("sw1a 1aa", CountryCode.GB);
 
 ## Version pins
 
-`libphonenumber-js` is pinned to an **exact** version (no `^` / `~`). The pin matches `private/services/web`'s version so the SvelteKit form layer and this shared library validate identically. Metadata-bearing libraries shift their accept/reject boundary between minor releases — an exact pin keeps that boundary stable across both consumers and across the .NET parity fixtures.
+`libphonenumber-js` is pinned to an **exact** version (no `^` / `~`). Host form layers should pin the same version so client and library validation stay identical. Metadata-bearing libraries shift their accept/reject boundary between minor releases — an exact pin keeps that boundary stable across consumers and across the .NET parity fixtures.
 
 Postal-code validation no longer depends on the `postcode-validator` npm — it reads the shared `contracts/validation/postal-code-regexes.json` dataset directly. The provenance/version stamp (ported from `postcode-validator@3.10.9`, with the `[A-z]` → `[A-Za-z]` UK/GB correction) lives in that file's `$comment`.
 

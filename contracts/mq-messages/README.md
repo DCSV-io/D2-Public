@@ -8,11 +8,10 @@ Message-queue message registry — the closed set of RabbitMQ message type names
 
 ## Consumed by
 
-- **.NET** — [`public/packages/dotnet/messaging/source-gen/`](../../packages/dotnet/messaging/source-gen/README.md) (Roslyn `MqGenerator` → `MqMessages` routing constants + publisher descriptor registrations in `DcsvIo.D2.Messaging.Abstractions`)
+- **.NET** — [`packages/dotnet/messaging/source-gen/`](../../packages/dotnet/messaging/source-gen/README.md) (Roslyn `MqGenerator` → `MqMessages` routing constants + publisher descriptor registrations in `DcsvIo.D2.Messaging.Abstractions`)
 
-No `private/tools/ts-codegen` emitter consumes this catalog — message routing is a .NET-side messaging concern.
+No TypeScript package currently consumes this catalog as a source-gen input — message routing descriptors may be mirrored in `@dcsv-io/d2-messaging-abstractions` from related specs.
 
 ## See also
 
-- Codegen pattern + diagnostics: [docs/SRC_GEN.md](../../../docs/SRC_GEN.md)
 - All contracts: [contracts catalog](../README.md)

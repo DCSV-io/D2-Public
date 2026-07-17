@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Telemetry.Tags.SourceGen
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 **Input contract:** [`contracts/telemetry/`](../../../../contracts/telemetry/README.md)
 
@@ -14,7 +14,7 @@ The spec file is the single source of truth for the platform's OTel meter / inst
 
 Untagged instruments and instruments with open-enum tags (e.g. handler-name) are spec-listed for documentation parity but receive no codegen output.
 
-**Convention**: spec-driven Roslyn IIncrementalGenerator pattern. See [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) for the framework-wide convention (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
+**Convention**: spec-driven Roslyn `IIncrementalGenerator` pattern (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
 
 ---
 
@@ -116,8 +116,7 @@ public static class AuthTelemetryTags
 
 ## Reference
 
-- [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) — canonical how-to-author guide for D² Roslyn source generators
 - [`contracts/telemetry/schema.json`](../../../../contracts/telemetry/schema.json) — JSON Schema for the spec
 - [`contracts/telemetry/telemetry.spec.json`](../../../../contracts/telemetry/telemetry.spec.json) — the source-of-truth catalog
-- `DcsvIo.D2.Private.Auth.ErrorCodes.SourceGen` (`private/packages/dotnet/auth/error-codes-source-gen/` — monorepo product, not public SoT) — sibling SrcGen whose spec the cross-spec resolver consumes
+- Sibling host-side catalog generators may supply additional specs the cross-spec resolver consumes
 - [`DcsvIo.D2.Auth.Scopes.SourceGen`](../../auth/scopes-source-gen/README.md) — sibling SrcGen this one mirrors (incremental-generator + diagnostic-split pattern)

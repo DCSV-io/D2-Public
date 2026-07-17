@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Caching.Abstractions
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 Shared abstractions for the whole D² cache stack — used by `local-default` (per-process),
 `distributed-redis` (cluster), `tiered` (composed), and every consumer.
@@ -36,7 +36,7 @@ exceptions — see the `*AndBroadcast*` carve-out below.)
 ### Cache key convention
 
 Cache keys follow the `EntityName:{id}` shape (`Session:{userId}`, `Jwks:{kid}`,
-`WhoIs:{ip}`, etc.) per `docs/PATTERNS.md` (monorepo-only — not on public export). The `LocalCacheOptions.KeyPrefix` is a
+`WhoIs:{ip}`, etc.) (`EntityName:{id}`). The `LocalCacheOptions.KeyPrefix` is a
 _namespace_ prefix layered on top of that convention (handy when multiple caches share a
 process), not a substitute for it. Keep PII out of keys — keys leak into logs, traces, and
 Redis MONITOR / OBJECT inspection. Hash any user-supplied identifier first.
@@ -225,7 +225,6 @@ implementation runtime.
 
 ## References
 
-- [PATTERNS.md (monorepo-only — not on public export)](../../../../../docs/PATTERNS.md) cache section
 - [`local-default/`](../local-default/README.md) — `DefaultLocalCache` impl
 - [`distributed-redis/`](../distributed-redis/README.md) —
   `RedisDistributedCache` + `RedisCacheInvalidationBackplane` impls

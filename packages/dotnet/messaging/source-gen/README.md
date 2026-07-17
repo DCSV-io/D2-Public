@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Messaging.SourceGen
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 **Input contracts:** [`contracts/mq-messages/`](../../../../contracts/mq-messages/README.md) + [`contracts/mq-subscriptions/`](../../../../contracts/mq-subscriptions/README.md)
 
@@ -15,7 +15,7 @@ Roslyn incremental source generator that emits the messaging registry types (`Mq
 
 The spec files are the single source of truth — adding a new message or subscription is a one-line edit to a JSON file; the generator picks it up next build, emits the constant + descriptor + registry entry, and downstream consumers compile against typed identifiers (`MqMessages.UserCreated` not `"user.created"`).
 
-**Convention**: spec-driven Roslyn IIncrementalGenerator pattern. See [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) for the framework-wide convention (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
+**Convention**: spec-driven Roslyn `IIncrementalGenerator` (netstandard2.0 analyzer; spec via `<AdditionalFiles>`).
 
 ---
 
@@ -142,7 +142,6 @@ careful coordination with deployed consumers:
 
 ## Reference
 
-- [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) — canonical how-to-author guide for D² Roslyn source generators
 - [`contracts/mq-messages/mq-messages.spec.json`](../../../../contracts/mq-messages/mq-messages.spec.json) — message catalog
 - [`contracts/mq-subscriptions/mq-subscriptions.spec.json`](../../../../contracts/mq-subscriptions/mq-subscriptions.spec.json) — subscription catalog
 - [`DcsvIo.D2.Messaging.Abstractions`](../abstractions/README.md) — emission target + transport-agnostic contract

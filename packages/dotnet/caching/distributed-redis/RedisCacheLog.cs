@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// <c>LoggerMessage</c> delegates for the Redis cache impl. Per
-/// <c>docs/dev/rules.md §3.1</c>, none of the delegates take
+/// PII safety: none of the delegates take
 /// <see cref="Exception"/> directly — <c>ex.Message</c> on a
 /// <c>RedisException</c> can carry connection-string fragments and
 /// command details that leak into log sinks. Callers compute

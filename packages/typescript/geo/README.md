@@ -4,9 +4,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # geo/
 
-> Parent: [`public/packages/typescript/`](../README.md)
+> Parent: [`packages/typescript/`](../README.md)
 
-Spec-driven geographic reference data and lookup contracts for TS consumers — the minimal hand-written API surface and the codegen-emitted in-memory catalogs. Both are emitted from the same seven `contracts/geo/*.spec.json` files that drive the .NET side via `private/tools/ts-codegen/src/geo-emitter/`, so cross-language drift is structurally impossible. Domain code references the abstractions without dragging in catalog data.
+Spec-driven geographic reference data and lookup contracts for TS consumers — the minimal hand-written API surface and the codegen-emitted in-memory catalogs. Both are emitted from the same seven `contracts/geo/*.spec.json` files that drive the .NET side (sources committed), so cross-language drift is structurally impossible. Domain code references the abstractions without dragging in catalog data.
 
 ## Packages
 

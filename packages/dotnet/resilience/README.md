@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Resilience
 
-> Parent: [`public/packages/dotnet/`](../README.md)
+> Parent: [`packages/dotnet/`](../README.md)
 
 The sole, feature-complete resilience mechanism for the platform. Covers retry, circuit-breaker, singleflight, timeout, and concurrency rate-limiting as composable pipeline layers. Lock-free where possible (`Interlocked` operations, `ConcurrentDictionary`); test seams baked in (clock + delay overrides). Resilience is **caller-side, opt-in** (off by default — it costs latency) and **per-call overridable**.
 
@@ -502,7 +502,7 @@ Use the lib-internal-invisible pattern for a service's own outbound calls (Couri
 
 ## Tests
 
-`public/packages/dotnet/tests/Unit/Resilience/` — comprehensive adversarial coverage across every public surface. Categories:
+`packages/dotnet/tests/Unit/Resilience/` — comprehensive adversarial coverage across every public surface. Categories:
 
 - **`RetryHelper`**: full transient-classifier matrix (HTTP 5xx / 429 / 408 / non-transient codes / null status / TaskCanceled / Timeout / Socket / arbitrary). Happy path, throws-then-succeeds, throws-every-attempt-exhaustion, ShouldRetry-true-then-false, ShouldRetry-always-true (last-value wins on exhaustion), alternating throw+return (last terminator wins), pre-canceled token, OCE-from-ct (NOT classified transient), DelayFunc-invoked-between-retries.
 - **`RetryD2ResultAsync`**: default predicate retries `ServiceUnavailable`, default predicate does NOT retry `NotFound`, caller-`ShouldRetry`-override wins, null-options behavior.
@@ -521,12 +521,12 @@ Use the lib-internal-invisible pattern for a service's own outbound calls (Couri
 - **`PipelineCompositionTests`**: 6-layer nesting adversarial tests covering all canonical configurations and the order-of-operations proofs: canonical-full-stack-RL-Tt-R-CB-Ta (flaky succeeds, permanently-down exhausts), CB↔R order-sensitivity proof (R→CB real-op-called-once-vs CB→R real-op-called-N-times), total-timeout-outside-retry-terminates-loop, per-attempt-timeout-inside-retry-retried-then-succeeds, RL-outermost-short-circuits-inner-layers, RL-rejection-not-retried-when-inside-retry, SF-outermost-dedup-across-full-stack, SF-distinct-keys-distinct-executions, caller-cancellation-through-deep-stack-maps-to-Canceled, PassThrough-zero-layers-no-retry.
 - **`ResilientPipelineServiceCollectionExtensionsTests` (extended)**: `Dispose_InlineOptionsPipeline_DisposesOwnedRateLimiter` — F-1 regression (proves `ServiceProvider.Dispose` propagates through the keyed singleton pipeline to the inline-owned `RateLimiter`/`SemaphoreSlim`).
 
-Run: `dotnet test public/packages/dotnet/tests`
+Run: `dotnet test packages/dotnet/tests`
 
 CLI coverage one-liner:
 
 ```bash
-cd public/packages/dotnet/tests
+cd packages/dotnet/tests
 coverlet bin/Debug/net10.0/DcsvIo.D2.Tests.dll \
   --target dotnet --targetargs "test --no-build" \
   --include "[DcsvIo.D2.Resilience]*" \

@@ -18,8 +18,8 @@ using Microsoft.Extensions.Options;
 /// <see cref="D2MutualTlsOptions.Enabled"/>, Kestrel's HTTPS endpoint is configured
 /// to REQUIRE a client certificate and to validate it with the default-deny
 /// <see cref="SpiffeSanPeerValidator"/>. The Kestrel-config LOGIC lives here in
-/// <c>DcsvIo.D2.AspNetCore</c>; open hosts call it directly, and monorepo-private
-/// <c>DcsvIo.D2.Private.ServiceDefaults</c> (PackageId; not on public export) may compose it.
+/// <c>DcsvIo.D2.AspNetCore</c>; hosts call it directly (or compose it from their
+/// own composition root).
 /// </summary>
 public static class MutualTlsHostExtensions
 {

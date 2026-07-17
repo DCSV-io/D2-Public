@@ -2,9 +2,6 @@
 Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 
-
-> **Visibility: PUBLIC** — ships with the open surface (`public/`).  
-> Do not add product IP, private paths, or non-exportable runbooks.
 # ADR-0006: Domain-safe abstractions slices + provider-pluggable implementation packages
 
 - **Status**: Accepted
@@ -13,32 +10,32 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 ## Context
 
-`public/packages/dotnet/` contains roughly 40 built library projects organized into 13 named clusters. Within every multi-package cluster, the dependency graph exhibits the same recurring structural split: a zero-infrastructure-dependency `*/abstractions` (or `*/context-abstractions`) package that domain code can freely reference, and one or more sibling `*/{core,default,impl,repo,repo-postgres,rabbitmq,distributed-redis,tiered,local-default}` packages that carry the runtime weight — DI extensions, ORM drivers, broker clients, OpenTelemetry, AspNetCore, heavy NuGet packages.
+`packages/dotnet/` contains roughly 40 built library projects organized into 13 named clusters. Within every multi-package cluster, the dependency graph exhibits the same recurring structural split: a zero-infrastructure-dependency `*/abstractions` (or `*/context-abstractions`) package that domain code can freely reference, and one or more sibling `*/{core,default,impl,repo,repo-postgres,rabbitmq,distributed-redis,tiered,local-default}` packages that carry the runtime weight — DI extensions, ORM drivers, broker clients, OpenTelemetry, AspNetCore, heavy NuGet packages.
 
-The split appears across the clusters (evidence: the `public/packages/dotnet/README.md` library table + dependency graph):
+The split appears across the clusters (evidence: the `packages/dotnet/README.md` library table + dependency graph):
 
 | Cluster | Abstractions slice | Runtime / provider sibling(s) |
 |---|---|---|
 | i18n | `i18n/abstractions` — `TKMessage`, `ITranslator`, codegen `TK` constants; "Zero external deps" | `i18n/core` — `Translator`, `AddD2I18n` |
-| auth | `auth/abstractions` — enums, SrcGen `Scopes`/`Audiences`/`JwtClaimTypes`, `IJwksProvider` | monorepo-private Auth runtime (`Private.Auth` / `.Http` / `.Grpc` / `.Outbound` PackageIds) |
-| context | `auth/context-abstractions` (`IAuthContext`), `context/abstractions` (`IRequestContext`, `PropagatedContext` + serializer) | consumed/populated by monorepo-private Auth runtime |
+| auth | `auth/abstractions` — enums, SrcGen `Scopes`/`Audiences`/`JwtClaimTypes`, `IJwksProvider` | host-supplied JWT / transport runtime |
+| context | `auth/context-abstractions` (`IAuthContext`), `context/abstractions` (`IRequestContext`, `PropagatedContext` + serializer) | consumed/populated by host-supplied JWT middleware |
 | handler | `handler/abstractions` — `IHandler`, `IHandlerContext`, `HandlerOptions` | `handler/core` — `BaseHandler`, OTel, `AddD2Handler` |
 | handler/repo | `handler/repo-abstractions` — `DbFailureKind`, `IDbExceptionClassifier`; "no EF Core, no Npgsql, no provider deps" | `handler/repo` (EF, zero provider deps); `handler/repo-postgres` (SQLSTATE matrix, Npgsql) |
 | caching | `caching/abstractions` — `ILocalCache`/`IDistributedCache`/`ITieredCache` markers | `caching/local-default`, `caching/distributed-redis`, `caching/tiered` |
 | geo | `geo/abstractions` — `IGeoReference`, `IGeoNameResolver`, codegen geo types | `geo/default` — catalogs, `DefaultGeoNameResolver`, `AddD2GeoDefault` |
 | messaging | `messaging/abstractions` — `IMessageBus`, `[MqPub]`/`[MqSub]`, codegen registries | `messaging/rabbitmq` — RabbitMQ.Client 7.x impl |
-| problem-details | `problem-details/abstractions` — codegen `D2ProblemDetailsKeys`; "Zero runtime deps" | (consumed by `auth/http` + `aspnetcore/`) |
+| problem-details | `problem-details/abstractions` — codegen `D2ProblemDetailsKeys`; "Zero runtime deps" | (consumed by host auth middleware + `aspnetcore/`) |
 | validation _(a multi-package concern area that follows the same split; not in the README's formal 13-cluster index)_ | `validation/abstractions` — `IEmailValidator`/`IPhoneValidator`/`IPostalCodeValidator`; codegen-emitted `FieldConstraints` field-length constants + `NamePrefix`/`NameSuffix`/`BiologicalSex` taxonomy enums (consumed by domain VOs + frontend Zod schemas) | `validation/default` — defaults + libphonenumber-csharp |
 
 The i18n split's stated purpose — "exactly mirrors `Microsoft.Extensions.Logging.Abstractions` vs `Microsoft.Extensions.Logging`" — is the canonical articulation (`i18n/abstractions/README.md`). The handler/repo triple is the most explicit provider-pluggability statement: `repo-abstractions` defines the `IDbExceptionClassifier` seam; `repo` consumes it with EF but zero provider deps; `repo-postgres` provides the PostgreSQL SQLSTATE matrix via DI (`AddD2Postgres()`), making database-engine selection a composition-root decision (ADR-0005).
 
 The pattern also intersects codegen (ADR-0002): source generators emit vocabulary (constants, interfaces, wire-shape records) directly into abstractions packages, because those packages have no infrastructure prerequisites at compile time and can therefore be referenced by other abstractions or codegen targets without pulling runtime weight — `auth/context-abstractions` (`IAuthContext`), `messaging/abstractions` (`MqMessages`/`MqSubscriptions`), `problem-details/abstractions` (`D2ProblemDetailsKeys`), `geo/abstractions` (geo types) all follow this shape.
 
-The dependency graph in `public/packages/dotnet/README.md` shows the acyclic result: impl nodes point inward to abstraction nodes, never the reverse. `docs/dev/rules.md §9` enforces this at the audit-round level — §9.8 mandates that every `<ProjectReference>` edit also update the dep graph in the same change, keeping the chart a living specification.
+The dependency graph in `packages/dotnet/README.md` shows the acyclic result: impl nodes point inward to abstraction nodes, never the reverse. Every `<ProjectReference>` edit should update the dep graph in the same change, keeping the chart a living specification.
 
 ## Decision
 
-Every multi-package cluster in `public/packages/dotnet/` is split into at minimum two csprojs: a `*/abstractions` slice and one or more runtime/provider siblings. The split is structural, not stylistic, with these invariants:
+Every multi-package cluster in `packages/dotnet/` is split into at minimum two csprojs: a `*/abstractions` slice and one or more runtime/provider siblings. The split is structural, not stylistic, with these invariants:
 
 **The abstractions slice contains:**
 
@@ -54,7 +51,7 @@ Every multi-package cluster in `public/packages/dotnet/` is split into at minimu
 - Framework/provider NuGets (OpenTelemetry, AspNetCore, EF Core, Npgsql, StackExchange.Redis, RabbitMQ.Client, libphonenumber-csharp, NodaTime).
 - Telemetry emission, middleware bindings, connection/retry logic.
 
-Domain and application code takes `ProjectReference` only on `*/abstractions` packages. The composition root (a service's `Program.cs` or monorepo-private `Private.ServiceDefaults`) is the only place that references impl packages and wires them to abstractions via DI. Rules §9.8 enforces that every `<ProjectReference>` addition updates the published dependency graph, making violations visible in PR diffs.
+Domain and application code takes `ProjectReference` only on `*/abstractions` packages. The composition root (a service's `Program.cs`) is the only place that references impl packages and wires them to abstractions via DI.
 
 ## Consequences
 
@@ -84,10 +81,8 @@ Domain and application code takes `ProjectReference` only on `*/abstractions` pa
 
 ## References
 
-> **Monorepo-private process paths** (`docs/PATTERNS.md`, `docs/dev/rules.md`, and similar) are illustration only in the product monorepo that embeds this open tree — **not required for a public clone** of this ADR (monorepo dual-tree / export layout is private monorepo law � not required for a public clone of this ADR).
-- `public/packages/dotnet/README.md` — library table (Purpose column) + dependency graph; the structural evidence base for this ADR.
-- `public/packages/dotnet/i18n/abstractions/README.md` — "Why split" section; the canonical articulation ("matches `Microsoft.Extensions.Logging.Abstractions` vs `Microsoft.Extensions.Logging` exactly").
-- `public/packages/dotnet/handler/repo-abstractions/README.md`, `handler/repo/README.md` — "Pure abstractions: no EF Core, no Npgsql, no provider deps"; "Provider-specific knowledge lives in sibling packages" — the most explicit provider-pluggability example.
-- `public/packages/dotnet/caching/abstractions/README.md`, `messaging/abstractions/README.md`, `geo/abstractions/README.md` — the same "domain-safe, no runtime/transport deps" rationale across clusters.
-- `docs/dev/rules.md §9` (layer hygiene) + §9.8 (dep-graph update requirement for every `<ProjectReference>` edit).
+- `packages/dotnet/README.md` — library table (Purpose column) + dependency graph; the structural evidence base for this ADR.
+- `packages/dotnet/i18n/abstractions/README.md` — "Why split" section; the canonical articulation ("matches `Microsoft.Extensions.Logging.Abstractions` vs `Microsoft.Extensions.Logging` exactly").
+- `packages/dotnet/handler/repo-abstractions/README.md`, `handler/repo/README.md` — "Pure abstractions: no EF Core, no Npgsql, no provider deps"; "Provider-specific knowledge lives in sibling packages" — the most explicit provider-pluggability example.
+- `packages/dotnet/caching/abstractions/README.md`, `messaging/abstractions/README.md`, `geo/abstractions/README.md` — the same "domain-safe, no runtime/transport deps" rationale across clusters.
 - [ADR-0005](0005-handler-pipeline.md) — the handler/repo abstractions+core+provider triple is the most developed instance of this pattern. [ADR-0002](0002-spec-driven-codegen.md) — codegen emits into the abstractions slices. [ADR-0003](0003-d2result-errors-as-values.md), [ADR-0004](0004-i18n-tkmessage.md) — `DcsvIo.D2.Result` + `DcsvIo.D2.I18n.Abstractions` are the two foundation deps the abstractions slices are allowed to reference.

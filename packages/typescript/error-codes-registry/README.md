@@ -14,7 +14,7 @@ producer's catalog.
 ## Key facts
 
 - **Generated**: `src/generated/error-code-registry.g.ts` is auto-generated
-  by `private/tools/ts-codegen/src/error-codes-registry-emit.ts` — do not hand-edit.
+  from the error-codes specs (sources committed) — do not hand-edit.
   Re-generate with `pnpm --filter ts-codegen run codegen --force`.
 - **Leaf package**: depends only on `@dcsv-io/d2-i18n-abstractions` + `@dcsv-io/d2-i18n-keys`;
   nothing depends up into it except boundary consumers (Edge/BFF).

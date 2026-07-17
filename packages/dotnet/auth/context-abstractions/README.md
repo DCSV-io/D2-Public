@@ -4,11 +4,11 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.AuthContext.Abstractions
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 Read-only `IAuthContext` interface — the typed contract domain code uses to reason about caller identity, organization, scopes, and impersonation context. Codegen-emitted from `contracts/auth-context/IAuthContext.spec.json` by `DcsvIo.D2.Context.SourceGen`. Plus hand-written `IAuthContextExtensions` convenience helpers.
 
-This is the domain-safe slice. Anything heavier (HTTP middleware, JWT validation, runtime population) lives in sibling/public or monorepo-private libs: public `DcsvIo.D2.Context.Abstractions` (request-context interfaces + `MutableRequestContext` + propagation codecs); monorepo-private Auth runtime PackageId `DcsvIo.D2.Private.Auth` (JWT validation + related composition — not on public export).
+This is the domain-safe slice. Heavier runtime (HTTP middleware, JWT validation, population) is host-supplied. Sibling public package `DcsvIo.D2.Context.Abstractions` holds request-context interfaces + `MutableRequestContext` + propagation codecs.
 
 ---
 

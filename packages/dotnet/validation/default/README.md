@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Validation
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 >
 > **Audience**: backend .NET service engineers integrating the validators via DI — email,
 > phone, and postal-code validation backed by libphonenumber-csharp and a ported

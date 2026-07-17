@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Telemetry
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 OpenTelemetry SDK setup (traces / metrics / logs) + OTLP exporters (per-signal opt-in via canonical env vars) + IP-restricted Prometheus scraping endpoint + aggregation of every shared lib's `ActivitySource` and `Meter` into a single `AddD2Telemetry()` call. Foundation lib that the composition-root aggregator and per-service `Program.cs` files call to wire the OTel SDK without each service duplicating ~120 lines of `OpenTelemetryBuilder` / `ConfigureResource` / per-instrumentation registration boilerplate.
 
@@ -26,7 +26,7 @@ services.AddD2Telemetry(configuration, opts =>
 {
     opts.ServiceName = "edge";                       // optional — defaults from OTEL_SERVICE_NAME → IHostEnvironment.ApplicationName
     opts.OtlpTracesEndpoint = "https://otlp.example.com/v1/traces";  // optional — defaults from OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
-    opts.AdditionalActivitySources = ["DcsvIo.D2.Private.Edge"];    // optional — service-specific activity sources
+    opts.AdditionalActivitySources = ["YourHost.Service"];    // optional — service-specific activity sources
 });
 
 // later, inside the endpoint-routing pipeline:
@@ -82,17 +82,17 @@ The `OTEL_SERVICE_NAME_CONFIG_KEY` value matches `DcsvIo.D2.Logging`'s constant 
 
 ## Telemetry surface coverage
 
-`AddD2Telemetry` aggregates shared-lib `ActivitySource` / `Meter` wire names into the configured exporters. Public package owners bind via published `const string` symbols (compile-time rename safety). Product Auth runtime + Auth.Outbound bind as **OTel wire literals only** (no ProjectReference into demoted packages).
+`AddD2Telemetry` aggregates shared-lib `ActivitySource` / `Meter` wire names into the configured exporters. Package owners bind via published `const string` symbols (compile-time rename safety). Optional host auth modules may also emit under reserved OTel wire names registered as **literals only** (no ProjectReference into host packages from this lib).
 
-> **Product composition meters:** wire names `"DcsvIo.D2.Auth"` / `"DcsvIo.D2.Auth.Outbound"` are **AssemblyName / OTel series labels** (policy A). PackageIds are monorepo-private `DcsvIo.D2.Private.Auth` / `DcsvIo.D2.Private.Auth.Outbound` (not open install homes). Hosts that include product Auth still emit these wire names; public Telemetry does not ProjectReference those packages.
+> **Optional host auth meters:** wire names `"DcsvIo.D2.Auth"` / `"DcsvIo.D2.Auth.Outbound"` are AssemblyName / OTel series labels for hosts that ship auth runtime modules. Public Telemetry registers those names as string literals so dashboards stay continuous; it does not ProjectReference host auth packages.
 
 ### `ActivitySource` aggregation (4 sources — tracer provider)
 
 | Wire / owning surface              | Source name                    | Binding in public Telemetry                          |
 | ---------------------------------- | ------------------------------ | ---------------------------------------------------- |
 | `DcsvIo.D2.Handler` (public)       | `DcsvIo.D2.Handler`            | symbol `HandlerTelemetry.SourceName`                 |
-| Auth runtime (monorepo-private)    | `DcsvIo.D2.Auth`               | wire literal `AUTH_WIRE_NAME` (policy A AssemblyName) |
-| Auth.Outbound (monorepo-private)   | `DcsvIo.D2.Auth.Outbound`      | wire literal `AUTH_OUTBOUND_WIRE_NAME`               |
+| Host auth runtime (optional)       | `DcsvIo.D2.Auth`               | wire literal `AUTH_WIRE_NAME`                        |
+| Host auth outbound (optional)      | `DcsvIo.D2.Auth.Outbound`      | wire literal `AUTH_OUTBOUND_WIRE_NAME`               |
 | `DcsvIo.D2.Messaging.RabbitMq`     | `DcsvIo.D2.Messaging.RabbitMq` | symbol `MessagingTelemetry.SOURCE_NAME`              |
 
 ### `Meter` aggregation (6 meters — meter provider)
@@ -100,13 +100,13 @@ The `OTEL_SERVICE_NAME_CONFIG_KEY` value matches `DcsvIo.D2.Logging`'s constant 
 | Wire / owning surface                     | Meter name                            | Binding in public Telemetry                          |
 | ----------------------------------------- | ------------------------------------- | ---------------------------------------------------- |
 | `DcsvIo.D2.Handler` (public)              | `DcsvIo.D2.Handler`                   | symbol `HandlerTelemetry.SourceName`                 |
-| Auth runtime (monorepo-private)           | `DcsvIo.D2.Auth`                      | wire literal `AUTH_WIRE_NAME`                        |
-| Auth.Outbound (monorepo-private)          | `DcsvIo.D2.Auth.Outbound`             | wire literal `AUTH_OUTBOUND_WIRE_NAME`               |
+| Host auth runtime (optional)              | `DcsvIo.D2.Auth`                      | wire literal `AUTH_WIRE_NAME`                        |
+| Host auth outbound (optional)             | `DcsvIo.D2.Auth.Outbound`             | wire literal `AUTH_OUTBOUND_WIRE_NAME`               |
 | `DcsvIo.D2.Messaging.RabbitMq` (public)   | `DcsvIo.D2.Messaging.RabbitMq`        | symbol `MessagingTelemetry.SOURCE_NAME`              |
 | `DcsvIo.D2.Caching.Distributed.Redis`     | `DcsvIo.D2.Caching.Distributed.Redis` | symbol `RedisCacheTelemetry.METER_NAME`              |
 | `DcsvIo.D2.Caching.Local`                 | `DcsvIo.D2.Caching.Local`             | symbol `LocalCacheTelemetry.METER_NAME`              |
 
-The two cache libs publish counters only — no spans — so they appear in the meter list but not the activity-source list. Public ProjectReferenced libs use source-of-truth `const string` symbols so a rename surfaces as a build break. Auth / Auth.Outbound names are **literals** (private package consts are sister-pinned under private composition tests, not open ProjectRefs). Spec-pinning unit tests in `AggregatedTelemetrySourcesTests` and `D2TelemetryConstantsTests` pin the literal wire values so an in-place value change surfaces as a test failure — operators querying Tempo / Prometheus by literal source name (`DcsvIo.D2.Auth`) are protected from silent wire-format drift.
+The two cache libs publish counters only — no spans — so they appear in the meter list but not the activity-source list. ProjectReferenced libs use source-of-truth `const string` symbols so a rename surfaces as a build break. Optional host auth names are **literals**. Spec-pinning unit tests in `AggregatedTelemetrySourcesTests` and `D2TelemetryConstantsTests` pin the literal wire values so an in-place value change surfaces as a test failure — operators querying Tempo / Prometheus by literal source name (`DcsvIo.D2.Auth`) are protected from silent wire-format drift.
 
 ### Auto-instrumentations
 
@@ -144,7 +144,7 @@ The two cache libs publish counters only — no spans — so they appear in the 
 | `DcsvIo.D2.Caching.Distributed.Redis` | `RedisCacheTelemetry.METER_NAME` const.                                                                                                                                                                                                                                                                                           |
 | `DcsvIo.D2.Caching.Local.Default`     | `LocalCacheTelemetry.METER_NAME` const.                                                                                                                                                                                                                                                                                           |
 
-**Not ProjectReferenced (wire literals only):** monorepo-private Auth runtime + Auth.Outbound (`DcsvIo.D2.Private.Auth*` PackageIds). Public Telemetry registers OTel wire names `"DcsvIo.D2.Auth"` / `"DcsvIo.D2.Auth.Outbound"` as string literals (policy A AssemblyName continuity) — see `AggregatedTelemetrySources.AUTH_WIRE_NAME` / `AUTH_OUTBOUND_WIRE_NAME`.
+**Not ProjectReferenced (wire literals only):** optional host auth runtime + outbound modules. Public Telemetry registers OTel wire names `"DcsvIo.D2.Auth"` / `"DcsvIo.D2.Auth.Outbound"` as string literals — see `AggregatedTelemetrySources.AUTH_WIRE_NAME` / `AUTH_OUTBOUND_WIRE_NAME`.
 
 ## File layout
 

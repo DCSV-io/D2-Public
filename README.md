@@ -89,10 +89,10 @@ Package IDs: **NuGet** `DcsvIo.D2.<Name>` · **npm** `@dcsv-io/d2-<name>`
 
 | Concern | .NET | TypeScript | Why it matters |
 | --- | --- | --- | --- |
-| Auth vocabulary | [`DcsvIo.D2.Auth.Abstractions`](packages/dotnet/auth/abstractions/README.md) | [`@dcsv-io/d2-auth-abstractions`](packages/typescript/auth/abstractions/README.md) | Scopes, audiences, claims catalogs + JWKS/session ports (runtime middleware is private product composition) |
+| Auth vocabulary | [`DcsvIo.D2.Auth.Abstractions`](packages/dotnet/auth/abstractions/README.md) | [`@dcsv-io/d2-auth-abstractions`](packages/typescript/auth/abstractions/README.md) | Scopes, audiences, claims catalogs + JWKS/session ports (JWT runtime middleware is host-supplied) |
 | Auth / request context | [`DcsvIo.D2.AuthContext.Abstractions`](packages/dotnet/auth/context-abstractions/README.md) · [`DcsvIo.D2.Context.Abstractions`](packages/dotnet/context/abstractions/README.md) | [`@dcsv-io/d2-auth-context-abstractions`](packages/typescript/auth/context-abstractions/README.md) · [`@dcsv-io/d2-request-context-abstractions`](packages/typescript/request-context-abstractions/README.md) | Who is calling, org, scopes — and how context hops safely |
 | Workload identity | [`DcsvIo.D2.Spiffe`](packages/dotnet/workload-identity/README.md) | — | SPIFFE SAN + trust-domain grammar for mTLS peers |
-| Wire headers | [`DcsvIo.D2.Headers.Common`](packages/dotnet/headers/common/README.md) · [`DcsvIo.D2.Headers.Http`](packages/dotnet/headers/http/README.md) · [`DcsvIo.D2.Headers.Grpc`](packages/dotnet/headers/grpc/README.md) · [`DcsvIo.D2.Headers.Amqp`](packages/dotnet/headers/amqp/README.md) | [`@dcsv-io/d2-headers-common`](packages/typescript/headers/common/README.md) · [`@dcsv-io/d2-headers-http`](packages/typescript/headers/http/README.md) · [`@dcsv-io/d2-headers-grpc`](packages/typescript/headers/grpc/README.md) · [`@dcsv-io/d2-headers-amqp`](packages/typescript/headers/amqp/README.md) | One catalog for HTTP / gRPC / AMQP header names (route-guard composition package is private) |
+| Wire headers | [`DcsvIo.D2.Headers.Common`](packages/dotnet/headers/common/README.md) · [`DcsvIo.D2.Headers.Http`](packages/dotnet/headers/http/README.md) · [`DcsvIo.D2.Headers.Grpc`](packages/dotnet/headers/grpc/README.md) · [`DcsvIo.D2.Headers.Amqp`](packages/dotnet/headers/amqp/README.md) | [`@dcsv-io/d2-headers-common`](packages/typescript/headers/common/README.md) · [`@dcsv-io/d2-headers-http`](packages/typescript/headers/http/README.md) · [`@dcsv-io/d2-headers-grpc`](packages/typescript/headers/grpc/README.md) · [`@dcsv-io/d2-headers-amqp`](packages/typescript/headers/amqp/README.md) | One catalog for HTTP / gRPC / AMQP header names (route-guard helpers are host-supplied) |
 
 ### Caching, crypto & messaging
 
@@ -119,7 +119,7 @@ Package IDs: **NuGet** `DcsvIo.D2.<Name>` · **npm** `@dcsv-io/d2-<name>`
 | Concern | .NET | TypeScript | Why it matters |
 | --- | --- | --- | --- |
 | Handler pipeline | [`DcsvIo.D2.Handler`](packages/dotnet/handler/core/README.md) · [`DcsvIo.D2.Handler.Abstractions`](packages/dotnet/handler/abstractions/README.md) · [`DcsvIo.D2.Handler.Repo`](packages/dotnet/handler/repo/README.md) · [`DcsvIo.D2.Handler.Repo.Abstractions`](packages/dotnet/handler/repo-abstractions/README.md) · [`DcsvIo.D2.Handler.Repo.Postgres`](packages/dotnet/handler/repo-postgres/README.md) | — | Scope checks, OTel, logging, DB exception → `D2Result` |
-| ASP.NET Core | [`DcsvIo.D2.AspNetCore`](packages/dotnet/aspnetcore/README.md) | — | Security headers, CORS, health, ProblemDetails, mTLS helpers (host mega-aggregator ServiceDefaults is private product composition) |
+| ASP.NET Core | [`DcsvIo.D2.AspNetCore`](packages/dotnet/aspnetcore/README.md) | — | Security headers, CORS, health, ProblemDetails, mTLS helpers (host mega-aggregators are host-supplied) |
 | Logging | [`DcsvIo.D2.Logging`](packages/dotnet/logging/README.md) | [`@dcsv-io/d2-logging`](packages/typescript/logging/README.md) | Structured logging + PII redaction culture |
 | Telemetry | [`DcsvIo.D2.Telemetry`](packages/dotnet/telemetry/core/README.md) | [`@dcsv-io/d2-telemetry`](packages/typescript/telemetry/README.md) | OpenTelemetry setup (traces / metrics / logs) |
 | i18n | [`DcsvIo.D2.I18n`](packages/dotnet/i18n/core/README.md) · [`DcsvIo.D2.I18n.Keys`](packages/dotnet/i18n/keys/README.md) · [`DcsvIo.D2.I18n.Abstractions`](packages/dotnet/i18n/abstractions/README.md) | [`@dcsv-io/d2-i18n`](packages/typescript/i18n/README.md) · [`@dcsv-io/d2-i18n-keys`](packages/typescript/i18n-keys/README.md) · [`@dcsv-io/d2-i18n-abstractions`](packages/typescript/i18n-abstractions/README.md) | Typed message keys + runtime translation |
@@ -145,11 +145,8 @@ codegen notes. Prefer those over this overview when you integrate.
 | [`packages/typescript/`](packages/typescript/README.md) | Shared TypeScript packages (see index for every package) |
 | [`contracts/`](contracts/README.md) | Specs, schemas, protos, message catalogs that drive both stacks |
 | [`docs/adrs/`](docs/adrs/README.md) | Architecture decisions for these open libraries |
-| [`D2.Public.slnx`](D2.Public.slnx) | Public-only .NET solution (no private ProjectReferences) |
+| [`D2.Public.slnx`](D2.Public.slnx) | .NET solution for the libraries in this repository |
 | [`LICENSE`](LICENSE) | Apache-2.0 |
-
-There is **no** public `tools/` or `services/` tree here — factories, codegen
-CLI, product hosts, and composition kits are not part of this surface.
 
 ---
 
@@ -185,27 +182,9 @@ codegen; they are not separate public install products.
 
 ## About this repository
 
-This is the **public source mirror** of D2’s open libraries and the contracts
-that keep .NET and TypeScript catalogs in lockstep. DCSV develops the broader
-product in a private monorepo; the Apache-2.0 surface is published here so
-anyone can read source next to releases and open issues.
-
-**In this repo:** the portable libraries listed above — Result / error catalogs,
-utilities, resilience, time, validation, i18n, auth *vocabulary* + request
-context, headers, caching, encryption, messaging, geo, contacts, location, data
-governance, handlers, AspNetCore helpers, logging, telemetry, problem-details,
-protos, SPIFFE grammar, and the shared `contracts/` specs.
-
-**Not in this repo:** product services and hosts; full inbound JWT / auth
-*runtime* stack; ServiceDefaults-style mega-aggregators; BFF gRPC client /
-route-guard composition packages; TypeSpec emitter/decorator factories and
-other monorepo tooling; internal process docs; a second full product stack.
-
-**Issues, not PRs:** please
-[open an issue](https://github.com/DCSV-io/D2-Public/issues) for bugs, unclear
-docs, or library feature requests. This remote is updated one-way from
-upstream; pull requests here are not the path into production source. Patches
-attached to issues are welcome as discussion material — see
+Source for the portable libraries and contracts above — published so you can
+read code next to NuGet/npm releases and open issues. Contribution model
+(public mirror; issues welcome, PRs not merged upstream) is in
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---

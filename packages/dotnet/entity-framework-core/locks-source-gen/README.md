@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.AdvisoryLocks.SourceGen
 
-> Parent: [`public/packages/dotnet/entity-framework-core/`](../README.md)
+> Parent: [`packages/dotnet/entity-framework-core/`](../README.md)
 
 **Input contract:** [`contracts/advisory-locks/`](../../../../contracts/advisory-locks/README.md)
 
@@ -12,25 +12,25 @@ Roslyn incremental source generator that emits the `AdvisoryLocks` static class 
 the spec-driven registry of PostgreSQL session advisory lock keys — from
 `contracts/advisory-locks/advisory-locks.spec.json`.
 
-**Convention**: spec-driven Roslyn `IIncrementalGenerator` pattern. See
-[`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) for the framework-wide convention.
+**Convention**: spec-driven Roslyn `IIncrementalGenerator` pattern.
 
 ## What this emits
 
-**Current sole destination:** `DcsvIo.D2.Private.Edge.KeyCustodian.Infra` (single-target dispatch on
-assembly name). Shared Postgres owns the **mechanism** only (`PgAdvisoryLock`,
-migrator); domain lock-key catalogs live with the owning module.
+**Destination:** the consuming host/module assembly that registers the advisory-locks
+AdditionalFiles (single-target dispatch on assembly name). Shared Postgres owns the
+**mechanism** only (`PgAdvisoryLock`, migrator); domain lock-key catalogs live with
+the owning module.
 
 When the consuming assembly matches the target, the generator emits
 `AdvisoryLocks.g.cs` containing one nested `public static class` per database,
 each holding `public const long` members per declared lock.
 
 ```csharp
-// namespace DcsvIo.D2.Private.Edge.KeyCustodian.Infra;
+// namespace YourHost.Infrastructure;
 public static class AdvisoryLocks
 {
-    /// <summary>Advisory locks owned by d2-keycustodian.</summary>
-    public static class D2Keycustodian
+    /// <summary>Advisory locks owned by a sample domain DB.</summary>
+    public static class SampleDomain
     {
         /// <summary>Blocking startup-migration lock …</summary>
         public const long MIGRATOR = 1001001001L;
@@ -38,13 +38,13 @@ public static class AdvisoryLocks
         /// <summary>Try-lock guarding unattended rotation ticks …</summary>
         public const long ROTATION = 2002002002L;
 
-        /// <summary>Try-lock guarding startup CA seeding …</summary>
-        public const long CA_SEED = 4004004004L;
+        /// <summary>Try-lock guarding startup seed work …</summary>
+        public const long SEED = 4004004004L;
     }
 }
 ```
 
-Consumers reach a lock key as `AdvisoryLocks.D2Keycustodian.MIGRATOR`, which makes the
+Consumers reach a lock key as `AdvisoryLocks.SampleDomain.MIGRATOR`, which makes the
 database affinity visible in the type system.
 
 ## Central catalog + uniqueness

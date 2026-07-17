@@ -2,10 +2,8 @@
 # Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 # -----------------------------------------------------------------------
 #
-# Public OSS CI (D2-Public). Runs only after export flattens monorepo public/
-# to the repo root. Paths are relative to that root — not public/packages/….
-#
-# Does NOT run product Edge suites (those stay on D2-Private-WORX).
+# CI for this repository (D2 open libraries).
+# Paths are relative to the repository root (packages/…, contracts/…).
 
 name: Test
 
@@ -72,7 +70,7 @@ jobs:
     name: TS Shared Unit Tests
     runs-on: ubuntu-latest
     env:
-      # Skip monorepo-private product-home byte-parity (typespec private/**).
+      # Public-clone mode: skip optional product-home parity jobs when absent.
       PUBLIC_ONLY: "1"
     steps:
       - uses: actions/checkout@v4

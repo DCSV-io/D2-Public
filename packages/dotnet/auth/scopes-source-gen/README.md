@@ -4,24 +4,24 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Auth.Scopes.SourceGen
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
-**Input contract:** [`public/contracts/auth-scopes/`](../../../../contracts/auth-scopes/README.md)
+**Input contract:** [`contracts/auth-scopes/`](../../../../contracts/auth-scopes/README.md)
 
-Roslyn incremental source generator that emits scope catalogs from `public/contracts/auth-scopes/scopes.spec.json` via `<AdditionalFiles>`.
+Roslyn incremental source generator that emits scope catalogs from `contracts/auth-scopes/scopes.spec.json` via `<AdditionalFiles>`.
 
-**Dual-target** (assembly-name gate — see [`docs/SRC_GEN.md` §1.5](../../../../../docs/SRC_GEN.md#15-dual-target-dispatch--public-twin--private-extensions)):
+**Dual-target** (assembly-name gate):
 
 | Consuming assembly | Emitted type | Values |
 | --- | --- | --- |
-| `DcsvIo.D2.Auth.Abstractions` | `Scopes` under `DcsvIo.D2.Auth.Abstractions` | public AdditionalFiles only |
-| `DcsvIo.D2.Private.Auth.Abstractions.Extensions` | `ProductScopes` under `DcsvIo.D2.Private.Auth` | public∪private AdditionalFiles |
+| `DcsvIo.D2.Auth.Abstractions` | `Scopes` under `DcsvIo.D2.Auth.Abstractions` | this package's AdditionalFiles only |
+| Host extension assembly (optional) | `ProductScopes` under the host root namespace | public catalog ∪ host-supplied additional files |
 
-Any other assembly → no emit. Private host PackageId is 1:1 with the public twin + `.Extensions` (never a multi-concern bag).
+Any other assembly → no emit. Hosts that need product-only scopes register an extension assembly that includes both public and host AdditionalFiles (never a multi-concern bag).
 
-The spec file is the single source of truth for the platform's scope catalog. Every scope a handler can require, every scope Edge mints into a token, and every grant-matrix entry lives in one JSON file — no hand-written parallel constants, no per-feature drift.
+The spec file is the single source of truth for the platform's scope catalog. Every scope a handler can require, every scope the edge mints into a token, and every grant-matrix entry lives in one JSON file — no hand-written parallel constants, no per-feature drift.
 
-**Convention**: spec-driven Roslyn IIncrementalGenerator pattern. See [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) for the framework-wide convention (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
+**Convention**: spec-driven Roslyn `IIncrementalGenerator` pattern (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
 
 ---
 
@@ -131,8 +131,7 @@ All lookup helpers are O(1) — backed by `HashSet<string>` / `Dictionary<,>`. `
 
 ## Reference
 
-- [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) — canonical how-to-author guide for D² Roslyn source generators
-- [`public/contracts/auth-scopes/schema.json`](../../../../contracts/auth-scopes/schema.json) — JSON Schema for the spec
-- [`public/contracts/auth-scopes/scopes.spec.json`](../../../../contracts/auth-scopes/scopes.spec.json) — the source-of-truth scope catalog
+- [`contracts/auth-scopes/schema.json`](../../../../contracts/auth-scopes/schema.json) — JSON Schema for the spec
+- [`contracts/auth-scopes/scopes.spec.json`](../../../../contracts/auth-scopes/scopes.spec.json) — the source-of-truth scope catalog
 - [`DcsvIo.D2.I18n.SourceGen`](../../i18n/source-gen/README.md) — sibling SrcGen this one mirrors (same incremental-generator + diagnostic-split pattern)
 - `ActionSensitivity` (this generator's per-scope classification driving audit verbosity, OTP step-up, and impersonation defaults) is orthogonal to `RateLimitTier`, the rate-limit middleware's per-endpoint throttling classification — a different subsystem entirely, neither value derived from the other.

@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Caching.Local.Default
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 Default per-process implementation of [`ILocalCache`](../abstractions/README.md). Wraps
 `Microsoft.Extensions.Caching.Memory.IMemoryCache` for value storage; uses a `ConcurrentDictionary`
@@ -111,7 +111,6 @@ coordination requires `IDistributedCache`.
 
 ## References
 
-- [PATTERNS.md (monorepo-only — not on public export)](../../../../../docs/PATTERNS.md) cache section
 - [`abstractions/README.md`](../abstractions/README.md) — interface + result-mapping
   reference
 - [`distributed-redis/README.md`](../distributed-redis/README.md) — cluster-scoped

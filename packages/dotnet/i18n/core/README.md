@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.I18n
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 Runtime translation lib — `Translator` (loads `contracts/messages/*.json` catalogs and renders `TKMessage` instances per locale), `SupportedLocales` (env-driven BCP 47 locale registry with canonical-casing + language-fallback), and the `AddD2I18n` DI extension that wires both as singletons.
 
@@ -106,7 +106,7 @@ The `Translator` loads any `*.json` file in its messages directory; each filenam
 
 The `$schema` key is automatically stripped at load time. Parameter substitution uses `{paramName}` placeholders, matched against `TKMessage.Parameters` at render time.
 
-The source-of-truth catalogs live in [`contracts/messages/`](../../../../contracts/messages/) under `public/contracts/`. The consuming csproj copies them into the runtime via:
+The source-of-truth catalogs live in [`contracts/messages/`](../../../../contracts/messages/). The consuming csproj copies them into the runtime via:
 
 ```xml
 <ItemGroup>
@@ -131,7 +131,7 @@ No `Microsoft.AspNetCore.App` framework reference — this lib is HTTP-stack-agn
 
 ## Tests
 
-`public/packages/dotnet/tests/Unit/I18n/` —
+`packages/dotnet/tests/Unit/I18n/` —
 
 - `SupportedLocalesTests` — ToBcp47 normalization, configuration ingestion (defaults, mixed-case, empty entries, dedup behavior), language-default ordering, `IsValid` / `Resolve` adversarial coverage.
 - `TranslatorTests` — construction validation (null / missing / malformed dir), basic lookup, base-locale fallback, language-prefix resolution, parameter substitution (single, multiple, missing param, extra param, placeholder twice, brace-in-value non-recursion), `HasKey`, 100-caller concurrency stress.

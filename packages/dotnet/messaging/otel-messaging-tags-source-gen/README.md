@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.OtelMessagingTags.SourceGen
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 **Input contract:** [`contracts/otel-messaging-tags/`](../../../../contracts/otel-messaging-tags/README.md)
 
@@ -19,7 +19,7 @@ Roslyn incremental source generator that emits `MessagingActivityTags` — the c
 > The same spec also drives the TS-side telemetry tags — see
 > [`telemetry/core/README.md`](../../telemetry/core/README.md).
 
-**Convention**: spec-driven Roslyn IIncrementalGenerator pattern. See [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) for the framework-wide convention (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
+**Convention**: spec-driven Roslyn `IIncrementalGenerator` (netstandard2.0 analyzer; spec via `<AdditionalFiles>`).
 
 ## Why spec-drive this catalog
 
@@ -33,7 +33,7 @@ When the consuming assembly is `DcsvIo.D2.Messaging.RabbitMq`, the generator emi
 
 ## Cross-language parity
 
-The SAME spec drives `@dcsv-io/d2-telemetry` via monorepo-private `private/tools/ts-codegen` (not on public export) → `otel-messaging-tags.g.ts`, emitting an identical `MessagingActivityTags` catalog on the TS side — the same constants, the same canonical OTel sem-conv attribute names, structurally synchronized from one spec.
+The SAME spec drives `@dcsv-io/d2-telemetry` → `otel-messaging-tags.g.ts` (sources committed), emitting an identical `MessagingActivityTags` catalog on the TS side — the same constants, the same canonical OTel sem-conv attribute names, structurally synchronized from one spec.
 
 ## Diagnostics
 

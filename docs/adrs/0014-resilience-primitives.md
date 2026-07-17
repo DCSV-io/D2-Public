@@ -2,9 +2,6 @@
 Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 
-
-> **Visibility: PUBLIC** — ships with the open surface (`public/`).  
-> Do not add product IP, private paths, or non-exportable runbooks.
 # ADR-0014: Resilience — bespoke `D2Result`-aware primitives (`RetryHelper` / `CircuitBreaker` / `Singleflight` / `TimeoutLayer` / `RateLimiterLayer` / `ResilientPipeline`)
 
 - **Status**: Accepted
@@ -59,7 +56,7 @@ A bespoke library, `DcsvIo.D2.Resilience`, is the thin set of in-process primiti
 
 ## Alternatives considered
 
-**Adopt Polly / `Microsoft.Extensions.Http.Resilience` wholesale.** Mature primitives, but the principal integration payoff is the `HttpClientFactory` path — applicable only to `HttpClient` calls. Most D² outbound boundaries are not HTTP (RabbitMQ, EF Core, Redis, SeaweedFS SDK, internal chains); for those, Polly's retry predicate is exception-only, and making it result-aware requires a custom `ResiliencePipeline<D2Result<T>>` with a `ShouldHandle` inspecting `IsTransientRetryable` — functionally equivalent to `RetryD2ResultAsync` but with Polly's allocation overhead and a transitive dependency across the entire service graph. The BCL `AddStandardResilienceHandler()` has been removed from monorepo-private ServiceDefaults (`DcsvIo.D2.Private.ServiceDefaults` PackageId); `DcsvIo.D2.Resilience` is the sole, complete replacement — covering the BCL handler's full strategy set (retry, circuit-breaker, timeout, rate-limiter) plus singleflight, with first-class `D2Result` awareness the BCL handler cannot provide.
+**Adopt Polly / `Microsoft.Extensions.Http.Resilience` wholesale.** Mature primitives, but the principal integration payoff is the `HttpClientFactory` path — applicable only to `HttpClient` calls. Most D² outbound boundaries are not HTTP (RabbitMQ, EF Core, Redis, SeaweedFS SDK, internal chains); for those, Polly's retry predicate is exception-only, and making it result-aware requires a custom `ResiliencePipeline<D2Result<T>>` with a `ShouldHandle` inspecting `IsTransientRetryable` — functionally equivalent to `RetryD2ResultAsync` but with Polly's allocation overhead and a transitive dependency across the entire service graph. Hosts should not rely on BCL `AddStandardResilienceHandler()` alone for D2Result-aware outbound work; `DcsvIo.D2.Resilience` is the complete replacement — covering the BCL handler's full strategy set (retry, circuit-breaker, timeout, rate-limiter) plus singleflight, with first-class `D2Result` awareness the BCL handler cannot provide.
 
 **Exception-only retry (no `D2Result`-aware path).** Require all transient conditions to throw. Rejected: the errors-as-values decision (ADR-0003) is premised on handlers returning `D2Result`; forcing exceptions through internal chains at resilience boundaries would invert that contract selectively and restore exception-as-control-flow.
 
@@ -67,8 +64,6 @@ A bespoke library, `DcsvIo.D2.Resilience`, is the thin set of in-process primiti
 
 ## References
 
-> **Monorepo-private process paths** (`docs/PATTERNS.md`, `docs/dev/rules.md`, and similar) are illustration only in the product monorepo that embeds this open tree — **not required for a public clone** of this ADR (monorepo dual-tree / export layout is private monorepo law — not required for a public clone of this ADR).
-- `public/packages/dotnet/resilience/` — `Retry/RetryHelper.cs` + `RetryOptions.cs` + `RetryDefaults.cs`; `CircuitBreaker/CircuitBreaker.cs` + `CircuitBreakerOptions.cs`; `Singleflight/Singleflight.cs`; `Timeout/TimeoutOptions.cs`; `RateLimiting/RateLimiter.cs` + `RateLimiterOptions.cs` + `RateLimitRejectedException.cs`; `Pipeline/ResilientPipeline.cs` + `IResilientLayer.cs` + `Pipeline/{Singleflight,CircuitBreaker,Retry,Timeout,RateLimiter}Layer.cs` + `ResilientPipelineBuilder.cs` + `ResilientPipelineServiceCollectionExtensions.cs`; the csproj (sole external dep: DI abstractions) + README (Polly rejection rationale, layer-order semantics, caller-opt-in convention, telemetry-is-consumer-owned).
-- `public/packages/typescript/resilience/src/` — `retry/retry-helper.ts`, `singleflight/singleflight.ts`, `pipeline/abort.ts`, `pipeline/i-resilient-layer.ts`, `pipeline/resilient-pipeline.ts`, `pipeline/timeout-layer.ts`, `pipeline/rate-limiter-layer.ts`, `pipeline/singleflight-layer.ts`, `pipeline/retry-layer.ts`, `pipeline/circuit-breaker-layer.ts`.
-- `docs/PATTERNS.md` (Resilience section).
-- [ADR-0003](0003-d2result-errors-as-values.md) (establishes `IsTransientRetryable`), [ADR-0006](0006-abstractions-implementation-split.md) (handler chains return `D2Result`, not throw), ADR-13 (private product — see monorepo private/docs/adrs; not public SoT) (monorepo-private ServiceDefaults thin aggregator — wires the foundational stack; resilience is caller-side via this library).
+- `packages/dotnet/resilience/` — `Retry/RetryHelper.cs` + `RetryOptions.cs` + `RetryDefaults.cs`; `CircuitBreaker/CircuitBreaker.cs` + `CircuitBreakerOptions.cs`; `Singleflight/Singleflight.cs`; `Timeout/TimeoutOptions.cs`; `RateLimiting/RateLimiter.cs` + `RateLimiterOptions.cs` + `RateLimitRejectedException.cs`; `Pipeline/ResilientPipeline.cs` + `IResilientLayer.cs` + `Pipeline/{Singleflight,CircuitBreaker,Retry,Timeout,RateLimiter}Layer.cs` + `ResilientPipelineBuilder.cs` + `ResilientPipelineServiceCollectionExtensions.cs`; the csproj (sole external dep: DI abstractions) + README (Polly rejection rationale, layer-order semantics, caller-opt-in convention, telemetry-is-consumer-owned).
+- `packages/typescript/resilience/src/` — `retry/retry-helper.ts`, `singleflight/singleflight.ts`, `pipeline/abort.ts`, `pipeline/i-resilient-layer.ts`, `pipeline/resilient-pipeline.ts`, `pipeline/timeout-layer.ts`, `pipeline/rate-limiter-layer.ts`, `pipeline/singleflight-layer.ts`, `pipeline/retry-layer.ts`, `pipeline/circuit-breaker-layer.ts`.
+- [ADR-0003](0003-d2result-errors-as-values.md) (establishes `IsTransientRetryable`), [ADR-0006](0006-abstractions-implementation-split.md) (handler chains return `D2Result`, not throw). Host composition wires the foundational stack; resilience is caller-side via this library.

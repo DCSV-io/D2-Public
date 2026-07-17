@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Geo.Default
 
-> Parent: [`public/packages/dotnet/README.md`](../../README.md)
+> Parent: [`packages/dotnet/README.md`](../../README.md)
 >
 > **Audience**: backend .NET service engineers who need the actual geo catalog data — the per-entity instances + lookup tables + nested static-class hierarchies — bound into memory at process start.
 

@@ -4,22 +4,22 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.EncryptionDomains.SourceGen
 
-> Parent: [`public/packages/dotnet/`](../README.md)
+> Parent: [`packages/dotnet/`](../README.md)
 
-**Input contract:** [`public/contracts/encryption-domains/`](../../../../contracts/encryption-domains/README.md)
+**Input contract:** [`contracts/encryption-domains/`](../../../../contracts/encryption-domains/README.md)
 
-Roslyn incremental source generator that emits encryption-domain catalogs from `public/contracts/encryption-domains/encryption-domains.spec.json`.
+Roslyn incremental source generator that emits encryption-domain catalogs from `contracts/encryption-domains/encryption-domains.spec.json`.
 
-**Dual-target** (assembly-name gate — see [`docs/SRC_GEN.md` §1.5](../../../../../docs/SRC_GEN.md#15-dual-target-dispatch--public-twin--private-extensions)):
+**Dual-target** (assembly-name gate — public twin + optional host extensions assembly):
 
 | Consuming assembly | Emitted types | Values |
 | --- | --- | --- |
 | `DcsvIo.D2.Encryption` | `EncryptionDomains` / `EncryptionDomainMode` / `EncryptionDomainModes` | public AdditionalFiles only |
-| `DcsvIo.D2.Private.Encryption.Extensions` | `ProductEncryptionDomains` / `ProductEncryptionDomainMode` / `ProductEncryptionDomainModes` under `DcsvIo.D2.Private.Encryption` | public∪private AdditionalFiles |
+| Host extensions assembly (when present) | product domain overlays under host namespace | public∪host AdditionalFiles |
 
-Any other assembly → no emit. Private host PackageId is 1:1 with the public twin + `.Extensions`.
+Any other assembly → no emit. A host extensions assembly (when present) is named 1:1 with the public twin plus a `.Extensions` suffix.
 
-**Convention**: spec-driven Roslyn IIncrementalGenerator pattern. See [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) for the framework-wide convention (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
+**Convention**: spec-driven Roslyn `IIncrementalGenerator` (netstandard2.0 analyzer; spec via `<AdditionalFiles>`).
 
 ## What this emits
 
@@ -41,7 +41,7 @@ A typo on either the producer or consumer side surfaces as a compile error rathe
 
 ## Cross-language parity
 
-The SAME spec drives `@dcsv-io/d2-encryption-abstractions` via `private/tools/ts-codegen/src/encryption-domains-emit.ts`. Any TS code reading the catalog (ops tooling, RabbitMQ subscribers, encryption pipelines) shares byte-equal identifiers with the .NET producers.
+The SAME spec drives `@dcsv-io/d2-encryption-abstractions` (sources committed). Any TS code reading the catalog (ops tooling, RabbitMQ subscribers, encryption pipelines) shares byte-equal identifiers with the .NET producers.
 
 ## Diagnostics
 

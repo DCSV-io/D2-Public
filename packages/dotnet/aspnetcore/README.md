@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.AspNetCore
 
-> Parent: [`public/packages/dotnet/`](../README.md)
+> Parent: [`packages/dotnet/`](../README.md)
 
 Cross-cutting ASP.NET Core middleware + endpoint primitives every D² service composition root needs but that don't belong on a single domain lib. Seven public surfaces — `UseD2SecurityHeaders`, `UseD2Cors`, `UseD2InfrastructureBypass`, `AddD2ProblemDetails`, `MapD2HealthEndpoints`, `RunD2ServiceAsync`, `AddD2MutualTls` — plus the canonical `InfrastructurePathMatcher` consumed by `DcsvIo.D2.Logging`'s request-logging middleware and `DcsvIo.D2.Telemetry`'s AspNetCore-instrumentation `Filter` callback so all three libs share one source of truth for `/health`, `/alive`, `/metrics`, `/.well-known` matching.
 
@@ -12,7 +12,7 @@ Foundation tier — depends on `DcsvIo.D2.Utilities` (for `Falsey()` / `Truthy()
 
 The lib does NOT own:
 
-- Authentication / authorization — `DcsvIo.D2.Private.Auth.Http` (PackageId; monorepo-private product composition) owns JWT validation, scope checks, identity extraction.
+- Authentication / authorization — host-supplied JWT middleware owns JWT validation, scope checks, identity extraction.
 - OpenTelemetry SDK setup — `DcsvIo.D2.Telemetry` owns it.
 - Serilog configuration / sinks — `DcsvIo.D2.Logging` owns them.
 
@@ -94,7 +94,7 @@ Pipeline placement: install AFTER `app.UseRouting()` (which resolves the matched
 
 ### `AddD2ProblemDetails(Action<D2ProblemDetailsOptions>?)`
 
-Registers ASP.NET Core's `IProblemDetailsService` with the D² customizer applied as the `CustomizeProblemDetails` callback. The customizer is FULL D2Result-aware (path B of the RFC 7807 emit stack — sibling to `DcsvIo.D2.Private.Auth.Http` (PackageId; monorepo-private product composition)'s path A `D2ProblemDetailsExtensions.ToProblemDetails`).
+Registers ASP.NET Core's `IProblemDetailsService` with the D² customizer applied as the `CustomizeProblemDetails` callback. The customizer is FULL D2Result-aware (path B of the RFC 7807 emit stack — sibling to host-supplied path A `ToProblemDetails` on auth middleware).
 
 When the request pipeline has stashed a `D2Result` on `HttpContext.Items[D2ProblemDetailsContextItems.D2_RESULT]` (via the `SetD2Result` typed extension), the customizer populates the RFC 7807 Shape A body from spec-driven constants in `D2ProblemDetailsKeys` ([`problem-details/abstractions/`](../problem-details/abstractions/README.md)):
 
@@ -143,7 +143,7 @@ Async form captures both synchronously-faulted (host build / hosted-service `Sta
 
 Wires mutual-TLS client-certificate require-and-validate into the host's Kestrel HTTPS endpoint. When `D2MutualTlsOptions.Enabled`, Kestrel is configured with `ClientCertificateMode.RequireCertificate` and a `ClientCertificateValidation` callback that delegates to the default-deny `SpiffeSanPeerValidator`. When disabled (the default), no Kestrel client-certificate configuration is added — an un-wired host never starts requiring client certificates and locking itself out. Off by default; the dev harness and a real cross-process host opt in.
 
-This is the server (callee) half of the internal-mTLS workload-identity layer. The client (caller) half — per-channel leaf presentation + refresh-ahead — lives in `DcsvIo.D2.Private.Auth.Outbound` (PackageId; monorepo-private product composition) (opt-in). The Kestrel-config LOGIC lives here; the `DcsvIo.D2.Private.ServiceDefaults` (PackageId; monorepo-private product composition) aggregator COMPOSES it via a gated `AddD2MutualTls` call + a `MutualTlsConfigure` pass-through.
+This is the server (callee) half of the internal-mTLS workload-identity layer. The client (caller) half — per-channel leaf presentation + refresh-ahead — is host-supplied (opt-in). The Kestrel-config LOGIC lives here; hosts compose it via a gated `AddD2MutualTls` call + a `MutualTlsConfigure` pass-through.
 
 `SpiffeSanPeerValidator` is a default-deny check with three conjuncts, ALL of which must hold for a certificate to be accepted:
 
@@ -259,4 +259,4 @@ The `Microsoft.AspNetCore.App` framework reference (via `Microsoft.NET.Sdk.Web`)
 - **`RunD2ServiceAsync` uses PII-safe exception rendering.** `Log.Fatal` on the catch path captures only the exception type FullName + first stack frame — NEVER `ex.Message`, since exception messages at host startup can carry connection strings, configured secrets, and host-environment specifics. Operators triage deeper via the host's process logs.
 - **`X-Correlation-Id` length-cap.** The ProblemDetails customizer caps the inbound `X-Correlation-Id` header value at 128 chars; over-cap values are treated as absent and a fresh GUID is generated. Prevents an arbitrary-length user header from inflating the response body.
 - **`InfrastructurePathMatcher` is public — single source of truth for `DcsvIo.D2.Logging`, `DcsvIo.D2.Telemetry`, and this lib's bypass middleware.** Earlier per-lib `internal` duplicates were collapsed into this canonical public matcher in the same change that introduced `DcsvIo.D2.AspNetCore` so all consumers stay aligned on the path set.
-- **`RunD2ServiceAsync` consumes `DcsvIo.D2.Utilities.Diagnostics.SanitizedExceptionRender`** for the `Log.Fatal` PII-safe exception rendering. The helper is the canonical foundation-lib copy shared with `DcsvIo.D2.Private.Auth` (PackageId; monorepo-private product composition), `DcsvIo.D2.Private.Auth.Outbound` (PackageId; monorepo-private product composition), and `DcsvIo.D2.Messaging.RabbitMq` — `DcsvIo.D2.Utilities` is the natural home (already a `ProjectReference` for `Falsey()` / `Truthy()` / `ToNullIfEmpty()`).
+- **`RunD2ServiceAsync` consumes `DcsvIo.D2.Utilities.Diagnostics.SanitizedExceptionRender`** for the `Log.Fatal` PII-safe exception rendering. The helper is the canonical foundation-lib copy shared with messaging and host auth code — `DcsvIo.D2.Utilities` is the natural home (already a `ProjectReference` for `Falsey()` / `Truthy()` / `ToNullIfEmpty()`).

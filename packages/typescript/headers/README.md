@@ -4,11 +4,11 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # headers/
 
-> Parent: [`public/packages/typescript/`](../README.md)
+> Parent: [`packages/typescript/`](../README.md)
 
 The D2 wire-protocol header **constant catalogs** for TS consumers, split per transport. Codegen-emitted from the same `contracts/headers/headers.spec.json` spec that drives the .NET `DcsvIo.D2.Headers.*` catalogs, so a header that appears on multiple transports carries an identical wire value across both languages.
 
-BFF-side glue (JWT decode, `x-d2-context` decode, ProblemDetails builder, route guards) is **private composition** under monorepo `private/packages/typescript/headers-core/` as `@dcsv-io/d2-private-headers` — not a public Built root.
+Route-guard / JWT-decode / ProblemDetails helpers for a specific host app are **host-supplied** â€” this cluster publishes wire-protocol **constant catalogs** only.
 
 ## Packages
 

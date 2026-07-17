@@ -23,7 +23,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <PackageId>DcsvIo.D2.Caching.Tiered</PackageId>
     <Description>Two-tier cache for D2 composing an L1 ILocalCache and an L2 IDistributedCache into the ITieredCache interface.</Description>
     <IsPackable>true</IsPackable>

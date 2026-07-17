@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-messaging-abstractions
 
-> Parent: [`public/packages/typescript/`](../README.md)
+> Parent: [`packages/typescript/`](../README.md)
 
 D2 messaging-protocol wire identifiers. Today: the DLQ failure-metadata wire shape (`DlqFailureMetadataFields` for JSON property names + `DlqFailureCauses` for the closed-enum cause-string catalog). Mirrors .NET `DcsvIo.D2.Messaging.DlqFailureMetadataFields` (in `DcsvIo.D2.Messaging.Abstractions`) and `DcsvIo.D2.Messaging.RabbitMq.Subscribing.DlqFailureCauses` (in `DcsvIo.D2.Messaging.RabbitMq`).
 
@@ -21,7 +21,7 @@ D2 messaging-protocol wire identifiers. Today: the DLQ failure-metadata wire sha
 
 ## Codegen workflow
 
-`prebuild` invokes `private/tools/ts-codegen/src/dlq-failure-metadata-emit.ts` before `tsc -b`. Generated files (`*.g.ts`) are committed to git.
+`prebuild` regenerates catalogs when a generator is available. Generated files (`*.g.ts`) are committed to git.
 
 ## When to reach for this catalog
 

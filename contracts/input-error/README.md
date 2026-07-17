@@ -8,10 +8,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 ## Consumed by
 
-- **.NET** — [`public/packages/dotnet/source-gen-shared/wire-shapes-source-gen/`](../../packages/dotnet/source-gen-shared/wire-shapes-source-gen/README.md) (Roslyn source-gen → `InputErrorWireShape` property-name constants in `DcsvIo.D2.Result`)
-- **TypeScript** — monorepo-private `private/tools/ts-codegen` › `wire-shape-emit.ts` (not on public export) (`runInputErrorEmit` → `InputErrorWireShape` property-name constants in `@dcsv-io/d2-result`)
+- **.NET** — [`packages/dotnet/source-gen-shared/wire-shapes-source-gen/`](../../packages/dotnet/source-gen-shared/wire-shapes-source-gen/README.md) (Roslyn source-gen → `InputErrorWireShape` property-name constants in `DcsvIo.D2.Result`)
+- **TypeScript** — constants/types in `@dcsv-io/d2-result` (generated from this spec; sources committed)
 
 ## See also
 
-- Codegen pattern + diagnostics: [docs/SRC_GEN.md](../../../docs/SRC_GEN.md)
 - All contracts: [contracts catalog](../README.md)

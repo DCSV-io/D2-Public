@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-geo-abstractions
 
-> Parent: [`public/packages/typescript/`](../../README.md)
+> Parent: [`packages/typescript/`](../../README.md)
 >
 > **Audience**: backend Node/TypeScript service and BFF engineers who need
 > a data-free reference-data type surface — interfaces, meta-records, and
@@ -150,10 +150,10 @@ typed-code wrappers, Zod schemas, `GEO_CATALOG_VERSION`) lives under
 
 ## Codegen pattern
 
-This package follows the standard `private/tools/ts-codegen` pattern: hand-written
+This package follows the standard `the TypeScript codegen pipeline` pattern: hand-written
 files live directly under `src/`, codegen-emitted files materialize under
 `src/generated/` and are tracked in git so PR reviewers see codegen diffs
-without a local build. The emitter is `private/tools/ts-codegen/src/geo-emitter/`
+without a local build. The emitter is `the TypeScript codegen pipeline/src/geo-emitter/`
 and runs as part of the workspace codegen orchestrator (`pnpm codegen`).
 
 ## Parity with .NET
@@ -195,7 +195,7 @@ time via `GEO_CATALOG_VERSION`.
 
 ## Known build-time warnings
 
-The TS geo emitter (`private/tools/ts-codegen/src/geo-emitter/`) emits a small
+The TS geo emitter (`the TypeScript codegen pipeline/src/geo-emitter/`) emits a small
 number of expected `D2GEO010` catalog-uniqueness warnings (legitimate
 parent-child name collisions like Burkina Faso Centre / Kadiogo,
 real-world ambiguity like Malta's two Rabats). See

@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Handler.Abstractions
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 Domain-safe slice of the handler stack: `IHandler<in TInput, TOutput>`, `IHandlerContext`, `HandlerOptions`. Domain code references this; the runtime piece (`BaseHandler`, `HandlerContext`, `HandlerTelemetry`, `AddD2Handler`) lives in `DcsvIo.D2.Handler`.
 
@@ -71,5 +71,4 @@ Package references:
 
 - [`DcsvIo.D2.Handler`](../core/README.md) — the concrete `BaseHandler` + `HandlerContext` + DI extension
 - [`DcsvIo.D2.Handler.Repo`](../repo/README.md) — EF-flavored handler that maps PG/EF exceptions to `D2Result` failure codes
-- [`docs/PATTERNS.md` (monorepo-only — not on public export)](../../../../../docs/PATTERNS.md) "Handler" section — full mechanics, handler pattern
-- ADR-0020 (private product — not public SoT) — per-op handler folder structure (`Application/Handlers/{Commands,Queries}/<Op>/`)
+- Recommended layout: per-op handler folders (`Application/Handlers/{Commands,Queries}/<Op>/`)

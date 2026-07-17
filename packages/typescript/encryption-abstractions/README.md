@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-encryption-abstractions
 
-> Parent: [`public/packages/typescript/`](../README.md)
+> Parent: [`packages/typescript/`](../README.md)
 
 D2 encryption-domain identifiers + encryption-frame binary layout constants (symmetric version-1 AND sealed version-2). Mirrors .NET `DcsvIo.D2.Encryption.EncryptionDomains`, the `DcsvIo.D2.Encryption.EncryptionFrameLayout` byte-offset layout, and the `DcsvIo.D2.Encryption.SealedFrameLayout` sealed layout — all spec-driven.
 
@@ -24,7 +24,7 @@ D2 encryption-domain identifiers + encryption-frame binary layout constants (sym
 
 ## Codegen workflow
 
-`prebuild` invokes `private/tools/ts-codegen/src/encryption-domains-emit.ts` AND `private/tools/ts-codegen/src/encryption-frame-emit.ts` AND `private/tools/ts-codegen/src/encryption-frame-sealed-emit.ts` before `tsc -b`. Generated files (`*.g.ts`) are committed to git.
+`prebuild` regenerates catalogs when a generator is available. Generated files (`*.g.ts`) are committed to git.
 
 ## When to reach for this catalog
 

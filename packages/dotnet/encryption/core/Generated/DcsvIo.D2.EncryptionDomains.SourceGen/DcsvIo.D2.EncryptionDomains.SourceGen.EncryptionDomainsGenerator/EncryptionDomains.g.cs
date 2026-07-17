@@ -29,7 +29,7 @@ public static class EncryptionDomains
     /// <summary>Sentinel value indicating the message body MUST NOT be encrypted (always serialized as cleartext JSON). Surfaces on mq-messages.spec entries whose payload is non-PII; the message author MUST also document `encryptionReason` on the spec entry justifying the choice.</summary>
     public const string PLAINTEXT = "plaintext";
 
-    /// <summary>Public framework fixture domain for Shared.Tests sealed-path unit coverage of EncryptionDomainModes + EncryptedBodyComposer. Not a product keyring domain — product sealed domains (audit / notifications / courier) live in private/contracts/encryption-domains.</summary>
+    /// <summary>Public framework fixture domain for Shared.Tests sealed-path unit coverage of EncryptionDomainModes + EncryptedBodyComposer. Not a product keyring domain — hosts register product sealed domains (audit / notifications / courier) at composition time.</summary>
     public const string FIXTURE_SEALED = "payload-fixture-sealed";
 
     /// <summary>

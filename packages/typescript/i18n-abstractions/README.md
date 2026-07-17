@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-i18n-abstractions
 
-> Parent: [`public/packages/typescript/`](../README.md)
+> Parent: [`packages/typescript/`](../README.md)
 
 Foundational, zero-dependency package that declares the i18n primitive types:
 the `TKMessage` translation-message shape, the `tk()` factory that constructs
@@ -22,7 +22,7 @@ risking a circular dependency.
 | `TkMessageWireShape` | Spec-derived JSON property-name catalog (`KEY`, `PARAMS`) for the `TKMessage` wire shape — referenced by serializers instead of inline literals.  |
 
 `TkMessageWireShape` is auto-generated from `contracts/tk-message/tk-message.spec.json`
-by `private/tools/ts-codegen`. Do not edit `src/generated/tk-message.g.ts` by hand —
+from the tk-message spec (sources committed). Do not edit `src/generated/tk-message.g.ts` by hand —
 changes will be overwritten on the next codegen run.
 
 ## Dependencies

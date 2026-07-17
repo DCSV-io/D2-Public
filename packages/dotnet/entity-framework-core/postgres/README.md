@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.EntityFrameworkCore.Postgres
 
-> Parent: [`public/packages/dotnet/entity-framework-core/`](../README.md)
+> Parent: [`packages/dotnet/entity-framework-core/`](../README.md)
 >
 > **Audience**: backend .NET service engineers wiring a PostgreSQL-backed EF Core
 > DbContext with advisory-lock-guarded migrations and startup validation.
@@ -17,7 +17,7 @@ design-time factory so the two paths can never drift.
 
 **Mechanism only.** Domain advisory-lock key catalogs do **not** ship from this
 package. Callers pass domain-owned generated constants (e.g.
-`AdvisoryLocks.D2Keycustodian.MIGRATOR` from `DcsvIo.D2.Private.Edge.KeyCustodian.Infra`) into
+`AdvisoryLocks.SampleDomain.MIGRATOR` from the owning host/module assembly) into
 `PgAdvisoryLock` / `AdvisoryLockMigrator`. The fleet catalog SoT remains
 [`contracts/advisory-locks/`](../../../../contracts/advisory-locks/README.md);
 [`locks-source-gen`](../locks-source-gen/README.md) emits into the owning-module

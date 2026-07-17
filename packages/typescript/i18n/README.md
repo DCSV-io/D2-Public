@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-i18n
 
-> Parent: [`public/packages/typescript/`](../README.md)
+> Parent: [`packages/typescript/`](../README.md)
 
 `ITranslator` interface + `SupportedLocales` registry + default `Translator`
 implementation. Mirrors `DcsvIo.D2.I18n` (.NET) so cross-language wire stays

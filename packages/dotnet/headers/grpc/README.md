@@ -4,9 +4,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Headers.Grpc
 
-> Parent: [`public/packages/dotnet/`](../README.md)
+> Parent: [`packages/dotnet/`](../README.md)
 
-> **Duplicated from [`contracts/headers/headers.spec.json`](../../../../contracts/headers/headers.spec.json) — update both in lockstep.** This catalog mirrors its TS sibling [`@dcsv-io/d2-headers-grpc`](../../typescript/headers/grpc/README.md) at byte-equal wire values per the cross-language parity contract documented in [`docs/PARITY.md`](../../../../docs/PARITY.md). Both sides emit from the same spec; physical dedup across .NET ↔ TS is not feasible. Parity is asserted by `HeaderCatalogConsistencyTests` (.NET) and `contract-tests/headers.parity.test.ts` (TS).
+> **Duplicated from [`contracts/headers/headers.spec.json`](../../../../contracts/headers/headers.spec.json) — update both in lockstep.** This catalog mirrors its TS sibling [`@dcsv-io/d2-headers-grpc`](../../typescript/headers/grpc/README.md) at byte-equal wire values. Both sides emit from the same spec; physical dedup across .NET ↔ TS is not feasible. Parity is asserted by `HeaderCatalogConsistencyTests` (.NET) and `contract-tests/headers.parity.test.ts` (TS).
 
 D2 wire-protocol headers applicable to the gRPC transport. Today the catalog holds the gRPC-applicable subset of cross-transport entries (`Authorization`, `x-d2-context`, `traceparent`, `tracestate`) at identical wire values. Codegen-emitted from `contracts/headers/headers.spec.json` via `DcsvIo.D2.Headers.SourceGen` (filtered with `applicability.Contains("grpc")`). Mirrors TS `@dcsv-io/d2-headers-grpc`.
 
@@ -32,7 +32,7 @@ gRPC framework constants like `grpc-encoding`, `grpc-status`, `grpc-message`, `g
 
 ## When to reach for this catalog
 
-Use `DcsvIo.D2.Headers.Grpc` from any gRPC-context consumer — gRPC interceptors and monorepo-private Auth.Grpc / Auth.Outbound client wrappers (`DcsvIo.D2.Private.Auth.*` PackageIds; not on public export). On a cross-process hop the gRPC client forwards the once-minted internal transaction-token unchanged in the `Authorization` header over mTLS, which establishes workload identity (ADR-0023 (private product — not public SoT)); the prior `client_credentials` service-identity layer is superseded by that mTLS workload identity. The catalog values are identical to the corresponding entries in `DcsvIo.D2.Headers.Common` / `DcsvIo.D2.Headers.Http` (codegen-guaranteed and verified by `HeaderCatalogConsistencyTests`).
+Use `DcsvIo.D2.Headers.Grpc` from any gRPC-context consumer — gRPC interceptors and host-supplied outbound client wrappers. On a cross-process hop the gRPC client typically forwards a once-minted internal transaction-token unchanged in the `Authorization` header over mTLS, which establishes workload identity; the prior `client_credentials` service-identity layer is superseded by that mTLS workload identity. The catalog values are identical to the corresponding entries in `DcsvIo.D2.Headers.Common` / `DcsvIo.D2.Headers.Http` (codegen-guaranteed and verified by `HeaderCatalogConsistencyTests`).
 
 ---
 

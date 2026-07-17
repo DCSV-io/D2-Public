@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Messaging.Abstractions
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 Transport-agnostic abstractions for the D² messaging stack. Domain code
 references this package to mark messages with `[MqPub(MqMessages.X)]`, mark

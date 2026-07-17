@@ -179,5 +179,4 @@ No backing-store packages at runtime — this package is pure composition. No `@
 - [`../local-default/README.md`](../local-default/README.md) — typical L1
 - [`../distributed-redis/README.md`](../distributed-redis/README.md) — typical L2 + backplane
 - [`../README.md`](../README.md) — caching cluster
-- [`PATTERNS.md` (monorepo-only — not on public export)](../../../../../docs/PATTERNS.md) cache section
-- .NET twin: `public/packages/dotnet/caching/tiered/`
+- .NET twin: `packages/dotnet/caching/tiered/`

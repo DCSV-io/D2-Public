@@ -2,11 +2,10 @@
 # Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 # -----------------------------------------------------------------------
 #
-# Public OSS library release (D2-Public ONLY).
+# CI for this repository — library release (pack + optional publish).
 #
 # Packs consumable open libraries, optionally publishes to nuget.org / npmjs,
-# and can create a GitHub Release. Secrets live on this repo — never on the
-# private monorepo for public package IDs.
+# and can create a GitHub Release.
 #
 # Operator secrets (repo Settings → Secrets → Actions):
 #   NUGET_API_KEY   — nuget.org API key (optional until first publish)

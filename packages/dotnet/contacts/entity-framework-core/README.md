@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Contacts.EntityFrameworkCore
 
-> Parent: [`contacts/`](../README.md) · [`public/packages/dotnet/`](../../README.md)
+> Parent: [`contacts/`](../README.md) · [`packages/dotnet/`](../../README.md)
 >
 > **Audience**: backend .NET service engineers mapping `DcsvIo.D2.Contacts` value objects into EF Core entity models via infra `IEntityTypeConfiguration<T>`.
 

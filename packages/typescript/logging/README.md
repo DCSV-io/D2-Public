@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-logging
 
-> Parent: [`public/packages/typescript/`](../README.md)
+> Parent: [`packages/typescript/`](../README.md)
 
 Pino-backed `ILogger` interface + `markRedactedFields()` PII registration
 helper + `sanitizedErrorRender()` for safe error logging. Mirrors

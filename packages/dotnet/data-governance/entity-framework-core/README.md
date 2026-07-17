@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.DataGovernance.EntityFrameworkCore
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 >
 > **Audience**: backend .NET service engineers decorating EF Core entity models for GDPR anonymization — wiring the fluent `.Anonymize*` API, registering the engine, and configuring the startup model guard.
 
@@ -270,13 +270,13 @@ services.AddScoped<DbContext>(sp => sp.GetRequiredService<MyContext>());
 
 ## Tests
 
-Unit tests live in `public/packages/dotnet/tests/Unit/DataGovernance/EntityFrameworkCore/`
-and `public/packages/dotnet/tests/Unit/DataGovernance/`. Unit-test contexts are
+Unit tests live in `packages/dotnet/tests/Unit/DataGovernance/EntityFrameworkCore/`
+and `packages/dotnet/tests/Unit/DataGovernance/`. Unit-test contexts are
 model-build-only — no database connection is ever opened. Most use `UseNpgsql` with a
 dummy connection string to exercise Npgsql-specific relational metadata (column types,
 JSON mapping) that the in-memory provider does not model; a few use the EF Core in-memory
 provider (`UseInMemoryDatabase`) where only generic annotation/model-build logic is under
-test. Integration tests live in `public/packages/dotnet/tests/Integration/DataGovernance/`
+test. Integration tests live in `packages/dotnet/tests/Integration/DataGovernance/`
 and use Testcontainers-PostgreSQL for end-to-end Tier-A/B anonymization assertions.
 
 ## Telemetry
@@ -302,4 +302,4 @@ No telemetry surface — the engine emits no spans or metrics. The `Anonymizatio
 ## References
 
 - [`data-governance/abstractions/`](../abstractions/README.md) — marker interfaces, attribute, rule, and engine seam
-- [`public/packages/dotnet/README.md`](../../README.md) — shared library index and dependency graph
+- [`packages/dotnet/README.md`](../../README.md) — shared library index and dependency graph

@@ -10,11 +10,11 @@ Marker attributes consumed reflectively elsewhere in the stack. Zero behavior on
 
 | File                     | Contents                                                                                                                                                                                                                   |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `RedactDataAttribute.cs` | `[RedactData(Reason = ..., CustomReason = "...")]` — marker attribute consumed by a Serilog destructuring policy (platform hosts typically register via monorepo-private `DcsvIo.D2.Private.ServiceDefaults`; portable hosts register the policy themselves). Targets `AttributeTargets.All` (types, properties, fields, parameters). |
+| `RedactDataAttribute.cs` | `[RedactData(Reason = ..., CustomReason = "...")]` — marker attribute consumed by a Serilog destructuring policy (hosts register the policy themselves, typically via `DcsvIo.D2.Logging`). Targets `AttributeTargets.All` (types, properties, fields, parameters). |
 
 ## `[RedactData]` attribute
 
-Marker attribute consumed by a Serilog destructuring policy at host startup. Platform product hosts usually register it via monorepo-private `DcsvIo.D2.Private.ServiceDefaults` (PackageId; not on public export); portable / open hosts that compose logging without that aggregator must register the `[RedactData]`-aware policy themselves. Apply to types, properties, fields, parameters — anywhere PII or secrets might leak into logs/spans/metrics.
+Marker attribute consumed by a Serilog destructuring policy at host startup. Hosts that compose logging must register the `[RedactData]`-aware policy themselves (typically via `DcsvIo.D2.Logging`). Apply to types, properties, fields, parameters — anywhere PII or secrets might leak into logs/spans/metrics.
 
 ```csharp
 public sealed record User

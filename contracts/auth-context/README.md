@@ -8,10 +8,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 ## Consumed by
 
-- **.NET** — [`public/packages/dotnet/context/source-gen/`](../../packages/dotnet/context/source-gen/README.md) (Roslyn source-gen → `PropagatedContext` + serializer in `DcsvIo.D2.Context.Abstractions`; the same generator also emits the request-context layer)
-- **TypeScript** — monorepo-private `private/tools/ts-codegen` › `auth-context-emit.ts` (not on public export) (→ `IAuthContext` interface + 4 enums + `ActorEntry` in `@dcsv-io/d2-auth-context-abstractions`)
+- **.NET** — [`packages/dotnet/context/source-gen/`](../../packages/dotnet/context/source-gen/README.md) (Roslyn source-gen → `PropagatedContext` + serializer in `DcsvIo.D2.Context.Abstractions`; the same generator also emits the request-context layer)
+- **TypeScript** — constants/types in `@dcsv-io/d2-auth-context-abstractions` (generated from this spec; sources committed)
 
 ## See also
 
-- Codegen pattern + diagnostics: [docs/SRC_GEN.md](../../../docs/SRC_GEN.md)
 - All contracts: [contracts catalog](../README.md)

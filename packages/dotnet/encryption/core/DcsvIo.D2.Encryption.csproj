@@ -77,7 +77,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <PackageId>DcsvIo.D2.Encryption</PackageId>
     <Description>AES-256-GCM payload encryption with a JWKS-style multi-kid keyring for D2 — a pure crypto primitive decoupled from key sources.</Description>
     <IsPackable>true</IsPackable>

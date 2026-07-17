@@ -10,7 +10,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts"],
-      // Codegen-emitted catalog (`*.g.ts`) is covered by private/tools/ts-codegen
+      // Codegen-emitted catalog (`*.g.ts`) is covered by catalog-codegen
       // emitter snapshots + per-VALUE pin tests in this package; the
       // hand-written `index.ts` is a pure re-export and excluded from the
       // 100/100/100/100 threshold.

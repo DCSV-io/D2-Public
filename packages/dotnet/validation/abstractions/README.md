@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Validation.Abstractions
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 >
 > **Audience**: backend .NET service engineers and any consumer that depends on
 > email, phone, or postal-code validation, the shared field-length bounds, or the

@@ -12,11 +12,10 @@ The `EPH_PUB` field introduces the `variable_binary_u16be` field kind: raw (non-
 
 ## Consumed by
 
-- **.NET** — [`public/packages/dotnet/encryption/frame-source-gen/`](../../packages/dotnet/encryption/frame-source-gen/README.md) (Roslyn source-gen → `SealedFrameLayout` byte-offset + length constants in `DcsvIo.D2.Encryption`)
-- **TypeScript** — monorepo-private `private/tools/ts-codegen` › `encryption-frame-sealed-emit.ts` (not on public export) (→ matching field-offset + byte-length constants in `@dcsv-io/d2-encryption-abstractions` for ops tooling and TS frame readers)
+- **.NET** — [`packages/dotnet/encryption/frame-source-gen/`](../../packages/dotnet/encryption/frame-source-gen/README.md) (Roslyn source-gen → `SealedFrameLayout` byte-offset + length constants in `DcsvIo.D2.Encryption`)
+- **TypeScript** — constants/types in `@dcsv-io/d2-encryption-abstractions` (generated from this spec; sources committed)
 
 ## See also
 
-- Codegen pattern + diagnostics: [docs/SRC_GEN.md](../../../docs/SRC_GEN.md)
-- Cross-language parity rows: [docs/PARITY.md](../../../docs/PARITY.md)
+- Cross-language parity is pinned by the shared sealed-frame fixtures and twin package tests
 - All contracts: [contracts catalog](../README.md)

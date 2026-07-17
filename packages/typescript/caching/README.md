@@ -4,9 +4,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # caching/ — TypeScript caching stack (twin of `DcsvIo.D2.Caching.*`)
 
-> Parent: [`public/packages/typescript/`](../README.md)
+> Parent: [`packages/typescript/`](../README.md)
 
-Behavioral model: [ADR-0008](../../../../public/docs/adrs/0008-caching-marker-interfaces.md) · .NET canonical: [`public/packages/dotnet/caching/`](../../dotnet/caching/README.md).
+Behavioral model: [ADR-0008](../../../../public/docs/adrs/0008-caching-marker-interfaces.md) · .NET canonical: [`packages/dotnet/caching/`](../../dotnet/caching/README.md).
 
 ## Packages (layout mirror)
 
@@ -29,4 +29,4 @@ Behavioral model: [ADR-0008](../../../../public/docs/adrs/0008-caching-marker-in
 ## Parity proofs
 
 - **Package-local** unit suites + Redis Testcontainers ITs under each package — algorithm / behavioral pins.
-- **Dual-runtime constants/semantics** (not a full behavior interop harness): `@dcsv-io/d2-private-contract-tests` `tests/caching-twin.parity.test.ts` + `fixtures/caching-twin/constants.json` (dual-runtime constants catalog; emitter `CachingTwinFixtureEmitter`). See [PARITY.md](../../../../docs/PARITY.md) caching stack row.
+- **Dual-runtime constants/semantics** (not a full behavior interop harness): package tests pin shared defaults / channel / meter names against the .NET twin.

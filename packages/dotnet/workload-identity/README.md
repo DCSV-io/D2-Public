@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Spiffe
 
-> Parent: [`public/packages/dotnet/`](../README.md)
+> Parent: [`packages/dotnet/`](../README.md)
 
 The single home for the SPIFFE workload-identity grammar used by D2 mutual TLS. Provides the `SpiffeWorkloadIdentity` value object — a strong-typed representation of the subject-alternative-name a leaf certificate carries and a peer validator checks: `spiffe://d2.internal/workload/<service>`.
 
@@ -66,4 +66,4 @@ Both paths return a generic `D2Result.ValidationFailed` on rejection — a defau
 ## References
 
 - [`DcsvIo.D2.AspNetCore`](../aspnetcore/README.md) — hosts the mTLS peer validator that feeds presented certificate SANs to `Parse`
-- ADR-0023 (private product — not public SoT) — mTLS workload identity for cross-process hops
+- mTLS peer validation uses this type to establish workload identity for cross-process hops

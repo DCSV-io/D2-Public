@@ -58,7 +58,7 @@ function findRepoRoot(startDir: string): string {
 
 function loadGolden(scenario: string): GoldenData {
   const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
-  // Dual-tree: goldens live under private/packages/typescript/contract-tests.
+  // Twin-suite goldens live under the monorepo contract-tests package when present.
   const path = join(
     root,
     "private",

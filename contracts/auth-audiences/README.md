@@ -8,12 +8,11 @@ Token-exchange target audience catalog — the per-service audience URLs used wh
 
 ## Consumed by
 
-- **.NET** — [`public/packages/dotnet/auth/audiences-source-gen/`](../../packages/dotnet/auth/audiences-source-gen/README.md) (Roslyn source-gen → `Audiences` constants in `DcsvIo.D2.Auth.Abstractions`)
-- **TypeSpec** — monorepo-private TypeSpec decorators (`@dcsv-io/d2-private-typespec-decorators` under `private/packages/typescript/typespec-decorators/` — not on public export) reads `audiences.spec.json` to validate `@d2Audience` decorator arguments at compile time
+- **.NET** — [`packages/dotnet/auth/audiences-source-gen/`](../../packages/dotnet/auth/audiences-source-gen/README.md) (Roslyn source-gen → `Audiences` constants in `DcsvIo.D2.Auth.Abstractions`)
+- **TypeSpec** — internal IDL tooling; not required for published packages
 
-No `private/tools/ts-codegen` emitter consumes this catalog — the TS side reaches the audience names through the `@d2Audience` decorator rather than a generated const-object.
+No dedicated TypeScript const-object is generated from this catalog — audience names are validated at IDL compile time rather than as a published TS catalog.
 
 ## See also
 
-- Codegen pattern + diagnostics: [docs/SRC_GEN.md](../../../docs/SRC_GEN.md)
 - All contracts: [contracts catalog](../README.md)

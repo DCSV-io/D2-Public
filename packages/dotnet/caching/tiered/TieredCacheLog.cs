@@ -9,10 +9,10 @@ namespace DcsvIo.D2.Caching.Tiered;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// <c>LoggerMessage</c> delegates for the tiered cache. Per
-/// <c>docs/dev/rules.md §3.1</c>, no delegate accepts <see cref="Exception"/> —
-/// the call sites carry only result-shaped strings (error codes, key, etc.),
-/// so passing Exception would be both unnecessary and a leak vector.
+/// <c>LoggerMessage</c> delegates for the tiered cache. No delegate accepts
+/// <see cref="Exception"/> — the call sites carry only result-shaped strings
+/// (error codes, key, etc.), so passing Exception would be both unnecessary
+/// and a leak vector.
 /// </summary>
 internal static partial class TieredCacheLog
 {

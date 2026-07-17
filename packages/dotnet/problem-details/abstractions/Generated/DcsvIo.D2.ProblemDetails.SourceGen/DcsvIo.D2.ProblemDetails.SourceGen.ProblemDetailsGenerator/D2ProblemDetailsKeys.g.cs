@@ -21,7 +21,7 @@ namespace DcsvIo.D2.ProblemDetails;
 /// <remarks>
 /// Single source for both .NET emit paths (auth-http
 /// <c>D2ProblemDetailsExtensions.ToProblemDetails</c> and aspnetcore
-/// <c>D2ProblemDetailsCustomizer</c>) and the TS-side <c>@dcsv-io/d2-problem-details-abstractions</c> (re-exported from private monorepo <c>@dcsv-io/d2-private-headers</c>)
+/// <c>D2ProblemDetailsCustomizer</c>) and the TS-side <c>@dcsv-io/d2-problem-details-abstractions</c> (hosts may re-export the same constants)
 /// catalog. Cross-language drift on the URI prefix, content type,
 /// extension keys, and per-status titles is structurally impossible.
 /// </remarks>

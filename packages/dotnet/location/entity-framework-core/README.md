@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Location.EntityFrameworkCore
 
-> Parent: [`location/`](../README.md) · [`public/packages/dotnet/`](../../README.md)
+> Parent: [`location/`](../README.md) · [`packages/dotnet/`](../../README.md)
 >
 > **Audience**: backend .NET service engineers mapping `DcsvIo.D2.Location` value objects into EF Core entity models via infra `IEntityTypeConfiguration<T>`.
 

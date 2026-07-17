@@ -15,14 +15,14 @@ Keep a Changelog, and this package adheres to Semantic Versioning.
 
 ### Added
 
-- Initial `DefaultLocalCache` implementation of `ILocalCache` (twin of
-  `DcsvIo.D2.Caching.Local.Default`): the 12 Basic + Atomic operations over an
-  in-process LRU map store, constructor-injected clock, and the
-  `d2.cache.local.*` OTel counters (`LOCAL_CACHE_METER_NAME`).
-- Barrel export of `LOCAL_CACHE_INSTRUMENTS` + `LOCAL_CACHE_METER_VERSION`
-  (instrument metadata SoT for counters + dual-runtime parity).
+### Changed
 
 ### Fixed
 
-- `increment` returns validationFailed (`amount`, invalid not NOT_NULL) when the
-  computed next counter would leave the JS safe-integer range (store unchanged).
+## 0.1.1 - 2026-07-17
+### Changed
+
+- Dependency update: @dcsv-io/d2-caching-abstractions bumped.
+- Dependency update: @dcsv-io/d2-i18n-keys bumped.
+- Dependency update: @dcsv-io/d2-result bumped.
+- Dependency update: @dcsv-io/d2-utilities bumped.

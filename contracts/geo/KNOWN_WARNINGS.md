@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # Known warnings — `contracts/geo/`
 
-Build-time + pipeline-time warnings emitted by the geo source-gens (`DcsvIo.D2.Geo.SourceGen` and `private/tools/ts-codegen/src/geo-emitter/`) and by the Tier-1 (geo data pipeline stage 1 — raw transform) transformer (`private/tools/geo-data-pipeline/src/transformers/subdivisions.ts`) that are EXPECTED and intentionally accepted. Cross-reference any new warning against this doc:
+Build-time + pipeline-time warnings emitted by the geo source generators (`DcsvIo.D2.Geo.SourceGen` and the TypeScript geo emitter) and by the Tier-1 (geo data pipeline stage 1 — raw transform) subdivisions transformer that are EXPECTED and intentionally accepted. Cross-reference any new warning against this doc:
 
 - **In the list, with matching parameters** → expected; no action needed
 - **In the list, with DIFFERENT parameters** (different entity ids, different normalized name) → escalate, may be new bug
@@ -38,7 +38,7 @@ D2GEO010 fires when two entities in the same catalog have normalized names that 
 | `subdivisions` | `GN-K` / `GN-KA`    | `kankan`        | parent-child legitimate   | Guinea Kankan Region (GN-K) + Kankan Prefecture (GN-KA, child of GN-K).                                                                                                                                                                                                     | Same as GN-B / GN-BK.                                                                       |
 | `subdivisions` | `GN-L` / `GN-LA`    | `labe`          | parent-child legitimate   | Guinea Labé Region (GN-L) + Labé Prefecture (GN-LA, child of GN-L).                                                                                                                                                                                                         | Same as GN-B / GN-BK.                                                                       |
 | `subdivisions` | `GN-N` / `GN-NZ`    | `nzerekore`     | parent-child legitimate   | Guinea Nzérékoré Region (GN-N) + Nzérékoré Prefecture (GN-NZ, child of GN-N).                                                                                                                                                                                               | Same as GN-B / GN-BK.                                                                       |
-| `subdivisions` | `ID-PA` / `ID-PP`   | `papua`         | parent-child legitimate   | Indonesia Papua Province (ID-PA) + Papua Islands geographical grouping (ID-PP). Both legitimately labelled "Papua" in CLDR; child/parent semantics depend on the consumer.                                                                                                  | If upstream resolves the grouping ambiguity, or if a third "Papua" entity appears.          |
+| `subdivisions` | `ID-PA` / `ID-PP`   | `papua`         | parent-child legitimate   | Indonesia Papua Province (ID-PA) + Papua Islands geographical grouping (ID-PP). Both legitimately labeled "Papua" in CLDR; child/parent semantics depend on the consumer.                                                                                                  | If upstream resolves the grouping ambiguity, or if a third "Papua" entity appears.          |
 | `subdivisions` | `MT-45` / `MT-46`   | `rabat`         | real-world ambiguity      | Malta has TWO localities both named Rabat — one on Gozo (MT-45) and one on Malta (MT-46). Both genuinely "Rabat" in Maltese. Resolver returns null (ambiguous) for bare "Rabat" input; caller must specify island via context.                                              | If Malta administratively renames one of the localities; otherwise this is permanent.       |
 | `subdivisions` | `MT-65` / `MT-66`   | `zebbug`        | real-world ambiguity      | Same Malta dual-Żebbuġ situation: Żebbuġ on Gozo (MT-65) + Żebbuġ on Malta (MT-66). Both legitimately named Żebbuġ.                                                                                                                                                         | Same as MT-45 / MT-46.                                                                      |
 
@@ -61,7 +61,7 @@ D2GEO011 fires when CLDR's `cldr-subdivisions-full/en-subdivisions.json` ships a
 
 ### Expected behavior
 
-- The diagnostic fires at TRANSFORM time (`private/tools/geo-data-pipeline/src/transformers/subdivisions.ts`) — NOT at codegen time.
+- The diagnostic fires at TRANSFORM time (Tier-1 subdivisions transformer) — NOT at codegen time.
 - Output format: `[D2GEO011] subdivision '{code}' in {country}: CLDR label="{cldrEnLabel}"; not in current Debian iso-codes; filtered.`
 - A summary line precedes the per-code detail: `[D2GEO011] dropped {N} CLDR-zombie codes`.
 - Known zombies (per current upstream caches): IR-31, IR-32 (post-2020 Iran reassignment); NO-01/02/04/05/06/07/08/09/10/12/14/16/17/19/20 (post-2020 Norway county merger); EE-44/57/59 (Estonia county restructuring); plus ~330 others across many countries (mostly historic reassignments).
@@ -74,7 +74,7 @@ D2GEO011 fires when CLDR's `cldr-subdivisions-full/en-subdivisions.json` ships a
 
 ## Missing Wikidata.en — operator triage log
 
-Wikidata.en covers ~99% of currently-active subdivision codes (5,324 / 5,360 in the current cache); the remaining ~140 fall back to debian/iso-codes' `name` field. The pipeline writes the full triage list to `private/tools/geo-data-pipeline/logs/missing-wikidata-en.json` (gitignored as a refresh artifact) on every run of `pnpm write:subdivisions` / `pnpm geo:refresh`.
+Wikidata.en covers ~99% of currently-active subdivision codes (5,324 / 5,360 in the current cache); the remaining ~140 fall back to debian/iso-codes' `name` field. The pipeline can emit a triage list of missing Wikidata.en labels as a refresh artifact.
 
 ### When to review
 
@@ -97,7 +97,7 @@ This is purely informational — divergence is the normal case (Wikidata uses mo
 
 ## Pinned canonical truths regression test
 
-`private/tools/geo-data-pipeline/tests/unit/transformers-subdivisions-pinned-truths.test.ts` pins ~25 canonical truths that the post-refresh `subdivisions.spec.json` MUST satisfy. Examples: IR-22 contains "Hormoz", IR-00 contains "Markazi", NO-30 contains "Viken", US-CA contains "California". The assertions are substring-tolerant (so "Tehran" matches "Tehran Province") to allow upstream format drift while still catching wholesale shifts.
+Pipeline unit tests pin ~25 canonical truths that the post-refresh `subdivisions.spec.json` MUST satisfy. Examples: IR-22 contains "Hormoz", IR-00 contains "Markazi", NO-30 contains "Viken", US-CA contains "California". The assertions are substring-tolerant (so "Tehran" matches "Tehran Province") to allow upstream format drift while still catching wholesale shifts.
 
 ### Escalation flow when this fails
 

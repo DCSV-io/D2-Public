@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-protos
 
-> Parent: [`public/packages/typescript/`](../README.md)
+> Parent: [`packages/typescript/`](../README.md)
 
 Buf-generated TS modules + gRPC client stubs from `contracts/protos/`.
 Mirrors `DcsvIo.D2.Protos` (.NET — generated via `Grpc.Tools` at csproj
@@ -28,7 +28,7 @@ Current re-exports from `src/index.ts`:
 | `InputErrorProto`   | `generated/common/v1/d2_result.ts`      | Field-level validation error: field name + `TKMessageProto[]` errors.     |
 
 The codec (`d2ResultToProto` / `d2ResultFromProto` / `handleGrpcCall`) that
-converts between `D2Result` and `D2ResultProto` lives in `@dcsv-io/d2-private-grpc-client (private monorepo composition — not on the open npm surface)`,
+converts between `D2Result` and `D2ResultProto` is host-supplied,
 not here — this package is the generated-stub layer only.
 
 ## Dependencies

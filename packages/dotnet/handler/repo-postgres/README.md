@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Handler.Repo.Postgres
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 PostgreSQL implementation of `IDbExceptionClassifier` from `DcsvIo.D2.Handler.Repo.Abstractions`. Plugs into `BaseRepoHandler` via DI — composition roots call `services.AddD2Postgres()` once.
 

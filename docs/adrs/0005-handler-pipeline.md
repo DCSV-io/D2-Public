@@ -2,9 +2,6 @@
 Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 
-
-> **Visibility: PUBLIC** — ships with the open surface (`public/`).  
-> Do not add product IP, private paths, or non-exportable runbooks.
 # ADR-0005: Universal handler pipeline — `BaseHandler` + provider-pluggable repo handlers
 
 - **Status**: Accepted
@@ -54,7 +51,7 @@ A `null` `HandlerOptions.ScopeRequirement` (the default) disables the per-handle
    - **No exception thrown**: records `d2.handler.duration` (histogram, ms); increments `d2.handler.succeeded` **if the result is successful, else `d2.handler.failed`** (a handler that returns a typed failure result without throwing counts as failed); checks slow/critical thresholds; auto-injects `traceId` on results that don't already carry one; returns `(result, null)`.
    - **`OperationCanceledException`, caller token canceled**: returns `(D2Result.Canceled, oce)` — intentional cancellation.
    - **`OperationCanceledException`, caller token NOT canceled**: returns `(D2Result.ServiceUnavailable, oce)` — a downstream timeout (HttpClient/SQL command timeout, internal watchdog).
-   - **Any other exception**: logs only `ex.GetType().Name` (never `ex.Message`, which can carry bearer tokens, connection strings, or raw user input per `rules.md §3.1`), sets span status to Error, returns `(D2Result.UnhandledException, ex)`.
+   - **Any other exception**: logs only `ex.GetType().Name` (never `ex.Message`, which can carry bearer tokens, connection strings, or raw user input), sets span status to Error, returns `(D2Result.UnhandledException, ex)`.
    - In all failure branches: records duration and increments `d2.handler.failed`.
 
 The four OTel instruments (`invoked` / `succeeded` / `failed` / `duration`) live in `HandlerTelemetry` as static fields on a shared `Meter`.
@@ -84,7 +81,7 @@ The four OTel instruments (`invoked` / `succeeded` / `failed` / `duration`) live
 
 ### CQRS and naming conventions
 
-Handler structure follows ADR-20 (private product — see monorepo private/docs/adrs; not public SoT): operations are organized under two full-word categories — `Application/Handlers/Commands/` and `Application/Handlers/Queries/` — with one per-operation folder per op (`I<Op>Handler` / `<Op>Handler` / `<Op>Input` / `<Op>Output`, all co-located). The primary-constructor handler idiom is the codebase-wide structural encoding of these decisions (`docs/PATTERNS.md` Handler/service structure; `docs/dev/rules.md §9`).
+Handler structure typically organizes operations under two full-word categories — `Application/Handlers/Commands/` and `Application/Handlers/Queries/` — with one per-operation folder per op (`I<Op>Handler` / `<Op>Handler` / `<Op>Input` / `<Op>Output`, all co-located). The primary-constructor handler idiom is the codebase-wide structural encoding of these decisions.
 
 ## Consequences
 
@@ -115,12 +112,10 @@ Handler structure follows ADR-20 (private product — see monorepo private/docs/
 
 ## References
 
-> **Monorepo-private process paths** (`docs/PATTERNS.md`, `docs/dev/rules.md`, and similar) are illustration only in the product monorepo that embeds this open tree — **not required for a public clone** of this ADR (monorepo dual-tree / export layout is private monorepo law — not required for a public clone of this ADR).
-- `public/packages/dotnet/handler/abstractions/` — `IHandler.cs`, `IHandlerContext.cs`, `HandlerOptions.cs`, `ScopeRequirement.cs`, `HandlerScopeMatch.cs`.
-- `public/packages/dotnet/handler/core/` — `BaseHandler.cs` (sealed `RunCorePipelineAsync`), `BaseHandler.Logging.cs` (exception-type-name-only contract), `HandlerTelemetry.cs` (static `ActivitySource` + `Meter`), `HandlerContext.cs`, `HandlerServiceCollectionExtensions.cs` (`AddD2Handler`).
-- `public/packages/dotnet/handler/repo/BaseRepoHandler.cs` — EF/DB exception remapping; `MapDbException` hook; exhaustive dispatch.
-- `public/packages/dotnet/handler/repo-abstractions/` — `IDbExceptionClassifier.cs`, `DbFailureKind.cs`, `D2ResultDbFactories.cs`.
-- `public/packages/dotnet/handler/repo-postgres/` — `PostgresDbExceptionClassifier.cs`, `PgErrorCodes.cs`, `PostgresServiceCollectionExtensions.cs` (`AddD2Postgres`).
-- `public/packages/dotnet/caching/local-default/DefaultLocalCache.cs` — documented `BaseHandler` carve-out.
-- `docs/PATTERNS.md` (Handler / service structure); `docs/dev/rules.md §9` (handler predicates) + §3.1 (PII-safe exception logging).
+- `packages/dotnet/handler/abstractions/` — `IHandler.cs`, `IHandlerContext.cs`, `HandlerOptions.cs`, `ScopeRequirement.cs`, `HandlerScopeMatch.cs`.
+- `packages/dotnet/handler/core/` — `BaseHandler.cs` (sealed `RunCorePipelineAsync`), `BaseHandler.Logging.cs` (exception-type-name-only contract), `HandlerTelemetry.cs` (static `ActivitySource` + `Meter`), `HandlerContext.cs`, `HandlerServiceCollectionExtensions.cs` (`AddD2Handler`).
+- `packages/dotnet/handler/repo/BaseRepoHandler.cs` — EF/DB exception remapping; `MapDbException` hook; exhaustive dispatch.
+- `packages/dotnet/handler/repo-abstractions/` — `IDbExceptionClassifier.cs`, `DbFailureKind.cs`, `D2ResultDbFactories.cs`.
+- `packages/dotnet/handler/repo-postgres/` — `PostgresDbExceptionClassifier.cs`, `PgErrorCodes.cs`, `PostgresServiceCollectionExtensions.cs` (`AddD2Postgres`).
+- `packages/dotnet/caching/local-default/DefaultLocalCache.cs` — documented `BaseHandler` carve-out.
 - [ADR-0003](0003-d2result-errors-as-values.md) — the typed failure envelope every handler returns. [ADR-0006](0006-abstractions-implementation-split.md) — the abstractions/implementation split applied here (and the provider-pluggable `IDbExceptionClassifier` triple).

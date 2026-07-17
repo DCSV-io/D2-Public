@@ -2,9 +2,6 @@
 Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 
-
-> **Visibility: PUBLIC** — ships with the open surface (`public/`).  
-> Do not add product IP, private paths, or non-exportable runbooks.
 # ADR-0001: Contacts are a folded owned-component library, not a standalone contacts service or per-service contacts DB
 
 - **Status**: Accepted
@@ -42,7 +39,7 @@ Auth also kept a separate `org_contact` junction (label + `isPrimary` + a pointe
 
 **NameAffixes / Demographics split.** Honorific affixes (`Prefix`/`Suffix`, closed taxonomy + `Other` escape hatch) and demographics (`DateOfBirth` / `BiologicalSex`) are separate optional VOs from the core `Personal` name, so a host composes only what it needs.
 
-**Field-constraints catalog.** A spec-driven codegen catalog (`public/contracts/validation/field-constraints.spec.json`) emits shared field-length `FieldConstraints` constants + three taxonomy enums (`NamePrefix` / `NameSuffix` / `BiologicalSex`) to .NET (`DcsvIo.D2.Validation.Abstractions`) and TypeScript (`@dcsv-io/d2-validation-abstractions`). The VO `Create` gates, Location, and frontend Zod schemas consume them — one source of truth for field-length caps.
+**Field-constraints catalog.** A spec-driven codegen catalog (`contracts/validation/field-constraints.spec.json`) emits shared field-length `FieldConstraints` constants + three taxonomy enums (`NamePrefix` / `NameSuffix` / `BiologicalSex`) to .NET (`DcsvIo.D2.Validation.Abstractions`) and TypeScript (`@dcsv-io/d2-validation-abstractions`). The VO `Create` gates, Location, and frontend Zod schemas consume them — one source of truth for field-length caps.
 
 **Consumes `DcsvIo.D2.DataGovernance`** (the standalone anonymization engine — ADR-0015). The library ships no sweeper; host entities are marked `IUserOwned` / `IOrgOwned` / `IAnonymizationTrackable` and VO columns are decorated via the fluent `.Anonymize*` API from `DcsvIo.D2.DataGovernance.EntityFrameworkCore`.
 
@@ -77,9 +74,8 @@ _Not alternatives (recorded to pre-empt the question):_ the v1 **central Geo-ser
 
 ## References
 
-- Prior planning design for contacts-as-library (superseded by this ADR; historical monorepo product tracking only — not a public-tree link).
+- Prior planning design for contacts-as-library (superseded by this ADR).
 - Per-lib READMEs for the shipped surface: [`contacts/core/`](../../packages/dotnet/contacts/core/README.md) · [`contacts/entity-framework-core/`](../../packages/dotnet/contacts/entity-framework-core/README.md) · [`location/entity-framework-core/`](../../packages/dotnet/location/entity-framework-core/README.md) · [`entity-framework-core/`](../../packages/dotnet/entity-framework-core/README.md).
-- Monorepo-only `docs/PATTERNS.md` (not on public export) — contact-VO / EF VO-mapping / `CreateD2Index` / field-constraints patterns. **Not required for a public clone** of this ADR tree.
 - ADR-0015 ([`0015-anonymization-data-governance.md`](0015-anonymization-data-governance.md)) — the standalone anonymization engine this library consumes.
 - v1 snapshot: `/old/v1/D2-WORX/backends/dotnet/services/Geo/` (`Geo.Domain/Entities/Contact.cs`, `Geo.Infra/Repository/Entities/ContactConfig.cs`, the `*Contact*` migrations, `ContactEvictionPublisher.cs`); `/old/v1/D2-WORX/backends/node/services/{auth,comms}/` (the `org_contact` junction; Comms delivery + `channel_preference`).
 - EF Core 10 complex types + value converters + reusable mapping; DDD snapshot-vs-reference; GDPR data-minimization + right-to-erasure — research captured in the 2026-05-30 and 2026-06-03 PLAN discussions.

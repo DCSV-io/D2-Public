@@ -46,7 +46,7 @@ public sealed class AdvisoryLocksOutputParityTests
     {
         if (!TestPaths.HasPrivateContracts())
         {
-            // Private KeyCustodian advisory-locks host is monorepo-only.
+            // Host-module advisory-locks emission is covered by host twin tests.
             return;
         }
 

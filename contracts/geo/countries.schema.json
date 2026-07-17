@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.d2.dcsv.io/contracts/geo/countries.schema.json",
   "title": "Country catalog (codegen-ready)",
-  "description": "Tier 2 codegen-ready Country catalog. Matches the CountrySpec record shape consumed by .NET SourceGen + TS emitter. See private/tools/geo-data-pipeline/src/tier-2/types.ts for the matching TypeScript interface.",
+  "description": "Tier 2 codegen-ready Country catalog. Matches the CountrySpec record shape consumed by .NET SourceGen + TS emitter. See the geo data pipeline for the matching TypeScript interface.",
   "type": "object",
   "additionalProperties": false,
   "required": [

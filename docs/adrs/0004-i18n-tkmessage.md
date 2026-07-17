@@ -2,9 +2,6 @@
 Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 
-
-> **Visibility: PUBLIC** — ships with the open surface (`public/`).  
-> Do not add product IP, private paths, or non-exportable runbooks.
 # ADR-0004: i18n — `TKMessage` (translation-key-as-type) + source-generated `TK` constants
 
 - **Status**: Accepted
@@ -25,21 +22,21 @@ Three forces drove the shape of this decision:
 
 ## Decision
 
-Every user-facing translatable string in the codebase is typed as `TKMessage` — a sealed record carrying a translation key and optional parameter bindings (`public/packages/dotnet/i18n/abstractions/TKMessage.cs`). Its constructor is `internal`; the only public way to obtain a `TKMessage` is through the source-generated `TK` static class (`TK.g.cs`, committed under `public/packages/dotnet/i18n/abstractions/Generated/`). "Untranslated literal in `D2Result.Messages`" is structurally unrepresentable: the type system enforces it.
+Every user-facing translatable string in the codebase is typed as `TKMessage` — a sealed record carrying a translation key and optional parameter bindings (`packages/dotnet/i18n/abstractions/TKMessage.cs`). Its constructor is `internal`; the only public way to obtain a `TKMessage` is through the source-generated `TK` static class (`TK.g.cs`, committed under `packages/dotnet/i18n/abstractions/Generated/`). "Untranslated literal in `D2Result.Messages`" is structurally unrepresentable: the type system enforces it.
 
-The `TK` constants are emitted at build time by `DcsvIo.D2.I18n.SourceGen` — a Roslyn `IIncrementalGenerator` (`public/packages/dotnet/i18n/source-gen/TKGenerator.cs`, `TKEmitter.cs`) that reads `public/contracts/messages/en-US.json` as an `AdditionalFile`. Each flat JSON key (`common_errors_NOT_FOUND`) is decomposed into a three-segment path (`TK.Common.Errors.NOT_FOUND`) and emitted as a `static readonly TKMessage` constant. The generator also cross-checks every other locale catalog against `en-US` and surfaces per-locale coverage gaps and orphan keys as Roslyn diagnostics at build time (`D2I18N*`).
+The `TK` constants are emitted at build time by `DcsvIo.D2.I18n.SourceGen` — a Roslyn `IIncrementalGenerator` (`packages/dotnet/i18n/source-gen/TKGenerator.cs`, `TKEmitter.cs`) that reads `contracts/messages/en-US.json` as an `AdditionalFile`. Each flat JSON key (`common_errors_NOT_FOUND`) is decomposed into a three-segment path (`TK.Common.Errors.NOT_FOUND`) and emitted as a `static readonly TKMessage` constant. The generator also cross-checks every other locale catalog against `en-US` and surfaces per-locale coverage gaps and orphan keys as Roslyn diagnostics at build time (`D2I18N*`).
 
 The abstractions assembly (`DcsvIo.D2.I18n.Abstractions`) carries `TKMessage`, `ITranslator`, the source-generated `TK` constants, and zero non-BCL dependencies — matching the relationship of `Microsoft.Extensions.Logging.Abstractions` to `Microsoft.Extensions.Logging` (the general pattern is ADR-0006). The runtime assembly (`DcsvIo.D2.I18n`) adds `Translator`, `SupportedLocales`, and `AddD2I18n`; it is referenced only by composition roots and outbound-notification handlers, never by domain code.
 
-HTTP responses ship `TKMessage` objects unchanged: `{ "key": "common_errors_NOT_FOUND" }`, or — for a message carrying substitution parameters — `{ "key": "…", "params": { "minLength": "12" } }`. The SvelteKit client translates them via Paraglide in the user's active locale. The JSON property names (`key`, `params`) are themselves spec-derived: `public/contracts/tk-message/tk-message.spec.json` drives `DcsvIo.D2.WireShapes.SourceGen`, which emits `TkMessageWireShape.g.cs` carrying `TkMessageWireShape.KEY` / `.PARAMS`. `TKMessageJsonConverter` references those constants, not inline literals; cross-language wire drift on the property names is structurally impossible (this is an instance of ADR-0002).
+HTTP responses ship `TKMessage` objects unchanged: `{ "key": "common_errors_NOT_FOUND" }`, or — for a message carrying substitution parameters — `{ "key": "…", "params": { "minLength": "12" } }`. The SvelteKit client translates them via Paraglide in the user's active locale. The JSON property names (`key`, `params`) are themselves spec-derived: `contracts/tk-message/tk-message.spec.json` drives `DcsvIo.D2.WireShapes.SourceGen`, which emits `TkMessageWireShape.g.cs` carrying `TkMessageWireShape.KEY` / `.PARAMS`. `TKMessageJsonConverter` references those constants, not inline literals; cross-language wire drift on the property names is structurally impossible (this is an instance of ADR-0002).
 
-On the TypeScript side, `public/contracts/messages/en-US.json` drives a second generator (`private/tools/ts-codegen`) that emits `public/packages/typescript/i18n/src/generated/tk-keys.g.ts`. The TS `TK` object uses the same nested path structure (`TK.common.errors.NOT_FOUND`), but each leaf value is the literal key string (e.g. `"common_errors_NOT_FOUND"`) rather than a `TKMessage` instance — used in test assertions and utility code rather than for calling Paraglide directly. Paraglide itself generates per-key typed functions consumed by SvelteKit components; the TS `TK` catalog and Paraglide are parallel codegen outputs from the same source, serving different call sites. The asymmetry between the .NET `TKMessage`-as-value and the TS string-as-value is acceptable: the functional invariant (drift impossible; a key rename = compile/build error on both sides) holds on both sides.
+On the TypeScript side, `contracts/messages/en-US.json` drives a second generator that emits `packages/typescript/i18n/src/generated/tk-keys.g.ts` (sources committed). The TS `TK` object uses the same nested path structure (`TK.common.errors.NOT_FOUND`), but each leaf value is the literal key string (e.g. `"common_errors_NOT_FOUND"`) rather than a `TKMessage` instance — used in test assertions and utility code rather than for calling Paraglide directly. Paraglide itself generates per-key typed functions for UI components; the TS `TK` catalog and Paraglide are parallel codegen outputs from the same source, serving different call sites. The asymmetry between the .NET `TKMessage`-as-value and the TS string-as-value is acceptable: the functional invariant (drift impossible; a key rename = compile/build error on both sides) holds on both sides.
 
 ## Consequences
 
 **Positive.**
 
-- A translation-key rename in `public/contracts/messages/en-US.json` immediately breaks the build on both the .NET side (the constant no longer exists after regeneration; all reference sites fail to compile) and the TS side. Stale keys are not silently swallowed.
+- A translation-key rename in `contracts/messages/en-US.json` immediately breaks the build on both the .NET side (the constant no longer exists after regeneration; all reference sites fail to compile) and the TS side. Stale keys are not silently swallowed.
 - JSON↔constant drift is structurally impossible: the constant in `TK.g.cs` is emitted directly from the JSON key; it cannot exist without the JSON entry, and the entry cannot be renamed without updating every code reference.
 - Domain code — handlers, factories, smart-constructor `Create` methods — returns `D2Result` with `TKMessage` values without importing any translation runtime. The zero-dep constraint is preserved.
 - Per-locale translation coverage gaps surface as build-time Roslyn warnings rather than blank strings in production.
@@ -48,9 +45,9 @@ On the TypeScript side, `public/contracts/messages/en-US.json` drives a second g
 
 **Negative / risks.**
 
-- Adding a key requires a `public/contracts/messages/en-US.json` edit AND corresponding additions to every other locale catalog (or accepting a coverage warning until translations are available). The discipline to maintain all locale files falls on contributors.
+- Adding a key requires a `contracts/messages/en-US.json` edit AND corresponding additions to every other locale catalog (or accepting a coverage warning until translations are available). The discipline to maintain all locale files falls on contributors.
 - The internal constructor on `TKMessage` means deserialization must go through `TKMessageJsonConverter`; boundary code that receives an arbitrary JSON string cannot construct a `TKMessage` directly — it calls `ITranslator.HasKey` first. A small ceremony cost at inbound wire boundaries.
-- .NET codegen (Roslyn) and TS codegen (`private/tools/ts-codegen`) are independent tools sharing one source spec; a toolchain-level defect could produce divergent outputs. Partially mitigated by the exhaustive round-trip test in `public/packages/typescript/i18n/tests/tk-keys.test.ts`, which verifies every decomposable key in `en-US.json` is reachable in the TS `TK` catalog at its expected path.
+- .NET codegen (Roslyn) and TS codegen are independent tools sharing one source spec; a toolchain-level defect could produce divergent outputs. Partially mitigated by the exhaustive round-trip test in `packages/typescript/i18n/tests/tk-keys.test.ts`, which verifies every decomposable key in `en-US.json` is reachable in the TS `TK` catalog at its expected path.
 - The surface-level asymmetry (.NET constants hold `TKMessage` instances; TS constants hold string literals) means the "feel" differs across languages; engineers working across both sides must keep the distinction in mind (documented in `tk-keys.g.ts`).
 
 ## Alternatives considered
@@ -65,12 +62,10 @@ On the TypeScript side, `public/contracts/messages/en-US.json` drives a second g
 
 ## References
 
-> **Monorepo-private process paths** (`docs/PATTERNS.md`, `docs/dev/rules.md`, and similar) are illustration only in the product monorepo that embeds this open tree — **not required for a public clone** of this ADR (monorepo dual-tree / export layout is private monorepo law — not required for a public clone of this ADR).
-- `public/packages/dotnet/i18n/abstractions/` — `TKMessage.cs` (internal ctor + immutable `With()` parameter binding), `ITranslator.cs`, `TKMessageJsonConverter.cs`, the zero-non-BCL-deps csproj, and the committed `Generated/.../TK.g.cs` + `TkMessageWireShape.g.cs`.
-- `public/packages/dotnet/i18n/source-gen/` — `TKGenerator.cs`, `TKEmitter.cs`; en-US as source of truth; per-locale coverage diagnostics.
-- `public/packages/dotnet/i18n/core/` — `Translator.cs` (locale fallback + raw-key fallback; outbound-notification only) + `AddD2I18n` registration.
-- `public/packages/dotnet/i18n/abstractions/README.md` — canonical i18n reference (zero-dep rationale + decomposition-rule table).
-- `public/packages/typescript/i18n/src/generated/tk-keys.g.ts`; `public/packages/typescript/i18n/tests/tk-keys.test.ts` — TS `TK` catalog + exhaustive round-trip test.
-- `public/contracts/messages/en-US.json` — single source of truth for all keys; `public/contracts/tk-message/tk-message.spec.json` — wire-shape property-name spec.
-- `docs/PATTERNS.md` (i18n section, "no translation on the HTTP path").
+- `packages/dotnet/i18n/abstractions/` — `TKMessage.cs` (internal ctor + immutable `With()` parameter binding), `ITranslator.cs`, `TKMessageJsonConverter.cs`, the zero-non-BCL-deps csproj, and the committed `Generated/.../TK.g.cs` + `TkMessageWireShape.g.cs`.
+- `packages/dotnet/i18n/source-gen/` — `TKGenerator.cs`, `TKEmitter.cs`; en-US as source of truth; per-locale coverage diagnostics.
+- `packages/dotnet/i18n/core/` — `Translator.cs` (locale fallback + raw-key fallback; outbound-notification only) + `AddD2I18n` registration.
+- `packages/dotnet/i18n/abstractions/README.md` — canonical i18n reference (zero-dep rationale + decomposition-rule table).
+- `packages/typescript/i18n/src/generated/tk-keys.g.ts`; `packages/typescript/i18n/tests/tk-keys.test.ts` — TS `TK` catalog + exhaustive round-trip test.
+- `contracts/messages/en-US.json` — single source of truth for all keys; `contracts/tk-message/tk-message.spec.json` — wire-shape property-name spec.
 - [ADR-0002](0002-spec-driven-codegen.md) — the spec-driven codegen pattern this applies. [ADR-0003](0003-d2result-errors-as-values.md) — `D2Result.Messages: TKMessage[]` is the load-bearing consumer. [ADR-0006](0006-abstractions-implementation-split.md) — the abstractions/runtime split applied here.

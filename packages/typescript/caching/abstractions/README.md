@@ -46,7 +46,7 @@ carve-out below.
 ## Cache key convention + PII
 
 Cache keys follow the `EntityName:{id}` shape (`Session:{userId}`,
-`Jwks:{kid}`, `WhoIs:{ip}`, etc.) per `docs/PATTERNS.md` (monorepo-only — not on public export).
+`Jwks:{kid}`, `WhoIs:{ip}`, etc.) (`EntityName:{id}`).
 `LocalCacheOptions.keyPrefix` is a **namespace** prefix layered on top of that
 convention (handy when multiple caches share a process), not a substitute for
 it. **Keep PII out of keys** — keys leak into logs, traces, and store
@@ -257,8 +257,7 @@ without dragging in implementation runtime.
 
 ## References
 
-- [PATTERNS.md (monorepo-only — not on public export)](../../../../../docs/PATTERNS.md) cache section
 - [`local-default/README.md`](../local-default/README.md) — local in-process impl
 - [`distributed-redis/README.md`](../distributed-redis/README.md) — Redis + backplane
 - [`tiered/README.md`](../tiered/README.md) — L1+L2 composition
-- .NET twin: `public/packages/dotnet/caching/abstractions/`
+- .NET twin: `packages/dotnet/caching/abstractions/`

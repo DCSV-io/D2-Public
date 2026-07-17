@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-utilities
 
-> Parent: [`public/packages/typescript/`](../README.md)
+> Parent: [`packages/typescript/`](../README.md)
 
 Boundary helpers — `falsey`/`truthy` semantics, string cleaning,
 parse-or-undefined helpers, indexed env-var array parsing, and the regex
@@ -58,7 +58,7 @@ Mirrors `DcsvIo.D2.Utilities` extensions:
 
 ### Naming divergence from .NET
 
-TS helpers use `*Undef*` naming where the .NET equivalent uses `*Null*`, matching each language's idiomatic "absent" sentinel (TS: `undefined` per rules.md §6.15; .NET: `null` per BCL convention). Behavior is functionally equivalent. See [docs/PARITY.md — Utility helper naming divergence](../../../../docs/PARITY.md#utility-helper-naming-divergence--ts-undef-vs-net-null) for the full table and reviewer guidance.
+TS helpers use `*Undef*` naming where the .NET equivalent uses `*Null*`, matching each language's idiomatic "absent" sentinel (TS: `undefined`; .NET: `null` per BCL convention). Behavior is functionally equivalent.
 
 ## Edge cases
 

@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # location/
 
-> Parent: [`public/packages/dotnet/`](../README.md)
+> Parent: [`packages/dotnet/`](../README.md)
 
 Immutable, content-addressable location value objects. The cluster provides the pure-domain VOs and their `IPostalCodeValidator` boundary contract (`core/`) plus the reusable EF Core mapping helpers (`entity-framework-core/`).
 

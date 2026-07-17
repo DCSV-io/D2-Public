@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-validation-abstractions
 
-> Parent: [`public/packages/typescript/`](../../README.md)
+> Parent: [`packages/typescript/`](../../README.md)
 >
 > **Audience**: backend Node/TypeScript service and BFF engineers who need
 > the validator contract surface — email, phone, and postal-code validator
@@ -38,7 +38,7 @@ or taxonomy enums imports `FieldConstraints` / `NamePrefix` / etc. directly.
 ## Field-constraints catalog (codegen-emitted)
 
 Spec-driven from `contracts/validation/field-constraints.spec.json` via
-`private/tools/ts-codegen/src/field-constraints-emit.ts` — emitted into
+Generated from `contracts/validation/field-constraints.spec.json` — emitted into
 `src/generated/` (committed, `linguist-generated`). The same spec drives the
 .NET-side `DcsvIo.D2.Validation.Abstractions` catalog, so cross-language drift
 is structurally impossible.

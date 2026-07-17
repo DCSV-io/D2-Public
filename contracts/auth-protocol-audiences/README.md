@@ -8,11 +8,10 @@ Protocol audience catalog — the two fixed internal receive audiences (`d2.inte
 
 ## Consumed by
 
-- **.NET** — [`public/packages/dotnet/auth/protocol-audiences-source-gen/`](../../packages/dotnet/auth/protocol-audiences-source-gen/) (Roslyn source-gen → `WellKnownAudiences` constants in `DcsvIo.D2.Auth.Abstractions`; no README)
-- **TypeScript** — monorepo-private `private/tools/ts-codegen` › `protocol-audiences-emit.ts` (not on public export) (→ `ProtocolAudiences` const-object in `@dcsv-io/d2-auth-abstractions`)
-- **TypeSpec** — monorepo-private TypeSpec decorators (`@dcsv-io/d2-private-typespec-decorators` under `private/packages/typescript/typespec-decorators/` — not on public export) reads `protocol-audiences.spec.json` to validate `@d2Audience` decorator arguments at compile time
+- **.NET** — [`packages/dotnet/auth/protocol-audiences-source-gen/`](../../packages/dotnet/auth/protocol-audiences-source-gen/) (Roslyn source-gen → `WellKnownAudiences` constants in `DcsvIo.D2.Auth.Abstractions`; no README)
+- **TypeScript** — constants/types in `@dcsv-io/d2-auth-abstractions` (generated from this spec; sources committed)
+- **TypeSpec** — internal IDL tooling; not required for published packages
 
 ## See also
 
-- Codegen pattern + diagnostics: [docs/SRC_GEN.md](../../../docs/SRC_GEN.md)
 - All contracts: [contracts catalog](../README.md)

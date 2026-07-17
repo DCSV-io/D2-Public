@@ -185,5 +185,4 @@ An aborted signal at method entry returns `canceled` without touching Redis. The
 
 - [`../abstractions/README.md`](../abstractions/README.md)
 - [`../README.md`](../README.md)
-- [`docs/PATTERNS.md` (monorepo-only — not on public export)](../../../../../docs/PATTERNS.md)
-- .NET twin: `public/packages/dotnet/caching/distributed-redis/`
+- .NET twin: `packages/dotnet/caching/distributed-redis/`

@@ -2,9 +2,6 @@
 Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 
-
-> **Visibility: PUBLIC** — ships with the open surface (`public/`).  
-> Do not add product IP, private paths, or non-exportable runbooks.
 # ADR-0017: EF-as-DDD persistence — retire the per-op Repository TLC; persist sum-type aggregates as a flat non-polymorphic Record + pure mapper (Shape B), NOT TPH
 
 - **Status**: Accepted
@@ -99,7 +96,7 @@ The Record + mapper + EF config + query extensions for a state-machine aggregate
 
 ### Convention shift (ratified at EF-as-DDD SHIP)
 
-The Repository TLC has been retired from new code; `PATTERNS.md` and `rules.md` have been updated to reflect that CQRS handlers use `DbContext` directly. A state-machine-persistence predicate (flat non-polymorphic Record + pure mapper + query extensions + no-repo + `xmin`; event-sourcing deviation; source-gen amortization) is codified alongside §9.31/§9.32.
+The Repository TLC has been retired from new code; CQRS handlers use `DbContext` directly. Stateful aggregates persist as a flat non-polymorphic Record + pure mapper + query extensions (no per-op repo) + `xmin` concurrency; event-sourcing is an explicit deviation; the Record/mapper surface is source-gen-amortizable once proven.
 
 ## Consequences
 
@@ -133,7 +130,7 @@ For an aggregate that is BOTH **audit-defining** (the history IS the product, no
 
 ## References
 
-- ADR-0016 (private monorepo — see monorepo `private/docs/adrs/`; not public SoT) — the KeyCustodian sum-type lifecycle + the concrete `KeyRecord` schema this convention persists; the `pg_try_advisory_lock` rotation coordination the `xmin` token complements.
+- Example application: long-lived secret lifecycle stores that use sum-type domain states + a concrete flat record schema this convention persists; `pg_try_advisory_lock` rotation coordination complements the `xmin` concurrency token.
 - [ADR-0001](0001-contacts-folded-owned-component.md) — the EF VO mapping pattern (complex types + value converters) the Record's VO columns reuse.
 - [ADR-0018](0018-spec-driven-error-codes.md) / [ADR-0019](0019-wrapped-result-wire-model.md) — the error-code + wrapped-result conventions KeyCustodian's handlers surface failures through.
 - Persistence-strategy spike (EF Core 10.0.7 / Npgsql.EFC 10.0.1 / Postgres 17) — 6/6 validated; the throwaway Testcontainers spike falsified TPH delete+insert (morph-wall, stale-column UPDATE, get-only discriminator) and confirmed flat-record Shape B as the decision rationale for this ADR.

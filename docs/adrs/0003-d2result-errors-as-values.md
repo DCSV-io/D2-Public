@@ -2,9 +2,6 @@
 Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 
-
-> **Visibility: PUBLIC** — ships with the open surface (`public/`).  
-> Do not add product IP, private paths, or non-exportable runbooks.
 # ADR-0003: `D2Result` — errors-as-values instead of exceptions for control flow
 
 - **Status**: Accepted
@@ -23,11 +20,11 @@ The codebase also has a hard constraint on user-visible messages: every message 
 
 All expected operation outcomes are modeled as `D2Result` / `D2Result<TData>` value objects returned from every handler and service method. Exceptions are reserved exclusively for programmer-bug invariants.
 
-**The core type** (`public/packages/dotnet/result/core/D2Result.cs` and its partials) carries seven wire fields: `Success`, `Data`, `Messages`, `InputErrors`, `StatusCode`, `ErrorCode`, and `TraceId`. Every property name is bound to a codegen-emitted constant from `D2ResultEnvelopeFieldNames.g.cs` (generated from `public/contracts/d2result-envelope/d2result-envelope.spec.json` — see ADR-0002) via `[JsonPropertyName]`, so the camelCase wire shape is correct under any `JsonSerializerOptions` and cross-language drift on the envelope field names is structurally impossible.
+**The core type** (`packages/dotnet/result/core/D2Result.cs` and its partials) carries seven wire fields: `Success`, `Data`, `Messages`, `InputErrors`, `StatusCode`, `ErrorCode`, and `TraceId`. Every property name is bound to a codegen-emitted constant from `D2ResultEnvelopeFieldNames.g.cs` (generated from `contracts/d2result-envelope/d2result-envelope.spec.json` — see ADR-0002) via `[JsonPropertyName]`, so the camelCase wire shape is correct under any `JsonSerializerOptions` and cross-language drift on the envelope field names is structurally impossible.
 
-**Semantic factories** (`D2Result.Factories.cs`, `D2Result.Generic.Factories.cs`) are the only authorized construction path for failure states: `Ok`, `Created`, `NotFound`, `Unauthorized`, `Forbidden`, `ValidationFailed`, `Conflict`, `ServiceUnavailable`, `UnhandledException`, `PayloadTooLarge`, `TooManyRequests`, `Canceled`, `SomeFound`, `PartialSuccess`. Each factory bundles the canonical HTTP status code, the catalog `ErrorCode`, and a sensible default `TKMessage`. Raw `Fail()` is reserved for re-mapping arbitrary upstream codes where no semantic factory matches (`docs/PATTERNS.md` D2Result; `docs/dev/rules.md §5.3`).
+**Semantic factories** (`D2Result.Factories.cs`, `D2Result.Generic.Factories.cs`) are the only authorized construction path for failure states: `Ok`, `Created`, `NotFound`, `Unauthorized`, `Forbidden`, `ValidationFailed`, `Conflict`, `ServiceUnavailable`, `UnhandledException`, `PayloadTooLarge`, `TooManyRequests`, `Canceled`, `SomeFound`, `PartialSuccess`. Each factory bundles the canonical HTTP status code, the catalog `ErrorCode`, and a sensible default `TKMessage`. Raw `Fail()` is reserved for re-mapping arbitrary upstream codes where no semantic factory matches.
 
-**`ErrorCodes`** is codegen-emitted from `public/contracts/error-codes/error-codes.spec.json` (each code with a declared HTTP status). The same spec drives the TypeScript side via `private/tools/ts-codegen`. Hand-written constants are forbidden; cross-language drift is structurally impossible.
+**`ErrorCodes`** is codegen-emitted from `contracts/error-codes/error-codes.spec.json` (each code with a declared HTTP status). The same spec drives the TypeScript side (sources committed). Hand-written constants are forbidden; cross-language drift is structurally impossible.
 
 **`Messages` and `InputErrors` are typed as `IReadOnlyList<TKMessage>` and `IReadOnlyList<InputError>`** respectively. `TKMessage` has an `internal` constructor in `DcsvIo.D2.I18n.Abstractions`; the only way to produce one is via the SrcGen-emitted `TK.*` constants (ADR-0004). An untranslated literal in `D2Result.Messages` is structurally unrepresentable — the constraint is enforced by the type system at compile time, not by linter or convention.
 
@@ -39,7 +36,7 @@ All expected operation outcomes are modeled as `D2Result` / `D2Result<TData>` va
 
 **Per-code boolean discriminators** (`D2Result.Booleans.cs`) carry `[JsonIgnore]` and never appear on the wire. `IsTransientRetryable` explicitly excludes `IsUnhandledException` — unknown system state is never auto-retried.
 
-**TypeScript mirror** (`public/packages/typescript/result/`, package `@dcsv-io/d2-result`): `D2Result<T>` class (`src/d2-result.ts`), factory functions mirroring the .NET factory surface (`src/factories.ts`), `bubbleFail` / `bubble` propagation (`src/bubble.ts`), and the `TKMessage` interface (`src/tk-message.ts`) — same envelope, same `ErrorCodes` catalog (generated from the same spec). Wire round-trips are byte-identical and parity-tested.
+**TypeScript mirror** (`packages/typescript/result/`, package `@dcsv-io/d2-result`): `D2Result<T>` class (`src/d2-result.ts`), factory functions mirroring the .NET factory surface (`src/factories.ts`), `bubbleFail` / `bubble` propagation (`src/bubble.ts`), and the `TKMessage` interface (`src/tk-message.ts`) — same envelope, same `ErrorCodes` catalog (generated from the same spec). Wire round-trips are byte-identical and parity-tested.
 
 ## Consequences
 
@@ -56,7 +53,7 @@ All expected operation outcomes are modeled as `D2Result` / `D2Result<TData>` va
 **Negative / risks.**
 
 - **Ceremony.** Every method in every handler layer returns a `D2Result`. New team members must learn the `BubbleOnFailure` idiom before writing fluent handler code.
-- **Discipline to not `Ok()` after a failed downstream call.** Nothing in the type system prevents `return D2Result<T>.Ok(...)` after an upstream failure was silently ignored. The `BubbleOnFailure` pattern and the rules.md review predicates mitigate this; the language cannot enforce it.
+- **Discipline to not `Ok()` after a failed downstream call.** Nothing in the type system prevents `return D2Result<T>.Ok(...)` after an upstream failure was silently ignored. The `BubbleOnFailure` pattern and code-review discipline mitigate this; the language cannot enforce it.
 - **`Combine` collapses error codes.** Aggregating heterogeneous failures via `D2Result.Combine` collapses error codes to `VALIDATION_FAILED`. Callers needing to preserve a typed upstream code use `BubbleFail` directly.
 - **`IsTransientRetryable` depends on the canonical `errorCode`.** When a factory's `errorCode` is overridden (e.g., a domain-specific retry code), the per-code discriminators return `false` and the result falls outside the auto-retry classifier. Domain-specific retry logic must check the domain code explicitly — intentional, but it requires documentation.
 
@@ -70,10 +67,8 @@ All expected operation outcomes are modeled as `D2Result` / `D2Result<TData>` va
 
 ## References
 
-> **Monorepo-private process paths** (`docs/PATTERNS.md`, `docs/dev/rules.md`, and similar) are illustration only in the product monorepo that embeds this open tree — **not required for a public clone** of this ADR (monorepo dual-tree / export layout is private monorepo law — not required for a public clone of this ADR).
-- `public/packages/dotnet/result/core/` — `D2Result.cs` + partials (`*.Factories.cs`, `*.Generic.Factories.cs`, `*.Generic.Monadic.cs`, `*.Booleans.cs`, `*.Combine.cs`, `D2ResultGuardExtensions.cs`, `InputError.cs`), and the committed `Generated/` `ErrorCodes.g.cs` + `D2ResultEnvelopeFieldNames.g.cs`.
-- `public/packages/dotnet/result/core/README.md` — full factory table, bubble propagation, partial-success ladder, monadic API.
-- `public/contracts/error-codes/error-codes.spec.json`, `public/contracts/d2result-envelope/d2result-envelope.spec.json` — the source-of-truth specs.
-- `public/packages/typescript/result/src/` — `d2-result.ts`, `factories.ts`, `bubble.ts`, `tk-message.ts` (the TypeScript mirror).
-- `docs/PATTERNS.md` (D2Result section); `docs/dev/rules.md §5.3` (semantic factories over raw `Fail`), §17 (D2Result usage), §20.5 (exceptions only for programmer-bug invariants).
+- `packages/dotnet/result/core/` — `D2Result.cs` + partials (`*.Factories.cs`, `*.Generic.Factories.cs`, `*.Generic.Monadic.cs`, `*.Booleans.cs`, `*.Combine.cs`, `D2ResultGuardExtensions.cs`, `InputError.cs`), and the committed `Generated/` `ErrorCodes.g.cs` + `D2ResultEnvelopeFieldNames.g.cs`.
+- `packages/dotnet/result/core/README.md` — full factory table, bubble propagation, partial-success ladder, monadic API.
+- `contracts/error-codes/error-codes.spec.json`, `contracts/d2result-envelope/d2result-envelope.spec.json` — the source-of-truth specs.
+- `packages/typescript/result/src/` — `d2-result.ts`, `factories.ts`, `bubble.ts`, `tk-message.ts` (the TypeScript mirror).
 - [ADR-0002](0002-spec-driven-codegen.md) — `ErrorCodes` + envelope field names are spec-emitted. [ADR-0004](0004-i18n-tkmessage.md) — `Messages` typed as `TKMessage`. [ADR-0005](0005-handler-pipeline.md) — `traceId` auto-injection + the uniform exception→`D2Result` guarantee.

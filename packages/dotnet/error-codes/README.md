@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # error-codes/
 
-> Parent: [`public/packages/dotnet/`](../README.md)
+> Parent: [`packages/dotnet/`](../README.md)
 
 Cross-catalog error-code classification and merged registry for D2. The cluster provides two runtime packages — a zero-dependency `ErrorCategory` enum leaf and a `FrozenDictionary`-backed merged `ErrorCodeRegistry` — backed by two source generators that emit them at build time from the spec files under `contracts/`.
 
@@ -37,6 +37,6 @@ The `registry/` package additionally depends on `DcsvIo.D2.I18n.Keys` so the `Us
 
 - `contracts/error-category/error-category.spec.json` — the nine category wire strings (e.g. `not_found`, `validation_failure`).
 - `contracts/error-codes/error-codes.spec.json` — the generic 15-entry D2Result error-code taxonomy.
-- `contracts/**/*-error-codes.spec.json` — per-domain catalogs under the open tree (e.g. `contracts/auth-error-codes/`). Product-only catalogs (for example KeyCustodian) live under monorepo-private contracts only and are not public-tree siblings.
+- `contracts/**/*-error-codes.spec.json` — per-domain catalogs under the open tree (e.g. `contracts/auth-error-codes/`). Hosts may add product-only catalogs outside this tree.
 
 Never hand-edit the files under `Generated/` in either package — change the spec and rebuild.

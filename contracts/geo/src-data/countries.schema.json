@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.d2.dcsv.io/contracts/geo/src-data/countries.schema.json",
   "title": "Country catalog (pipeline-raw)",
-  "description": "Tier 1 (pipeline-raw) country catalog produced by private/tools/geo-data-pipeline. Verbose with per-entry _provenance + top-level sources / fieldCoverage diagnostics. NOT directly consumed by codegen — see ../countries.schema.json for the Tier 2 codegen-ready shape.",
+  "description": "Tier 1 (pipeline-raw) country catalog produced by the geo data pipeline Verbose with per-entry _provenance + top-level sources / fieldCoverage diagnostics. NOT directly consumed by codegen — see ../countries.schema.json for the Tier 2 codegen-ready shape.",
   "type": "object",
   "additionalProperties": false,
   "required": [

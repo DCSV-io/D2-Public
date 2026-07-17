@@ -4,13 +4,13 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Messaging.DlqMetadata.SourceGen
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 **Input contract:** [`contracts/dlq-failure-metadata/`](../../../../contracts/dlq-failure-metadata/README.md)
 
 Roslyn incremental source generator that emits the DLQ failure-metadata catalogs from `contracts/dlq-failure-metadata/dlq-failure-metadata.spec.json`.
 
-**Convention**: spec-driven Roslyn IIncrementalGenerator pattern. See [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) for the framework-wide convention (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
+**Convention**: spec-driven Roslyn `IIncrementalGenerator` (netstandard2.0 analyzer; spec via `<AdditionalFiles>`).
 
 ## Multi-target dispatch
 
@@ -29,7 +29,7 @@ The two catalogs co-live in one spec because they describe two facets of the sam
 
 ## Cross-language parity
 
-The SAME spec drives `@dcsv-io/d2-messaging-abstractions` via monorepo-private `private/tools/ts-codegen` (not on public export). The TS-side `@dcsv-io/d2-messaging-abstractions` package exposes the same field-name and cause-string catalogs; any TS consumer (DLQ ops tooling, RabbitMQ subscribers) reads byte-equal identifiers shared with the .NET producers.
+The SAME spec drives `@dcsv-io/d2-messaging-abstractions` (sources committed). The TS package exposes the same field-name and cause-string catalogs; any TS consumer (DLQ ops tooling, RabbitMQ subscribers) reads byte-equal identifiers shared with the .NET producers.
 
 ## Diagnostics
 

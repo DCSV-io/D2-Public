@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-i18n-keys
 
-> Parent: [`public/packages/typescript/`](../README.md)
+> Parent: [`packages/typescript/`](../README.md)
 
 Foundational package that exports the type-safe TK constants catalog. Mirrors
 `DcsvIo.D2.I18n.Keys` on the .NET side — a thin keys layer whose only dependency
@@ -20,7 +20,7 @@ dependency.
 | `TKKey` | `string` type alias for a raw TK key value.                                                                                                                    |
 
 Both are auto-generated from `contracts/messages/en-US.json` by
-`private/tools/ts-codegen`. Do not edit `src/generated/tk-keys.g.ts` by hand — changes
+the messages catalog (sources committed). Do not edit `src/generated/tk-keys.g.ts` by hand — changes
 will be overwritten on the next codegen run.
 
 ## Dependencies

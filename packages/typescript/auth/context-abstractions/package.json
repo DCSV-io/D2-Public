@@ -1,7 +1,6 @@
 {
   "name": "@dcsv-io/d2-auth-context-abstractions",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.1.1",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

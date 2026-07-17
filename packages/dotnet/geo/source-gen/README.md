@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Geo.SourceGen
 
-> Parent: [`public/packages/dotnet/README.md`](../../README.md)
+> Parent: [`packages/dotnet/README.md`](../../README.md)
 
 > **Audience**: D² framework engineers extending or maintaining the geo data pipeline and the codegen emitting strongly-typed geo records into `DcsvIo.D2.Geo.Abstractions` and `DcsvIo.D2.Geo.Default`.
 

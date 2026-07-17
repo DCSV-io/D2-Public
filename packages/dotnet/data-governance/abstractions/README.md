@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.DataGovernance.Abstractions
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 >
 > **Audience**: backend .NET service engineers decorating entity models with GDPR anonymization markers and referencing the engine seam — without pulling in EF Core or DI.
 
@@ -138,7 +138,7 @@ Task<D2Result<AnonymizationOutcome>> AnonymizeOrgAsync(Guid orgId, CancellationT
 ## Tests
 
 Unit tests covering the full public API surface live in
-`public/packages/dotnet/tests/Unit/DataGovernance/Abstractions/`.
+`packages/dotnet/tests/Unit/DataGovernance/Abstractions/`.
 
 Coverage includes every `[Anonymizable]` constructor form and adversarial input
 (null/empty constant, whitespace template, undefined enum value, contradictory

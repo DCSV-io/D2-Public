@@ -11,12 +11,12 @@ Keep a Changelog, and this package adheres to Semantic Versioning.
 
 ### Added
 
-- `MqMessageDescriptor.IsSealed` and `MqMessageDescriptor.ConsumerService` —
-  computed properties reading `EncryptionDomainModeCatalog` (public overlay first,
-  then generated `EncryptionDomainModes` baseline): `IsSealed` is true when the
-  descriptor's domain is in per-consumer-service sealed (asymmetric) mode;
-  `ConsumerService` is the single ServiceId that opens the domain's sealed frames
-  (else `null`). Product sealed domains register via the catalog overlay (private
-  `ProductEncryptionDomainBootstrap`); never new record parameters on the descriptor.
+### Changed
 
 ### Fixed
+
+## 0.1.1 - 2026-07-17
+### Changed
+
+- Dependency update: DcsvIo.D2.Encryption bumped.
+- Dependency update: DcsvIo.D2.Handler bumped.

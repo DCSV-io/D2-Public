@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Validation.SourceGen
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 >
 > **Audience**: D² framework engineers maintaining the shared field-constraints catalog (field-length bounds + closed-list taxonomy enums) consumed by the domain value objects, the FE/BFF Zod schemas, and arbitrary backend modules.
 
@@ -12,9 +12,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 Roslyn incremental source generator that emits `FieldConstraints.g.cs` (field-length / digit-count `const int` bounds) and `Taxonomy.g.cs` (the `NamePrefix` / `NameSuffix` / `BiologicalSex` closed-list enums) into `DcsvIo.D2.Validation.Abstractions` by reading `contracts/validation/field-constraints.spec.json` via `<AdditionalFiles>`. Single-target — emits ONLY when the consuming assembly is `DcsvIo.D2.Validation.Abstractions`.
 
-The spec file is the single source of truth for the platform's shared field bounds + name/sex taxonomy. The bounds gate every value-object `Create(...)` call (contacts + Location); the enums are the closed wire vocabularies for name prefixes/suffixes and biological sex. Same spec drives the TS-side `@dcsv-io/d2-validation-abstractions` catalog via monorepo-private `private/tools/ts-codegen` (not on public export) — cross-language wire-format drift is structurally impossible.
+The spec file is the single source of truth for the platform's shared field bounds + name/sex taxonomy. The bounds gate every value-object `Create(...)` call (contacts + Location); the enums are the closed wire vocabularies for name prefixes/suffixes and biological sex. Same spec drives the TS-side `@dcsv-io/d2-validation-abstractions` catalog (generated sources committed) — cross-language wire-format drift is structurally impossible.
 
-**Convention**: spec-driven Roslyn IIncrementalGenerator pattern. See [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) for the framework-wide convention (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
+**Convention**: spec-driven Roslyn `IIncrementalGenerator` pattern (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
 
 ---
 
@@ -105,8 +105,6 @@ N/A — inputs are JSON spec files declared via `<AdditionalFiles>` in the consu
 
 ## Reference
 
-- [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) — canonical how-to-author guide for D² Roslyn source generators
 - [`contracts/validation/schema.json`](../../../../contracts/validation/schema.json) — JSON Schema for the spec
 - [`contracts/validation/field-constraints.spec.json`](../../../../contracts/validation/field-constraints.spec.json) — the source-of-truth catalog
-- monorepo-private `private/tools/ts-codegen` (not on public export) — TS-side emitter consuming the same spec
-- [`docs/PARITY.md`](../../../../../docs/PARITY.md) — cross-language parity catalog
+- `@dcsv-io/d2-validation-abstractions` — TS-side catalog emitted from the same spec

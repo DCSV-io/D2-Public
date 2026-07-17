@@ -8,7 +8,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 Hand-rolled overlay files applied at Tier 2 build time on top of Tier 1 src-data. Used when the upstream sources (CLDR / IANA tzdb / datasets/\* / Wikidata SPARQL / debian iso-codes) omit, mislabel, or wrongly include something the platform needs handled differently.
 
-Each overlay entry carries `id` + `addedAt` + `reason` (+ optional `addedBy`) so the policy decision is audit-trail visible. `pnpm geo:overlays` from `private/tools/geo-data-pipeline/` lists every active patch with its reason.
+Each overlay entry carries `id` + `addedAt` + `reason` (+ optional `addedBy`) so the policy decision is audit-trail visible.
 
 ## When to overlay vs fix upstream vs hand-roll
 
@@ -94,15 +94,8 @@ pnpm dlx ajv-cli@5 validate --spec=draft2020 \
   --strict=false
 ```
 
-## Auditing active overlays
-
-```bash
-cd tools/geo-data-pipeline
-pnpm geo:overlays   # lists every overlay entry across all overlay files with reason + addedAt
-```
-
 ## Design rationale: overlays vs hand-editing Tier 1 src-data
 
-Tier 1 = upstream-faithful, never hand-edited. The next `pnpm geo:refresh` would overwrite any manual edit. The overlay layer is the persistence point — overlays survive refresh because they're applied AFTER Tier 1 ingestion.
+Tier 1 = upstream-faithful, never hand-edited. A full pipeline refresh would overwrite any manual edit. The overlay layer is the persistence point — overlays survive refresh because they're applied AFTER Tier 1 ingestion.
 
 The `addedAt` + `reason` discipline is what makes overlays TRACKABLE rather than mysterious git-archaeology fodder. A future maintainer reading the overlay can see exactly why XK is there without needing to find the right commit + read the message.

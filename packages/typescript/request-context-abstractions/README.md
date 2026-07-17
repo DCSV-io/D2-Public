@@ -4,12 +4,12 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-request-context-abstractions
 
-> Parent: [`public/packages/typescript/`](../README.md)
+> Parent: [`packages/typescript/`](../README.md)
 
 `IRequestContext` interface (extends `IAuthContext`) + `IPropagatedContext`
 cross-hop subset + `PropagatedContextSerializer` round-trip helper.
 Emitted from `contracts/request-context/IRequestContext.spec.json` via
-`private/tools/ts-codegen`. Mirrors `DcsvIo.D2.Context.Abstractions` (.NET).
+the request-context spec (sources committed). Mirrors `DcsvIo.D2.Context.Abstractions` (.NET).
 
 ## Public API
 

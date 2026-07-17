@@ -4,18 +4,18 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Tests
 
-> Parent: [`public/packages/dotnet/`](../README.md)
+> Parent: [`packages/dotnet/`](../README.md)
 
 Test infrastructure for ALL `DcsvIo.D2.*` libraries. Deliberately one test csproj rather than per-lib — the foundational shared libs are small enough that per-lib test projects would be overkill.
 
-Per-service tests (Edge, Audit, Courier, Notifications, Files) live separately at `private/services/{service}/tests/D2.{Service}.Tests.csproj` — this project covers shared libs only.
+This project covers shared library tests only — service-host test projects live with their services, not in this package tree.
 
 ---
 
 ## Layout
 
 ```
-public/packages/dotnet/tests/
+packages/dotnet/tests/
 ├─ DcsvIo.D2.Tests.csproj
 ├─ Unit/                                                # in-process unit + behavior tests
 │  ├─ Auth/                                             # → auth/abstractions enums + records + JwtClaimTypes
@@ -47,7 +47,7 @@ public/packages/dotnet/tests/
    ├─ Caching/
    │  ├─ Distributed/                                   # RedisDistributedCache + RedisCacheInvalidationBackplane (Redis container)
    │  └─ Tiered/                                        # DefaultTieredCache (Redis container shared with Distributed)
-   ├─ ContractFixtures/                                 # [Trait("Category","ContractFixtures")] — emits cross-language parity fixture JSON to private/packages/typescript/contract-tests/fixtures/ (consumed by @dcsv-io/d2-private-contract-tests Vitest)
+   ├─ ContractFixtures/                                 # [Trait("Category","ContractFixtures")] — emits cross-language parity fixture JSON for host twin Vitest suites
    └─ Messaging/                                        # RabbitMQ container — publish/consume + idempotency + DLQ + topology + adversarial
 ```
 
@@ -103,11 +103,11 @@ CS1591 / SA1600 (missing XML doc) are suppressed in this csproj only; non-test l
 const string trace_id = "trace-abc-123";
 ```
 
-Non-const test-locals (var, out var, etc.) MUST be `camelCase` per `docs/dev/rules.md §7.1`.
+Non-const test-locals (var, out var, etc.) MUST be `camelCase`.
 
 ### Adversarial coverage
 
-Per `docs/TESTS.md`, every test file aims at the 8-category checklist where applicable:
+Every test file aims at the 8-category checklist where applicable:
 
 1. **Happy path** — every factory creates the expected shape
 2. **Garbage input** — null/empty/whitespace, oversized, malformed
@@ -148,15 +148,15 @@ Both success and failure paths exercised.
 
 ### `[LoggerMessage]` PII contract
 
-Every `[LoggerMessage]` partial method whose source-side call sites observe potentially PII-bearing exceptions (broker URIs, connection strings, OAuth tokens, raw user input) is reflection-pinned by `Unit/Messaging/Telemetry/LoggerMessageDelegateContractTests.cs` to forbid `Exception` parameters. The pattern is the standard guard for `docs/dev/rules.md §3.1` across the messaging, caching/distributed-redis, caching/tiered, handler, and auth/outbound libs. Sibling libs follow the same rule even where a contract test isn't (yet) in place.
+Every `[LoggerMessage]` partial method whose source-side call sites observe potentially PII-bearing exceptions (broker URIs, connection strings, OAuth tokens, raw user input) is reflection-pinned by `Unit/Messaging/Telemetry/LoggerMessageDelegateContractTests.cs` to forbid `Exception` parameters. The pattern is the standard guard across the messaging, caching/distributed-redis, caching/tiered, handler, and auth/outbound libs. Sibling libs follow the same rule even where a contract test isn't (yet) in place.
 
 ---
 
 ## Running
 
 ```bash
-dotnet test public/packages/dotnet/tests                # all tests in this project
-dotnet test D2.slnx                             # full solution (all test projects)
+dotnet test packages/dotnet/tests                # all tests in this project
+dotnet test D2.Public.slnx                       # public solution (all public test projects)
 ```
 
 Test discovery is via xunit.v3 + MTP. Rider / VS Test Explorer pick up tests automatically. Integration tests skip cleanly when Docker isn't reachable.
@@ -166,14 +166,14 @@ Test discovery is via xunit.v3 + MTP. Rider / VS Test Explorer pick up tests aut
 `coverlet.msbuild` is wired into the csproj. Run from the repo root:
 
 ```
-dotnet test public/packages/dotnet/tests -property:CollectCoverage=true -property:CoverletOutputFormat=cobertura -property:CoverletOutput=./coverage/
+dotnet test packages/dotnet/tests -property:CollectCoverage=true -property:CoverletOutputFormat=cobertura -property:CoverletOutput=./coverage/
 ```
 
 (Use the `-property:` form, not `/p:` — bash strips the leading `/`. One line, works in CMD / PowerShell / bash.)
 
 **Where the result is:**
 
-The full Cobertura XML lands at `public/packages/dotnet/tests/coverage/coverage.cobertura.xml`. The top of the file has the summary attributes — read these for the at-a-glance result:
+The full Cobertura XML lands at `packages/dotnet/tests/coverage/coverage.cobertura.xml`. The top of the file has the summary attributes — read these for the at-a-glance result:
 
 ```xml
 <coverage line-rate="0.99" branch-rate="0.95" version="..." timestamp="..."
@@ -198,4 +198,4 @@ A summary table also prints to stdout when the test run goes through the MSBuild
 
 ## When to expand this project
 
-A new shared lib lands in `public/packages/dotnet/{lib}/` → create `Unit/{Lib}/` here with one test file per source file (`{SourceFile}Tests.cs`). If the lib needs real infrastructure (a real DB, a real broker, a real cache), add `Integration/{Lib}/` with a Testcontainers fixture instead. Project reference to the lib goes in `DcsvIo.D2.Tests.csproj`.
+A new shared lib lands in `packages/dotnet/{lib}/` → create `Unit/{Lib}/` here with one test file per source file (`{SourceFile}Tests.cs`). If the lib needs real infrastructure (a real DB, a real broker, a real cache), add `Integration/{Lib}/` with a Testcontainers fixture instead. Project reference to the lib goes in `DcsvIo.D2.Tests.csproj`.

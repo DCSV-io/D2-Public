@@ -213,5 +213,4 @@ operation completes synchronously in process, so there is no cancellation window
 - [`../abstractions/README.md`](../abstractions/README.md) — ports + result mapping
   + key convention / PII guidance
 - [`../README.md`](../README.md) — caching cluster
-- [`PATTERNS.md` (monorepo-only — not on public export)](../../../../../docs/PATTERNS.md) cache section
-- .NET twin: `public/packages/dotnet/caching/local-default/`
+- .NET twin: `packages/dotnet/caching/local-default/`

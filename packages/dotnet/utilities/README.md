@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Utilities
 
-> Parent: [`public/packages/dotnet/`](../README.md)
+> Parent: [`packages/dotnet/`](../README.md)
 
 Foundational helpers used at every boundary across D2. The "no value too small to centralize" library — preventing whole classes of bugs (empty-string-as-data, env-var collisions, JSON cycles) from ever entering domain code.
 
@@ -35,7 +35,7 @@ The public API is grouped by concern. Each sub-folder ships its own README with 
 
 ## Tests
 
-`public/packages/dotnet/tests/Unit/Utilities/` — adversarial coverage across every public surface. Categories:
+`packages/dotnet/tests/Unit/Utilities/` — adversarial coverage across every public surface. Categories:
 
 - All `Truthy`/`Falsey` overloads — null, empty, whitespace-only, multi-element, boundary values.
 - `ToNullIfEmpty` — null/empty/whitespace/trim/identity paths.
@@ -52,12 +52,12 @@ The public API is grouped by concern. Each sub-folder ships its own README with 
 - `D2Env` — `ApplyVars` precedence (process-env wins, later files override earlier), file discovery ("first dir with any match wins"), depth-limit exhaustion, platform comparer test seam, `Load()` idempotency. Discovery tests use explicit non-existent file names to avoid loading the repo's real `.env.secrets` into the test process.
 - `Diagnostics/SanitizedExceptionRender` — type-name fallback, first-frame format, never-thrown sentinel, anti-leak invariants on both `TypeName` and `FirstFrame` (rendered strings never contain `Exception.Message` even with sensitive bait values), thrown-exception frame identification, `BrokerUnreachableException`-shaped adversarial coverage (AMQP URI password leak prevention), empty-stack-trace edge case.
 
-Run: `dotnet test public/packages/dotnet/tests`
+Run: `dotnet test packages/dotnet/tests`
 
 CLI coverage one-liner (writes a Cobertura XML; coverlet.console's stdout summary shows totals):
 
 ```bash
-cd public/packages/dotnet/tests
+cd packages/dotnet/tests
 coverlet bin/Debug/net10.0/DcsvIo.D2.Tests.dll \
   --target dotnet --targetargs "test --no-build" \
   --include "[DcsvIo.D2.Utilities]*" \

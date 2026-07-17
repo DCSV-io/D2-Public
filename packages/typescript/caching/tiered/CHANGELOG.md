@@ -15,7 +15,15 @@ Keep a Changelog, and this package adheres to Semantic Versioning.
 
 ### Added
 
-- Initial `DefaultTieredCache` implementation of `ITieredCache` (twin of `DcsvIo.D2.Caching.Tiered`): L1+L2 composition, L2-first writes with L1 graceful degradation, atomics via L2 + L1 side-effects, optional invalidation-backplane subscribe for everyone-acts L1 drop, and `*AndBroadcast*` via the injected backplane. No `ICacheSet`. No OTel meters (structured logs only).
-- Barrel export of `TieredCacheOp` + `TIERED_ERROR_CODE_UNKNOWN` for dual-runtime ContractFixtures parity (closed-set op names + errorCode sentinel).
+### Changed
 
 ### Fixed
+
+## 0.1.1 - 2026-07-17
+### Changed
+
+- Dependency update: @dcsv-io/d2-caching-abstractions bumped.
+- Dependency update: @dcsv-io/d2-caching-distributed-redis bumped.
+- Dependency update: @dcsv-io/d2-caching-local-default bumped.
+- Dependency update: @dcsv-io/d2-logging bumped.
+- Dependency update: @dcsv-io/d2-result bumped.

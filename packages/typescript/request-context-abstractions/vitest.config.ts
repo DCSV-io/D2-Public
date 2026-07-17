@@ -9,7 +9,7 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     coverage: {
       provider: "v8",
-      // Codegen-emitted; coverage from private/tools/ts-codegen emitter tests.
+      // Codegen-emitted; coverage from catalog-codegen emitter tests.
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.g.ts", "src/index.ts"],
     },

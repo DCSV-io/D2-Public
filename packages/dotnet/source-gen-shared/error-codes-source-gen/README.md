@@ -4,17 +4,17 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Result.ErrorCodes.SourceGen
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 **Input contract:** [`contracts/error-codes/`](../../../../contracts/error-codes/README.md)
 
 A thin `[Generator]` shell over the shared unified error-codes engine ([`error-codes-emit`](../error-codes-emit/README.md)). It emits the `ErrorCodes` const-string catalog AND the constructing semantic failure factories + per-code booleans into `DcsvIo.D2.Result` by reading `contracts/error-codes/error-codes.spec.json` via `<AdditionalFiles>`. Single-target — emits ONLY when the consuming assembly is `DcsvIo.D2.Result`. The shell owns only the generic catalog's identity (assembly name + the `ErrorCodesGenerator` type FQN) + its `CatalogConfig`; all generation logic lives in the shared engine.
 
-The spec file is the single source of truth for the platform's generic error-code taxonomy. Every `d2_error_code` constant a `D2Result` failure carries, every constructing semantic failure factory on `D2Result` / `D2Result<TData>` (e.g. `NotFound`, `ValidationFailed`), and every per-code boolean discriminator (e.g. `IsNotFound`, `IsConflict`) is generated from this spec. Same spec drives the TS-side `@dcsv-io/d2-result` `ErrorCodes` catalog + factories via monorepo-private `private/tools/ts-codegen` (not on public export) — cross-language wire-format drift is structurally impossible.
+The spec file is the single source of truth for the platform's generic error-code taxonomy. Every `d2_error_code` constant a `D2Result` failure carries, every constructing semantic failure factory on `D2Result` / `D2Result<TData>` (e.g. `NotFound`, `ValidationFailed`), and every per-code boolean discriminator (e.g. `IsNotFound`, `IsConflict`) is generated from this spec. Same spec drives the TS-side `@dcsv-io/d2-result` `ErrorCodes` catalog + factories (sources committed) — cross-language wire-format drift is structurally impossible.
 
 The generic catalog owns the reserved unprefixed namespace (`NOT_FOUND`, `CONFLICT`, …) and runs in the engine's `FactoryHost.Base` mode — the factories ARE the base, so they CONSTRUCT a `D2Result` directly and land as members ONTO the `D2Result` / `D2Result<TData>` partial classes (not a separate `<Domain>Failures` class). Per-domain catalogs (e.g. the auth `AUTH_*` taxonomy at `contracts/auth-error-codes/`, driven by `DcsvIo.D2.Auth.ErrorCodes.SourceGen`) run in `FactoryHost.Domain` mode — their factories DELEGATE to the `httpStatus`-selected base factory and live in a separate `<Domain>Failures` (+ `<Domain>Failures<T>`) class. The SAME engine drives both via per-catalog config.
 
-**Convention**: spec-driven Roslyn IIncrementalGenerator pattern. See [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) for the framework-wide convention (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring) and [`error-codes-emit`](../error-codes-emit/README.md) for the shared engine + the add-a-catalog recipe.
+**Convention**: spec-driven Roslyn `IIncrementalGenerator` (netstandard2.0 analyzer; spec via `<AdditionalFiles>`). See [`error-codes-emit`](../error-codes-emit/README.md) for the shared engine + the add-a-catalog recipe.
 
 ---
 
@@ -85,10 +85,7 @@ Four `.g.cs` files emitted into the consuming assembly (`DcsvIo.D2.Result`):
 
 ## Reference
 
-- [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) — canonical how-to-author guide for D² Roslyn source generators
 - [`error-codes-emit`](../error-codes-emit/README.md) — the shared unified engine this shell drives
 - [`contracts/error-codes/schema.json`](../../../../contracts/error-codes/schema.json) — JSON Schema for the spec
 - [`contracts/error-codes/error-codes.spec.json`](../../../../contracts/error-codes/error-codes.spec.json) — the source-of-truth catalog
-- `DcsvIo.D2.Private.Auth.ErrorCodes.SourceGen` (`private/packages/dotnet/auth/error-codes-source-gen/` — monorepo product, not public SoT) — auth-domain SrcGen for the auth-specific `AUTH_*` taxonomy
-- monorepo-private `private/tools/ts-codegen` (not on public export) — TS-side emitter consuming the same spec
-- [`docs/PARITY.md`](../../../../../docs/PARITY.md) — cross-language parity catalog (lists this spec)
+- `@dcsv-io/d2-result` — TS-side catalog consuming the same spec

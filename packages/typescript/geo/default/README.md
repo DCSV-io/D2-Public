@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-geo-default
 
-> Parent: [`public/packages/typescript/`](../../README.md)
+> Parent: [`packages/typescript/`](../../README.md)
 >
 > **Audience**: backend Node/TypeScript engineers + BFF composition-root code that needs to bind the actual geo catalog data (per-entity records + lookup maps + nested objects) at process start.
 
@@ -166,7 +166,7 @@ The resolver intentionally carries no instrumentation (no spans, no counters, no
 
 ## Codegen pattern
 
-Files under `src/generated/` are emitted by `private/tools/ts-codegen/src/geo-emitter/` from the seven `contracts/geo/*.spec.json` files. Files directly under `src/` are tiny re-export shims that match the sub-path layout above — they exist so the `exports` map can point at concrete files, and so `pnpm exec tsc -b` recognizes every sub-path.
+Files under `src/generated/` are generated from the seven `contracts/geo/*.spec.json` files (sources committed). Files directly under `src/` are tiny re-export shims that match the sub-path layout above — they exist so the `exports` map can point at concrete files, and so `pnpm exec tsc -b` recognizes every sub-path.
 
 ## Dependencies
 

@@ -6,7 +6,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 ## What's here
 
-JSON specs produced end-to-end by `private/tools/geo-data-pipeline` from upstream sources (CLDR / IANA tzdb / libphonenumber / datasets/\* / Wikidata SPARQL / debian iso-codes). Every entry traces to real upstream data — zero hand-written or AI-generated content. Per-source provenance (URL + sha256 + license + fetchedAt) is recorded at the top of each spec file.
+JSON specs produced end-to-end by the geo data pipeline from upstream sources (CLDR / IANA tzdb / libphonenumber / datasets/\* / Wikidata SPARQL / debian iso-codes). Every entry traces to real upstream data — zero hand-written or AI-generated content. Per-source provenance (URL + sha256 + license + fetchedAt) is recorded at the top of each spec file.
 
 | File                     | Source pipeline                                                                                                                                       | Entries                        |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
@@ -26,28 +26,13 @@ These files are **pipeline-raw** — they include:
 - Top-level `fieldCoverage`, `orderBreakdown`, `wikidataFills`, `tagShape` and other build-time diagnostics
 - `$note` flagging build-version + remaining gaps
 
-The codegen-ready specs that `DcsvIo.D2.Geo.Default` / `@dcsv-io/d2-geo-default` consume live **one level up** at `contracts/geo/*.spec.json`, produced by the Tier 2 clean-pass (`private/tools/geo-data-pipeline/src/tier-2/`) which strips diagnostics + applies cross-catalog M:M backfill + Locale denormalization + `IsSelectable`/`IsSupported` derivation.
+The codegen-ready specs that `DcsvIo.D2.Geo.Default` / `@dcsv-io/d2-geo-default` consume live **one level up** at `contracts/geo/*.spec.json`, produced by the Tier 2 clean-pass which strips diagnostics + applies cross-catalog M:M backfill + Locale denormalization + `IsSelectable`/`IsSupported` derivation.
 
 See [`../README.md`](../README.md) for the full three-tier layout (src-data → Tier 2 → hand-rolled GeopoliticalEntity).
 
 ## How to refresh
 
-```bash
-cd tools/geo-data-pipeline
-
-# All-in-one: src-data + Tier 2 + parity tests
-pnpm geo:refresh
-
-# Or per-catalog (src-data only):
-pnpm write:countries
-pnpm write:subdivisions
-pnpm write:timezones
-pnpm write:languages
-pnpm write:locales
-pnpm write:currencies
-```
-
-Each run pulls from upstream (with 24h cache TTL — see `.cache/` for cached upstream snapshots + `.provenance.json` sidecars) and overwrites the corresponding `*.spec.json` in this directory.
+Tier 1 regeneration is performed by the geo data pipeline tooling (not required for consuming published packages — committed specs here are the source inputs). Each refresh pulls from upstream (with cache TTL) and overwrites the corresponding `*.spec.json` in this directory.
 
 ## License attribution
 

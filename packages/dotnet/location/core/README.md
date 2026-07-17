@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Location
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 > **Audience**: Backend .NET service engineers attaching location or postal-address data to domain entities.
 
@@ -129,6 +129,5 @@ Hash-algorithm stability is enforced by the [`contracts/location/parity-fixtures
 ## References
 
 - [`../entity-framework-core/README.md`](../entity-framework-core/README.md) — the sibling `DcsvIo.D2.Location.EntityFrameworkCore` lib that maps these VOs onto a host's EF Core model (`MapStreetAddress` / `MapAdminLocation` / `MapCoordinates` + per-field anonymize defaults).
-- [`docs/PATTERNS.md` (monorepo-only — not on public export)](../../../docs/PATTERNS.md) — content-addressable entities + hash composition.
 - [`../geo/abstractions/README.md`](../../geo/abstractions/README.md) — the typed `CountryCode` + `SubdivisionCode` surface this lib consumes.
 - [`contracts/location/parity-fixtures.json`](../../../contracts/location/parity-fixtures.json) — hash-determinism fixture file.

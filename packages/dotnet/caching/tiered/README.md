@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Caching.Tiered
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 Two-tier cache that composes one [`ILocalCache`](../abstractions/README.md) (L1) and one
 [`IDistributedCache`](../abstractions/README.md) (L2) into the

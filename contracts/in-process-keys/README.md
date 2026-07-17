@@ -8,11 +8,10 @@ In-process key registry — the closed set of named keys used to stash per-reque
 
 ## Consumed by
 
-- **.NET** — [`public/packages/dotnet/encryption/in-process-keys-source-gen/`](../../packages/dotnet/encryption/in-process-keys-source-gen/README.md) (Roslyn source-gen → `D2HttpContextItems` in public `DcsvIo.D2.Auth.Abstractions` for `http`-bound entries + `D2GrpcUserStateKeys` into monorepo-private Auth.Grpc PackageId `DcsvIo.D2.Private.Auth.Grpc` for `grpc`-bound entries; AssemblyName policy A)
+- **.NET** — [`packages/dotnet/encryption/in-process-keys-source-gen/`](../../packages/dotnet/encryption/in-process-keys-source-gen/README.md) (Roslyn source-gen → `D2HttpContextItems` in `DcsvIo.D2.Auth.Abstractions` for `http`-bound entries; host-supplied gRPC bindings may emit matching UserState keys for `grpc`-bound entries)
 
-No `private/tools/ts-codegen` emitter consumes this catalog — the keys are an in-process .NET concern with no wire representation.
+No TypeScript package consumes this catalog — the keys are an in-process .NET concern with no wire representation.
 
 ## See also
 
-- Codegen pattern + diagnostics: [docs/SRC_GEN.md](../../../docs/SRC_GEN.md)
 - All contracts: [contracts catalog](../README.md)

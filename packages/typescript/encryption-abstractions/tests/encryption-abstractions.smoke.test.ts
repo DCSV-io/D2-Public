@@ -13,7 +13,7 @@ import {
 // Public open-catalog domains — spec source of truth is
 // public/contracts/encryption-domains/encryption-domains.spec.json.
 // Product sealed domains (audit / notifications / courier) live under
-// private/contracts and private Encryption.Extensions — not this package.
+// host product domain catalogs and host Encryption extensions — not this package.
 const EXPECTED_DOMAINS = ["plaintext", "payload-fixture-sealed"] as const;
 
 // The five logical frame fields declared in the spec (variable-length fields

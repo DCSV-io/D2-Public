@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// <c>LoggerMessage</c> delegates for <see cref="BaseHandler{TSelf, TInput, TOutput}"/>.
-/// Per <c>docs/dev/rules.md §3.1</c>, NO delegate accepts <see cref="Exception"/> —
+/// PII safety: NO delegate accepts <see cref="Exception"/> —
 /// the receiving log delegate signature IS the contract; future callers will
 /// pass real exceptions whose <c>Message</c> can carry broker URIs, connection
 /// strings, OAuth tokens, presigned URLs, raw user input, and similar PII.

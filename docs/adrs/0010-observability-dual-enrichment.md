@@ -2,9 +2,6 @@
 Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 
-
-> **Visibility: PUBLIC** — ships with the open surface (`public/`).  
-> Do not add product IP, private paths, or non-exportable runbooks.
 # ADR-0010: Observability — OTel aggregation + dual span-tag and log-scope enrichment
 
 - **Status**: Accepted
@@ -15,7 +12,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 Every service ships two independent observability signal paths that must carry the same request-context fields simultaneously: distributed traces to Tempo (via OTLP) and structured log lines to Loki (via Serilog + OTLP). These are separate backends with separate query languages; a field set only on a span does not appear on a log line, and vice versa.
 
-The codebase spans multiple shared libraries (`Handler`, monorepo-private `Auth` / `Auth.Outbound` (when product composition is present), `Messaging.RabbitMq`, `Caching.Distributed.Redis`, `Caching.Local.Default`), each owning its own `ActivitySource` and/or `Meter`. Each service's composition root previously had to know the exact string names of every library's source/meter to subscribe — leaking internal naming across the boundary and silently breaking on any rename. Infrastructure paths (`/health`, `/alive`, `/metrics`, `/.well-known`) required filtering in two places (logging middleware + tracer instrumentation), risking divergence.
+The codebase spans multiple shared libraries (`Handler`, host-supplied auth modules when present, `Messaging.RabbitMq`, `Caching.Distributed.Redis`, `Caching.Local.Default`), each owning its own `ActivitySource` and/or `Meter`. Each service's composition root previously had to know the exact string names of every library's source/meter to subscribe — leaking internal naming across the boundary and silently breaking on any rename. Infrastructure paths (`/health`, `/alive`, `/metrics`, `/.well-known`) required filtering in two places (logging middleware + tracer instrumentation), risking divergence.
 
 ## Decision
 
@@ -25,7 +22,7 @@ The codebase spans multiple shared libraries (`Handler`, monorepo-private `Auth`
 
 **3. Per-signal OTLP exporters are env-var-gated; `OTEL_SDK_DISABLED` symmetrically suppresses all registration.** OTLP exporters for traces/metrics/logs register independently, each only when its canonical endpoint env var resolves to a non-falsey URI. Log export runs through `AddSerilog(writeToProviders: true)`, routing Serilog into the OTel `OpenTelemetryLoggerProvider`. The Prometheus endpoint at `/metrics` (`MapD2PrometheusEndpoint`) is protected by `InternalIpFilter` (403 for any remote IP not loopback or RFC 1918). `OTEL_SDK_DISABLED=true` short-circuits both `AddD2Telemetry` and `MapD2PrometheusEndpoint` symmetrically; the HttpClient instrumentation filter suppresses spans for outbound calls to configured OTLP endpoints (preventing `HttpClient → OTLP → HttpClient` loops).
 
-**4. Telemetry tag constants are codegen'd from the spec** (an instance of ADR-0002). The generator in `telemetry/tags-source-gen/` reads `public/contracts/telemetry/telemetry.spec.json` and emits per-meter `*TelemetryTags.g.cs` typed constants; cross-spec references resolve via `CrossSpecResolver` (e.g. the `d2.auth.problem.emitted` tag values are sourced from `auth-error-codes.spec.json`, not duplicated). Hand-written tag-name literals are forbidden for any tag with a spec entry.
+**4. Telemetry tag constants are codegen'd from the spec** (an instance of ADR-0002). The generator in `telemetry/tags-source-gen/` reads `contracts/telemetry/telemetry.spec.json` and emits per-meter `*TelemetryTags.g.cs` typed constants; cross-spec references resolve via `CrossSpecResolver` (e.g. the `d2.auth.problem.emitted` tag values are sourced from `auth-error-codes.spec.json`, not duplicated). Hand-written tag-name literals are forbidden for any tag with a spec entry.
 
 **5. One canonical `InfrastructurePathMatcher`** (`DcsvIo.D2.AspNetCore`) is the single source of truth for the infra path set. The telemetry instrumentation `Filter` and the logging `UseD2RequestLogging` level callback both call the same static matcher with the same default path list — the two filters cannot diverge.
 
@@ -42,7 +39,7 @@ The codebase spans multiple shared libraries (`Handler`, monorepo-private `Auth`
 **Negative / risks.**
 
 - Dual-write constructs two overlapping data structures (Activity tags + log-scope dictionary) per invocation — a modest allocation that auto-instrumentation-only approaches avoid.
-- `AggregatedTelemetrySources` is a manual registry: adding a new library's telemetry needs a PR there, and forgetting produces no compile error — only missing dashboards (partially mitigated by the spec-pin presence tests, which must be updated in the same PR). Public open Telemetry no longer ProjectReferences Auth runtime packages; product hosts may still aggregate private Auth / Auth.Outbound meters. ADR-0023 (private product — not public SoT) covers mTLS workload identity superseding service-identity token presentation.
+- `AggregatedTelemetrySources` is a manual registry: adding a new library's telemetry needs a PR there, and forgetting produces no compile error — only missing dashboards (partially mitigated by the spec-pin presence tests, which must be updated in the same PR). Open Telemetry registers public library sources/meters by symbol; hosts may also register additional ActivitySource / Meter wire names for host-supplied auth modules.
 - `writeToProviders: true` means each Serilog line is processed twice (Serilog pipeline + MEL→OTel bridge); operators must size the OTLP log collector accordingly.
 - `InternalIpFilter` uses byte-prefix matching with no `IPNetwork` abstraction; IPv6 private ranges other than `::1` are out of scope for this filter (deliberate boundary; IPv6-primary pod networks would need a separate design).
 
@@ -58,10 +55,8 @@ The codebase spans multiple shared libraries (`Handler`, monorepo-private `Auth`
 
 ## References
 
-> **Monorepo-private process paths** (`docs/PATTERNS.md`, `docs/dev/rules.md`, and similar) are illustration only in the product monorepo that embeds this open tree — **not required for a public clone** of this ADR (monorepo dual-tree / export layout is private monorepo law — not required for a public clone of this ADR).
-- `public/packages/dotnet/telemetry/core/` — `TelemetryServiceCollectionExtensions.cs` (`AddD2Telemetry`, OTLP wiring, self-referential HttpClient filter), `Internal/AggregatedTelemetrySources.cs` (4 `ActivitySource` + 6 `Meter` via symbol refs), `Internal/OtelSdkDisabledGate.cs`, `Internal/InternalIpFilter.cs`, `WebApplicationTelemetryExtensions.cs` (`MapD2PrometheusEndpoint`), `D2TelemetryOptions.cs`.
-- `public/packages/dotnet/telemetry/tags-source-gen/` — `TelemetryTagsGenerator.cs`, `TelemetryTagsEmitter.cs`, `CrossSpecResolver.cs`.
-- `public/packages/dotnet/handler/core/BaseHandler.cs` + `HandlerTelemetry.cs` — dual enrichment (`SetTag` + `BeginScope`) and the four handler instruments.
-- `public/packages/dotnet/logging/` — `LoggingServiceCollectionExtensions.cs` (`AddSerilog(writeToProviders: true)`), `WebApplicationLoggingExtensions.cs` (`UseD2RequestLogging`), `Internal/D2RequestContextEnricher.cs` (42 LOG-OK fields).
-- `docs/PATTERNS.md` (Telemetry / Logging / AspNetCore sections).
-- [ADR-0011](0011-pii-redaction-logging-safety.md) — PII-redaction safety (`[RedactData]` destructuring policy, `SanitizedExceptionRender`, the LOG-OK / NOT-LOGGED split). [ADR-0006](0006-abstractions-implementation-split.md) — libraries publish telemetry names as `const`, not SDK registrations. [ADR-0005](0005-handler-pipeline.md) — the pipeline that performs dual enrichment. [ADR-0002](0002-spec-driven-codegen.md) — the codegen pattern for tag constants. ADR-13 (private product — see monorepo private/docs/adrs; not public SoT) — the composition-root aggregator.
+- `packages/dotnet/telemetry/core/` — `TelemetryServiceCollectionExtensions.cs` (`AddD2Telemetry`, OTLP wiring, self-referential HttpClient filter), `Internal/AggregatedTelemetrySources.cs` (4 `ActivitySource` + 6 `Meter` via symbol refs), `Internal/OtelSdkDisabledGate.cs`, `Internal/InternalIpFilter.cs`, `WebApplicationTelemetryExtensions.cs` (`MapD2PrometheusEndpoint`), `D2TelemetryOptions.cs`.
+- `packages/dotnet/telemetry/tags-source-gen/` — `TelemetryTagsGenerator.cs`, `TelemetryTagsEmitter.cs`, `CrossSpecResolver.cs`.
+- `packages/dotnet/handler/core/BaseHandler.cs` + `HandlerTelemetry.cs` — dual enrichment (`SetTag` + `BeginScope`) and the four handler instruments.
+- `packages/dotnet/logging/` — `LoggingServiceCollectionExtensions.cs` (`AddSerilog(writeToProviders: true)`), `WebApplicationLoggingExtensions.cs` (`UseD2RequestLogging`), `Internal/D2RequestContextEnricher.cs` (42 LOG-OK fields).
+- [ADR-0011](0011-pii-redaction-logging-safety.md) — PII-redaction safety (`[RedactData]` destructuring policy, `SanitizedExceptionRender`, the LOG-OK / NOT-LOGGED split). [ADR-0006](0006-abstractions-implementation-split.md) — libraries publish telemetry names as `const`, not SDK registrations. [ADR-0005](0005-handler-pipeline.md) — the pipeline that performs dual enrichment. [ADR-0002](0002-spec-driven-codegen.md) — the codegen pattern for tag constants. Host composition roots own the aggregator registry (`AggregatedTelemetrySources`) that subscribes every library source/meter.

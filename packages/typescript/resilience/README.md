@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-resilience
 
-> Parent: [`public/packages/typescript/`](../README.md)
+> Parent: [`packages/typescript/`](../README.md)
 
 Retry / circuit breaker / singleflight / timeout / rate-limiter / composable
 pipeline. Mirrors `DcsvIo.D2.Resilience` (.NET).

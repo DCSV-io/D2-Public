@@ -8,10 +8,9 @@ Dead-letter queue failure metadata catalog — the AMQP header field names and s
 
 ## Consumed by
 
-- **.NET** — [`public/packages/dotnet/messaging/dlq-failure-metadata-source-gen/`](../../packages/dotnet/messaging/dlq-failure-metadata-source-gen/README.md) (Roslyn source-gen → `DlqFailureMetadataFields` + `DlqFailureCauses` constants in `DcsvIo.D2.Messaging.Abstractions`)
-- **TypeScript** — monorepo-private `private/tools/ts-codegen` › `dlq-failure-metadata-emit.ts` (not on public export) (→ matching constants in `@dcsv-io/d2-messaging-abstractions` for DLQ tooling)
+- **.NET** — [`packages/dotnet/messaging/dlq-failure-metadata-source-gen/`](../../packages/dotnet/messaging/dlq-failure-metadata-source-gen/README.md) (Roslyn source-gen → `DlqFailureMetadataFields` + `DlqFailureCauses` constants in `DcsvIo.D2.Messaging.Abstractions`)
+- **TypeScript** — constants/types in `@dcsv-io/d2-messaging-abstractions` (generated from this spec; sources committed)
 
 ## See also
 
-- Codegen pattern + diagnostics: [docs/SRC_GEN.md](../../../docs/SRC_GEN.md)
 - All contracts: [contracts catalog](../README.md)

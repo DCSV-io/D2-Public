@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.ErrorCodes.Registry
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 Merged cross-catalog error-code registry for D2. Aggregates every `*-error-codes.spec.json` catalog under `contracts/` into a single compile-time-frozen `code → ErrorCodeInfo` lookup table — so any consuming service can resolve a wire error code to its full metadata without importing the producer's catalog.
 
@@ -79,4 +79,4 @@ DcsvIo.D2.ErrorCodes.Category   (zero-dep leaf — ErrorCategory enum)
 
 `contracts/error-codes/error-codes.spec.json` (generic catalog) + every `contracts/**/*-error-codes.spec.json` (per-domain catalogs) + `contracts/error-category/error-category.spec.json` (the closed category set the registry cross-checks against at codegen time).
 
-The TS side mirrors this exactly: `@dcsv-io/d2-error-codes-registry` is generated from the same spec set by monorepo-private `private/tools/ts-codegen` (not on public export). Cross-runtime parity enforced by `private/packages/typescript/contract-tests/tests/error-codes-registry.parity.test.ts`.
+The TS side mirrors this exactly: `@dcsv-io/d2-error-codes-registry` is generated from the same spec set (sources committed). Cross-runtime parity is pinned by shared fixtures / twin tests.

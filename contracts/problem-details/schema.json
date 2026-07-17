@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "D2 ProblemDetails spec",
-  "description": "Schema for contracts/problem-details/problem-details.spec.json — the source-of-truth catalog that DcsvIo.D2.ProblemDetails.SourceGen reads to emit the D2ProblemDetailsKeys static class into DcsvIo.D2.ProblemDetails.Abstractions (consumed by DcsvIo.D2.Auth.Http and DcsvIo.D2.AspNetCore), and private/tools/ts-codegen/src/problem-details-emit.ts reads to emit problem-details.g.ts into @dcsv-io/d2-problem-details-abstractions (re-exported from private monorepo @dcsv-io/d2-private-headers).",
+  "description": "Schema for contracts/problem-details/problem-details.spec.json — the source-of-truth catalog that DcsvIo.D2.ProblemDetails.SourceGen reads to emit the D2ProblemDetailsKeys static class into DcsvIo.D2.ProblemDetails.Abstractions (consumed by DcsvIo.D2.Auth.Http and DcsvIo.D2.AspNetCore), and the TypeScript codegen pipeline reads to emit problem-details.g.ts into @dcsv-io/d2-problem-details-abstractions (host apps may re-export the same constants).",
   "type": "object",
   "required": ["typeUriPrefix", "contentType", "extensionKeys", "titles"],
   "additionalProperties": false,

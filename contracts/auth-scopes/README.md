@@ -14,11 +14,10 @@ OAuth scope catalog — the closed set of permission scopes with their action-se
 
 ## Consumed by
 
-- **.NET** — [`public/packages/dotnet/auth/scopes-source-gen/`](../../packages/dotnet/auth/scopes-source-gen/README.md) (Roslyn source-gen → `Scopes` scope-tree constants in `DcsvIo.D2.Auth.Abstractions`, consumed by per-handler `RequiredScopes` options)
-- **TypeScript** — monorepo-private `private/tools/ts-codegen` › `auth-scopes-emit.ts` (not on public export) (→ `Scopes` const-object tree in `@dcsv-io/d2-auth-abstractions`)
-- **TypeSpec** — monorepo-private TypeSpec decorators (`@dcsv-io/d2-private-typespec-decorators` under `private/packages/typescript/typespec-decorators/` — not on public export) reads `scopes.spec.json` to validate scope-referencing decorator arguments at compile time
+- **.NET** — [`packages/dotnet/auth/scopes-source-gen/`](../../packages/dotnet/auth/scopes-source-gen/README.md) (Roslyn source-gen → `Scopes` scope-tree constants in `DcsvIo.D2.Auth.Abstractions`, consumed by per-handler `RequiredScopes` options)
+- **TypeScript** — constants/types in `@dcsv-io/d2-auth-abstractions` (generated from this spec; sources committed)
+- **TypeSpec** — internal IDL tooling; not required for published packages
 
 ## See also
 
-- Codegen pattern + diagnostics: [docs/SRC_GEN.md](../../../docs/SRC_GEN.md)
 - All contracts: [contracts catalog](../README.md)

@@ -58,7 +58,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <PackageId>DcsvIo.D2.ProblemDetails.Abstractions</PackageId>
     <Description>RFC 7807 ProblemDetails wire-format catalog for D2 — type-URI prefix, extension keys, per-status titles, and the TitleFor helper.</Description>
     <IsPackable>true</IsPackable>

@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Contacts
 
-> Parent: [`public/packages/dotnet/`](../README.md)
+> Parent: [`packages/dotnet/`](../README.md)
 
 > **Audience**: Backend .NET service engineers attaching contact details (names, demographics, professional info, email, phone) to their own domain entities.
 

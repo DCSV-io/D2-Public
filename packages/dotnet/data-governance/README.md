@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # data-governance/
 
-> Parent: [`public/packages/dotnet/`](../README.md)
+> Parent: [`packages/dotnet/`](../README.md)
 
 GDPR anonymization framework. The cluster provides the vocabulary and marker interfaces every service shares (`abstractions/`) plus the EF Core engine, fluent decoration API, and startup model guard (`entity-framework-core/`).
 

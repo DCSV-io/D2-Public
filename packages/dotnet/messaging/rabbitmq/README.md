@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Messaging.RabbitMq
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 Default `RabbitMQ.Client 7.x` implementation of the
 [`DcsvIo.D2.Messaging.Abstractions`](../abstractions/README.md)
@@ -55,9 +55,7 @@ exchange, and default routing key.
   `PropagatedContext`; same shape on every transport — AMQP is not
   special-cased). The call-path also rides every synchronous gRPC hop
   via a dedicated outbound client interceptor + inbound establishment
-  interceptor (monorepo-private PackageIds `DcsvIo.D2.Private.Auth.Outbound` /
-  `DcsvIo.D2.Private.Auth.Grpc`; AssemblyName policy A) — see
-  [ADR-0025](../../../../../public/docs/adrs/0025-request-context-establishment.md).
+  interceptor on the host auth stack (outbound write + inbound establishment).
   `PropagatedContextSerializer.TryDecode` enforces both a wire-level cap
   (`MAX_HEADER_LENGTH = 2 KiB`) AND per-field length caps (RequestPath ≤
   2048, RequestId ≤ 256, fingerprints ≤ 512, WhoIsHashId ≤ 128; `CallPath`
@@ -256,7 +254,7 @@ any consumer channel opens — when a subscriber consumes a sealed domain but no
 matching `IPayloadOpener` is registered, so a forgotten
 `AddD2SealedEncryptionViaKeyCustodian` fails loud rather than DLQ'ing every
 delivery. The KeyCustodian-backed sealer/opener runtime lives in
-`DcsvIo.D2.Private.Edge.KeyCustodian.Client` (`Sealing/`); the shared lib composes whatever
+a host-supplied sealing client; the shared lib composes whatever
 keyed sealer/opener the host registered (shared → shared dependency only). The
 TypeScript twin (`@dcsv-io/d2-messaging-rabbitmq`) enforces the same fusion structurally.
 
@@ -768,7 +766,7 @@ cycles via `MaxAttempts`.
 ## TypeScript twin — producer and consumer
 
 A service-agnostic Node runtime for both directions lives at
-[`public/packages/typescript/messaging/rabbitmq/`](../../../typescript/messaging/rabbitmq/README.md)
+[`packages/typescript/messaging/rabbitmq/`](../../../typescript/messaging/rabbitmq/README.md)
 (`@dcsv-io/d2-messaging-rabbitmq`). On the **consume** side it declares the same topology
 (primary + `{q}.dlx` + `{q}.dlq` + retry tiers), consumes with manual acks,
 republishes failures with the same `DlqFailureMetadata`, deduplicates via the same

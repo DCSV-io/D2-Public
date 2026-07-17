@@ -138,7 +138,7 @@ internal static class ProblemDetailsEmitter
         sb.AppendLine(
             "/// <c>D2ProblemDetailsExtensions.ToProblemDetails</c> and aspnetcore");
         sb.AppendLine(
-            "/// <c>D2ProblemDetailsCustomizer</c>) and the TS-side <c>@dcsv-io/d2-problem-details-abstractions</c> (re-exported from private monorepo <c>@dcsv-io/d2-private-headers</c>)");
+            "/// <c>D2ProblemDetailsCustomizer</c>) and the TS-side <c>@dcsv-io/d2-problem-details-abstractions</c> (hosts may re-export the same constants)");
         sb.AppendLine(
             "/// catalog. Cross-language drift on the URI prefix, content type,");
         sb.AppendLine(

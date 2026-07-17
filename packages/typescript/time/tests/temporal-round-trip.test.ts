@@ -5,7 +5,7 @@
 // Temporal-adversarial round-trip suite — TypeScript half.
 //
 // Drives the SAME contracts/temporal/temporal-adversarial.fixture.json as the
-// C# half (DcsvIo.D2.Private.Edge.Tests TemporalRoundTripTests), so an identical wire value
+// C# half (host TemporalRoundTripTests twin), so an identical wire value
 // materializes to the equivalent domain value in BOTH languages. Each test maps
 // a wire string (the shape the TypeSpec DTO emitter produces — ISO-8601 instant
 // / offset-free local / ISO-8601 duration) to the @dcsv-io/d2-time + Temporal domain

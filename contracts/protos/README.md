@@ -19,12 +19,12 @@ contracts/protos/
 
 ## Consumed by
 
-- **.NET** — service projects compile these via `Grpc.Tools` (MSBuild) in each consuming `public/packages/dotnet/*` and `private/services/*` project that references them; C# stubs are generated at build time
-- **TypeScript / TypeSpec** — monorepo-private TypeSpec emitters (`@dcsv-io/d2-private-typespec-emitters` under `private/packages/typescript/typespec-emitters/` — not on public export) references the proto shapes when generating TypeScript gRPC client stubs
+- **.NET** — service / library projects compile these via `Grpc.Tools` (MSBuild) in each consuming project that references them (including packages under `packages/dotnet/*`); C# stubs are generated at build time
+- **TypeScript** — `@dcsv-io/d2-protos` (Buf + `ts-proto` generated types and gRPC stubs from these protos; sources committed)
+- **TypeSpec** — internal IDL tooling; not required for published packages
 
 These are hand-authored `.proto` files (not generated from a spec), so there is no source-gen project of their own — the consumers above generate FROM them.
 
 ## See also
 
-- Codegen pattern + diagnostics: [docs/SRC_GEN.md](../../../docs/SRC_GEN.md)
 - All contracts: [contracts catalog](../README.md)

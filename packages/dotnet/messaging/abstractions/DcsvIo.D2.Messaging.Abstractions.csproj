@@ -76,7 +76,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <PackageId>DcsvIo.D2.Messaging.Abstractions</PackageId>
     <Description>Transport-agnostic messaging abstractions for D2 — the [MqPub] / [MqSub] vocabulary, the message-bus contract, and DLQ failure-metadata wire shapes.</Description>
     <IsPackable>true</IsPackable>

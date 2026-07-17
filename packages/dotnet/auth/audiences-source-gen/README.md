@@ -4,24 +4,24 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Auth.Audiences.SourceGen
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
-**Input contract:** [`public/contracts/auth-audiences/`](../../../../contracts/auth-audiences/README.md)
+**Input contract:** [`contracts/auth-audiences/`](../../../../contracts/auth-audiences/README.md)
 
-Roslyn incremental source generator that emits audience catalogs from `public/contracts/auth-audiences/audiences.spec.json` via `<AdditionalFiles>`.
+Roslyn incremental source generator that emits audience catalogs from `contracts/auth-audiences/audiences.spec.json` via `<AdditionalFiles>`.
 
-**Dual-target** (assembly-name gate — see [`docs/SRC_GEN.md` §1.5](../../../../../docs/SRC_GEN.md#15-dual-target-dispatch--public-twin--private-extensions)):
+**Dual-target** (assembly-name gate):
 
 | Consuming assembly | Emitted type | Values |
 | --- | --- | --- |
-| `DcsvIo.D2.Auth.Abstractions` | `Audiences` under `DcsvIo.D2.Auth.Abstractions` | public AdditionalFiles only |
-| `DcsvIo.D2.Private.Auth.Abstractions.Extensions` | `ProductAudiences` under `DcsvIo.D2.Private.Auth` | public∪private AdditionalFiles |
+| `DcsvIo.D2.Auth.Abstractions` | `Audiences` under `DcsvIo.D2.Auth.Abstractions` | this package's AdditionalFiles only |
+| Host extension assembly (optional) | `ProductAudiences` under the host root namespace | public catalog ∪ host-supplied additional files |
 
-Any other assembly → no emit. Private host PackageId is 1:1 with the public twin + `.Extensions`.
+Any other assembly → no emit. Hosts that need product-only audiences register an extension assembly that includes both public and host AdditionalFiles.
 
-The spec file is the single source of truth for the platform's JWT-audience catalog. Every value an inbound JWT's `aud` claim can carry — including the broad internal audience every internal service accepts under the forward-unchanged model (ADR-0022 (private product — not public SoT)) — and every `targetAudience` argument for the retained boundary-mint / exception token exchanges (`TokenExchangeClient.ExchangeAsync`) lives in one JSON file — no hand-written parallel constants, no per-feature drift.
+The spec file is the single source of truth for the platform's JWT-audience catalog. Every value an inbound JWT's `aud` claim can carry — including the broad internal audience every internal service accepts under the forward-unchanged model — and every `targetAudience` argument for the retained boundary-mint / exception token exchanges (`TokenExchangeClient.ExchangeAsync`) lives in one JSON file — no hand-written parallel constants, no per-feature drift.
 
-**Convention**: spec-driven Roslyn IIncrementalGenerator pattern. See [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) for the framework-wide convention (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
+**Convention**: spec-driven Roslyn `IIncrementalGenerator` pattern (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
 
 ---
 
@@ -93,7 +93,6 @@ Audience strings flow through the inbound JWT validator's `aud` claim check at e
 
 ## References
 
-- [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) — canonical how-to-author guide for D² Roslyn source generators
-- [`public/contracts/auth-audiences/schema.json`](../../../../contracts/auth-audiences/schema.json) — JSON Schema (editor-time gate)
-- [`public/contracts/auth-audiences/audiences.spec.json`](../../../../contracts/auth-audiences/audiences.spec.json) — the catalog
+- [`contracts/auth-audiences/schema.json`](../../../../contracts/auth-audiences/schema.json) — JSON Schema (editor-time gate)
+- [`contracts/auth-audiences/audiences.spec.json`](../../../../contracts/auth-audiences/audiences.spec.json) — the catalog
 - [`DcsvIo.D2.Auth.Abstractions`](../abstractions/README.md) — the consuming lib (where `Audiences.g.cs` lands)

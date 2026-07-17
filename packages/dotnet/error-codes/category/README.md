@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.ErrorCodes.Category
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 Foundational zero-dependency (BCL-only) leaf that exposes the closed `ErrorCategory` classification — the nine-value semantic/telemetry class every `D2Result` and every error code carries. Source-Generated from `contracts/error-category/error-category.spec.json`. Lives here so result-core and the error-codes registry can reference `ErrorCategory` _downward_ without pulling the merged-catalog generator.
 

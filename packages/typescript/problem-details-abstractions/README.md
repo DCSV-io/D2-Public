@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-problem-details-abstractions
 
-> Parent: [`public/packages/typescript/`](../README.md)
+> Parent: [`packages/typescript/`](../README.md)
 
 Foundational, zero-dependency package that declares the RFC 7807
 ProblemDetails wire-format catalog: the type-URI prefix, the
@@ -25,7 +25,7 @@ without pulling JWT-parsing or route-guard machinery.
 | `defaultTitleForStatus`        | Returns the spec-declared title for an HTTP status, or the fallback title.                       |
 
 The catalog is auto-generated from
-`contracts/problem-details/problem-details.spec.json` by `private/tools/ts-codegen`.
+`contracts/problem-details/problem-details.spec.json` (generated sources committed).
 Do not edit `src/generated/problem-details.g.ts` by hand — changes will be
 overwritten on the next codegen run.
 
@@ -39,7 +39,5 @@ Mirrors `DcsvIo.D2.ProblemDetails.Abstractions` — both declare the
 spec-derived ProblemDetails wire constants, generated from the same
 `contracts/problem-details/problem-details.spec.json` source. Single spec,
 two emitters, cross-language wire drift structurally impossible. The
-body-builder that consumes these constants lives one layer up — `toProblemDetails`
-in `@dcsv-io/d2-private-headers` (TS, private monorepo composition) and
-`D2ProblemDetailsExtensions.ToProblemDetails` in monorepo-private
-`DcsvIo.D2.Private.Auth.Http` (.NET PackageId; not on public export) — so the leaf stays free of the result envelope.
+body-builder that consumes these constants lives one layer up (host-supplied
+ProblemDetails helpers / JWT middleware) — so the leaf stays free of the result envelope.

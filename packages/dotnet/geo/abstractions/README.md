@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Geo.Abstractions
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 >
 > **Audience**: backend .NET service engineers who need strongly-typed access to ISO geo reference data (countries, subdivisions, currencies, languages, locales, timezones, geopolitical entities) without pulling in catalog data or temporal libraries.
 

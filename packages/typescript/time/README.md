@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-time
 
-> Parent: [`public/packages/typescript/`](../README.md)
+> Parent: [`packages/typescript/`](../README.md)
 >
 > **Audience**: backend Node/TypeScript service and BFF engineers who need the same deterministic clock seam and temporal storage types as `DcsvIo.D2.Time` (.NET).
 

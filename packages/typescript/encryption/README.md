@@ -5,7 +5,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 # @dcsv-io/d2-encryption
 
 Runtime crypto twin of .NET `DcsvIo.D2.Encryption`, for the KC-backed crypto
-runtimes that compose it — `@dcsv-io/d2-private-key-custodian-client` (the sealer / opener /
+runtimes that compose it — `host composition packages` (the sealer / opener /
 symmetric-crypto sources) and `@dcsv-io/d2-messaging-rabbitmq` (the auto-encrypting
 publisher composer + `CryptoBodyOpener`), plus any Node service wiring KC-backed
 payload crypto. Provides both payload encryption modes, byte-identical to the
@@ -71,7 +71,7 @@ recipient keyrings are built through their async `create(...)` factories.
   `create(...)` arguments; there are no Options records or environment knobs.
 - **Telemetry**: none — these are compile-neutral crypto primitives that emit no
   counters / spans / metrics. Fetch / rotation / publish telemetry belongs to the
-  KC-backed runtimes that compose them (`@dcsv-io/d2-private-key-custodian-client`,
+  KC-backed runtimes that compose them (`host composition packages`,
   `@dcsv-io/d2-messaging-rabbitmq`).
 
 ## Invariants
@@ -89,7 +89,7 @@ recipient keyrings are built through their async `create(...)` factories.
 ## Cross-runtime proof
 
 Byte-compatibility with .NET is gated by file-based known-answer vectors in both
-directions (see [`@dcsv-io/d2-private-contract-tests`](../contract-tests/README.md) and the
+directions (see [`host composition packages`](../contract-tests/README.md) and the
 `scripts/emit-*.fixture.ts` frame emitters), plus the .NET `TsCryptoInterop`
 suite that opens TS-produced frames. The frozen sealed derivation is pinned by
 the .NET `SealedKeyDerivationFreezeTests` and reproduced here.

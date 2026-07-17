@@ -20,7 +20,7 @@ using Xunit;
 /// and tiered semantic markers (registration message prefix, EventIds, log levels,
 /// binding field names, errorCode binding presence). TS parity asserts field-by-field
 /// against the committed fixture under
-/// <c>private/packages/typescript/contract-tests/fixtures/caching-twin/</c>.
+/// host twin fixture directory (consumed by TS contract-tests Vitest).
 /// </summary>
 /// <remarks>
 /// <para>

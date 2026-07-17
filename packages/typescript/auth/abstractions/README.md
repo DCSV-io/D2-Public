@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-auth-abstractions
 
-> Parent: [`public/packages/typescript/`](../../README.md)
+> Parent: [`packages/typescript/`](../../README.md)
 
 Auth-related constants for TS consumers — `Scopes` tree, `AuthErrorCodes`,
 `AuthFailures` factories, `JwtClaimTypes`. Mirrors
@@ -30,8 +30,7 @@ auth-failures / jwt-claims) before `tsc -b`, so `pnpm -r build` regenerates
 transparently. Generated files (`*.g.ts`) are committed to git.
 
 `JwtClaimTypes` AND `JwtPayload` both emit from
-`contracts/jwt-claims/jwt-claims.spec.json` via
-`private/tools/ts-codegen/src/jwt-claims-emit.ts` (one runner, two outputs):
+`contracts/jwt-claims/jwt-claims.spec.json` (one generator, two outputs; sources committed):
 
 - `JwtClaimTypes` — string-constant catalog (every claim's wire name).
 - `JwtPayload` — TS interface typed on every `standard` + `d2-custom`

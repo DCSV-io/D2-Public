@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-telemetry
 
-> Parent: [`public/packages/typescript/`](../README.md)
+> Parent: [`packages/typescript/`](../README.md)
 
 One-call OTel SDK bootstrap for Node services. Wires traces, metrics, logs
 OTLP exporters + W3C propagator stack. Mirrors `DcsvIo.D2.Telemetry` (.NET).

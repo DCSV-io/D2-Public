@@ -4,13 +4,13 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Result.Envelope.SourceGen
 
-> Parent: [`public/packages/dotnet/`](../../README.md)
+> Parent: [`packages/dotnet/`](../../README.md)
 
 **Input contract:** [`contracts/d2result-envelope/`](../../../../contracts/d2result-envelope/README.md)
 
 Roslyn incremental source generator that emits the `D2ResultEnvelopeFieldNames` JSON property-name catalog from `contracts/d2result-envelope/d2result-envelope.spec.json` — the source-of-truth for the D2Result Shape B wire envelope (the BFF gateway response shape).
 
-**Convention**: spec-driven Roslyn IIncrementalGenerator pattern. See [`docs/SRC_GEN.md`](../../../../../docs/SRC_GEN.md) for the framework-wide convention (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
+**Convention**: spec-driven Roslyn `IIncrementalGenerator` pattern (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
 
 ## Single-target dispatch
 
@@ -42,7 +42,7 @@ This pattern (codegen emits CONSTANTS; hand-applied attributes on the type) mirr
 
 ## Cross-language parity
 
-The SAME spec drives the TS-side `@dcsv-io/d2-result` catalog via monorepo-private `private/tools/ts-codegen` (not on public export). Both sides emit the same property names byte-for-byte; the BFF gateway parser (`private/services/web/src/lib/shared/rest/gateway-response.ts`) reads via the codegen-emitted constants. Cross-language wire drift on the 8 field names is structurally impossible.
+The SAME spec drives the TS-side `@dcsv-io/d2-result` catalog (generated sources committed). Both sides emit the same property names byte-for-byte; host BFF / gateway parsers should read via the codegen-emitted constants. Cross-language wire drift on the 8 field names is structurally impossible.
 
 ## Diagnostics
 

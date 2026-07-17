@@ -349,7 +349,7 @@ public sealed class ProductExtensionsOutputParityTests
         AdditionalText[] additionalTexts =
         [
             new InMemoryAdditionalText("public/contracts/messages/en-US.json", publicEnUs),
-            new InMemoryAdditionalText("private/contracts/messages/en-US.json", privateEnUs),
+            new InMemoryAdditionalText("host/contracts/messages/en-US.json", privateEnUs),
         ];
 
         var driver = CSharpGeneratorDriver.Create(
