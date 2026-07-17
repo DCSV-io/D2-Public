@@ -49,7 +49,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <PackageId>DcsvIo.D2.ErrorCodes.Category</PackageId>
     <Description>Foundational zero-dependency leaf exposing the closed ErrorCategory classification carried by every D2Result and error code in D2.</Description>
     <IsPackable>true</IsPackable>

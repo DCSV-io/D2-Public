@@ -4,10 +4,14 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Caching.Distributed.Redis
 
-> Parent: [`packages/dotnet/`](../../README.md)
+Redis-backed implementation of `IDistributedCache` and
+`ICacheInvalidationBackplane`. Wraps `StackExchange.Redis`.
 
-Redis-backed implementation of [`IDistributedCache`](../abstractions/README.md) and
-[`ICacheInvalidationBackplane`](../abstractions/README.md). Wraps `StackExchange.Redis`.
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Caching.Distributed.Redis
+```
 
 ## Public surface
 
@@ -116,7 +120,7 @@ isolation.
 
 ## Dependencies
 
-- [`abstractions/`](../abstractions/README.md) — `IDistributedCache`,
+- `DcsvIo.D2.Caching.Abstractions` — `IDistributedCache`,
   `ICacheInvalidationBackplane`, `ICacheSerializer`
 - `StackExchange.Redis` — Redis client
 - `Microsoft.Extensions.Options`, `Microsoft.Extensions.DependencyInjection.Abstractions`,
@@ -124,8 +128,8 @@ isolation.
 
 ## References
 
-- [`abstractions/README.md`](../abstractions/README.md) — interface + result-mapping
+- `DcsvIo.D2.Caching.Abstractions` — interface + result-mapping
   reference
-- [`tiered/README.md`](../tiered/README.md) — composes Local + this lib for L1+L2
+- `DcsvIo.D2.Caching.Tiered` — composes Local + this lib for L1+L2
   cascades
 - Product Edge rate-limit middleware is the primary consumer of `ICacheSet` for FP-too-common detection (product surface; out of scope for this library README).

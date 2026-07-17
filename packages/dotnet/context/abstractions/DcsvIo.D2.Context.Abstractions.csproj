@@ -105,7 +105,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <PackageId>DcsvIo.D2.Context.Abstractions</PackageId>
     <Description>Spec-driven request-context primitives for D2 — IRequestContext, MutableRequestContext, and the cross-hop propagation codecs.</Description>
     <IsPackable>true</IsPackable>

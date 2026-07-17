@@ -4,27 +4,26 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.AuthContext.Abstractions
 
-> Parent: [`packages/dotnet/`](../../README.md)
-
-Read-only `IAuthContext` interface — the typed contract domain code uses to reason about caller identity, organization, scopes, and impersonation context. Codegen-emitted from `contracts/auth-context/IAuthContext.spec.json` by `DcsvIo.D2.Context.SourceGen`. Plus hand-written `IAuthContextExtensions` convenience helpers.
+Read-only `IAuthContext` interface — the typed contract domain code uses to reason about caller identity, organization, scopes, and impersonation context. Codegen-emitted from the auth-context contract spec by `DcsvIo.D2.Context.SourceGen`. Plus hand-written `IAuthContextExtensions` convenience helpers.
 
 This is the domain-safe slice. Heavier runtime (HTTP middleware, JWT validation, population) is host-supplied. Sibling public package `DcsvIo.D2.Context.Abstractions` holds request-context interfaces + `MutableRequestContext` + propagation codecs.
 
----
+## Install
 
-## File layout
+```bash
+dotnet add package DcsvIo.D2.AuthContext.Abstractions
+```
 
-| Path                                        | Contents                                                                                                                                                                                            |
-| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DcsvIo.D2.AuthContext.Abstractions.csproj` | csproj — `<EmitCompilerGeneratedFiles>` so SourceGen output lands in tracked `Generated/`; analyzer ref to `context/source-gen`; `<AdditionalFiles>` for both context specs                         |
-| `(generated) IAuthContext.g.cs`             | Generated interface — lives in tracked `Generated/DcsvIo.D2.Context.SourceGen/...`; re-emitted on every `dotnet build` from `contracts/auth-context/IAuthContext.spec.json`; do not hand-edit       |
-| `IAuthContextExtensions.cs`                 | Hand-written convenience helpers — `HasScope`, `HasAnyScope`, `HasAllScopes`, `IsStaff`, `IsAdmin`, `IsForcedImpersonation`, `IsConsentImpersonation`, `IsImpersonatorStaff`, `IsImpersonatorAdmin` |
+## Public API
 
----
+| Type / member                                   | Contents                                                                                                                                                                                            |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IAuthContext` (generated)                      | Generated interface — re-emitted on every build from the auth-context contract spec; do not hand-edit                                                                                               |
+| `IAuthContextExtensions`                        | Hand-written convenience helpers — `HasScope`, `HasAnyScope`, `HasAllScopes`, `IsStaff`, `IsAdmin`, `IsForcedImpersonation`, `IsConsentImpersonation`, `IsImpersonatorStaff`, `IsImpersonatorAdmin` |
 
 ## Spec → emitted shape
 
-The spec at `contracts/auth-context/IAuthContext.spec.json` declares 5 sections:
+The auth-context contract spec declares 5 sections:
 
 - **Token + Trust**: `IsAuthenticated` (trinary), `Audience` (`IReadOnlyList<string>` per RFC 7519 §4.1.3), `SessionId`, `TokenIssuedAt`, `TokenExpiresAt`, `ActorChain` (RFC 8693 flattened outermost-first)
 - **Identity**: `Subject` (raw `sub`), `UserId` (`sub` parsed as Guid), `Username`, `RequestedByClientId` (RFC 8693 §4.3 / RFC 9068 — client that requested THIS token), `ImmediateCallerClientId` (derived — outermost Service in chain), `OriginatingClientId` (derived — most-deeply-nested Service in chain, fallback to Subject for pure service-identity tokens), `IsServiceIdentity` (derived)
@@ -44,8 +43,6 @@ All D²-custom claim-mapped properties use `d2_`-prefixed claim names. Standard 
 | `ImmediateCallerClientId` | Outermost Service entry in `ActorChain`                                                         | The service that immediately called this handler. Null when the user is calling directly with no service intermediary.                                                                                     |
 | `OriginatingClientId`     | Most-deeply-nested Service entry in `ActorChain`, fallback to `Subject` for pure service tokens | **The primary audit identifier** for end-to-end traceability across multi-hop sync + async chains. The first service that started this call chain.                                                         |
 
----
-
 ## Extension methods (hand-written)
 
 ```csharp
@@ -63,8 +60,6 @@ auth.IsImpersonatorStaff();      // ImpersonatorOrgType is Admin or Support
 auth.IsImpersonatorAdmin();      // ImpersonatorOrgType is Admin
 ```
 
----
-
 ## Edge cases / gotchas
 
 - **`HasAllScopes()` with zero arguments returns `true`** (vacuous truth — `[].All(...)` is `true`). Callers that pass a runtime-built array should guard the empty-input case if absence-of-scopes should be a denial.
@@ -72,28 +67,13 @@ auth.IsImpersonatorAdmin();      // ImpersonatorOrgType is Admin
 - **`IsImpersonator*` helpers are correct when not impersonating** — `ImpersonatorOrgType` is `null` outside an impersonation context, so `is OrgType.Admin or OrgType.Support` short-circuits to `false` cleanly. Callers that want "this user is staff (regardless of impersonation)" should use `IsStaff()` instead.
 - **`IsForcedImpersonation()` and `IsConsentImpersonation()` are mutually exclusive but neither implies `IsImpersonating`** — when not impersonating, both return `false`. Combine with `IsImpersonating` if your branch logic needs both flavor and presence.
 
----
-
 ## Telemetry
 
 None — this lib is read-only abstractions + pure-function extension methods. Callers (auth middleware, handlers, audit emitters) are responsible for any auth-related spans / counters.
 
----
-
 ## Dependencies
 
-Project references:
-
 - `DcsvIo.D2.Auth.Abstractions` — `OrgType`, `Role`, `ActorKind`, `ImpersonationKind`, `ActorEntry`
+- `DcsvIo.D2.Context.SourceGen` — emits `IAuthContext.g.cs` (analyzer-only)
 
-Analyzer-only:
-
-- `DcsvIo.D2.Context.SourceGen` — emits `IAuthContext.g.cs`
-
----
-
-## Reference
-
-- [`contracts/auth-context/IAuthContext.spec.json`](../../../../contracts/auth-context/IAuthContext.spec.json) — source of truth for the interface shape
-- [`DcsvIo.D2.Context.SourceGen`](../../context/source-gen/README.md) — the generator
-- [`DcsvIo.D2.Auth.Abstractions`](../abstractions/README.md) — vocabulary types referenced by the interface
+Sister packages: `DcsvIo.D2.Auth.Abstractions`, `DcsvIo.D2.Context.Abstractions`.

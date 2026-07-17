@@ -4,11 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Caching.Local.Default
 
-> Parent: [`packages/dotnet/`](../../README.md)
-
-Default per-process implementation of [`ILocalCache`](../abstractions/README.md). Wraps
+Default per-process implementation of `ILocalCache`. Wraps
 `Microsoft.Extensions.Caching.Memory.IMemoryCache` for value storage; uses a `ConcurrentDictionary`
 for in-process lock state.
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Caching.Local.Default
+```
 
 ## Public surface
 
@@ -60,7 +64,7 @@ If we ever need strict LRU or strict FIFO, the abstraction is the seam: ship
 
 `IMemoryCache` only enforces `SizeLimit` if every `Set` call provides a `Size` value on the entry.
 Without it, the cache grows unbounded (eviction only fires on system-wide memory pressure — see
-[dotnet/runtime#114714](https://github.com/dotnet/runtime/issues/114714)). The "10K ceiling" would
+dotnet/runtime#114714). The "10K ceiling" would
 be fictional.
 
 This impl always sets `entry.Size = 1` internally. Caller never sees `Size` on the API surface.
@@ -104,15 +108,15 @@ coordination requires `IDistributedCache`.
 
 ## Dependencies
 
-- [`abstractions/`](../abstractions/README.md) — `ILocalCache` + options
+- `DcsvIo.D2.Caching.Abstractions` — `ILocalCache` + options
 - `Microsoft.Extensions.Caching.Memory` — backing store
 - `Microsoft.Extensions.Options` — DI options binding
 - `Microsoft.Extensions.DependencyInjection.Abstractions` — registration
 
 ## References
 
-- [`abstractions/README.md`](../abstractions/README.md) — interface + result-mapping
+- `DcsvIo.D2.Caching.Abstractions` — interface + result-mapping
   reference
-- [`distributed-redis/README.md`](../distributed-redis/README.md) — cluster-scoped
+- `DcsvIo.D2.Caching.Distributed.Redis` — cluster-scoped
   counterpart
-- [`tiered/README.md`](../tiered/README.md) — composes this lib as the L1 layer
+- `DcsvIo.D2.Caching.Tiered` — composes this lib as the L1 layer

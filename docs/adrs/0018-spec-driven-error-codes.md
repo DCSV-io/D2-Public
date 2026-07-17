@@ -20,7 +20,7 @@ Before this deliverable the binding was fractured:
 - **No cross-service resolution.** Given a wire code, no component could answer "what status / category / localized message does this map to?" without importing the producing service's catalog — which a central boundary (Edge / BFF) resolving *anybody's* code cannot do.
 - **No semantic class on the wire.** A consumer wanting to "retry any infrastructure failure" had no way to classify a failure without a code-by-code lookup against the producer's catalog.
 
-The forcing function was KeyCustodian (0016): its domain transitions needed to fail with custodian-specific, cross-service-resolvable codes. Building that on the fractured foundation would have cemented a half-baked precedent into the first service that consumes the error layer. The decision was made to fix the foundation first.
+The forcing function was the first long-lived secret lifecycle domain: its transitions needed to fail with domain-specific, cross-service-resolvable codes. Building that on the fractured foundation would have cemented a half-baked precedent into the first service that consumes the error layer. The decision was made to fix the foundation first.
 
 This decision is a concrete, large instance of the spec-driven codegen architecture (ADR-0002): error codes become one more cross-language catalog, generated rather than hand-copied. It extends the `D2Result` model (ADR-0003) by making the `(code, httpStatus, default message)` triple spec-sourced instead of factory-body-sourced, and it leans on the `TKMessage` translation-key-as-type guarantee (ADR-0004) for the `userMessageKey` link.
 

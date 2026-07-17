@@ -4,12 +4,13 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Time
 
-> Parent: [`packages/dotnet/`](../README.md)
->
-> **Audience**: backend .NET service engineers who need deterministic timestamp handling, a dependency-injected clock seam for tests, and NodaTime ↔ PostgreSQL EF Core wiring.
+NodaTime wrapper + `IClock` injection seam + Category 1/3 temporal storage records + Npgsql NodaTime EF Core value-converter wiring for backend .NET service engineers who need deterministic timestamp handling and a dependency-injected clock seam for tests.
 
-NodaTime wrapper + `IClock` injection seam + Category 1/3 temporal storage
-records + Npgsql NodaTime EF Core value-converter wiring.
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Time
+```
 
 ## Overview
 
@@ -58,10 +59,9 @@ and unambiguous.
 DST ambiguity (Category 3 only): call `LocalAnchoredEvent.ComputeNextFire()`,
 which applies NodaTime's `Resolvers.LenientResolver` — deterministic, never
 throws (spring-forward skipped → maps forward; fall-back ambiguous → picks
-earlier instant). The TS-side `@dcsv-io/d2-time` mirrors this via Temporal's
+earlier instant). The TypeScript package `@dcsv-io/d2-time` mirrors this via Temporal's
 `disambiguation: "compatible"`. Cross-language wire parity is enforced by
-the fixtures at `contracts/temporal/temporal-adversarial.fixture.json`,
-which both .NET and TS test packages load and assert against.
+shared temporal adversarial fixtures that both .NET and TS test packages load and assert against.
 
 ## Construction (smart-constructor pattern)
 
@@ -88,7 +88,7 @@ dates (Feb 30, Feb 29 in a non-leap year, hour 24, …) throw
 `ArgumentOutOfRangeException` from the `new LocalDateTime(...)` call site
 BEFORE `Create` is reached. The lib's tests document the throw behavior
 exhaustively. JSON serialization is not supported on the smart-constructor
-records out-of-the-box (private ctor); v2 persistence is via
+records out-of-the-box (private ctor); persistence is via
 Npgsql.NodaTime EF Core (column-based, no JSON round-trip).
 
 ## EF Core wiring
@@ -135,7 +135,7 @@ The following NodaTime types appear on this lib's public surface or are
 recommended for production use: `Instant`, `LocalDateTime`, `LocalDate`,
 `LocalTime`, `ZonedDateTime`, `DateTimeZone`, `Duration`, `Period`,
 `OffsetDateTime`, `Resolvers`. Consumers `using NodaTime;` to access them
-after taking a `<ProjectReference>` to `DcsvIo.D2.Time`.
+after taking a package reference to `DcsvIo.D2.Time`.
 
 **Naming collision note**: consumers using both `DcsvIo.D2.Time` and
 `NodaTime` simultaneously (e.g., for `Duration` / `Instant` types) will hit
@@ -161,7 +161,7 @@ No configuration — zero-config; consumers register `IClock → SystemClock` th
 - `NodaTime` (NuGet)
 - `Npgsql.EntityFrameworkCore.PostgreSQL.NodaTime` (NuGet)
 
-D2 project references (smart-constructor pattern surfaces them transitively):
+D2 package references (smart-constructor pattern surfaces them transitively):
 
 - `DcsvIo.D2.Result` — `D2Result<T>` + `InputError` shapes returned by `Create` factories.
 - `DcsvIo.D2.I18n.Abstractions` — `TK.Common.Time.*` translation key constants referenced by the `Create` validation failures.

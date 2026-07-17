@@ -4,9 +4,13 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Logging
 
-> Parent: [`packages/dotnet/`](../README.md)
-
 Serilog configuration + the `[RedactData]` enforcement layer + an ASP.NET Core request-logging middleware. Foundation lib that other shared libs and per-service composition roots call to wire the Serilog pipeline + the `[RedactData]` destructuring policy + the request-logging middleware (services call `AddD2Logging` instead of duplicating ~30 lines of `LoggerConfiguration` boilerplate per service). Also usable standalone by any host that wants the same Serilog setup without an aggregator.
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Logging
+```
 
 The lib does NOT own:
 
@@ -250,11 +254,10 @@ app.UseD2RequestLogging(opts =>
 
 Reason rendering uses the enum name (`PersonalInformation`, `FinancialInformation`, `SecretInformation`, `VerboseContent`, `Other`, `Unspecified`) unless a `CustomReason` overrides it.
 
-## File layout
-
+## Types (source map)
 | File                                             | Role                                                                                                                  |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| `DcsvIo.D2.Logging.csproj`                       | csproj — `Microsoft.NET.Sdk.Web` + `OutputType=Library`. ProjectReferences to `utilities/` + `context/abstractions/`. |
+| `DcsvIo.D2.Logging.csproj`                       | csproj — `Microsoft.NET.Sdk.Web` + `OutputType=Library`. package references to `utilities/` + `context/abstractions/`. |
 | `D2LoggingOptions.cs`                            | Sealed record — Options-pattern config.                                                                               |
 | `D2LoggingConstants.cs`                          | Public constants (`OTEL_SERVICE_NAME_CONFIG_KEY`).                                                                    |
 | `LoggingServiceCollectionExtensions.cs`          | Public DI extension: `AddD2Logging`.                                                                                  |
@@ -272,7 +275,7 @@ Reason rendering uses the enum name (`PersonalInformation`, `FinancialInformatio
 | `Serilog.Enrichers.Environment` | `Enrich.WithMachineName()`.                                                                                                                                                            |
 | `JetBrains.Annotations`         | `[MustDisposeResource]` annotations on disposable factory paths.                                                                                                                       |
 
-| Project reference                | Why                                                                                                                                                                                                                                                          |
+| Package dependency              | Why                                                                                                                                                                                                                                                          |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `DcsvIo.D2.Utilities`            | `[RedactData]` attribute + `RedactReason` enum + `Falsey()` / `Truthy()` extensions.                                                                                                                                                                         |
 | `DcsvIo.D2.Context.Abstractions` | `IRequestContext` interface (the strongly-typed enricher dep).                                                                                                                                                                                               |

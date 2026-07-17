@@ -35,7 +35,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <PackageId>DcsvIo.D2.Utilities</PackageId>
     <Description>Foundational boundary helpers for D2 — Falsey/Truthy semantics, string cleaning, parse-or-default extensions, indexed env-var parsing, and JSON-cycle-safe serialization.</Description>
     <IsPackable>true</IsPackable>

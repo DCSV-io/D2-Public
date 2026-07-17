@@ -4,10 +4,14 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-resilience
 
-> Parent: [`packages/typescript/`](../README.md)
-
 Retry / circuit breaker / singleflight / timeout / rate-limiter / composable
 pipeline. Mirrors `DcsvIo.D2.Resilience` (.NET).
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-resilience
+```
 
 ## Public API
 
@@ -28,7 +32,7 @@ pipeline. Mirrors `DcsvIo.D2.Resilience` (.NET).
 
 ## Dependencies
 
-- `@dcsv-io/d2-utilities` (boundary helpers)
+- `@dcsv-io/d2-utilities` — boundary helpers
 - `@dcsv-io/d2-result` (D2Result-aware retry overload)
 - `@dcsv-io/d2-logging` (reserved for transient-classification log enrichment; not currently consumed)
 
@@ -135,27 +139,27 @@ cb.reset(); // manual return to Closed (clears the failure count)
 ```
 
 - **HalfOpen single-probe.** After the cooldown elapses, exactly ONE caller is
-  admitted as the probe; concurrent callers that arrive while the probe is
-  in-flight receive the `fallback` (when supplied) or `CircuitOpenError`. JS is
-  single-threaded, so the breaker uses a synchronous check-and-set on a
-  probe-in-flight flag (performed before the first `await`) — the structural
-  equivalent of .NET's lock-free `Interlocked.CompareExchange`. This prevents a
-  thundering-herd of probes hammering a recovering upstream.
+ admitted as the probe; concurrent callers that arrive while the probe is
+ in-flight receive the `fallback` (when supplied) or `CircuitOpenError`. JS is
+ single-threaded, so the breaker uses a synchronous check-and-set on a
+ probe-in-flight flag (performed before the first `await`) — the structural
+ equivalent of .NET's lock-free `Interlocked.CompareExchange`. This prevents a
+ thundering-herd of probes hammering a recovering upstream.
 - **`isFailure` value predicate.** Thrown errors ALWAYS count as failures.
-  `isFailure` additionally counts a returned (non-thrown) value as a failure —
-  essential for operations that surface failures as values (e.g. a `D2Result`).
-  A value satisfying the predicate increments the failure counter and is then
-  returned to the caller unchanged (it is NOT re-thrown).
+ `isFailure` additionally counts a returned (non-thrown) value as a failure —
+ essential for operations that surface failures as values (e.g. a `D2Result`).
+ A value satisfying the predicate increments the failure counter and is then
+ returned to the caller unchanged (it is NOT re-thrown).
 - **`fallback`.** The optional second argument to `execute`. Invoked when the
-  circuit is Open or a HalfOpen probe slot is taken; returns the fallback's
-  value instead of throwing `CircuitOpenError`.
+ circuit is Open or a HalfOpen probe slot is taken; returns the fallback's
+ value instead of throwing `CircuitOpenError`.
 - **`onStateChange(from, to)`.** Fires synchronously on every REAL transition
-  (an idempotent Closed→Closed on repeated success does NOT fire). The canonical
-  observability seam. **Footgun:** a THROWING callback propagates out of
-  `execute()` and REPLACES the upstream error — keep the body to non-throwing
-  log/metric calls (matches the .NET remark).
+ (an idempotent Closed→Closed on repeated success does NOT fire). The canonical
+ observability seam. **Footgun:** a THROWING callback propagates out of
+ `execute()` and REPLACES the upstream error — keep the body to non-throwing
+ log/metric calls (matches the .NET remark).
 - **`reset()`.** Manually returns the breaker to Closed, clearing the failure
-  count + probe flag; fires `onStateChange` only when the state actually changed.
+ count + probe flag; fires `onStateChange` only when the state actually changed.
 
 The pipeline `CircuitBreakerLayer` calls `execute(op)` with **no fallback** (as
 the .NET `CircuitBreakerLayer` does), so an open breaker throws `CircuitOpenError`
@@ -242,86 +246,86 @@ Resilience is **opt-in** — it costs latency (retries, timeouts, admission wait
 and should be an explicit caller choice. Three usage modes:
 
 1. **Declared default** — resolve a keyed pipeline registered at the
-   composition root and pass it to the client method.
+ composition root and pass it to the client method.
 2. **Custom override** — pass a caller-owned `ResilientPipeline` to the client
-   method, overriding any declared default.
+ method, overriding any declared default.
 3. **Bypass** — use `ResilientPipeline.PassThrough` for a zero-layer pipeline
-   that runs the op directly with no wrapping.
+ that runs the op directly with no wrapping.
 
 ## Parity with .NET
 
 Mirrors `DcsvIo.D2.Resilience`:
 
 - `RetryHelper.retryAsync` ↔ `RetryHelper.RetryAsync<T>` — same conservative
-  default classifier (`defaultIsTransient` ↔ `IsTransientException`): only
-  genuine transient/network/timeout errors retry when no caller predicate is
-  supplied.
+ default classifier (`defaultIsTransient` ↔ `IsTransientException`): only
+ genuine transient/network/timeout errors retry when no caller predicate is
+ supplied.
 - `RetryHelper.retryD2ResultAsync` ↔ `RetryHelper.RetryD2ResultAsync<T>` —
-  same "only retry transient fail-results" carve-out.
+ same "only retry transient fail-results" carve-out.
 - `CircuitBreaker` ↔ `CircuitBreaker<T>` — **full feature parity**: same
-  three-state lifecycle, HalfOpen single-probe enforcement, `isFailure`
-  value-based failure predicate, `fallback`, `onStateChange` observability
-  seam, and `reset()`.
+ three-state lifecycle, HalfOpen single-probe enforcement, `isFailure`
+ value-based failure predicate, `fallback`, `onStateChange` observability
+ seam, and `reset()`.
 - `Singleflight` ↔ `Singleflight<TKey, TValue>` — same key-coalescing; same
-  per-caller-cancellation-only guarantee (the shared op runs uncancellable by
-  any single caller; each caller's wait is cancellable by that caller's signal).
+ per-caller-cancellation-only guarantee (the shared op runs uncancellable by
+ any single caller; each caller's wait is cancellable by that caller's signal).
 - `TimeoutLayer` ↔ `TimeoutLayer<TKey, TValue>` — same deadline semantics; same
-  linked-signal cooperative cancellation (TS threads an `AbortSignal` linked to
-  the caller signal + the deadline, mirroring the .NET linked `CancellationToken`);
-  timeout surfaces as a distinct error (not caller-abort); a caller abort wins
-  over a coincident timeout.
+ linked-signal cooperative cancellation (TS threads an `AbortSignal` linked to
+ the caller signal + the deadline, mirroring the .NET linked `CancellationToken`);
+ timeout surfaces as a distinct error (not caller-abort); a caller abort wins
+ over a coincident timeout.
 - `RateLimiterLayer` ↔ `RateLimiterLayer<TKey, TValue>` — same concurrency-
-  limiter semantics; hand-rolled (no `System.Threading.RateLimiting` equivalent
-  in Node).
+ limiter semantics; hand-rolled (no `System.Threading.RateLimiting` equivalent
+ in Node).
 - `ResilientPipeline.PassThrough` ↔ `ResilientPipeline<TKey, TValue>.PassThrough`.
 - `ResilientPipelineBuilder` ↔ `ResilientPipelineBuilder` — same outer-first
-  ordering; same layer-at-two-positions capability.
+ ordering; same layer-at-two-positions capability.
 - Cancellation never classified as transient (matches .NET behavior).
 
 **Documented divergences (ADR-0014):**
 
 - TS pipeline returns `Promise<T>` (throws); .NET pipeline returns
-  `D2Result<T>` (maps). Callers map `TimeoutError` / `RateLimitRejectedError`
-  to their own `D2Result` shape.
+ `D2Result<T>` (maps). Callers map `TimeoutError` / `RateLimitRejectedError`
+ to their own `D2Result` shape.
 - TS jitter is a fractional multiplier (e.g. `0.2` = ±20%); .NET jitter is a
-  boolean (full-jitter `random(0, computed)`).
+ boolean (full-jitter `random(0, computed)`).
 - **Retry numeric defaults** differ intentionally: TS `RETRY_DEFAULTS` =
-  3 attempts / 100 ms base / 5 s cap; .NET `RetryDefaults` = 5 attempts /
-  1000 ms base / 30 s cap. The faster TS defaults are tuned for browser/Node
-  UX — a browser request must not spend 30 s retrying — aligning with the same
-  browser/Node-timing rationale as the multiplicative-jitter choice. Both
-  surfaces accept explicit overrides; only the no-override default differs.
+ 3 attempts / 100 ms base / 5 s cap; .NET `RetryDefaults` = 5 attempts /
+ 1000 ms base / 30 s cap. The faster TS defaults are tuned for browser/Node
+ UX — a browser request must not spend 30 s retrying — aligning with the same
+ browser/Node-timing rationale as the multiplicative-jitter choice. Both
+ surfaces accept explicit overrides; only the no-override default differs.
 - TS key type is always `string`; .NET key is generic `TKey`.
 - TS threads an `AbortSignal` through `IResilientLayer.execute(key, op, signal?)`
-  — the structural mirror of .NET's `CancellationToken` in
-  `WrapAsync(key, next, ct)`. `TimeoutLayer` cancels the inner op via a linked
-  signal; `Singleflight` runs the shared op with no signal (≈ `CancellationToken.None`).
+ — the structural mirror of .NET's `CancellationToken` in
+ `WrapAsync(key, next, ct)`. `TimeoutLayer` cancels the inner op via a linked
+ signal; `Singleflight` runs the shared op with no signal (≈ `CancellationToken.None`).
 
 ## Edge cases
 
 - An already-aborted `AbortSignal` short-circuits the retry loop and the
-  rate-limiter gate before the first attempt (`AbortError`).
+ rate-limiter gate before the first attempt (`AbortError`).
 - A caller abort while the rate-limiter is waiting for a permit rejects
-  `AbortError` and does not consume / leak a permit.
+ `AbortError` and does not consume / leak a permit.
 - On `TimeoutLayer` expiry the inner op's (linked) signal is aborted — a
-  cooperative op is genuinely canceled; a caller abort wins over a coincident
-  timeout (`AbortError`, not `TimeoutError`).
+ cooperative op is genuinely canceled; a caller abort wins over a coincident
+ timeout (`AbortError`, not `TimeoutError`).
 - A `Singleflight` caller aborting cancels only its own wait — the shared op
-  keeps running and the remaining waiters still receive its result.
+ keeps running and the remaining waiters still receive its result.
 - `maxAttempts < 1` → `RangeError`.
 - `TimeoutLayer` with `durationMs <= 0` → pass-through (no timer created).
 - `RateLimiterLayer` with `maxConcurrency < 1` → `RangeError` at construction.
 - `Singleflight` clears entries after settle — back-pressure does not
-  accumulate indefinitely.
+ accumulate indefinitely.
 - HalfOpen failure re-arms cooldown (single-trip semantics).
 - HalfOpen admits exactly ONE probe; concurrent callers during the probe get
-  the `fallback` (or `CircuitOpenError` when none is supplied).
+ the `fallback` (or `CircuitOpenError` when none is supplied).
 - An Open `CircuitBreaker` with a `fallback` returns the fallback's value
-  instead of throwing `CircuitOpenError`.
+ instead of throwing `CircuitOpenError`.
 - A returned value satisfying `isFailure` trips the breaker WITHOUT throwing.
 - `onStateChange` fires only on a real transition (idempotent Closed→Closed on
-  repeated success does not fire); `reset()` returns to Closed and clears the
-  failure count.
+ repeated success does not fire); `reset()` returns to Closed and clears the
+ failure count.
 - A non-transient default error (plain `Error`, programming `TypeError`, etc.)
-  is NOT retried unless an explicit `isTransient` / `shouldRetry` opts it in.
+ is NOT retried unless an explicit `isTransient` / `shouldRetry` opts it in.
 - `CircuitBreaker` rejects `failureThreshold < 1` and `cooldownMs < 0`.

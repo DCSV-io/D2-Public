@@ -4,10 +4,14 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-telemetry
 
-> Parent: [`packages/typescript/`](../README.md)
-
 One-call OTel SDK bootstrap for Node services. Wires traces, metrics, logs
 OTLP exporters + W3C propagator stack. Mirrors `DcsvIo.D2.Telemetry` (.NET).
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-telemetry
+```
 
 ## Public API
 
@@ -21,12 +25,12 @@ OTLP exporters + W3C propagator stack. Mirrors `DcsvIo.D2.Telemetry` (.NET).
 ## Dependencies
 
 - `@dcsv-io/d2-utilities` (boundary helpers — dependency boundary for env-var
-  configuration helpers)
+ configuration helpers)
 - `@dcsv-io/d2-logging` (dependency boundary for telemetry-side log enrichment;
-  the integration itself is out of scope for this package)
+ the integration itself is out of scope for this package)
 - `@opentelemetry/api`, `@opentelemetry/sdk-node`, OTLP exporters
-  (traces / metrics / logs over HTTP), `@opentelemetry/resources`,
-  `@opentelemetry/semantic-conventions`
+ (traces / metrics / logs over HTTP), `@opentelemetry/resources`,
+ `@opentelemetry/semantic-conventions`
 
 ## Usage example
 
@@ -58,8 +62,8 @@ Mirrors `DcsvIo.D2.Telemetry`:
 
 - `disabled=true` returns a no-op handle — `shutdown()` resolves immediately.
 - Missing per-signal endpoint URL → exporter falls back to OTLP env-var
-  defaults (`OTEL_EXPORTER_OTLP_*_ENDPOINT`).
+ defaults (`OTEL_EXPORTER_OTLP_*_ENDPOINT`).
 - Multiple `setupTelemetry` calls in one process are unsupported by the
-  underlying SDK — call once at process boot.
+ underlying SDK — call once at process boot.
 - `shutdown()` is idempotent at the SDK level — multiple calls return
-  resolved promises after the first flushes.
+ resolved promises after the first flushes.

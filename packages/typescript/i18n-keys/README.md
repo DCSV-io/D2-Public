@@ -4,13 +4,17 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-i18n-keys
 
-> Parent: [`packages/typescript/`](../README.md)
-
 Foundational package that exports the type-safe TK constants catalog. Mirrors
 `DcsvIo.D2.I18n.Keys` on the .NET side — a thin keys layer whose only dependency
 is the i18n-abstractions package (for the `TKMessage` type + `tk()` factory), so
 any package in the graph can import TK constants without risking a circular
 dependency.
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-i18n-keys
+```
 
 ## Public API
 

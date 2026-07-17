@@ -4,11 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.AspNetCore
 
-> Parent: [`packages/dotnet/`](../README.md)
-
 Cross-cutting ASP.NET Core middleware + endpoint primitives every D² service composition root needs but that don't belong on a single domain lib. Seven public surfaces — `UseD2SecurityHeaders`, `UseD2Cors`, `UseD2InfrastructureBypass`, `AddD2ProblemDetails`, `MapD2HealthEndpoints`, `RunD2ServiceAsync`, `AddD2MutualTls` — plus the canonical `InfrastructurePathMatcher` consumed by `DcsvIo.D2.Logging`'s request-logging middleware and `DcsvIo.D2.Telemetry`'s AspNetCore-instrumentation `Filter` callback so all three libs share one source of truth for `/health`, `/alive`, `/metrics`, `/.well-known` matching.
 
 Foundation tier — depends on `DcsvIo.D2.Utilities` (for `Falsey()` / `Truthy()` / `ToNullIfEmpty()`), `DcsvIo.D2.Result` (the mTLS peer validator returns a `D2Result`), `DcsvIo.D2.Spiffe` (the SPIFFE grammar the mTLS validator parses a presented SAN with), `DcsvIo.D2.ProblemDetails.Abstractions` + `DcsvIo.D2.Headers.Http` (the ProblemDetails customizer), and `Serilog.AspNetCore` (for the `RunD2ServiceAsync` startup wrapper's `Log.Fatal` + `CloseAndFlushAsync`). `DcsvIo.D2.Logging` and `DcsvIo.D2.Telemetry` depend on this lib, not the other way around.
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.AspNetCore
+```
 
 The lib does NOT own:
 
@@ -96,7 +100,7 @@ Pipeline placement: install AFTER `app.UseRouting()` (which resolves the matched
 
 Registers ASP.NET Core's `IProblemDetailsService` with the D² customizer applied as the `CustomizeProblemDetails` callback. The customizer is FULL D2Result-aware (path B of the RFC 7807 emit stack — sibling to host-supplied path A `ToProblemDetails` on auth middleware).
 
-When the request pipeline has stashed a `D2Result` on `HttpContext.Items[D2ProblemDetailsContextItems.D2_RESULT]` (via the `SetD2Result` typed extension), the customizer populates the RFC 7807 Shape A body from spec-driven constants in `D2ProblemDetailsKeys` ([`problem-details/abstractions/`](../problem-details/abstractions/README.md)):
+When the request pipeline has stashed a `D2Result` on `HttpContext.Items[D2ProblemDetailsContextItems.D2_RESULT]` (via the `SetD2Result` typed extension), the customizer populates the RFC 7807 Shape A body from spec-driven constants in `D2ProblemDetailsKeys` (`DcsvIo.D2.ProblemDetails.Abstractions`):
 
 1. `Type` ← `TYPE_URI_PREFIX + KebabCase(D2Result.ErrorCode)` (fallback `"unhandled-exception"` on empty error code).
 2. `Title` ← `TitleFor(D2Result.StatusCode)`.
@@ -120,7 +124,7 @@ PII discipline: the customizer NEVER reads `HttpContext.Request.QueryString`, `R
 
 ### `AddD2HealthChecks()` + `MapD2HealthEndpoints()`
 
-`AddD2HealthChecks()` registers a baseline `"self"` check tagged `"live"` that always returns `Healthy`. Idempotent — calling twice no-ops on the second call. Per-service infrastructure layers add their own checks (DB, Redis, RabbitMQ, KeyCustodian) by chaining `services.AddHealthChecks().AddDbContextCheck<...>()` etc. — those auto-flow into `/health`. Checks tagged `"live"` additionally participate in `/alive`.
+`AddD2HealthChecks()` registers a baseline `"self"` check tagged `"live"` that always returns `Healthy`. Idempotent — calling twice no-ops on the second call. Per-service infrastructure layers add their own checks (DB, Redis, message bus, host-specific dependencies) by chaining `services.AddHealthChecks().AddDbContextCheck<...>()` etc. — those auto-flow into `/health`. Checks tagged `"live"` additionally participate in `/alive`.
 
 `MapD2HealthEndpoints()` maps:
 
@@ -163,11 +167,11 @@ The validator NEVER throws — a crypto exception, a malformed SAN, or a chain b
 
 The SPIFFE trust domain is fixed at `d2.internal` — enforced by the `SpiffeWorkloadIdentity` grammar, not a configurable option. Any SAN whose host differs from `d2.internal` is rejected by the grammar before reaching the workload-membership check.
 
-Fail-loud, not fail-open: the options are validated at host build via `ValidateOnStart()`. The host owns trust-anchor sourcing through `TrustAnchorsProvider` — the dev harness loads the public root locally; a real host supplies it from KeyCustodian's certificate-authority provider. This lib reads no files, no `secrets/`, and never references a service domain.
+Fail-loud, not fail-open: the options are validated at host build via `ValidateOnStart()`. The host owns trust-anchor sourcing through `TrustAnchorsProvider` — the dev harness loads the public root locally; a production host supplies trust anchors from its certificate / CA issuance path. This lib reads no files, no `secrets/`, and never references a service domain.
 
 #### Real-socket proof runs on Linux/OpenSSL
 
-The end-to-end real-socket harness for this path (`MutualTlsSignerHarnessTests`, in the Edge test project) binds a real Kestrel HTTPS endpoint on a loopback ephemeral port and drives the require-and-validate path over a genuine TLS handshake — the valid leaf round-trips, every bad-cert variant (wrong CA, expired, foreign trust domain, unknown workload) is rejected at the handshake, and a no-client-certificate connection is refused by `RequireCertificate`. The six client-cert-PRESENTING cases run on **Linux/OpenSSL** (the deployment target) and SKIP on Windows: Windows-Schannel cannot build an `SslStreamCertificateContext` for a leaf chaining to a private CA without first installing the root into the OS trust store (Microsoft-documented; even a bare leaf, even with the intermediate supplied), and the harness deliberately performs zero OS-store mutation. Run the Linux proof with `bash tools/scripts/run-mtls-proof.sh` (a `.NET 10 SDK` Linux container; needs no Postgres/Redis/RabbitMQ — the harness is self-contained loopback). The validator's full conjunct matrix is proven cross-platform by the `SpiffeSanPeerValidator` unit suite, which drives the same validator with in-memory chains and needs no socket.
+The end-to-end real-socket harness for this path (`MutualTlsSignerHarnessTests`, in the host integration-test suite) binds a real Kestrel HTTPS endpoint on a loopback ephemeral port and drives the require-and-validate path over a genuine TLS handshake — the valid leaf round-trips, every bad-cert variant (wrong CA, expired, foreign trust domain, unknown workload) is rejected at the handshake, and a no-client-certificate connection is refused by `RequireCertificate`. The six client-cert-PRESENTING cases run on **Linux/OpenSSL** (the deployment target) and SKIP on Windows: Windows-Schannel cannot build an `SslStreamCertificateContext` for a leaf chaining to a private CA without first installing the root into the OS trust store (Microsoft-documented; even a bare leaf, even with the intermediate supplied), and the harness deliberately performs zero OS-store mutation. Run the Linux proof with `bash tools/scripts/run-mtls-proof.sh` (a `.NET 10 SDK` Linux container; needs no Postgres/Redis/RabbitMQ — the harness is self-contained loopback). The validator's full conjunct matrix is proven cross-platform by the `SpiffeSanPeerValidator` unit suite, which drives the same validator with in-memory chains and needs no socket.
 
 ### Constants — `D2AspNetCoreConstants`
 
@@ -185,7 +189,7 @@ The end-to-end real-socket harness for this path (`MutualTlsSignerHarnessTests`,
 | `MAX_CORRELATION_ID_LENGTH`            | `128`                                                                                          |
 | `INFRASTRUCTURE_HTTP_CONTEXT_ITEM_KEY` | `D2.IsInfrastructure`                                                                          |
 
-Note: wire-header values consumed by this lib live in the spec-driven [`HttpHeaders`](../headers/http/README.md) catalog — `HttpHeaders.CORRELATION_ID` (`"X-Correlation-Id"`) and `HttpHeaders.IDEMPOTENCY_KEY` (`"Idempotency-Key"`) are referenced directly. One wire value for one concept across the platform; no intra-.NET drift between the CORS allowlist / ProblemDetails customizer and the headers/http catalog.
+Note: wire-header values consumed by this lib live in the spec-driven `HttpHeaders` catalog — `HttpHeaders.CORRELATION_ID` (`"X-Correlation-Id"`) and `HttpHeaders.IDEMPOTENCY_KEY` (`"Idempotency-Key"`) are referenced directly. One wire value for one concept across the platform; no intra-.NET drift between the CORS allowlist / ProblemDetails customizer and the headers/http catalog.
 
 ### Constants — `D2ProblemDetailsContextItems`
 
@@ -205,11 +209,10 @@ bool IsInfrastructurePath(PathString path, IReadOnlyList<string>? infrastructure
 
 Uses the AspNetCore-canonical `PathString.StartsWithSegments(PathString)` overload — case-insensitive, segment-boundary-matched (`/healthz` does NOT match prefix `/health`; `/health/db` does). Empty `PathString`, null configured list, and per-entry null / empty / whitespace prefixes are all defensive no-ops (returns `false` rather than throwing).
 
-## File layout
-
+## Types (source map)
 | File                                                  | Role                                                                                                          |
 | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `DcsvIo.D2.AspNetCore.csproj`                         | csproj — `Microsoft.NET.Sdk.Web` + `OutputType=Library`. Project reference to `utilities/`.                   |
+| `DcsvIo.D2.AspNetCore.csproj`                         | csproj — `Microsoft.NET.Sdk.Web` + `OutputType=Library`. Package dependency on `DcsvIo.D2.Utilities`.         |
 | `D2AspNetCoreConstants.cs`                            | Public constants (endpoint paths, header names, config keys, default infrastructure-path list).               |
 | `InfrastructurePathMatcher.cs`                        | Public static helper — canonical path-matcher consumed by Logging + Telemetry + this lib's bypass middleware. |
 | `D2SecurityHeadersOptions.cs`                         | Sealed record — per-header override Options-pattern config.                                                   |
@@ -239,7 +242,7 @@ Uses the AspNetCore-canonical `PathString.StartsWithSegments(PathString)` overlo
 | `Serilog.AspNetCore`    | Static `Log.*` facade used by `RunD2ServiceAsync`. Already pinned (consumed transitively by `DcsvIo.D2.Logging`). |
 | `JetBrains.Annotations` | `[MustDisposeResource]` annotations on disposable factory paths (none currently; consumed transitively).          |
 
-| Project reference              | Why                                                                                                                                                                                |
+| Package dependency              | Why                                                                                                                                                                                |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `DcsvIo.D2.Utilities`          | `Falsey()` / `Truthy()` / `ToNullIfEmpty()` extensions consumed throughout (options validation, env-var resolution, header-override tri-state, per-entry path / origin filtering). |
 | `DcsvIo.D2.Result`             | `D2Result` returned by the mTLS peer validator + consumed by the ProblemDetails customizer.                                                                                        |
@@ -251,7 +254,7 @@ The `Microsoft.AspNetCore.App` framework reference (via `Microsoft.NET.Sdk.Web`)
 
 ## Edge cases / gotchas
 
-- **HSTS only on HTTPS.** The `Strict-Transport-Security` header is conditionally written only when `request.IsHttps` is `true` — HSTS over HTTP is meaningless and the spec forbids preload submission for non-HTTPS-only origins. TestHost defaults to HTTPS; tests covering the HTTP branch construct an explicit `http://` request URI.
+- **HSTS only on HTTPS.** The `Strict-Transport-Security` header is conditionally written only when `request.IsHttps` is `true` — HSTS over cleartext HTTP is meaningless and the spec forbids preload submission for non-HTTPS-only origins. TestHost defaults to HTTPS; tests covering the cleartext HTTP branch construct an explicit non-TLS request URI.
 - **CORS fail-closed on empty origins.** `D2_CORS_ORIGINS__*` empty / unset → `ValidateOnStart()` raises `OptionsValidationException` at host build. Services that need NO CORS don't call `AddD2Cors` at all.
 - **`AllowCredentials = true` + `Origins = ["*"]` is forbidden.** The validator rejects this combination per CORS spec — listing explicit origins is the only safe way to accept credentials cross-origin.
 - **Infrastructure-bypass requires `UseRouting()` first.** The short-circuit invokes the routing-matched endpoint directly via `context.GetEndpoint()?.RequestDelegate`. When no endpoint has been routed yet (caller put bypass before `UseRouting()`), the middleware falls through to the next delegate so the pipeline still completes correctly — but the bypass intent is then a no-op.
@@ -259,4 +262,4 @@ The `Microsoft.AspNetCore.App` framework reference (via `Microsoft.NET.Sdk.Web`)
 - **`RunD2ServiceAsync` uses PII-safe exception rendering.** `Log.Fatal` on the catch path captures only the exception type FullName + first stack frame — NEVER `ex.Message`, since exception messages at host startup can carry connection strings, configured secrets, and host-environment specifics. Operators triage deeper via the host's process logs.
 - **`X-Correlation-Id` length-cap.** The ProblemDetails customizer caps the inbound `X-Correlation-Id` header value at 128 chars; over-cap values are treated as absent and a fresh GUID is generated. Prevents an arbitrary-length user header from inflating the response body.
 - **`InfrastructurePathMatcher` is public — single source of truth for `DcsvIo.D2.Logging`, `DcsvIo.D2.Telemetry`, and this lib's bypass middleware.** Earlier per-lib `internal` duplicates were collapsed into this canonical public matcher in the same change that introduced `DcsvIo.D2.AspNetCore` so all consumers stay aligned on the path set.
-- **`RunD2ServiceAsync` consumes `DcsvIo.D2.Utilities.Diagnostics.SanitizedExceptionRender`** for the `Log.Fatal` PII-safe exception rendering. The helper is the canonical foundation-lib copy shared with messaging and host auth code — `DcsvIo.D2.Utilities` is the natural home (already a `ProjectReference` for `Falsey()` / `Truthy()` / `ToNullIfEmpty()`).
+- **`RunD2ServiceAsync` consumes `DcsvIo.D2.Utilities.Diagnostics.SanitizedExceptionRender`** for the `Log.Fatal` PII-safe exception rendering. The helper is the canonical foundation-lib copy shared with messaging and host auth code — `DcsvIo.D2.Utilities` is the natural home (already a `package reference` for `Falsey()` / `Truthy()` / `ToNullIfEmpty()`).

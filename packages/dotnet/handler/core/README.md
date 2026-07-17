@@ -4,11 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Handler
 
-> Parent: [`packages/dotnet/`](../../README.md)
-
 `BaseHandler<TSelf, TInput, TOutput>` — the abstract base every handler in every service inherits (CQRS handlers, repo handlers, messaging consumers, scheduled jobs, anything handler-shaped). Provides per-handler scope pre-check, OTel activity + 4 metrics + log scope + stopwatch + universal try/catch around the subclass's `ExecuteAsync`. Sibling `DcsvIo.D2.Handler.Repo` adds EF / PG exception → `D2Result` mapping on top.
 
 JWT signature / expiry / audience / fingerprint-binding validation is a transport-level concern handled by auth middleware (HTTP / gRPC / AMQP) BEFORE the handler runs. By the time a handler executes, the bearer token has already been validated for the host service.
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Handler
+```
 
 ---
 
@@ -22,16 +26,14 @@ If you can't guarantee the redaction policy is in place (e.g. a one-off tool, an
 
 ---
 
-## File layout
+## Public API
 
-| Path                                    | Contents                                                                                                                                                       |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DcsvIo.D2.Handler.csproj`              | csproj — refs handler/abstractions + context/abstractions + result + DI/Logging.Abstractions                                                                   |
-| `BaseHandler.cs`                        | Abstract base. Virtual `HandleAsync` (entry point) + non-virtual `RunCorePipelineAsync` (observability + try/catch) + abstract `ExecuteAsync` (subclass logic) |
-| `BaseHandler.Logging.cs`                | Source-generated `LoggerMessage` delegates for the pipeline                                                                                                    |
-| `HandlerContext.cs`                     | `HandlerContext<T>` — typed-logger context. Open-generic registration via `AddD2Handler`                                                                       |
-| `HandlerTelemetry.cs`                   | Static OTel primitives — `SR_ActivitySource` + `SR_Meter` + 4 instruments (`d2.handler.invoked` / `succeeded` / `failed` counters + `d2.handler.duration` histogram) |
-| `HandlerServiceCollectionExtensions.cs` | `AddD2Handler(this IServiceCollection)` — registers open-generic `HandlerContext<T>`                                                                           |
+| Type | Role |
+| ---- | ---- |
+| `BaseHandler<TSelf, TInput, TOutput>` | Abstract base. Virtual `HandleAsync` (entry point) + non-virtual `RunCorePipelineAsync` (observability + try/catch) + abstract `ExecuteAsync` (subclass logic) |
+| `HandlerContext<T>` | Typed-logger context. Open-generic registration via `AddD2Handler` |
+| `HandlerTelemetry` | Static OTel primitives — `ActivitySource` + `Meter` + 4 instruments (`d2.handler.invoked` / `succeeded` / `failed` counters + `d2.handler.duration` histogram) |
+| `AddD2Handler` | DI extension — registers open-generic `HandlerContext<T>` |
 
 ---
 
@@ -92,7 +94,7 @@ A downstream timeout (e.g. `HttpClient.Timeout` firing) surfaces as `OperationCa
 ```csharp
 services.AddD2Handler();   // registers open-generic HandlerContext<T> as Transient
 
-// Per-handler registration (typically in {Service}.App's AddXxxApp extension):
+// Per-handler registration (typically in the app layer AddXxxApp extension):
 services.AddTransient<IGetUserById, GetUserById>();
 ```
 
@@ -148,8 +150,19 @@ Handler primary-constructor parameters do NOT take the `r_` prefix (carve-out fr
 
 ---
 
-## Reference
+## Dependencies
 
-- [`DcsvIo.D2.Handler.Abstractions`](../abstractions/README.md) — `IHandler` + `HandlerOptions` + `IHandlerContext`
-- [`DcsvIo.D2.Handler.Repo`](../repo/README.md) — EF/PG exception remapping subclass
-- Recommended layout: per-op handler folders (`Application/Handlers/{Commands,Queries}/<Op>/`) with primary-constructor handlers (ctor params do not take the `r_` field prefix)
+- `DcsvIo.D2.Handler.Abstractions` — `IHandler`, `HandlerOptions`, `IHandlerContext`
+- `DcsvIo.D2.Context.Abstractions` — request context
+- `DcsvIo.D2.Result` — result type
+- `Microsoft.Extensions.DependencyInjection.Abstractions` / `Microsoft.Extensions.Logging.Abstractions`
+
+---
+
+## Related packages
+
+- `DcsvIo.D2.Handler.Abstractions` — `IHandler` + `HandlerOptions` + `IHandlerContext`
+- `DcsvIo.D2.Handler.Repo` — EF/PG exception remapping subclass
+- `DcsvIo.D2.Telemetry` — OTel SDK wiring that captures handler instruments
+
+Recommended layout: per-op handler folders (`Application/Handlers/{Commands,Queries}/<Op>/`) with primary-constructor handlers (ctor params do not take the `r_` field prefix).

@@ -4,11 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-logging
 
-> Parent: [`packages/typescript/`](../README.md)
-
 Pino-backed `ILogger` interface + `markRedactedFields()` PII registration
 helper + `sanitizedErrorRender()` for safe error logging. Mirrors
 `DcsvIo.D2.Logging` (.NET).
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-logging
+```
 
 ## Public API
 
@@ -48,7 +52,7 @@ constant for spec-driven types (`@dcsv-io/d2-auth-context-abstractions`,
 
 - `@dcsv-io/d2-utilities` (boundary helpers)
 - `@dcsv-io/d2-result` (no direct usage; dependency boundary retained for
-  D2Result-aware log-helper composition)
+ D2Result-aware log-helper composition)
 - `pino` (runtime logger)
 
 ## Usage example
@@ -81,19 +85,19 @@ log.info("user signed in", { userId: ctx.userId });
 Mirrors `DcsvIo.D2.Logging`:
 
 - `ILogger` ↔ .NET `ILogger` consumer surface, with the PII-safe per-level
-  shape (no `Exception` parameter — analog of the .NET
-  `LeakProneLogDelegates` rule).
+ shape (no `Exception` parameter — analog of the .NET
+ `LeakProneLogDelegates` rule).
 - `setupLogger` ↔ `services.AddD2Logging(options)`.
 - `markRedactedFields` ↔ `[RedactData]` attribute (.NET hand-written
-  approach; the spec-driven approach is shared via codegen-emitted
-  `<TypeName>RedactPaths` constants).
+ approach; the spec-driven approach is shared via codegen-emitted
+ `<TypeName>RedactPaths` constants).
 - `sanitizedErrorRender` ↔ `SanitizedExceptionRender.{TypeName, FirstFrame}`.
 
 ## Edge cases
 
 - `setupLogger` always succeeds — invalid options surface at first log call.
 - Empty `redactPaths` + empty registry → Pino runs without a redact config
-  (no overhead).
+ (no overhead).
 - Re-registering the same symbol replaces the prior paths (idempotent).
 - `sanitizedErrorRender` accepts non-`Error` inputs (`null`, `undefined`,
-  primitives) and returns `{ name: typeof }` (`firstFrame` omitted).
+ primitives) and returns `{ name: typeof }` (`firstFrame` omitted).

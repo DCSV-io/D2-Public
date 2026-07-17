@@ -4,13 +4,17 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.I18n.Keys
 
-> Parent: [`packages/dotnet/`](../../README.md)
-
 Foundational slice that exposes the type-safe `TK` constants catalog — one `static readonly TKMessage` per translation key, Source-Generated from `contracts/messages/en-US.json`. Every producer that emits a user-facing message references a `TK.*` constant (e.g. `TK.Common.Errors.NOT_FOUND`) rather than a raw string, so the wire stays language-neutral and the client resolves the final copy.
 
-Its only dependency is the sibling [`DcsvIo.D2.I18n.Abstractions`](../abstractions/README.md) — the project that defines the `TKMessage` type each constant is an instance of. Keeping the constants in this shallow project lets any layer reference them without dragging in the runtime `Translator` (DI / configuration / file IO), which lives in the separate [`DcsvIo.D2.I18n`](../core/README.md) project.
+Its only dependency is the sibling `DcsvIo.D2.I18n.Abstractions` — the project that defines the `TKMessage` type each constant is an instance of. Keeping the constants in this shallow project lets any layer reference them without dragging in the runtime `Translator` (DI / configuration / file IO), which lives in the separate `DcsvIo.D2.I18n` project.
 
 ---
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.I18n.Keys
+```
 
 ## Public API
 
@@ -41,7 +45,7 @@ The TS side mirrors this exactly: `@dcsv-io/d2-i18n-keys → @dcsv-io/d2-i18n-ab
 
 ## The TK source generator
 
-`DcsvIo.D2.I18n.SourceGen.TKGenerator` (at [`../source-gen/`](../source-gen/README.md), referenced here as a Roslyn Analyzer) emits `TK.g.cs` into this assembly. It:
+`DcsvIo.D2.I18n.SourceGen.TKGenerator` (referenced here as a Roslyn Analyzer) emits `TK.g.cs` into this assembly. It:
 
 1. Reads `contracts/messages/*.json` via the `<AdditionalFiles>` declared in this csproj.
 2. Treats `en-US.json` as the source of truth.
@@ -90,14 +94,18 @@ The emitted file is at `Generated/DcsvIo.D2.I18n.SourceGen/DcsvIo.D2.I18n.Source
 
 ## Dependencies
 
-```xml
-<ProjectReference Include="..\abstractions\DcsvIo.D2.I18n.Abstractions.csproj" />
+| Package | Role |
+| --- | --- |
+| `DcsvIo.D2.I18n.Abstractions` | Runtime dep — `TKMessage` type each `TK.*` constant is an instance of |
+
+```bash
+dotnet add package DcsvIo.D2.I18n.Abstractions
 ```
 
-Runtime reference to Abstractions (for `TKMessage`). The TK generator is referenced as an Analyzer (`OutputItemType="Analyzer" ReferenceOutputAssembly="false"`), so its dll doesn't propagate to consumers.
+The TK generator ships as a build-time Analyzer with this package; its assembly does not propagate to consumers.
 
 ---
 
 ## Tests
 
-The TK catalog is covered by `packages/dotnet/tests/Unit/I18n/` — `TKGeneratedTests` round-trips every emitted constant back to a key in `en-US.json`, and the `SourceGen/` tests exercise the generator's emitter and decomposer pure-logic paths (key decomposition, emitter determinism, all six `D2I18N###` diagnostics).
+The TK catalog is covered by the `DcsvIo.D2.Tests` I18n unit suite — `TKGeneratedTests` round-trips every emitted constant back to a key in `en-US.json`, and the `SourceGen/` tests exercise the generator's emitter and decomposer pure-logic paths (key decomposition, emitter determinism, all six `D2I18N###` diagnostics).

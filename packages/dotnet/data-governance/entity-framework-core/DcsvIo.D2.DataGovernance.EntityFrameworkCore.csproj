@@ -84,7 +84,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <PackageId>DcsvIo.D2.DataGovernance.EntityFrameworkCore</PackageId>
     <Description>EF Core wiring for D2 GDPR anonymization — the fluent .Anonymize* API, the engine registration, and the startup model guard.</Description>
     <IsPackable>true</IsPackable>

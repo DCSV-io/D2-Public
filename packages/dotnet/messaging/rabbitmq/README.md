@@ -4,10 +4,8 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Messaging.RabbitMq
 
-> Parent: [`packages/dotnet/`](../../README.md)
-
 Default `RabbitMQ.Client 7.x` implementation of the
-[`DcsvIo.D2.Messaging.Abstractions`](../abstractions/README.md)
+`DcsvIo.D2.Messaging.Abstractions`
 contract. Owns connection lifecycle, channel pooling with idle-eviction,
 topology declaration (exchanges + DLX + DLQ + optional retry tiers),
 publishing with publisher-confirms + built-in transient retry, payload
@@ -21,6 +19,12 @@ descriptor (`MqMessageDescriptor`, codegen-emitted from
 exchange, and default routing key.
 
 ---
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Messaging.RabbitMq
+```
 
 ## Table of contents
 
@@ -168,10 +172,10 @@ Consumer service
   `messageType`, and registers an `ISubscriberRegistration`.
 
 Full spec format + diagnostic catalog for the source-gen lives in
-[`messaging/source-gen/README.md`](../source-gen/README.md). The
+`DcsvIo.D2.Messaging.SourceGen`. The
 transport-agnostic public surface (`IMessageBus`, `[MqPub]`, `[MqSub]`,
 descriptor records) lives in
-[`messaging/abstractions/README.md`](../abstractions/README.md).
+`DcsvIo.D2.Messaging.Abstractions`.
 
 ---
 
@@ -223,7 +227,7 @@ There is no envelope wrapper. The wire body is one of:
   ops triage can decide whether archive keys are needed without first
   decrypting. The binary frame-layout byte offsets are themselves spec-driven
   via
-  [`encryption/frame-source-gen/`](../../encryption/frame-source-gen/README.md).
+  `DcsvIo.D2.Encryption.Frame.SourceGen`.
 
 `EncryptedBodyComposer` chooses the path from the descriptor's `Encryption`
 field. Plaintext on a domain that should be encrypted — or vice versa — is a
@@ -251,12 +255,13 @@ consumer share one sealer/opener.
 `SealedConsumerStartupCheck` (registered unconditionally by
 `AddD2MessagingRabbitMq`, never by the sealing call) crashes host startup — before
 any consumer channel opens — when a subscriber consumes a sealed domain but no
-matching `IPayloadOpener` is registered, so a forgotten
-`AddD2SealedEncryptionViaKeyCustodian` fails loud rather than DLQ'ing every
-delivery. The KeyCustodian-backed sealer/opener runtime lives in
-a host-supplied sealing client; the shared lib composes whatever
-keyed sealer/opener the host registered (shared → shared dependency only). The
-TypeScript twin (`@dcsv-io/d2-messaging-rabbitmq`) enforces the same fusion structurally.
+matching `IPayloadOpener` is registered, so a forgotten sealed-opener registration
+fails loud rather than DLQ'ing every delivery. Sealed sealer/opener material is
+host-supplied via the public encryption seams (`IPayloadSealer` / `IPayloadOpener`
+keyed DI + provenance marks such as `EncryptionKeyringSource.KeyCustodian` for
+managed sources); this shared lib composes whatever keyed sealer/opener the host
+registered (shared → shared dependency only). The TypeScript twin
+(`@dcsv-io/d2-messaging-rabbitmq`) enforces the same fusion structurally.
 
 ### Why JSON not binary protobuf
 
@@ -290,7 +295,7 @@ other sensitive context.
 > The runtime header **direction + purpose** semantic catalog lives in this
 > doc (it's the operational reference). The **wire-value constants**
 > (e.g. `AmqpHeaders.MESSAGE_ID = "message-id"`) are codegen-emitted into
-> [`headers/amqp/`](../../headers/amqp/README.md) from
+> `DcsvIo.D2.Headers.Amqp` from
 > `contracts/headers/headers.spec.json`.
 
 ---
@@ -665,11 +670,11 @@ cycles via `MaxAttempts`.
   headers — the broker stores headers plaintext, and routing semantics need
   them readable.
 - The `EncryptionDomains` catalog is itself spec-driven via
-  [`encryption/domains-source-gen/`](../../encryption/domains-source-gen/README.md);
+  `DcsvIo.D2.Encryption.Domains.SourceGen`;
   the binary frame layout is spec-driven via
-  [`encryption/frame-source-gen/`](../../encryption/frame-source-gen/README.md);
+  `DcsvIo.D2.Encryption.Frame.SourceGen`;
   per-keyring rotation lifecycle lives in
-  [`encryption/`](../../encryption/core/README.md).
+  `DcsvIo.D2.Encryption`.
 
 ---
 
@@ -734,7 +739,7 @@ cycles via `MaxAttempts`.
 > Contract-level anti-patterns (hand-registering `IMessageBus` outside the
 > blessed DI helpers, FQN mismatch between `[MqPub]` and the spec entry,
 > `[MqSub]` without matching handler type) live in
-> [`messaging/abstractions/README.md`](../abstractions/README.md).
+> `DcsvIo.D2.Messaging.Abstractions`.
 
 ---
 
@@ -766,7 +771,7 @@ cycles via `MaxAttempts`.
 ## TypeScript twin — producer and consumer
 
 A service-agnostic Node runtime for both directions lives at
-[`packages/typescript/messaging/rabbitmq/`](../../../typescript/messaging/rabbitmq/README.md)
+`@dcsv-io/d2-messaging-rabbitmq`
 (`@dcsv-io/d2-messaging-rabbitmq`). On the **consume** side it declares the same topology
 (primary + `{q}.dlx` + `{q}.dlq` + retry tiers), consumes with manual acks,
 republishes failures with the same `DlqFailureMetadata`, deduplicates via the same
@@ -785,17 +790,17 @@ own published frames back through the consumer pipeline.
 
 ## References
 
-- [`messaging/abstractions/`](../abstractions/README.md) — the
+- `DcsvIo.D2.Messaging.Abstractions` — the
   contract this package implements (transport-agnostic surface, attributes,
   descriptor records, registry, scanner, contract-level anti-patterns).
-- [`messaging/source-gen/`](../source-gen/README.md) — codegen
+- `DcsvIo.D2.Messaging.SourceGen` — codegen
   emitting the `MqMessages` / `MqSubscriptions` registries; full spec
   format + diagnostic catalog + spec evolution rules.
-- [`headers/amqp/`](../../headers/amqp/README.md) — codegen-emitted wire-value
+- `DcsvIo.D2.Headers.Amqp` — codegen-emitted wire-value
   constants for the AMQP header catalog (`AmqpHeaders.MESSAGE_ID`, etc.).
-- [`encryption/`](../../encryption/core/README.md) — encryption primitive (keyring,
+- `DcsvIo.D2.Encryption` — encryption primitive (keyring,
   `IPayloadCrypto`, frame format, rotation lifecycle).
-- [`encryption/domains-source-gen/`](../../encryption/domains-source-gen/README.md)
+- `DcsvIo.D2.Encryption.Domains.SourceGen`
   — the `EncryptionDomains` catalog spec.
-- [`encryption/frame-source-gen/`](../../encryption/frame-source-gen/README.md)
+- `DcsvIo.D2.Encryption.Frame.SourceGen`
   — the binary frame layout byte-offset spec.

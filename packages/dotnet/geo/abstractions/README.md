@@ -4,11 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Geo.Abstractions
 
-> Parent: [`packages/dotnet/`](../../README.md)
->
 > **Audience**: backend .NET service engineers who need strongly-typed access to ISO geo reference data (countries, subdivisions, currencies, languages, locales, timezones, geopolitical entities) without pulling in catalog data or temporal libraries.
 
-Hand-written contract surface + source-generator-emitted spec-derived types for the D² geo stack. Domain code anywhere in the backend can take a `ProjectReference` here without paying for the ~200 KB catalog data (lives in `DcsvIo.D2.Geo.Default`) or NodaTime (lives in `DcsvIo.D2.Time`). The hand-written surface stays intentionally tiny — only the helpers and meta-records that the codegen-emitted types reference back into.
+Hand-written contract surface + source-generator-emitted spec-derived types for the D² geo stack. Domain code anywhere in the backend can reference this package without paying for the ~200 KB catalog data (lives in `DcsvIo.D2.Geo.Default`) or NodaTime (lives in `DcsvIo.D2.Time`). The hand-written surface stays intentionally tiny — only the helpers and meta-records that the codegen-emitted types reference back into.
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Geo.Abstractions
+```
 
 ## File layout
 
@@ -30,7 +34,7 @@ Hand-written contract surface + source-generator-emitted spec-derived types for 
 - **This assembly** (`DcsvIo.D2.Geo.Abstractions`) receives the spec-derived **TYPES**: single record shape per entity (nav refs use `get; internal set;` enabled by `[assembly: InternalsVisibleTo("DcsvIo.D2.Geo.Default")]` for the two-pass populate from the data emitter), `Code`-suffixed real enums (`CountryCode`, `CurrencyCode`, `LanguageCode`, `GeopoliticalEntityCode`), wrapper structs (`SubdivisionCode`, `LocaleCode`, `TimezoneCode`), `JsonConverter`s with closed-set validation tables, and `GeoCatalog` constants (`CatalogVersion`, `CatalogPublishedAt`).
 - `DcsvIo.D2.Geo.Default` receives the spec-derived **DATA**: per-entity static instances, nested static-class hierarchies (e.g. `Subdivisions.US.NY`), and the in-memory lookup tables.
 
-The dispatch fires on `compilation.AssemblyName` so the analyzer reaches both consumer assemblies from a single project reference each. See [`../source-gen/README.md`](../source-gen/README.md) for the full multi-assembly dispatch design.
+The dispatch fires on `compilation.AssemblyName` so the analyzer reaches both consumer assemblies from a single project reference each. See `DcsvIo.D2.Geo.SourceGen` for the full multi-assembly dispatch design.
 
 ## Record shape architecture
 
@@ -124,4 +128,4 @@ Zero NodaTime / catalog-data / DI / Configuration / IO dependencies. This is the
 
 ## Known build-time warnings
 
-The geo source-generator (`DcsvIo.D2.Geo.SourceGen`) emits a small number of expected `D2GEO010` catalog-uniqueness warnings (legitimate parent-child name collisions like Burkina Faso Centre / Kadiogo, real-world ambiguity like Malta's two Rabats). See [`contracts/geo/KNOWN_WARNINGS.md`](../../../../contracts/geo/KNOWN_WARNINGS.md) for the full enumerated list + escalation triggers. New warnings NOT documented there should be investigated before suppressing.
+The geo source-generator (`DcsvIo.D2.Geo.SourceGen`) emits a small number of expected `D2GEO010` catalog-uniqueness warnings (legitimate parent-child name collisions like Burkina Faso Centre / Kadiogo, real-world ambiguity like Malta's two Rabats). See `contracts/geo/KNOWN_WARNINGS.md` for the full enumerated list + escalation triggers. New warnings NOT documented there should be investigated before suppressing.

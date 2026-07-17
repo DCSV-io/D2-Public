@@ -4,11 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Caching.Tiered
 
-> Parent: [`packages/dotnet/`](../../README.md)
+Two-tier cache that composes one `ILocalCache` (L1) and one
+`IDistributedCache` (L2) into the
+`ITieredCache` marker interface.
 
-Two-tier cache that composes one [`ILocalCache`](../abstractions/README.md) (L1) and one
-[`IDistributedCache`](../abstractions/README.md) (L2) into the
-[`ITieredCache`](../abstractions/README.md) marker interface.
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Caching.Tiered
+```
 
 ## Public surface
 
@@ -90,13 +94,13 @@ this instance's adds; cluster cardinality lives in L2). Callers needing set prim
 
 ## Dependencies
 
-- [`abstractions/`](../abstractions/README.md) — `ITieredCache`, `ILocalCache`,
+- `DcsvIo.D2.Caching.Abstractions` — `ITieredCache`, `ILocalCache`,
   `IDistributedCache`, `ICacheInvalidationBackplane`
 - No backing-store deps directly — the impl is pure composition
 
 ## References
 
-- [`abstractions/README.md`](../abstractions/README.md) — interface + result-mapping
+- `DcsvIo.D2.Caching.Abstractions` — interface + result-mapping
   reference
-- [`local-default/README.md`](../local-default/README.md) — typical L1 impl
-- [`distributed-redis/README.md`](../distributed-redis/README.md) — typical L2 impl
+- `DcsvIo.D2.Caching.Local.Default` — typical L1 impl
+- `DcsvIo.D2.Caching.Distributed.Redis` — typical L2 impl

@@ -4,11 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-utilities
 
-> Parent: [`packages/typescript/`](../README.md)
-
 Boundary helpers — `falsey`/`truthy` semantics, string cleaning,
 parse-or-undefined helpers, indexed env-var array parsing, and the regex
 constants used across the TS codebase. Mirrors `DcsvIo.D2.Utilities` (.NET).
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-utilities
+```
 
 ## Public API
 

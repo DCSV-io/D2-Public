@@ -4,19 +4,23 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Validation.Abstractions
 
-> Parent: [`packages/dotnet/`](../../README.md)
->
 > **Audience**: backend .NET service engineers and any consumer that depends on
 > email, phone, or postal-code validation, the shared field-length bounds, or the
 > name/sex taxonomy enums — without committing to a specific implementation.
 
 Interface contracts for the D² validator family **plus the shared field-constraints
 catalog** (codegen-emitted field-length constants + closed-list taxonomy enums). Domain
-code anywhere in the backend can take a `ProjectReference` here without pulling in a
+code anywhere in the backend can reference this package without pulling in a
 phone-number library, regex catalog, or DI container. This is the lowest shared
 vocabulary layer every consumer depends on — the validator interfaces, the
 `FieldConstraints` bounds that gate value-object `Create(...)` calls, and the
 `NamePrefix` / `NameSuffix` / `BiologicalSex` taxonomy enums.
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Validation.Abstractions
+```
 
 ## Interfaces
 

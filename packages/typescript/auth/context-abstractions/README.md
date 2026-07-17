@@ -4,11 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-auth-context-abstractions
 
-> Parent: [`packages/typescript/`](../../README.md)
-
 `IAuthContext` interface + supporting enums/types. Emitted from
 `contracts/auth-context/IAuthContext.spec.json` (generated sources committed).
 Mirrors `DcsvIo.D2.AuthContext.Abstractions` (.NET).
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-auth-context-abstractions
+```
 
 ## Public API
 
@@ -63,7 +67,7 @@ Mirrors `DcsvIo.D2.AuthContext.Abstractions`:
 
 - `IAuthContext` — same property set, camelCased per TS conventions.
 - `OrgType` / `Role` / `ImpersonationKind` / `ActorKind` — same wire
-  values (string-literal unions).
+ values (string-literal unions).
 - `ActorEntry` — same field shape.
 
 The .NET-side codegen lives in `DcsvIo.D2.Context.SourceGen` (Roslyn
@@ -90,9 +94,9 @@ codebase's nullability rule. The spec's `?` suffix on a type entry
 ## Edge cases
 
 - `IAuthContextRedactPaths` is empty when no spec entry carries
-  `redact: true`. Hand-register additional paths via
-  `markRedactedFields()` from `@dcsv-io/d2-logging` if needed.
+ `redact: true`. Hand-register additional paths via
+ `markRedactedFields()` from `@dcsv-io/d2-logging` if needed.
 - Generated files (`*.g.ts`) are committed to git so consumers don't
-  pay a generate-on-first-build penalty.
+ pay a generate-on-first-build penalty.
 - `pnpm exec eslint` ignores generated files — formatting drift is
-  irrelevant for spec-derived output.
+ irrelevant for spec-derived output.

@@ -4,11 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-error-category
 
-> Parent: [`packages/typescript/`](../README.md)
-
 Foundational zero-dependency leaf that exports the closed `ErrorCategory` classification — the nine-value semantic/telemetry class every `D2Result` and every error code carries. Mirrors `DcsvIo.D2.ErrorCodes.Category` on the .NET side. Lives here so `@dcsv-io/d2-result` and `@dcsv-io/d2-error-codes-registry` can import `ErrorCategory` without risking a circular dependency.
 
 The category is the producer's coarse signal — `infrastructure_unavailable`, `not_found`, `validation_failure` — so a consumer can do generic class-based handling (retry any `infrastructure_unavailable`) without importing the producer's error-code catalog.
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-error-category
+```
 
 ## Public API
 

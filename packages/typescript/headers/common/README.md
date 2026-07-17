@@ -4,11 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-headers-common
 
-> Parent: [`packages/typescript/`](../../README.md)
-
-> **Duplicated from [`contracts/headers/headers.spec.json`](../../../../contracts/headers/headers.spec.json) — update both in lockstep.** This catalog mirrors its .NET sibling [`DcsvIo.D2.Headers.Common`](../../../dotnet/headers/common/README.md) at byte-equal wire values. Both sides emit from the same spec; physical dedup across TS ↔ .NET is not feasible. Parity is asserted by `contract-tests/headers.parity.test.ts` (TS) and `HeaderCatalogConsistencyTests` (.NET).
+> **Duplicated from `contracts/headers/headers.spec.json` — update both in lockstep.** This catalog mirrors its .NET sibling `DcsvIo.D2.Headers.Common` at byte-equal wire values. Both sides emit from the same spec; physical dedup across TS ↔ .NET is not feasible. Parity is asserted by `contract-tests/headers.parity.test.ts` (TS) and `HeaderCatalogConsistencyTests` (.NET).
 
 Cross-transport D2 wire-protocol headers — entries with applicability count >= 2 (i.e. headers that appear identically on multiple transports). Mirrors .NET `DcsvIo.D2.Headers.Common.CommonHeaders`.
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-headers-common
+```
 
 ## Public API
 
@@ -36,7 +40,7 @@ None at runtime — pure constants. DevDeps: `vitest` + `@vitest/coverage-v8` + 
 
 ## Reference
 
-- [`contracts/headers/headers.spec.json`](../../../../contracts/headers/headers.spec.json) — source spec
-- [`@dcsv-io/d2-headers-http`](../http/README.md) — HTTP-applicable subset
-- [`@dcsv-io/d2-headers-amqp`](../amqp/README.md) — AMQP-applicable subset
-- [`@dcsv-io/d2-headers-grpc`](../grpc/README.md) — gRPC-applicable subset
+- `contracts/headers/headers.spec.json` — source spec
+- `@dcsv-io/d2-headers-http` — HTTP-applicable subset
+- `@dcsv-io/d2-headers-amqp` — AMQP-applicable subset
+- `@dcsv-io/d2-headers-grpc` — gRPC-applicable subset

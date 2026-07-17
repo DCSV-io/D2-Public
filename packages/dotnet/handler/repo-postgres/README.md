@@ -4,22 +4,25 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Handler.Repo.Postgres
 
-> Parent: [`packages/dotnet/`](../../README.md)
-
 PostgreSQL implementation of `IDbExceptionClassifier` from `DcsvIo.D2.Handler.Repo.Abstractions`. Plugs into `BaseRepoHandler` via DI — composition roots call `services.AddD2Postgres()` once.
 
 Provider-specific knowledge lives behind `IDbExceptionClassifier`; alternate-provider implementations (where they exist) follow the same shape: one `IDbExceptionClassifier` impl + one `services.AddD2X()` extension. `BaseRepoHandler` itself stays provider-agnostic.
 
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Handler.Repo.Postgres
+```
+
 ---
 
-## File layout
+## Public API
 
-| Path                                     | Contents                                                                 |
-| ---------------------------------------- | ------------------------------------------------------------------------ |
-| `DcsvIo.D2.Handler.Repo.Postgres.csproj` | csproj — depends on `handler/repo-abstractions` + EF Core + Npgsql       |
-| `PgErrorCodes.cs`                        | SQLSTATE string constants + `TryGetPgException(Exception)` unwrap helper |
-| `PostgresDbExceptionClassifier.cs`       | Maps PG exceptions → `DbFailureKind`                                     |
-| `PostgresServiceCollectionExtensions.cs` | `services.AddD2Postgres()`                                               |
+| Type | Role |
+| ---- | ---- |
+| `PostgresDbExceptionClassifier` | Maps PostgreSQL / EF exceptions → `DbFailureKind` |
+| `PgErrorCodes` | SQLSTATE string constants + `TryGetPgException(Exception)` unwrap helper |
+| `AddD2Postgres` | DI extension — registers `PostgresDbExceptionClassifier` as `IDbExceptionClassifier` (`TryAddSingleton`) |
 
 ---
 
@@ -40,7 +43,7 @@ Provider-specific knowledge lives behind `IDbExceptionClassifier`; alternate-pro
 
 `DbUpdateConcurrencyException` (BCL-typed) is handled directly by `BaseRepoHandler` and never reaches the classifier.
 
-Codes per <https://www.postgresql.org/docs/current/errcodes-appendix.html>.
+Codes follow the PostgreSQL SQLSTATE / error-code appendix.
 
 ---
 
@@ -95,20 +98,14 @@ Keyed services are .NET 8+ — the codebase targets .NET 10, so the API is avail
 
 ## Dependencies
 
-Project references:
-
 - `DcsvIo.D2.Handler.Repo.Abstractions` — `IDbExceptionClassifier` + `DbFailureKind`
-
-NuGet packages:
-
-- `Microsoft.EntityFrameworkCore` — for `DbUpdateException` type
-- `Npgsql` — for `PostgresException` + `NpgsqlException` types
-- `Microsoft.Extensions.DependencyInjection.Abstractions` — for `IServiceCollection`
+- `Microsoft.EntityFrameworkCore` — `DbUpdateException` type
+- `Npgsql` — `PostgresException` + `NpgsqlException` types
+- `Microsoft.Extensions.DependencyInjection.Abstractions` — `IServiceCollection`
 
 ---
 
-## Reference
+## Related packages
 
-- [`DcsvIo.D2.Handler.Repo.Abstractions`](../repo-abstractions/README.md) — interface + `DbFailureKind` enum + extension factories
-- [`DcsvIo.D2.Handler.Repo`](../repo/README.md) — `BaseRepoHandler` consumes the classifier
-- [PostgreSQL error codes](https://www.postgresql.org/docs/current/errcodes-appendix.html)
+- `DcsvIo.D2.Handler.Repo.Abstractions` — interface + `DbFailureKind` enum + extension factories
+- `DcsvIo.D2.Handler.Repo` — `BaseRepoHandler` consumes the classifier

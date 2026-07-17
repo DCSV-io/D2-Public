@@ -4,11 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Geo.Default
 
-> Parent: [`packages/dotnet/README.md`](../../README.md)
->
 > **Audience**: backend .NET service engineers who need the actual geo catalog data — the per-entity instances + lookup tables + nested static-class hierarchies — bound into memory at process start.
 
-Source-generator-emitted in-memory catalog data for the seven geo reference catalogs. The types this assembly references live in [`DcsvIo.D2.Geo.Abstractions`](../abstractions/README.md); this assembly contributes the per-entity static instances + `FrozenDictionary` lookup tables + nested static-class hierarchies + a single `[ModuleInitializer]`-driven coordinator that wires cross-record nav refs after every catalog's static initializers have run.
+Source-generator-emitted in-memory catalog data for the seven geo reference catalogs. The types this assembly references live in `DcsvIo.D2.Geo.Abstractions`; this assembly contributes the per-entity static instances + `FrozenDictionary` lookup tables + nested static-class hierarchies + a single `[ModuleInitializer]`-driven coordinator that wires cross-record nav refs after every catalog's static initializers have run.
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Geo.Default
+```
 
 ## What lands here
 
@@ -66,7 +70,7 @@ internal static class CountryLookup
 }
 ```
 
-The `internal set` accessors on nav properties are reachable from this assembly only because `DcsvIo.D2.Geo.Abstractions` declares `[assembly: InternalsVisibleTo("DcsvIo.D2.Geo.Default")]`. See [the Abstractions README record-shape architecture section](../abstractions/README.md) for the full cycle-resolution design.
+The `internal set` accessors on nav properties are reachable from this assembly only because `DcsvIo.D2.Geo.Abstractions` declares `[assembly: InternalsVisibleTo("DcsvIo.D2.Geo.Default")]`. See the `DcsvIo.D2.Geo.Abstractions` record-shape architecture section for the full cycle-resolution design.
 
 ### Universal dual-representation
 
@@ -143,7 +147,7 @@ The resolver intentionally carries no instrumentation (no `ActivitySource`, no `
 
 ## Codegen dispatch
 
-`DcsvIo.D2.Geo.SourceGen` is a multi-target dispatcher — see [`../source-gen/README.md`](../source-gen/README.md) for the full design. When the generator runs against `DcsvIo.D2.Geo.Abstractions` it emits the spec-derived TYPES (record shapes, `*Code` enums, wrapper structs, `JsonConverter`s); when it runs against this assembly it emits the catalog DATA (per-entity static instances + lookups + coordinator). Both assemblies wire the same analyzer + the same seven `AdditionalFiles`.
+`DcsvIo.D2.Geo.SourceGen` is a multi-target dispatcher — see `DcsvIo.D2.Geo.SourceGen` for the full design. When the generator runs against `DcsvIo.D2.Geo.Abstractions` it emits the spec-derived TYPES (record shapes, `*Code` enums, wrapper structs, `JsonConverter`s); when it runs against this assembly it emits the catalog DATA (per-entity static instances + lookups + coordinator). Both assemblies wire the same analyzer + the same seven `AdditionalFiles`.
 
 ## Dependencies
 
@@ -159,4 +163,4 @@ Zero NodaTime / Configuration / IO dependencies.
 
 ## Bundle size
 
-The emitted catalog data is the bulk of the ~200 KB geo footprint. Domain code that takes a `ProjectReference` here pays for the catalog; consumers that only need the type surface should reference `DcsvIo.D2.Geo.Abstractions` instead.
+The emitted catalog data is the bulk of the ~200 KB geo footprint. Domain code that references this package pays for the catalog; consumers that only need the type surface should reference `DcsvIo.D2.Geo.Abstractions` instead.

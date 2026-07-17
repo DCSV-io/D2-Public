@@ -4,8 +4,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-validation-abstractions
 
-> Parent: [`packages/typescript/`](../../README.md)
->
 > **Audience**: backend Node/TypeScript service and BFF engineers who need
 > the validator contract surface — email, phone, and postal-code validator
 > interfaces — or the shared field-constraints catalog (field-length bounds +
@@ -16,19 +14,25 @@ Hand-written validator contract interfaces **plus the codegen-emitted shared
 field-constraints catalog** (field-length / digit-count constants + closed-list
 taxonomy enums). Mirrors `DcsvIo.D2.Validation.Abstractions` (.NET).
 
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-validation-abstractions
+```
+
 ## Overview
 
 The validation layer ships in two TS packages:
 
 - **`@dcsv-io/d2-validation-abstractions`** — this package. The three validator
-  contract interfaces (`IEmailValidator`, `IPhoneValidator`,
-  `IPostalCodeValidator`) AND the codegen-emitted `FieldConstraints` bounds +
-  `NamePrefix` / `NameSuffix` / `BiologicalSex` taxonomy enums (with Zod
-  schemas). The interfaces are pure types (near-zero runtime payload); the
-  emitted catalog carries the const objects + Zod schemas (a small `zod`
-  runtime dependency).
+ contract interfaces (`IEmailValidator`, `IPhoneValidator`,
+ `IPostalCodeValidator`) AND the codegen-emitted `FieldConstraints` bounds +
+ `NamePrefix` / `NameSuffix` / `BiologicalSex` taxonomy enums (with Zod
+ schemas). The interfaces are pure types (near-zero runtime payload); the
+ emitted catalog carries the const objects + Zod schemas (a small `zod`
+ runtime dependency).
 - **`@dcsv-io/d2-validation`** — the default implementations backed by the standard
-  normalization rules. Depends on this package.
+ normalization rules. Depends on this package.
 
 Domain code that depends on a validator imports the interface from
 `@dcsv-io/d2-validation-abstractions`; only composition-root code wires the concrete
@@ -44,16 +48,16 @@ Generated from `contracts/validation/field-constraints.spec.json` — emitted in
 is structurally impossible.
 
 - **`FieldConstraints`** (`field-constraints.g.ts`) — a plain numeric
-  `as const` object of the 16 field-length / digit-count bounds (matches geo's
-  numeric `GeopoliticalEntityType` shape; the values are ints, not a closed-set
-  wire vocabulary needing a brand) plus the derived `FieldConstraint` value
-  type. Read these to gate Zod schemas / form validation against the same
-  bounds the .NET `Create(...)` gates enforce.
+ `as const` object of the 16 field-length / digit-count bounds (matches geo's
+ numeric `GeopoliticalEntityType` shape; the values are ints, not a closed-set
+ wire vocabulary needing a brand) plus the derived `FieldConstraint` value
+ type. Read these to gate Zod schemas / form validation against the same
+ bounds the .NET `Create(...)` gates enforce.
 - **`NamePrefix` / `NameSuffix` / `BiologicalSex`** (`taxonomy.g.ts`) — for
-  each closed-list enum: a string-valued `as const` object (member name IS the
-  wire form), a branded derived type, a `z.enum([...])` schema (`*Schema`), and
-  an `ALL_*_SET` `ReadonlySet<string>` membership set. The schemas gate BFF /
-  client input against the same closed vocabularies the .NET enums encode.
+ each closed-list enum: a string-valued `as const` object (member name IS the
+ wire form), a branded derived type, a `z.enum([...])` schema (`*Schema`), and
+ an `ALL_*_SET` `ReadonlySet<string>` membership set. The schemas gate BFF /
+ client input against the same closed vocabularies the .NET enums encode.
 
 The catalog carries no localized display strings (member names are
 display-adequate); FE labels route through i18n `TK.*` keys if a picker needs
@@ -75,13 +79,13 @@ Every validator exposes a single `validate(...)` method returning
 `D2Result<string>`:
 
 - **Success** — an `ok` `D2Result` whose data is the normalized value:
-  - `IEmailValidator` → trimmed and lowercased email.
-  - `IPhoneValidator` → E.164 representation.
-  - `IPostalCodeValidator` → trimmed and uppercased postal code.
+ - `IEmailValidator` → trimmed and lowercased email.
+ - `IPhoneValidator` → E.164 representation.
+ - `IPostalCodeValidator` → trimmed and uppercased postal code.
 - **Failure** — a `validationFailed` `D2Result` carrying a single per-field
-  `InputError`. The field key is `"email"`, `"phone"`, or `"postalCode"`
-  respectively. Failure covers `undefined`, empty, whitespace-only, and
-  structurally invalid input.
+ `InputError`. The field key is `"email"`, `"phone"`, or `"postalCode"`
+ respectively. Failure covers `undefined`, empty, whitespace-only, and
+ structurally invalid input.
 
 Returning the normalized value (rather than a bare boolean) lets callers
 persist the canonical form directly without a second normalization pass.
@@ -93,7 +97,7 @@ Mirrors `DcsvIo.D2.Validation.Abstractions`:
 - `IEmailValidator` ↔ `DcsvIo.D2.Validation.Abstractions.IEmailValidator`.
 - `IPhoneValidator` ↔ `DcsvIo.D2.Validation.Abstractions.IPhoneValidator`.
 - `IPostalCodeValidator` ↔
-  `DcsvIo.D2.Validation.Abstractions.IPostalCodeValidator`.
+ `DcsvIo.D2.Validation.Abstractions.IPostalCodeValidator`.
 
 Each interface exposes the same single `validate(...)` method returning
 `D2Result<string>` with the same normalization semantics and the same
@@ -107,10 +111,10 @@ the deserialization boundary.
 
 - `@dcsv-io/d2-result` — `D2Result<string>` return type.
 - `@dcsv-io/d2-geo-abstractions` — `CountryCode` for the phone default-region and
-  postal-code country parameters.
+ postal-code country parameters.
 - `zod` — the emitted taxonomy `*Schema` exports are `z.enum([...])` schemas
-  (pinned to the same version `@dcsv-io/d2-geo-abstractions` uses). The validator
-  interfaces themselves carry no runtime; the dependency is the catalog's.
+ (pinned to the same version `@dcsv-io/d2-geo-abstractions` uses). The validator
+ interfaces themselves carry no runtime; the dependency is the catalog's.
 
 ## Telemetry
 

@@ -4,13 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Spiffe
 
-> Parent: [`packages/dotnet/`](../README.md)
-
 The single home for the SPIFFE workload-identity grammar used by D2 mutual TLS. Provides the `SpiffeWorkloadIdentity` value object — a strong-typed representation of the subject-alternative-name a leaf certificate carries and a peer validator checks: `spiffe://d2.internal/workload/<service>`.
 
 This is a leaf-tier value object: parse, validate, and emit the SPIFFE SAN string. It holds no X.509 handles, no network code, and no framework references — certificate extraction is the caller's responsibility.
 
----
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Spiffe
+```
 
 ## Public API surface
 
@@ -30,8 +32,6 @@ SpiffeWorkloadIdentity.TRUST_DOMAIN     // "d2.internal"
 SpiffeWorkloadIdentity.WORKLOAD_PATH_PREFIX  // "/workload/"
 ```
 
----
-
 ## Validation rules
 
 `Create` and `Parse` enforce the same service-identifier rules:
@@ -48,22 +48,18 @@ SpiffeWorkloadIdentity.WORKLOAD_PATH_PREFIX  // "/workload/"
 
 Both paths return a generic `D2Result.ValidationFailed` on rejection — a default-deny posture that does not reveal which check failed.
 
----
-
 ## Design notes
 
 **One grammar, two consumers.** The SPIFFE format lives here and nowhere else:
 
-- `KeyCustodian` delegates to `Create` at issuance time, re-mapping the generic `ValidationFailed` to its own `KEYCUSTODIAN_INVALID_WORKLOAD_IDENTITY` error code.
+- The certificate / workload issuer (host issuance path) delegates to `Create` at issuance time, re-mapping the generic `ValidationFailed` to its own invalid-workload-identity error code.
 - The shared mTLS peer validator in `DcsvIo.D2.AspNetCore` calls `Parse` to check a presented certificate's URI SAN.
 
 **No framework dependency.** This lib references only `DcsvIo.D2.Result` (for `D2Result<T>`) and `DcsvIo.D2.Utilities` (for `ToNullIfEmpty()` / `ThrowIfFalsey()`). No AspNetCore, Kestrel, X.509, or service-domain dependency.
 
 **Not PII.** A workload identity is a service label such as `edge` or `files` — not personally identifying. The `[RedactData]` attribute is deliberately absent from this type.
 
----
+## Dependencies
 
-## References
-
-- [`DcsvIo.D2.AspNetCore`](../aspnetcore/README.md) — hosts the mTLS peer validator that feeds presented certificate SANs to `Parse`
-- mTLS peer validation uses this type to establish workload identity for cross-process hops
+- `DcsvIo.D2.Result` — `D2Result<T>` returned by smart constructors
+- `DcsvIo.D2.Utilities` — `ToNullIfEmpty()` / `ThrowIfFalsey()` guards

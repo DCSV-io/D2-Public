@@ -11,4 +11,15 @@ Keep a Changelog, and this package adheres to Semantic Versioning.
 
 ### Added
 
+### Changed
+
 ### Fixed
+
+## 0.1.1 - 2026-07-17
+### Changed
+
+- Dependency update: DcsvIo.D2.Geo.Abstractions bumped.
+- Dependency update: DcsvIo.D2.Result bumped.
+- Dependency update: DcsvIo.D2.Time bumped.
+- Dependency update: DcsvIo.D2.Utilities bumped.
+- Dependency update: DcsvIo.D2.Validation.Abstractions bumped.

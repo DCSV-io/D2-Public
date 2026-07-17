@@ -4,20 +4,24 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-messaging-rabbitmq
 
-> Parent: [`packages/typescript/`](../../README.md)
-
 The TypeScript **CONSUMER** runtime twin of the .NET
-[`DcsvIo.D2.Messaging.RabbitMq`](../../../../dotnet/messaging/rabbitmq/README.md)
+`DcsvIo.D2.Messaging.RabbitMq`
 consumer path. A service author building a Node service that consumes messages
 a .NET service publishes uses this package: a service-agnostic RabbitMQ
 subscriber with the same topology, same DLQ convention, and same cross-hop
 context and trace propagation — so a Node consumer and a .NET consumer are
 interchangeable on the wire.
 
-Built on [`rabbitmq-client`](https://www.npmjs.com/package/rabbitmq-client)
+Built on `rabbitmq-client`
 (zero-dep, auto-reconnecting), pinned exact.
 
 ---
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-messaging-rabbitmq
+```
 
 ## Publish/encrypt fusion
 
@@ -37,8 +41,9 @@ A **runtime default-deny** second lock (`composeBody`) covers dynamic / fixture
 paths: the descriptor's domain mode is consulted unconditionally, and a missing
 composer for an encrypted domain, or an unknown domain, fails loud before any
 socket write. The body is composed once (a resend reuses the exact bytes — no
-re-encrypt under a fresh nonce). The KC-backed composer instances are wired by
-the host via `host composition packages`'s `createSealedCryptoViaKeyCustodian`.
+re-encrypt under a fresh nonce). The host wires KC-backed composer instances
+into `createPublisher({ crypto })` (and `CryptoBodyOpener` on the consume path)
+using `@dcsv-io/d2-encryption` sealer / opener / symmetric ports.
 
 On the consume side, `CryptoBodyOpener` (sealed / symmetric) plugs the real
 crypto into the body-decompose seam: a wrong-version frame, a plaintext body on
@@ -96,41 +101,42 @@ The handler returns a `D2Result`. A failed result dead-letters the message
 ## What the runtime does (per delivery)
 
 1. **Trace linkage** — parses the producer's `traceparent` and starts a
-   `Consumer`-kind span `receive {queue}` whose parent is the publish span, so
-   the trace assembles across runtimes. A missing / malformed header starts a
-   root span (never a reject). Span tags come from the spec-emitted
-   `MessagingActivityTags` closed set (same values the .NET consumer emits).
+ `Consumer`-kind span `receive {queue}` whose parent is the publish span, so
+ the trace assembles across runtimes. A missing / malformed header starts a
+ root span (never a reject). Span tags come from the spec-emitted
+ `MessagingActivityTags` closed set (same values the .NET consumer emits).
 2. **Per-message context** — decodes the `x-d2-context` header
-   (base64url-of-JSON, exactly what the .NET `PropagatedContextSerializer.Encode`
-   and the gRPC interceptor produce) via the shared
-   `@dcsv-io/d2-request-context-abstractions` serializer and applies the operational
-   subset (request id / path / fingerprints / WhoIs hash / locale-tier fields /
-   `callPath`) onto a fresh per-message context. **Identity is never taken from
-   the wire**, and **`RequestOrigin` is never wire-reconstructed** — those
-   slots do not exist on the applied shape (§9.41). A malformed header is
-   fail-safe (empty context, message still processed).
+ (base64url-of-JSON, exactly what the .NET `PropagatedContextSerializer.Encode`
+ and the gRPC interceptor produce) via the shared
+ `@dcsv-io/d2-request-context-abstractions` serializer and applies the operational
+ subset (request id / path / fingerprints / WhoIs hash / locale-tier fields /
+ `callPath`) onto a fresh per-message context. **Identity is never taken from
+ the wire**, and **`RequestOrigin` is never wire-reconstructed** — those
+ slots do not exist on the applied shape (authority-grade origin is established
+ only from local transport evidence, never from a forwarded header). A
+ malformed header is fail-safe (empty context, message still processed).
 3. **Idempotency** (opt-in) — a precise 5-point contract mirroring .NET: a
-   seen `message-id` is **ack-and-skipped, never dead-lettered**; a read-path
-   store outage fails **open** (process anyway); the mark is written only on
-   the success path **before** the ack; a mark-write failure NACKs to the DLQ
-   (never leave the dedup window unguarded); failure paths never mark.
+ seen `message-id` is **ack-and-skipped, never dead-lettered**; a read-path
+ store outage fails **open** (process anyway); the mark is written only on
+ the success path **before** the ack; a mark-write failure NACKs to the DLQ
+ (never leave the dedup window unguarded); failure paths never mark.
 4. **Body decompose** — an injectable opener seam. The default handles
-   plaintext (raw UTF-8 JSON) and **fail-louds** any body whose first byte is a
-   known encryption-frame version (1 or 2) → `DECRYPT_FAILURE` → DLQ, never a
-   silent mis-parse.
+ plaintext (raw UTF-8 JSON) and **fail-louds** any body whose first byte is a
+ known encryption-frame version (1 or 2) → `DECRYPT_FAILURE` → DLQ, never a
+ silent mis-parse.
 5. **Dead-lettering** — on failure the original body is republished to
-   `{queue}.dlx` with an `x-d2-failure-reason` header (`DlqFailureMetadata`:
-   `cause` / `errorCode` / `detail` / `attemptCount` / `traceId` / `nackedBy`,
-   PII-safe) then the original is acked; a republish failure falls back to
-   NACK-no-requeue. Producer headers (`traceparent`, `x-d2-context`, ...) ride
-   forward on the DLQ copy.
+ `{queue}.dlx` with an `x-d2-failure-reason` header (`DlqFailureMetadata`:
+ `cause` / `errorCode` / `detail` / `attemptCount` / `traceId` / `nackedBy`,
+ PII-safe) then the original is acked; a republish failure falls back to
+ NACK-no-requeue. Producer headers (`traceparent`, `x-d2-context`, ...) ride
+ forward on the DLQ copy.
 
 ---
 
 ## Topology
 
 `subscribe` declares the exact .NET topology (see
-[`DlqNaming`](../../../../dotnet/messaging/rabbitmq/Topology/DlqNaming.cs)):
+`DlqNaming`):
 
 - primary queue with `x-dead-letter-exchange = {queue}.dlx`
 - `{queue}.dlx` fanout DLX → `{queue}.dlq` durable DLQ
@@ -145,17 +151,17 @@ queue lock).
 ## Testing
 
 - **Unit** (`pnpm test`) — the full delivery matrix against injected seams;
-  100% `src/**` coverage.
+ 100% `src/**` coverage.
 - **Integration** (`pnpm test:integration`) — a Testcontainer RabbitMQ replaying
-  **real .NET-emitted golden messages** (emitted by
-  `DcsvIo.D2.Tests` `Integration/ContractFixtures/MqGoldenMessageFixtureEmitter`
-  into `contract-tests/fixtures/mq-messages-golden/`): wire-contract consume,
-  encrypted-frame → DLQ, handler-failure DLQ metadata, idempotency dedup, and
-  competing consumers.
+ **real .NET-emitted golden messages** (emitted by
+ `DcsvIo.D2.Tests` `Integration/ContractFixtures/MqGoldenMessageFixtureEmitter`
+ into `contract-tests/fixtures/mq-messages-golden/`): wire-contract consume,
+ encrypted-frame → DLQ, handler-failure DLQ metadata, idempotency dedup, and
+ competing consumers.
 - **Descriptor mirror** — `MqMessages` / `MqMessagesRegistry` (in
-  `@dcsv-io/d2-messaging-abstractions`, generated from the messaging specs; sources committed)
-  is asserted byte-equal to the .NET `MqMessagesRegistry` by
-  `contract-tests/tests/mq-messages.parity.test.ts`.
+ `@dcsv-io/d2-messaging-abstractions`, generated from the messaging specs; sources committed)
+ is asserted byte-equal to the .NET `MqMessagesRegistry` by
+ `contract-tests/tests/mq-messages.parity.test.ts`.
 
 ---
 
@@ -164,9 +170,9 @@ queue lock).
 - `rabbitmq-client` — the only vendor dep (transport).
 - `@dcsv-io/d2-headers-amqp` — AMQP header wire-value constants.
 - `@dcsv-io/d2-messaging-abstractions` — `DlqFailureMetadataFields` / `DlqFailureCauses`
-  + the `MqMessages` descriptor mirror.
+ + the `MqMessages` descriptor mirror.
 - `@dcsv-io/d2-request-context-abstractions` — `PropagatedContextSerializer` +
-  `IPropagatedContext`.
+ `IPropagatedContext`.
 - `@dcsv-io/d2-encryption-abstractions` — frame-version constants (fail-loud guard).
 - `@dcsv-io/d2-telemetry` — the `MessagingActivityTags` span-tag catalog.
 - `@dcsv-io/d2-result`, `@dcsv-io/d2-logging`, `@dcsv-io/d2-utilities` — cross-cutting.

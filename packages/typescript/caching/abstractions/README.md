@@ -4,7 +4,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-caching-abstractions
 
-> Parent: [`../README.md`](../README.md) · .NET mirror: `DcsvIo.D2.Caching.Abstractions`
+.NET mirror: `DcsvIo.D2.Caching.Abstractions`
 
 Node/BFF authors inject these cache **ports** without pulling Redis, logging, or DI
 wiring into domain-safe code. The package is the TypeScript twin of
@@ -16,6 +16,12 @@ wiring into domain-safe code. The package is the TypeScript twin of
 `Promise<D2Result<…>>` / `D2Result<…>` via `@dcsv-io/d2-result`. **No implementations**
 ship here — only contracts and pure helpers.
 
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-caching-abstractions
+```
+
 ## Public surface — building blocks
 
 Fine-grained interfaces. Implementations declare which they support; marker
@@ -24,12 +30,12 @@ cancellation is optional `signal?: AbortSignal`; durations are milliseconds
 (`expirationMs`, `defaultExpirationMs`, remaining TTL from `getTtl`).
 
 - **`ICacheBasic`** — `get` / `getMany` / `exists` / `getTtl` / `set` /
-  `setMany` / `remove` / `removeMany`
+ `setMany` / `remove` / `removeMany`
 - **`ICacheAtomic`** — `setNx` / `increment` / `acquireLock` / `releaseLock`
 - **`ICacheBroadcast`** — `setAndBroadcast` / `setManyAndBroadcast` /
-  `removeAndBroadcast` / `removeManyAndBroadcast`
+ `removeAndBroadcast` / `removeManyAndBroadcast`
 - **`ICacheSet`** — `setAdd` / `setCardinality` / `setRemove` / `setContains`
-  (cluster-only — Redis SADD/SCARD/SREM/SISMEMBER)
+ (cluster-only — Redis SADD/SCARD/SREM/SISMEMBER)
 
 All operations return `D2Result` / `D2Result<T>` (async ops wrap in
 `Promise`). Multi-entry maps use `ReadonlyMap<string, T>` (callers may
@@ -189,8 +195,9 @@ const subscription = backplane.subscribe(async (key, signal) => {
   await dropLocal(key, signal);
 });
 
-// Later:
-await subscription[Symbol.asyncDispose]();
+// Later — dispose the subscription (AsyncDisposable):
+const dispose = subscription[Symbol.asyncDispose];
+await dispose.call(subscription);
 ```
 
 ## Atomic on tiered — how it works
@@ -201,7 +208,7 @@ the atomicity guarantee comes from L2 (the cluster source of truth). Pattern:
 - **`increment`** → L2 atomic increment; on success invalidate L1 + broadcast.
 - **`setNx`** → L2 SetNx; on success write L1 + broadcast; on fail invalidate L1.
 - **`acquireLock` / `releaseLock`** → pure delegation to L2 (lock state is
-  coordination, not a cached value).
+ coordination, not a cached value).
 
 L1 is never authoritative for atomic state. L2 is. L1 just reflects (or
 invalidates). Concrete behavior lands in `@dcsv-io/d2-caching-tiered`.
@@ -255,9 +262,9 @@ No runtime deps beyond those (no DI, no logging, no provider libs). This
 abstraction stays domain-safe so any handler can declare a cache dependency
 without dragging in implementation runtime.
 
-## References
+## Sister packages
 
-- [`local-default/README.md`](../local-default/README.md) — local in-process impl
-- [`distributed-redis/README.md`](../distributed-redis/README.md) — Redis + backplane
-- [`tiered/README.md`](../tiered/README.md) — L1+L2 composition
-- .NET twin: `packages/dotnet/caching/abstractions/`
+- `@dcsv-io/d2-caching-local-default` — local in-process impl
+- `@dcsv-io/d2-caching-distributed-redis` — Redis + backplane
+- `@dcsv-io/d2-caching-tiered` — L1+L2 composition
+- .NET twin: `DcsvIo.D2.Caching.Abstractions`

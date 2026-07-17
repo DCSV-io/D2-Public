@@ -45,7 +45,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <PackageId>DcsvIo.D2.Headers.Http</PackageId>
     <Description>D2 wire-protocol header constants applicable to the HTTP transport, code-generated from the shared headers spec.</Description>
     <IsPackable>true</IsPackable>

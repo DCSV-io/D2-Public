@@ -72,9 +72,9 @@ The uniqueness check is scoped to each database:
 
 ## Extension when a second domain gains locks
 
-Today only `d2-keycustodian` appears in the catalog, so a hard single-target retarget
-to KC Infra is sufficient. When a second database gains locks, upgrade the generator to
-multi-target (or a per-destination MSBuild filter via `AnalyzerConfigOptions` /
+When only one database entry is in the catalog, a hard single-target retarget to that
+owning-module assembly is sufficient. When a second database gains locks, upgrade the
+generator to multi-target (or a per-destination MSBuild filter via `AnalyzerConfigOptions` /
 `build_property`) so foreign nests never ship on the wrong owning assembly. Full-catalog
 uniqueness already covers fleet collisions on every gen of the current single target.
 

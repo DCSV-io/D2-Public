@@ -97,7 +97,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <PackageId>DcsvIo.D2.Messaging.RabbitMq</PackageId>
     <Description>Default RabbitMQ implementation of the D2 messaging abstractions — publishing, subscribing, encryption frames, and dead-letter handling.</Description>
     <IsPackable>true</IsPackable>

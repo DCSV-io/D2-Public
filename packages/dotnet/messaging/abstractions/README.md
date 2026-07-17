@@ -4,17 +4,21 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Messaging.Abstractions
 
-> Parent: [`packages/dotnet/`](../../README.md)
-
 Transport-agnostic abstractions for the D² messaging stack. Domain code
 references this package to mark messages with `[MqPub(MqMessages.X)]`, mark
 handlers with `[MqSub(MqSubscriptions.X)]`, and depend on `IMessageBus` /
 `IMessageIdempotencyStore` — without dragging in `RabbitMQ.Client` or any
 specific transport.
 
-The default impl is [`DcsvIo.D2.Messaging.RabbitMq`](../rabbitmq/README.md).
+The default impl is `DcsvIo.D2.Messaging.RabbitMq`.
 Alternate transports (where they exist) land as sibling csprojs and
 use the same surface.
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Messaging.Abstractions
+```
 
 ## How publishing + subscribing work end-to-end
 
@@ -23,7 +27,7 @@ use the same surface.
    publishable message type and every subscription contract. Spec is the
    source of truth — exchange / encryption / queue topology / prefetch
    live there, not in code.
-2. **Codegen** — the analyzer-only csproj `messaging/source-gen/` references this
+2. **Codegen** — the analyzer-only package `DcsvIo.D2.Messaging.SourceGen` references this
    package as an analyzer. It emits two generated files into this assembly
    at build time, landing in the tracked `Generated/` directory (committed
    for inspection, IDE navigation, and PR diff review; re-emitted on every
@@ -43,7 +47,7 @@ use the same surface.
 
 The runtime / operational details (per-delivery pipeline, DLQ shape, telemetry,
 encryption posture, queue topology, channel lifecycle) live in
-[`messaging/rabbitmq/README.md`](../rabbitmq/README.md) — the
+`DcsvIo.D2.Messaging.RabbitMq` — the
 canonical operational home. This package's job is the transport-agnostic
 contract.
 
@@ -65,7 +69,7 @@ discover them as a surprise during deploy.
   the JWT at every sync hop; consumer-side handlers operate without one.
   **Headers stay plaintext at-rest — identity NEVER in headers.**
 
-  > **Duplicated from [`messaging/rabbitmq/README.md` § Encryption posture](../rabbitmq/README.md#encryption-posture) for at-a-glance contract-side visibility. The canonical runtime-enforcement reference lives there — update both in lockstep.**
+  > **Duplicated from `DcsvIo.D2.Messaging.RabbitMq` (Encryption posture) for at-a-glance contract-side visibility. The canonical runtime-enforcement reference lives there — update both in lockstep.**
 
 ## Public surface
 
@@ -75,7 +79,7 @@ discover them as a surprise during deploy.
 encrypts the body when the descriptor's encryption is non-`plaintext`,
 attaches the canonical AMQP headers, and waits for publisher confirm
 when configured. `WaitForReadyAsync` lets startup-time publishers (e.g.
-KeyCustodian rotation announcements) gate on first connection landing.
+key-rotation announcements from the host's lifecycle system) gate on first connection landing.
 
 **`MqPubAttribute`** — `[MqPub(MqMessages.X)]` on the message class.
 Single-field attribute carrying the codegen'd constant. Default-deny: a
@@ -101,15 +105,15 @@ the optional broker-level retry topology. Carried inside an
 `MqSubscriptionDescriptor` when the spec entry has a `tieredRetry` block.
 
 AMQP wire-protocol header constants live in
-[`DcsvIo.D2.Headers.Amqp`](../../headers/amqp/README.md) (codegen-emitted
+`DcsvIo.D2.Headers.Amqp` (codegen-emitted
 from `contracts/headers/headers.spec.json`). Cross-transport entries
 (e.g. `traceparent`, `tracestate`, `x-d2-context`) appear at identical
-wire values in [`DcsvIo.D2.Headers.Common`](../../headers/common/README.md).
+wire values in `DcsvIo.D2.Headers.Common`.
 Messages MUST NOT carry identity / raw PII in plaintext headers — only
 routing, observability, and the small operational propagation subset
 (`x-d2-context` is base64url-of-JSON of the hand-written `PropagatedContext`
 record in `DcsvIo.D2.Context.Abstractions`). See
-[`messaging/rabbitmq/README.md`](../rabbitmq/README.md) for the
+`DcsvIo.D2.Messaging.RabbitMq` for the
 full runtime + wire-format contract.
 
 **`QueuePattern`** — enum: `CompetingConsumer` / `FanoutExclusiveAutoDelete`
@@ -175,9 +179,9 @@ code should prefer the scanner.
 
 ## References
 
-- [`messaging/rabbitmq/`](../rabbitmq/README.md) — default RabbitMQ
+- `DcsvIo.D2.Messaging.RabbitMq` — default RabbitMQ
   impl + canonical runtime / wire-format / header / queue / encryption /
   delivery-semantics / DLQ / startup-ordering reference.
-- [`messaging/source-gen/`](../source-gen/README.md) — codegen that
+- `DcsvIo.D2.Messaging.SourceGen` — codegen that
   emits the registries from the spec files; full spec format + diagnostic
   catalog + spec evolution rules.

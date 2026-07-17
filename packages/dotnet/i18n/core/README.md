@@ -4,15 +4,19 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.I18n
 
-> Parent: [`packages/dotnet/`](../../README.md)
-
 Runtime translation lib — `Translator` (loads `contracts/messages/*.json` catalogs and renders `TKMessage` instances per locale), `SupportedLocales` (env-driven BCP 47 locale registry with canonical-casing + language-fallback), and the `AddD2I18n` DI extension that wires both as singletons.
 
-The pure-types slice (`TKMessage`, `TK` constants, `ITranslator` interface) lives in [`DcsvIo.D2.I18n.Abstractions`](../abstractions/README.md). Domain layers reference Abstractions; this runtime is for infrastructure / composition-root code that actually renders translated strings (Courier emails, SMS, push notifications).
+The pure-types slice (`TKMessage`, `TK` constants, `ITranslator` interface) lives in `DcsvIo.D2.I18n.Abstractions`. Domain layers reference Abstractions; this runtime is for infrastructure / composition-root code that actually renders translated strings (Courier emails, SMS, push notifications).
 
-> **Translation strategy reminder.** See [`../abstractions/README.md` § Wire format](../abstractions/README.md#wire-format) for the canonical split: client-side via SvelteKit / Paraglide on HTTP-response payloads, server-side via this `Translator` for outbound notifications where the rendered text must be inlined before delivery.
+> **Translation strategy reminder.** See `DcsvIo.D2.I18n.Abstractions` (Wire format section) for the canonical split: client-side via SvelteKit / Paraglide on HTTP-response payloads, server-side via this `Translator` for outbound notifications where the rendered text must be inlined before delivery.
 
 ---
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.I18n
+```
 
 ## File layout
 
@@ -106,7 +110,7 @@ The `Translator` loads any `*.json` file in its messages directory; each filenam
 
 The `$schema` key is automatically stripped at load time. Parameter substitution uses `{paramName}` placeholders, matched against `TKMessage.Parameters` at render time.
 
-The source-of-truth catalogs live in [`contracts/messages/`](../../../../contracts/messages/). The consuming csproj copies them into the runtime via:
+The source-of-truth catalogs live in `contracts/messages/`. The consuming csproj copies them into the runtime via:
 
 ```xml
 <ItemGroup>
@@ -131,7 +135,7 @@ No `Microsoft.AspNetCore.App` framework reference — this lib is HTTP-stack-agn
 
 ## Tests
 
-`packages/dotnet/tests/Unit/I18n/` —
+Unit tests (`DcsvIo.D2.Tests` I18n suite) —
 
 - `SupportedLocalesTests` — ToBcp47 normalization, configuration ingestion (defaults, mixed-case, empty entries, dedup behavior), language-default ordering, `IsValid` / `Resolve` adversarial coverage.
 - `TranslatorTests` — construction validation (null / missing / malformed dir), basic lookup, base-locale fallback, language-prefix resolution, parameter substitution (single, multiple, missing param, extra param, placeholder twice, brace-in-value non-recursion), `HasKey`, 100-caller concurrency stress.
@@ -144,6 +148,6 @@ Comprehensive coverage across every public surface — every translator path, ev
 
 ## Reference
 
-- [`../abstractions/README.md`](../abstractions/README.md) — `TKMessage`, `TK` SrcGen, the wire format
-- [`../../result/core/README.md`](../../result/core/README.md) — `D2Result.Messages` / `InputError.Errors` consume TKMessage
-- [`contracts/messages/`](../../../../contracts/messages/) — the source-of-truth catalogs
+- `DcsvIo.D2.I18n.Abstractions` — `TKMessage`, `TK` SrcGen, the wire format
+- `DcsvIo.D2.Result` — `D2Result.Messages` / `InputError.Errors` consume TKMessage
+- `contracts/messages/` — the source-of-truth catalogs

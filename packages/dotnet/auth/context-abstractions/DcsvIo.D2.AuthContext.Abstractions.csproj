@@ -65,7 +65,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <PackageId>DcsvIo.D2.AuthContext.Abstractions</PackageId>
     <Description>Read-only IAuthContext interface for reasoning about caller identity, organization, scopes, and impersonation context in D2.</Description>
     <IsPackable>true</IsPackable>

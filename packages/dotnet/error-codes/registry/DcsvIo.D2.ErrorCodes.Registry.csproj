@@ -74,7 +74,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <PackageId>DcsvIo.D2.ErrorCodes.Registry</PackageId>
     <Description>Merged cross-catalog error-code registry for D2 — a frozen code-to-metadata lookup aggregating every error-code spec.</Description>
     <IsPackable>true</IsPackable>

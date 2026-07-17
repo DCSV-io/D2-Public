@@ -4,12 +4,16 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-request-context-abstractions
 
-> Parent: [`packages/typescript/`](../README.md)
-
 `IRequestContext` interface (extends `IAuthContext`) + `IPropagatedContext`
 cross-hop subset + `PropagatedContextSerializer` round-trip helper.
 Emitted from `contracts/request-context/IRequestContext.spec.json` via
 the request-context spec (sources committed). Mirrors `DcsvIo.D2.Context.Abstractions` (.NET).
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-request-context-abstractions
+```
 
 ## Public API
 
@@ -72,20 +76,20 @@ Mirrors `DcsvIo.D2.Context.Abstractions`:
 
 - `IRequestContext` ↔ same property set, camelCased.
 - `PropagatedContextSerializer` ↔ 1:1 type-named class with
-  `Serialize`/`Deserialize`.
+ `Serialize`/`Deserialize`.
 - `IPropagatedContext` ↔ same propagated subset.
 
 ## Nullability convention
 
-> See [`../auth/context-abstractions/README.md` § Nullability convention](../auth/context-abstractions/README.md#nullability-convention) for the canonical rule. `IRequestContext` extends `IAuthContext` and inherits the same spec-driven `T | null` emission for spec-emitted property types (the spec's `?` suffix on a type entry — e.g. `"string?"` in `IRequestContext.spec.json` — triggers the `| null` emission).
+> Canonical nullability rule (same as `@dcsv-io/d2-auth-context-abstractions`): `IRequestContext` extends `IAuthContext` and inherits the same spec-driven `T | null` emission for spec-emitted property types (the spec's `?` suffix on a type entry — e.g. `"string?"` in `IRequestContext.spec.json` — triggers the `| null` emission).
 
 ## Edge cases
 
 - `tryDecode` enforces per-field `maxLength` caps from the spec — a
-  forged envelope with any cap exceeded is dropped wholesale (returns
-  `undefined`). Propagation is opportunistic, never required.
+ forged envelope with any cap exceeded is dropped wholesale (returns
+ `undefined`). Propagation is opportunistic, never required.
 - `tryDecode` type-checks numeric / boolean fields and rejects on
-  shape mismatch.
+ shape mismatch.
 - `null` values survive serialize → deserialize without becoming the
-  string `"null"`.
+ string `"null"`.
 - Generated files (`*.g.ts`) are committed to git.

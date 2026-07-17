@@ -15,6 +15,13 @@ Keep a Changelog, and this package adheres to Semantic Versioning.
 
 ### Fixed
 
+## 0.1.2 - 2026-07-17
+### Changed
+
+- Dependency update: DcsvIo.D2.Handler bumped.
+- Dependency update: DcsvIo.D2.Handler.Abstractions bumped.
+- Dependency update: DcsvIo.D2.Handler.Repo.Abstractions bumped.
+- Dependency update: DcsvIo.D2.Result bumped.
 ## 0.1.1 - 2026-07-17
 ### Changed
 

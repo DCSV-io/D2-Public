@@ -4,18 +4,19 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Resilience
 
-> Parent: [`packages/dotnet/`](../README.md)
-
 The sole, feature-complete resilience mechanism for the platform. Covers retry, circuit-breaker, singleflight, timeout, and concurrency rate-limiting as composable pipeline layers. Lock-free where possible (`Interlocked` operations, `ConcurrentDictionary`); test seams baked in (clock + delay overrides). Resilience is **caller-side, opt-in** (off by default — it costs latency) and **per-call overridable**.
 
 Depends only on `DcsvIo.D2.Result` (for the `D2Result`-aware retry overload) and `Microsoft.Extensions.DependencyInjection.Abstractions` (for keyed DI).
 
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Resilience
+```
+
 > **Design rationale: custom primitives over Polly.** Most of our outbound boundaries are NOT HTTP (RabbitMQ publishes, EF Core, Redis via StackExchange, internal handler chains, SeaweedFS via SDK). Polly's main "free win" — its HttpClientFactory integration via `AddStandardResilienceHandler()` — applies cleanly to gRPC (since `Grpc.Net.Client` rides on `HttpClient`) and external HTTP APIs, but the HTTP-level integration only sees HTTP 200 + trailing gRPC status codes; retry-on-`StatusCode.Unavailable` requires custom predicates anyway. With <500 LOC of pure-logic primitives + first-class `D2Result.IsTransientRetryable` integration, owning the primitives is cheaper than wrapping Polly.
 
----
-
-## File layout
-
+## Types (source map)
 | Path                                                                    | Contents                                                                                                                                                                                                                                                          |
 | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Retry/RetryHelper.cs`                                                  | Static `RetryAsync<T>` (generic) and `RetryD2ResultAsync<TData>` (D2Result-aware overload). Internal `IsTransientException` classifier and `CalculateDelay` math.                                                                                                 |
@@ -323,7 +324,7 @@ public sealed partial class FindWhoIs(
 
 ### Layer order IS the protection semantic
 
-The fluent chain order = layer order in the resulting pipeline (outer-first). Lib authors choose between **upstream-protecting** (`UseCircuitBreaker → UseRetries`: CB sees ONE execution per retry budget; opens after N failed sequences; backoff gives the upstream air to recover — fits fragile upstreams like Resend / Twilio) or **restart-recovery** (`UseSingleflight → UseRetries → UseCircuitBreaker`: each retry is a separate CB execution; `CircuitOpenException` is treated as transient by the default classifier; retries back off through cooldown — fits read-by-key gRPC across rolling deploys). Caller MUST size `MaxAttempts + backoff` to span the breaker's `CooldownDuration` for the restart-recovery composition; otherwise retries exhaust on perpetual CO. Both compositions plus six other recipes live in [SCENARIOS.md](SCENARIOS.md).
+The fluent chain order = layer order in the resulting pipeline (outer-first). Lib authors choose between **upstream-protecting** (`UseCircuitBreaker → UseRetries`: CB sees ONE execution per retry budget; opens after N failed sequences; backoff gives the upstream air to recover — fits fragile upstreams like Resend / Twilio) or **restart-recovery** (`UseSingleflight → UseRetries → UseCircuitBreaker`: each retry is a separate CB execution; `CircuitOpenException` is treated as transient by the default classifier; retries back off through cooldown — fits read-by-key gRPC across rolling deploys). Caller MUST size `MaxAttempts + backoff` to span the breaker's `CooldownDuration` for the restart-recovery composition; otherwise retries exhaust on perpetual CO. Both compositions plus six other recipes live in `SCENARIOS.md`.
 
 ### Skipping layers + cross-pipeline shared primitives
 

@@ -4,8 +4,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Contacts.EntityFrameworkCore
 
-> Parent: [`contacts/`](../README.md) · [`packages/dotnet/`](../../README.md)
->
 > **Audience**: backend .NET service engineers mapping `DcsvIo.D2.Contacts` value objects into EF Core entity models via infra `IEntityTypeConfiguration<T>`.
 
 Per-VO complex-type and value-converter mapping helpers for the DcsvIo.D2.Contacts value objects.
@@ -22,6 +20,12 @@ Each helper, in one call:
 Ships no `DbContext`, no migrations, and no DI engine. The host owns all of those.
 
 ---
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Contacts.EntityFrameworkCore
+```
 
 ## Domain purity
 
@@ -135,7 +139,7 @@ entity, so a `{UserId}` template resolves against the root entity's scalar sibli
 
 For the EF Core 10 limitation on indexing `ComplexProperty` member columns and the
 `CreateD2Index` workaround, see
-[`DcsvIo.D2.EntityFrameworkCore`](../../entity-framework-core/README.md).
+`DcsvIo.D2.EntityFrameworkCore`.
 
 ---
 

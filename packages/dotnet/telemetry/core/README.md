@@ -4,11 +4,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Telemetry
 
-> Parent: [`packages/dotnet/`](../../README.md)
+OpenTelemetry SDK setup (traces / metrics / logs) + OTLP exporters (per-signal opt-in via canonical env vars) + IP-restricted Prometheus scraping endpoint + aggregation of every shared lib's `ActivitySource` and `Meter` into a single `AddD2Telemetry()` call. Foundation lib that composition-root hosts call to wire the OTel SDK without each service duplicating ~120 lines of `OpenTelemetryBuilder` / `ConfigureResource` / per-instrumentation registration boilerplate.
 
-OpenTelemetry SDK setup (traces / metrics / logs) + OTLP exporters (per-signal opt-in via canonical env vars) + IP-restricted Prometheus scraping endpoint + aggregation of every shared lib's `ActivitySource` and `Meter` into a single `AddD2Telemetry()` call. Foundation lib that the composition-root aggregator and per-service `Program.cs` files call to wire the OTel SDK without each service duplicating ~120 lines of `OpenTelemetryBuilder` / `ConfigureResource` / per-instrumentation registration boilerplate.
-
-The lib is intentionally independent of [`DcsvIo.D2.Logging`](../../logging/README.md). The two libs cooperate at runtime via the MEL bridge — Serilog's `writeToProviders: true` (set by `AddD2Logging`) routes through the OTLP log exporter that `AddD2Telemetry` registers as an `ILoggerProvider` — without either lib referencing the other at compile time. Hosts may wire one without the other.
+The lib is intentionally independent of `DcsvIo.D2.Logging`. The two libs cooperate at runtime via the MEL bridge — Serilog's `writeToProviders: true` (set by `AddD2Logging`) routes through the OTLP log exporter that `AddD2Telemetry` registers as an `ILoggerProvider` — without either lib referencing the other at compile time. Hosts may wire one without the other.
 
 The lib does NOT own:
 
@@ -16,6 +14,12 @@ The lib does NOT own:
 - The `[RedactData]` enforcement pipeline — `DcsvIo.D2.Logging` owns it.
 - `[LoggerMessage]` source-generated delegates — bootstrapping the OTel logs MEL provider during MEL bootstrap is circular.
 - Self-monitoring counters for export failures — the OTel SDK's own internal diagnostics suffice for the foundation tier; consumers can wire `EventListener` against the SDK if lib-internal export-failure visibility is needed.
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Telemetry
+```
 
 ## Public API surface
 
@@ -135,34 +139,21 @@ The two cache libs publish counters only — no spans — so they appear in the 
 | `OpenTelemetry.Instrumentation.Runtime`        | .NET runtime metrics.                                                                                                                                                           |
 | `JetBrains.Annotations`                        | `[MustDisposeResource]` annotations on disposable factory paths (none currently; consumed transitively).                                                                        |
 
-| Project reference                     | Why                                                                                                                                                                                                                                                                                                                               |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DcsvIo.D2.Utilities`                 | `Falsey()` / `Truthy()` / `ToNullIfEmpty()` extensions for options validation + env-var resolution.                                                                                                                                                                                                                               |
-| `DcsvIo.D2.AspNetCore`                | Canonical `InfrastructurePathMatcher` (consumed by the AspNetCore-instrumentation `Filter` callback) + `D2AspNetCoreConstants` (re-exported HEALTH / ALIVE / METRICS / WELL_KNOWN endpoint path constants + `DEFAULT_INFRASTRUCTURE_PATHS`). Single source of truth shared with `DcsvIo.D2.Logging`'s request-logging middleware. |
-| `DcsvIo.D2.Handler`                   | `HandlerTelemetry.SourceName` const referenced by the aggregation table.                                                                                                                                                                                                                                                          |
-| `DcsvIo.D2.Messaging.RabbitMq`        | `MessagingTelemetry.SOURCE_NAME` const.                                                                                                                                                                                                                                                                                           |
-| `DcsvIo.D2.Caching.Distributed.Redis` | `RedisCacheTelemetry.METER_NAME` const.                                                                                                                                                                                                                                                                                           |
-| `DcsvIo.D2.Caching.Local.Default`     | `LocalCacheTelemetry.METER_NAME` const.                                                                                                                                                                                                                                                                                           |
+| PackageId                                 | Why                                                                                                                                                                                                                                                                                                                               |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DcsvIo.D2.Utilities`                     | `Falsey()` / `Truthy()` / `ToNullIfEmpty()` extensions for options validation + env-var resolution.                                                                                                                                                                                                                               |
+| `DcsvIo.D2.AspNetCore`                    | Canonical `InfrastructurePathMatcher` (consumed by the AspNetCore-instrumentation `Filter` callback) + `D2AspNetCoreConstants` (re-exported HEALTH / ALIVE / METRICS / WELL_KNOWN endpoint path constants + `DEFAULT_INFRASTRUCTURE_PATHS`). Single source of truth shared with `DcsvIo.D2.Logging`'s request-logging middleware. |
+| `DcsvIo.D2.Handler`                       | `HandlerTelemetry.SourceName` const referenced by the aggregation table.                                                                                                                                                                                                                                                          |
+| `DcsvIo.D2.Messaging.RabbitMq`            | `MessagingTelemetry.SOURCE_NAME` const.                                                                                                                                                                                                                                                                                           |
+| `DcsvIo.D2.Caching.Distributed.Redis`     | `RedisCacheTelemetry.METER_NAME` const.                                                                                                                                                                                                                                                                                           |
+| `DcsvIo.D2.Caching.Local.Default`         | `LocalCacheTelemetry.METER_NAME` const.                                                                                                                                                                                                                                                                                           |
 
-**Not ProjectReferenced (wire literals only):** optional host auth runtime + outbound modules. Public Telemetry registers OTel wire names `"DcsvIo.D2.Auth"` / `"DcsvIo.D2.Auth.Outbound"` as string literals — see `AggregatedTelemetrySources.AUTH_WIRE_NAME` / `AUTH_OUTBOUND_WIRE_NAME`.
-
-## File layout
-
-| File                                      | Role                                                                                                                    |
-| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `DcsvIo.D2.Telemetry.csproj`              | csproj — `Microsoft.NET.Sdk.Web` + `OutputType=Library`. Project references: Utilities + AspNetCore + Handler + Messaging.RabbitMq + Redis + Local (public packages only). Auth / Auth.Outbound = wire literals, not ProjectRefs. |
-| `D2TelemetryOptions.cs`                   | Sealed record — Options-pattern config.                                                                                 |
-| `D2TelemetryConstants.cs`                 | Public constants (config keys, env-var names, infrastructure endpoint paths).                                           |
-| `TelemetryServiceCollectionExtensions.cs` | Public DI extension: `AddD2Telemetry`.                                                                                  |
-| `WebApplicationTelemetryExtensions.cs`    | Public AspNetCore extension: `MapD2PrometheusEndpoint`.                                                                 |
-| `Internal/InternalIpFilter.cs`            | Internal RFC 1918 + loopback predicate for the Prometheus endpoint filter.                                              |
-| `Internal/OtelSdkDisabledGate.cs`         | Internal env-var gate predicate consumed by both `AddD2Telemetry` and `MapD2PrometheusEndpoint`.                        |
-| `Internal/AggregatedTelemetrySources.cs`  | Internal source-of-truth list of `ActivitySource` / `Meter` names registered by `AddD2Telemetry`.                       |
+**Not referenced (wire literals only):** optional host auth runtime + outbound modules. Public Telemetry registers OTel wire names `"DcsvIo.D2.Auth"` / `"DcsvIo.D2.Auth.Outbound"` as string literals — see `AggregatedTelemetrySources.AUTH_WIRE_NAME` / `AUTH_OUTBOUND_WIRE_NAME`.
 
 ## Edge cases / gotchas
 
 - **OTel SDK builds singleton `MeterProvider` / `TracerProvider` per process.** Tests that build multiple hosts in sequence see SDK static state contamination across host lifetimes. The lib's integration tests pin the contract via `[Collection("OtelStaticState")]` to serialize against any other test that touches the SDK.
-- **Infrastructure-path matching lives in `DcsvIo.D2.AspNetCore`.** The AspNetCore-instrumentation `Filter` callback consumes the public `DcsvIo.D2.AspNetCore.InfrastructurePathMatcher`; `DcsvIo.D2.Logging`'s request-logging middleware consumes the same one. The path set (`/health`, `/alive`, `/metrics`, `/.well-known`) stays aligned across the two consumers without per-lib literal duplication.
+- **Infrastructure-path matching lives in `DcsvIo.D2.AspNetCore`.** The AspNetCore-instrumentation `Filter` callback consumes the public `InfrastructurePathMatcher`; `DcsvIo.D2.Logging`'s request-logging middleware consumes the same one. The path set (`/health`, `/alive`, `/metrics`, `/.well-known`) stays aligned across the two consumers without per-lib literal duplication.
 - **Cache libs (`Redis`, `Local`) expose only their `Meter` — no spans.** The libs publish aggregate counters (hits, misses, sets, evictions) without per-call spans because cache work is sub-microsecond and per-call instrumentation would dominate it. The aggregation table reflects this — meter list includes both cache libs; activity-source list does not.
 - **`MessagingTelemetry`, `RedisCacheTelemetry`, and `LocalCacheTelemetry` are `public static` so their `SOURCE_NAME` consts are reachable cross-assembly.** The consts themselves are `public`; the surrounding class visibility matches so cross-assembly references compile.
 - **Per-signal OTLP exporter is registered ONLY when its endpoint env var is truthy.** When all three are absent, the SDK still builds — spans emit to in-process listeners; metrics flow to the Prometheus endpoint when enabled; logs flow through other MEL providers. This is the fail-soft behavior: production sets all three; dev / test omits any combination cleanly.

@@ -4,9 +4,13 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-encryption-abstractions
 
-> Parent: [`packages/typescript/`](../README.md)
-
 D2 encryption-domain identifiers + encryption-frame binary layout constants (symmetric version-1 AND sealed version-2). Mirrors .NET `DcsvIo.D2.Encryption.EncryptionDomains`, the `DcsvIo.D2.Encryption.EncryptionFrameLayout` byte-offset layout, and the `DcsvIo.D2.Encryption.SealedFrameLayout` sealed layout — all spec-driven.
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-encryption-abstractions
+```
 
 ## Public API
 

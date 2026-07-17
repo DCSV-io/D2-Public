@@ -57,7 +57,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <PackageId>DcsvIo.D2.Time</PackageId>
     <Description>Deterministic timestamp handling for D2 — a dependency-injected clock seam, temporal storage types, and NodaTime to PostgreSQL EF Core wiring.</Description>
     <IsPackable>true</IsPackable>

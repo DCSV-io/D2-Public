@@ -4,11 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-headers-amqp
 
-> Parent: [`packages/typescript/`](../../README.md)
-
-> **Duplicated from [`contracts/headers/headers.spec.json`](../../../../contracts/headers/headers.spec.json) — update both in lockstep.** This catalog mirrors its .NET sibling [`DcsvIo.D2.Headers.Amqp`](../../../dotnet/headers/amqp/README.md) at byte-equal wire values. Both sides emit from the same spec; physical dedup across TS ↔ .NET is not feasible. Parity is asserted by `contract-tests/headers.parity.test.ts` (TS) and `HeaderCatalogConsistencyTests` (.NET).
+> **Duplicated from `contracts/headers/headers.spec.json` — update both in lockstep.** This catalog mirrors its .NET sibling `DcsvIo.D2.Headers.Amqp` at byte-equal wire values. Both sides emit from the same spec; physical dedup across TS ↔ .NET is not feasible. Parity is asserted by `contract-tests/headers.parity.test.ts` (TS) and `HeaderCatalogConsistencyTests` (.NET).
 
 D2 wire-protocol headers applicable to the AMQP transport. Includes the AMQP-specific entries (`content-type`, `x-proto-type`, `message-id`, `timestamp`, `x-d2-encryption-kid`, `x-d2-failure-reason`) AND the cross-transport entries that ride alongside AMQP messages (`x-d2-context`, `traceparent`, `tracestate`) at identical wire values per `headers.spec.json`. Mirrors .NET `DcsvIo.D2.Headers.Amqp.AmqpHeaders`.
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-headers-amqp
+```
 
 ## Public API
 
@@ -44,7 +48,7 @@ None at runtime — pure constants. DevDeps: `vitest` + `@vitest/coverage-v8` + 
 
 ## Reference
 
-- [`contracts/headers/headers.spec.json`](../../../../contracts/headers/headers.spec.json) — source spec
-- [`@dcsv-io/d2-headers-common`](../common/README.md) — cross-transport subset
-- [`@dcsv-io/d2-headers-http`](../http/README.md) — HTTP-applicable subset
-- [`@dcsv-io/d2-headers-grpc`](../grpc/README.md) — gRPC-applicable subset
+- `contracts/headers/headers.spec.json` — source spec
+- `@dcsv-io/d2-headers-common` — cross-transport subset
+- `@dcsv-io/d2-headers-http` — HTTP-applicable subset
+- `@dcsv-io/d2-headers-grpc` — gRPC-applicable subset

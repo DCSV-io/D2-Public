@@ -56,7 +56,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <PackageId>DcsvIo.D2.Location</PackageId>
     <Description>Hash-deduplicatable geographic value objects for D2 — coordinates, street and admin addresses, deterministic identity hashes, and the postal-code validator contract.</Description>
     <IsPackable>true</IsPackable>

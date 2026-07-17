@@ -4,20 +4,26 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Handler.Repo
 
-> Parent: [`packages/dotnet/`](../../README.md)
-
 EF-flavored `BaseRepoHandler<TSelf, TInput, TOutput>` — sits on top of `BaseHandler` from `DcsvIo.D2.Handler`. Overrides `HandleAsync` to convert any database exception captured during `ExecuteAsync` into a typed `D2Result` failure (concurrency conflict, unique violation, deadlock, connection failure, etc.) so callers can branch on what actually went wrong instead of getting a generic 500.
 
 Provider-agnostic by design: catches the BCL-typed `DbUpdateConcurrencyException` directly and routes everything else through an injected `IDbExceptionClassifier`. Provider-specific knowledge lives in sibling packages (e.g. `DcsvIo.D2.Handler.Repo.Postgres`).
 
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Handler.Repo
+```
+
 ---
 
-## File layout
+## Public API
 
-| Path                            | Contents                                                                                                                                                                                                                                                                                           |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DcsvIo.D2.Handler.Repo.csproj` | csproj — refs `handler/core` + `handler/abstractions` + `handler/repo-abstractions` + `result` + `Microsoft.EntityFrameworkCore`. Zero provider deps.                                                                                                                                           |
-| `BaseRepoHandler.cs`            | Abstract `BaseRepoHandler<TSelf, TInput, TOutput> : BaseHandler<TSelf, TInput, TOutput>`. Constructor takes an injected `IDbExceptionClassifier`. Override `HandleAsync` calls `RunCorePipelineAsync` then dispatches the captured exception through the classifier to a typed `D2Result` factory. |
+| Type | Role |
+| ---- | ---- |
+| `BaseRepoHandler<TSelf, TInput, TOutput>` | Abstract subclass of `BaseHandler`. Constructor takes an injected `IDbExceptionClassifier`. Override `HandleAsync` calls `RunCorePipelineAsync` then dispatches the captured exception through the classifier to a typed `D2Result` factory. |
+| `MapDbException` (virtual) | Per-handler refinement hook — attach domain-specific `TKMessage` + `InputError`; return `null` for default factory. |
+
+Zero provider deps in this package (no Npgsql). Refs `DcsvIo.D2.Handler`, `DcsvIo.D2.Handler.Abstractions`, `DcsvIo.D2.Handler.Repo.Abstractions`, `DcsvIo.D2.Result`, and `Microsoft.EntityFrameworkCore`.
 
 ---
 
@@ -116,24 +122,18 @@ Without a registered classifier, resolving any `BaseRepoHandler` subclass fails 
 
 ## Dependencies
 
-Project references:
-
 - `DcsvIo.D2.Handler` — base + `HandlerContext<T>`
 - `DcsvIo.D2.Handler.Abstractions` — `IHandler`, `HandlerOptions`
-- `DcsvIo.D2.Handler.Repo.Abstractions` — `IDbExceptionClassifier`, `DbFailureKind`, `D2Result.X` extension factories
+- `DcsvIo.D2.Handler.Repo.Abstractions` — `IDbExceptionClassifier`, `DbFailureKind`, `D2Result` extension factories
 - `DcsvIo.D2.Result` — base `D2Result`
-
-Package references:
-
 - `Microsoft.EntityFrameworkCore` — `DbUpdateConcurrencyException`
 
-No `Npgsql`, no provider-specific deps.
+No Npgsql, no provider-specific deps.
 
 ---
 
-## Reference
+## Related packages
 
-- [`DcsvIo.D2.Handler.Repo.Abstractions`](../repo-abstractions/README.md) — vocabulary + extension factories + booleans
-- [`DcsvIo.D2.Handler.Repo.Postgres`](../repo-postgres/README.md) — PG classifier impl
-- [`DcsvIo.D2.Handler`](../core/README.md) — base
-- [PostgreSQL error code reference](https://www.postgresql.org/docs/current/errcodes-appendix.html)
+- `DcsvIo.D2.Handler.Repo.Abstractions` — vocabulary + extension factories + booleans
+- `DcsvIo.D2.Handler.Repo.Postgres` — PostgreSQL classifier impl
+- `DcsvIo.D2.Handler` — base handler

@@ -4,19 +4,24 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-encryption
 
-Runtime crypto twin of .NET `DcsvIo.D2.Encryption`, for the KC-backed crypto
-runtimes that compose it — `host composition packages` (the sealer / opener /
-symmetric-crypto sources) and `@dcsv-io/d2-messaging-rabbitmq` (the auto-encrypting
-publisher composer + `CryptoBodyOpener`), plus any Node service wiring KC-backed
-payload crypto. Provides both payload encryption modes, byte-identical to the
+Runtime crypto twin of .NET `DcsvIo.D2.Encryption`. Compose it from a host that
+supplies key material into the sealer / opener / symmetric ports, from
+`@dcsv-io/d2-messaging-rabbitmq` (auto-encrypting publisher composer +
+`CryptoBodyOpener`), or from any Node service wiring KC-backed payload crypto. Provides both payload encryption modes, byte-identical to the
 .NET encoder (KAT-pinned, both directions), built on WebCrypto (`node:crypto`
 `webcrypto.subtle`). Consumes the wire-layout constants from
-[`@dcsv-io/d2-encryption-abstractions`](../encryption-abstractions/README.md); this
+`@dcsv-io/d2-encryption-abstractions`; this
 package adds the behavioral codecs, keyrings, and AEAD primitives.
 
 .NET mirror: `DcsvIo.D2.Encryption` (the runtime crypto core). The
 abstractions/runtime split mirrors the .NET layout — abstractions carry the
 spec-emitted layout constants; this package carries the hand-written runtime.
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-encryption
+```
 
 ## Two modes
 
@@ -34,16 +39,16 @@ so one opener per service covers every sealed domain routed to it.
 ## Public surface
 
 - **Ports**: `IPayloadCrypto` (`encrypt`/`decrypt`), `IPayloadSealer` (`seal`),
-  `IPayloadOpener` (`open`) — all async (WebCrypto is async; the .NET twins are
-  synchronous).
+ `IPayloadOpener` (`open`) — all async (WebCrypto is async; the .NET twins are
+ synchronous).
 - **Symmetric**: `PayloadCryptoKeyring`, `PayloadCrypto`.
 - **Sealed**: `RecipientPublicKeyring` (producer), `RecipientPrivateKeyring`
-  (consumer), `PayloadSealer`, `PayloadOpener`. The recipient keyrings are built
-  through async `create(...)` factories — WebCrypto's `importKey` is the
-  construction-time P-256 validation (structural import + on-curve check).
+ (consumer), `PayloadSealer`, `PayloadOpener`. The recipient keyrings are built
+ through async `create(...)` factories — WebCrypto's `importKey` is the
+ construction-time P-256 validation (structural import + on-curve check).
 - **Typed failure taxonomy** (twins of the .NET exception hierarchy):
-  `EncryptionError` (base), `FrameMalformedError`, `FrameVersionMismatchError`,
-  `KidNotInKeyringError`, `AuthenticationTagMismatchError`.
+ `EncryptionError` (base), `FrameMalformedError`, `FrameVersionMismatchError`,
+ `KidNotInKeyringError`, `AuthenticationTagMismatchError`.
 
 ## Usage
 
@@ -68,28 +73,28 @@ recipient keyrings are built through their async `create(...)` factories.
 ## Configuration & telemetry — N/A
 
 - **Configuration**: none — key material and service ids are constructor /
-  `create(...)` arguments; there are no Options records or environment knobs.
+ `create(...)` arguments; there are no Options records or environment knobs.
 - **Telemetry**: none — these are compile-neutral crypto primitives that emit no
-  counters / spans / metrics. Fetch / rotation / publish telemetry belongs to the
-  KC-backed runtimes that compose them (`host composition packages`,
-  `@dcsv-io/d2-messaging-rabbitmq`).
+ counters / spans / metrics. Fetch / rotation / publish telemetry belongs to the
+ host or messaging layer that composes them (for example
+ `@dcsv-io/d2-messaging-rabbitmq`).
 
 ## Invariants
 
 - **Key material never logged**: every keyring's `toString` is redacted; error
-  messages carry no key/frame/plaintext bytes.
+ messages carry no key/frame/plaintext bytes.
 - **Zeroization** (`PayloadCryptoKeyring`, `RecipientPrivateKeyring`): `dispose`
-  fills the internal buffers with zeroes. Best-effort against JS GC reality — it
-  clears the specific backing buffers this package holds, not any copy the
-  runtime may have made during import.
+ fills the internal buffers with zeroes. Best-effort against JS GC reality — it
+ clears the specific backing buffers this package holds, not any copy the
+ runtime may have made during import.
 - **Fail-loud**: an undecodable frame, an unknown kid, a wrong-recipient frame,
-  or tampering each surface as a distinct typed error — never a silent
-  mis-decode.
+ or tampering each surface as a distinct typed error — never a silent
+ mis-decode.
 
 ## Cross-runtime proof
 
 Byte-compatibility with .NET is gated by file-based known-answer vectors in both
-directions (see [`host composition packages`](../contract-tests/README.md) and the
-`scripts/emit-*.fixture.ts` frame emitters), plus the .NET `TsCryptoInterop`
-suite that opens TS-produced frames. The frozen sealed derivation is pinned by
-the .NET `SealedKeyDerivationFreezeTests` and reproduced here.
+directions (this package's `scripts/emit-*.fixture.ts` frame emitters and the
+.NET `TsCryptoInterop` suite that opens TS-produced frames). The frozen sealed
+derivation is pinned by the .NET `SealedKeyDerivationFreezeTests` and
+reproduced here.

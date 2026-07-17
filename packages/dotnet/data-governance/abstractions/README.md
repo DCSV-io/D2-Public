@@ -4,13 +4,17 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.DataGovernance.Abstractions
 
-> Parent: [`packages/dotnet/`](../../README.md)
->
 > **Audience**: backend .NET service engineers decorating entity models with GDPR anonymization markers and referencing the engine seam — without pulling in EF Core or DI.
 
 PURE GDPR-anonymization markers, the `[Anonymizable]` attribute, and the engine
 seam. Zero EF Core, zero DI, zero Utilities. The EF Core engine implementation
-lives in the sibling `data-governance/entity-framework-core/` library.
+lives in the sibling `DcsvIo.D2.DataGovernance.EntityFrameworkCore` library.
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.DataGovernance.Abstractions
+```
 
 ## Purpose
 
@@ -138,7 +142,7 @@ Task<D2Result<AnonymizationOutcome>> AnonymizeOrgAsync(Guid orgId, CancellationT
 ## Tests
 
 Unit tests covering the full public API surface live in
-`packages/dotnet/tests/Unit/DataGovernance/Abstractions/`.
+the `DcsvIo.D2.Tests` DataGovernance abstractions unit suite.
 
 Coverage includes every `[Anonymizable]` constructor form and adversarial input
 (null/empty constant, whitespace template, undefined enum value, contradictory
@@ -157,6 +161,6 @@ No configuration — zero-config; the contracts and markers carry no tunable beh
 
 ## References
 
-- Sibling implementation library: [`data-governance/entity-framework-core/`](../entity-framework-core/README.md)
-- Analogous pattern: [`caching/abstractions/`](../caching/abstractions/README.md) — same marker-interface + seam structure
-- [ADR-0015](../../../../../public/docs/adrs/0015-anonymization-data-governance.md) — anonymization / data-governance architecture
+- Sibling implementation library: `DcsvIo.D2.DataGovernance.EntityFrameworkCore`
+- Analogous pattern: `DcsvIo.D2.Caching.Abstractions` — same marker-interface + seam structure
+- ADR-0015 — anonymization / data-governance architecture

@@ -4,12 +4,16 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-auth-abstractions
 
-> Parent: [`packages/typescript/`](../../README.md)
-
 Auth-related constants for TS consumers — `Scopes` tree, `AuthErrorCodes`,
 `AuthFailures` factories, `JwtClaimTypes`. Mirrors
 `DcsvIo.D2.Auth.Abstractions` + `DcsvIo.D2.Auth.Errors` consolidated
 (matches the .NET assembly placement).
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-auth-abstractions
+```
 
 ## Public API
 
@@ -34,11 +38,11 @@ transparently. Generated files (`*.g.ts`) are committed to git.
 
 - `JwtClaimTypes` — string-constant catalog (every claim's wire name).
 - `JwtPayload` — TS interface typed on every `standard` + `d2-custom`
-  claim with stable per-field types; `inside-act` claims live nested
-  inside `act` and are not surfaced as top-level fields. A trailing
-  `raw: Readonly<Record<string, unknown>>` escape hatch carries the
-  raw decoded claims for downstream consumers needing access to
-  non-spec'd claims.
+ claim with stable per-field types; `inside-act` claims live nested
+ inside `act` and are not surfaced as top-level fields. A trailing
+ `raw: Readonly<Record<string, unknown>>` escape hatch carries the
+ raw decoded claims for downstream consumers needing access to
+ non-spec'd claims.
 
 The .NET side consumes the same spec for `JwtClaimTypes` constants;
 .NET reads claim values via `ClaimsPrincipal` so a typed payload is not
@@ -47,7 +51,7 @@ structurally impossible (single source).
 
 ## Header constants
 
-> Wire-protocol header catalogs live in the per-transport packages — see [`../../README.md` § Packages](../../README.md#packages) for the full per-transport catalog enumeration.
+> Wire-protocol header catalogs live in the per-transport packages (`@dcsv-io/d2-headers-http`, `@dcsv-io/d2-headers-grpc`, `@dcsv-io/d2-headers-amqp`, `@dcsv-io/d2-headers-common`).
 
 ## Dependencies
 
@@ -86,19 +90,19 @@ if (result.errorCode === AuthErrorCodes.AUTH_JWT_EXPIRED) {
 Mirrors `DcsvIo.D2.Auth.Abstractions` + `DcsvIo.D2.Auth.Errors`:
 
 - `Scopes` tree — same dot-segmented spec names emitted as nested
-  constants (e.g. `Scopes.auth.user.impersonate.consent`).
+ constants (e.g. `Scopes.auth.user.impersonate.consent`).
 - `AuthErrorCodes` — same string values (every constant is its own name).
 - `AuthFailures` — every factory returns `D2Result.fail(...)` with
-  matching `errorCode` + `statusCode` + default `messageKey`.
+ matching `errorCode` + `statusCode` + default `messageKey`.
 - `JwtClaimTypes` — codegen-emitted from `contracts/jwt-claims/jwt-claims.spec.json`;
-  same constant names + values on both sides.
+ same constant names + values on both sides.
 - `JwtPayload` — TS-only typed view emitted from the same spec; .NET reads
-  claims via `ClaimsPrincipal` rather than a typed shape.
+ claims via `ClaimsPrincipal` rather than a typed shape.
 
 ## Edge cases
 
 - `getAuthErrorHttpStatus` returns 500 for unknown codes — defensive
-  default, every shipped `AUTH_*` code IS in the table.
+ default, every shipped `AUTH_*` code IS in the table.
 - `Scopes` may include `_self` keys at branch nodes when an entry is
-  both a leaf scope AND has children (rare; edge case for forward-compat).
+ both a leaf scope AND has children (rare; edge case for forward-compat).
 - Generated files (`*.g.ts`) are committed to git.

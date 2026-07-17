@@ -11,7 +11,7 @@ caches, payload encryption, RabbitMQ messaging, geo & reference data, contacts
 & OpenTelemetry — as installable NuGet and npm packages.
 
 This repo is **portable app-building libs only**. Full inbound JWT runtime,
-ServiceDefaults-style host mega-aggregators, BFF gRPC clients, TypeSpec factory
+host mega-aggregators, product boundary gRPC clients, IDL/codegen factory
 tools, and other product-specific composition kits are **not published here**
 (they are not part of this open library surface).
 
@@ -57,7 +57,7 @@ you need and wire it into *your* services.
 | **Validation that matches on both stacks** | [`DcsvIo.D2.Validation`](packages/dotnet/validation/default/README.md) / [`@dcsv-io/d2-validation`](packages/typescript/validation/default/README.md) — email, phone (E.164), postal codes |
 | **i18n you can type-check** | [`DcsvIo.D2.I18n.Keys`](packages/dotnet/i18n/keys/README.md) / [`@dcsv-io/d2-i18n-keys`](packages/typescript/i18n-keys/README.md) + runtimes |
 | **Handlers with observability baked in** | [`DcsvIo.D2.Handler`](packages/dotnet/handler/core/README.md) — scopes, OTel, log scope, universal catch |
-| **ASP.NET Core host helpers** | [`DcsvIo.D2.AspNetCore`](packages/dotnet/aspnetcore/README.md) — CORS, health, ProblemDetails, mTLS helpers (mega ServiceDefaults aggregator is product composition) |
+| **ASP.NET Core host helpers** | [`DcsvIo.D2.AspNetCore`](packages/dotnet/aspnetcore/README.md) — CORS, health, ProblemDetails, mTLS helpers (full host mega-aggregators stay product composition, not this package) |
 
 Same specs under [`contracts/`](contracts/README.md) drive much of the .NET and
 TypeScript surface, so catalogs and wire shapes don’t drift.

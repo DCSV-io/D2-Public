@@ -4,8 +4,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.EntityFrameworkCore
 
-> Parent: [`packages/dotnet/`](../README.md)
->
 > **Audience**: backend .NET service engineers writing EF Core migrations that need to declare indexes on `ComplexProperty` member columns.
 
 Generic, VO-agnostic EF Core migration helpers. Currently ships one public helper:
@@ -17,6 +15,12 @@ Ships no `DbContext`, no migrations, no DI engine, and no VO-specific mapping. T
 owns all of those.
 
 ---
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.EntityFrameworkCore
+```
 
 ## `CreateD2Index<TEntity>` — complex-member index helper
 
@@ -71,7 +75,7 @@ All three attempted paths fail:
 Spike (EF Core 10.0.7, Npgsql 10.0.1, real Postgres round-trip): all three fluent/metadata
 paths were exercised. The model-differ produced zero `CreateIndexOperation`s for every
 attempted complex-member index path. The EF team has acknowledged this as a gap in issue
-[#31246](https://github.com/dotnet/efcore/issues/31246).
+#31246.
 
 ### The `CreateD2Index` workaround
 
@@ -82,7 +86,7 @@ derivation uses the expression member chain under EF Core 10 default complex col
 ### EF Core 11 native path
 
 EF Core 11 (issue #31246 closed, milestone 11.0.0; PR
-[#38192](https://github.com/dotnet/efcore/pull/38192) merged 2026-05-19) makes
+#38192 merged 2026-05-19) makes
 `HasIndex(u => u.Vo.Member)` native inside `IEntityTypeConfiguration`. When the host
 upgrades to EF Core 11, move the index declaration to the configuration class and remove
 the `CreateD2Index` call from the migration.
@@ -104,7 +108,7 @@ No telemetry surface — migration helpers run at migration-apply time with no r
 ## Edge cases / gotchas
 
 - **Model-unaware column name derivation** — `CreateD2Index` derives the column name purely from the expression member chain under EF Core 10 default complex column naming (`{ComplexProp}_{Member}`, joined with `_`). If the host overrides complex column prefixes via `HasColumnName` in entity configuration, the host must supply the correct `name:` override argument; the toolkit mapping helpers (`MapPersonal`, `MapStreetAddress`, etc.) never call `HasColumnName`, so the default derivation is always correct when using those helpers.
-- **EF 11 supersedes this workaround** — EF Core 11 (issue [#31246](https://github.com/dotnet/efcore/issues/31246), milestone 11.0.0) makes `HasIndex(u => u.Vo.Member)` native. When the host upgrades, move the index declaration to the entity configuration class and remove the `CreateD2Index` migration call. See the README section above.
+- **EF 11 supersedes this workaround** — EF Core 11 (issue #31246, milestone 11.0.0) makes `HasIndex(u => u.Vo.Member)` native. When the host upgrades, move the index declaration to the entity configuration class and remove the `CreateD2Index` migration call. See the README section above.
 
 ## Configuration
 

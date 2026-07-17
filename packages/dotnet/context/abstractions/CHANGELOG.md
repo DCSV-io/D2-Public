@@ -11,11 +11,14 @@ Keep a Changelog, and this package adheres to Semantic Versioning.
 
 ### Added
 
-- `ISystemWorkScope` / `ISystemWorkScopeFactory` + `AddD2SystemWorkPlane()` —
-  platform System work entry. Hosted/background authority-bearing work opens a
-  DI scope with `RequestOrigin.System` already established via the factory;
-  modules must not re-register `IRequestContext`.
-- `[MustDisposeResource(true)]` on `ISystemWorkScopeFactory.BeginAsync` (and
-  concrete scope) so inspectcode flags undisposed System work scopes.
+### Changed
 
 ### Fixed
+
+## 0.1.1 - 2026-07-17
+### Changed
+
+- Dependency update: DcsvIo.D2.Auth.Abstractions bumped.
+- Dependency update: DcsvIo.D2.AuthContext.Abstractions bumped.
+- Dependency update: DcsvIo.D2.Time bumped.
+- Dependency update: DcsvIo.D2.Utilities bumped.

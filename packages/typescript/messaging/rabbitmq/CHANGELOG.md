@@ -19,6 +19,18 @@ per-package semver + build-free-diff convention.
 
 ### Fixed
 
+## 0.1.2 - 2026-07-17
+### Changed
+
+- Dependency update: @dcsv-io/d2-encryption bumped.
+- Dependency update: @dcsv-io/d2-encryption-abstractions bumped.
+- Dependency update: @dcsv-io/d2-headers-amqp bumped.
+- Dependency update: @dcsv-io/d2-logging bumped.
+- Dependency update: @dcsv-io/d2-messaging-abstractions bumped.
+- Dependency update: @dcsv-io/d2-request-context-abstractions bumped.
+- Dependency update: @dcsv-io/d2-result bumped.
+- Dependency update: @dcsv-io/d2-telemetry bumped.
+- Dependency update: @dcsv-io/d2-utilities bumped.
 ## 0.1.1 - 2026-07-17
 ### Changed
 

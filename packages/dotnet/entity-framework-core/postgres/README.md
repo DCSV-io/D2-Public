@@ -4,8 +4,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.EntityFrameworkCore.Postgres
 
-> Parent: [`packages/dotnet/entity-framework-core/`](../README.md)
->
 > **Audience**: backend .NET service engineers wiring a PostgreSQL-backed EF Core
 > DbContext with advisory-lock-guarded migrations and startup validation.
 
@@ -19,11 +17,17 @@ design-time factory so the two paths can never drift.
 package. Callers pass domain-owned generated constants (e.g.
 `AdvisoryLocks.SampleDomain.MIGRATOR` from the owning host/module assembly) into
 `PgAdvisoryLock` / `AdvisoryLockMigrator`. The fleet catalog SoT remains
-[`contracts/advisory-locks/`](../../../../contracts/advisory-locks/README.md);
-[`locks-source-gen`](../locks-source-gen/README.md) emits into the owning-module
+`contracts/advisory-locks/`;
+`DcsvIo.D2.AdvisoryLocks.SourceGen` emits into the owning-module
 assembly.
 
 ---
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.EntityFrameworkCore.Postgres
+```
 
 ## `PgAdvisoryLock`
 
@@ -32,15 +36,15 @@ Session-scoped PostgreSQL advisory lock helper. Opens a **dedicated**
 
 ```csharp
 // Try-acquire (non-blocking — skip if held):
-// Pass a domain-owned generated constant (example: KC Infra).
+// Pass a domain-owned generated constant from the owning host/module assembly.
 await using var rotLock = await PgAdvisoryLock.TryAcquireSessionAsync(
-    connStr, migratorLockKey /* e.g. AdvisoryLocks.D2Keycustodian.ROTATION */, ct);
+    connStr, migratorLockKey /* e.g. AdvisoryLocks.MyService.ROTATION */, ct);
 if (!rotLock.IsHeld)
     return; // another instance is rotating — skip this tick
 
 // Blocking acquire (migrator):
 await using var migLock = await PgAdvisoryLock.AcquireSessionBlockingAsync(
-    connStr, migratorLockKey /* e.g. AdvisoryLocks.D2Keycustodian.MIGRATOR */, ct);
+    connStr, migratorLockKey /* e.g. AdvisoryLocks.MyService.MIGRATOR */, ct);
 // migLock.IsHeld is always true after this returns
 ```
 

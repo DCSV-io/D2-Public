@@ -4,9 +4,13 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-messaging-abstractions
 
-> Parent: [`packages/typescript/`](../README.md)
-
 D2 messaging-protocol wire identifiers. Today: the DLQ failure-metadata wire shape (`DlqFailureMetadataFields` for JSON property names + `DlqFailureCauses` for the closed-enum cause-string catalog). Mirrors .NET `DcsvIo.D2.Messaging.DlqFailureMetadataFields` (in `DcsvIo.D2.Messaging.Abstractions`) and `DcsvIo.D2.Messaging.RabbitMq.Subscribing.DlqFailureCauses` (in `DcsvIo.D2.Messaging.RabbitMq`).
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-messaging-abstractions
+```
 
 ## Public API
 

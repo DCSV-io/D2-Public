@@ -4,13 +4,17 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.I18n.Abstractions
 
-> Parent: [`packages/dotnet/`](../../README.md)
-
 Domain-safe slice of the i18n stack: the `TKMessage` primitive and the `ITranslator` interface. **Zero external deps** (no NuGet packages, no other shared-lib references — only what the .NET runtime ships) so domain layers can reference this without dragging in DI containers, configuration loading, or file IO.
 
-The `TK` constants (one `TKMessage` instance per translation key, Source-Generated from `contracts/messages/en-US.json`) live in the sibling [`DcsvIo.D2.I18n.Keys`](../keys/README.md) project, which references this one for the `TKMessage` type. The runtime piece (`Translator`, `SupportedLocales`, `AddD2I18n` DI extension) lives in the sibling [`DcsvIo.D2.I18n`](../core/README.md) project. Domain code never references that one.
+The `TK` constants (one `TKMessage` instance per translation key, Source-Generated from `contracts/messages/en-US.json`) live in the sibling `DcsvIo.D2.I18n.Keys` project, which references this one for the `TKMessage` type. The runtime piece (`Translator`, `SupportedLocales`, `AddD2I18n` DI extension) lives in the sibling `DcsvIo.D2.I18n` project. Domain code never references that one.
 
 ---
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.I18n.Abstractions
+```
 
 ## Why split
 
@@ -24,10 +28,10 @@ The pattern matches `Microsoft.Extensions.Logging.Abstractions` vs `Microsoft.Ex
 
 | Path                                  | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TKMessage.cs`                        | `TKMessage` sealed record — translation key + optional parameter bindings. Internal ctor; can only be constructed via the SrcGen-emitted `TK.*` constants in the sibling [`DcsvIo.D2.I18n.Keys`](../keys/README.md) (granted access via `[InternalsVisibleTo]`).                                                                                                                                                                                                                                                                            |
+| `TKMessage.cs`                        | `TKMessage` sealed record — translation key + optional parameter bindings. Internal ctor; can only be constructed via the SrcGen-emitted `TK.*` constants in the sibling `DcsvIo.D2.I18n.Keys` (granted access via `[InternalsVisibleTo]`).                                                                                                                                                                                                                                                                            |
 | `TKMessageJsonConverter.cs`           | `JsonConverter<TKMessage>` — wire format `{ "key": "..." }` or `{ "key": "...", "params": { ... } }`. Applied to `TKMessage` via `[JsonConverter]`. JSON property names come from the spec-derived `TkMessageWireShape.KEY` / `.PARAMS` constants — single source of truth shared with the TS-side parser via `contracts/tk-message/tk-message.spec.json`.                                                                                                                                                                                |
 | `ITranslator.cs`                      | The translation interface. `string T(string locale, TKMessage message)` and `bool HasKey(string key)`. Implementation lives in the runtime lib.                                                                                                                                                                                                                                                                                                                                                                                           |
-| `(generated) TkMessageWireShape.g.cs` | Emitted by the **`DcsvIo.D2.WireShapes.SourceGen`** project at [`../../source-gen-shared/wire-shapes-source-gen/`](../../source-gen-shared/wire-shapes-source-gen/README.md) — a Roslyn `IIncrementalGenerator` with multi-target dispatch. Output lands at `Generated/DcsvIo.D2.WireShapes.SourceGen/DcsvIo.D2.WireShapes.SourceGen.WireShapesGenerator/TkMessageWireShape.g.cs` (tracked in git) at every build. Carries the `KEY` and `PARAMS` JSON property-name constants. Cross-language parity-tested against the TS-side `@dcsv-io/d2-result` `TkMessageWireShape` catalog. |
+| `(generated) TkMessageWireShape.g.cs` | Emitted by the **`DcsvIo.D2.WireShapes.SourceGen`** package (`DcsvIo.D2.WireShapes.SourceGen`) — a Roslyn `IIncrementalGenerator` with multi-target dispatch. Output lands at `Generated/DcsvIo.D2.WireShapes.SourceGen/DcsvIo.D2.WireShapes.SourceGen.WireShapesGenerator/TkMessageWireShape.g.cs` (tracked in git) at every build. Carries the `KEY` and `PARAMS` JSON property-name constants. Cross-language parity-tested against the TS-side `@dcsv-io/d2-result` `TkMessageWireShape` catalog. |
 
 ---
 
@@ -50,7 +54,7 @@ D2Result<T>.ValidationFailed(
 
 Key facts:
 
-- **Internal constructor.** Producers can ONLY construct a `TKMessage` via the SrcGen-emitted `TK.*` constants in the sibling [`DcsvIo.D2.I18n.Keys`](../keys/README.md). There is no public ctor and no escape hatch — "untranslated literal in `D2Result.Messages`" is structurally unrepresentable.
+- **Internal constructor.** Producers can ONLY construct a `TKMessage` via the SrcGen-emitted `TK.*` constants in the sibling `DcsvIo.D2.I18n.Keys`. There is no public ctor and no escape hatch — "untranslated literal in `D2Result.Messages`" is structurally unrepresentable.
 - **Immutable.** `With(name, value)` and `With(IReadOnlyDictionary<string, string>)` return _new_ instances; the original is never mutated. The static-readonly TK constants stay pinned.
 - **Record equality with order-independent params.** Two `TKMessage` instances with the same key and same param bindings (regardless of the order `With()` was called in) compare equal.
 - **Wire format = code shape.** Same JSON shape in code and on the wire — no separate "in-memory" vs "wire" representation.
@@ -93,7 +97,7 @@ The server-side `Translator` (in the runtime lib) is used only for **outbound no
 
 ## TK constants
 
-The `TK.*` constants every producer references (e.g. `TK.Common.Errors.NOT_FOUND`) are Source-Generated `TKMessage` instances. They live in the sibling [`DcsvIo.D2.I18n.Keys`](../keys/README.md) project, which hosts the `DcsvIo.D2.I18n.SourceGen.TKGenerator` and references this project for the `TKMessage` type. The decomposition rules, build-time diagnostics, and codegen rationale are documented there.
+The `TK.*` constants every producer references (e.g. `TK.Common.Errors.NOT_FOUND`) are Source-Generated `TKMessage` instances. They live in the sibling `DcsvIo.D2.I18n.Keys` project, which hosts the `DcsvIo.D2.I18n.SourceGen.TKGenerator` and references this project for the `TKMessage` type. The decomposition rules, build-time diagnostics, and codegen rationale are documented there.
 
 ---
 
@@ -127,7 +131,7 @@ The csproj has no `<PackageReference>`s and no runtime `<ProjectReference>`s. Th
 
 ## Tests
 
-`packages/dotnet/tests/Unit/I18n/` — comprehensive coverage across abstractions surface (every `TKMessage` operation + immutability + JSON roundtrip + adversarial inputs) plus broad coverage of the SrcGen emitter and decomposer pure-logic paths. Categories:
+Unit tests (`DcsvIo.D2.Tests` I18n suite) — comprehensive coverage across abstractions surface (every `TKMessage` operation + immutability + JSON roundtrip + adversarial inputs) plus broad coverage of the SrcGen emitter and decomposer pure-logic paths. Categories:
 
 - `TKMessageTests` — equality (incl. order-independent params), JSON roundtrip, malformed JSON handling, immutability of `With()`, integration as part of `D2Result.Messages` arrays.
 - `SourceGen/KeyDecomposerTests` — happy path + every invalid edge (leading/trailing/consecutive underscores, identifier-starts-with-digit, unicode rejection, reserved word collision), plus property test against every real key in `en-US.json`.

@@ -4,9 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-caching-tiered
 
-> Parent: [`../README.md`](../README.md) · .NET mirror: `DcsvIo.D2.Caching.Tiered`
+.NET mirror: `DcsvIo.D2.Caching.Tiered`
 
 Node/BFF authors who need a composed L1+L2 `ITieredCache` inject this pure-composition implementation — reads check the in-process L1 first and fall through to the distributed L2, writes go L2-first so partial-write states are impossible, atomics route through L2 with L1 side-effects, and an optional invalidation backplane keeps every instance's L1 coherent under the universal everyone-acts rule. Every operation returns `@dcsv-io/d2-result` shapes.
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-caching-tiered
+```
 
 ## Usage
 
@@ -45,7 +51,9 @@ await cache.set("user:1", { displayName: "Ada" });
 const hit = await cache.get<{ displayName: string }>("user:1");
 await cache.setAndBroadcast("user:1", { displayName: "Ada Lovelace" });
 
-await cache[Symbol.asyncDispose](); // unsubscribes only; host still owns l1/l2/backplane/redis
+// unsubscribes only; host still owns l1/l2/backplane/redis
+const dispose = cache[Symbol.asyncDispose];
+await dispose.call(cache);
 ```
 
 ## Construction
@@ -173,10 +181,9 @@ Per-call validation and store failures surface from L1/L2 (`notFound`, `someFoun
 
 No backing-store packages at runtime — this package is pure composition. No `@dcsv-io/d2-utilities` (validation/falsey live in L1/L2). Typical hosts also depend on `@dcsv-io/d2-caching-local-default` and `@dcsv-io/d2-caching-distributed-redis` for L1/L2/backplane implementations.
 
-## References
+## Sister packages
 
-- [`../abstractions/README.md`](../abstractions/README.md) — ports + result mapping
-- [`../local-default/README.md`](../local-default/README.md) — typical L1
-- [`../distributed-redis/README.md`](../distributed-redis/README.md) — typical L2 + backplane
-- [`../README.md`](../README.md) — caching cluster
-- .NET twin: `packages/dotnet/caching/tiered/`
+- `@dcsv-io/d2-caching-abstractions` — ports + result mapping
+- `@dcsv-io/d2-caching-local-default` — typical L1
+- `@dcsv-io/d2-caching-distributed-redis` — typical L2 + backplane
+- .NET twin: `DcsvIo.D2.Caching.Tiered`

@@ -4,11 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-protos
 
-> Parent: [`packages/typescript/`](../README.md)
-
 Buf-generated TS modules + gRPC client stubs from `contracts/protos/`.
 Mirrors `DcsvIo.D2.Protos` (.NET — generated via `Grpc.Tools` at csproj
 build time).
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-protos
+```
 
 ## Public API
 
@@ -62,8 +66,8 @@ side hand-writes proto modules.
 ## Edge cases
 
 - Codegen idempotency: re-running `pnpm generate` produces zero diff if
-  no `.proto` changes. Spec drift surfaces in PR review.
+ no `.proto` changes. Spec drift surfaces in PR review.
 - Generated code is committed to git so consumers don't pay a
-  generate-on-first-build penalty.
+ generate-on-first-build penalty.
 - Generated code is excluded from coverage thresholds and from ESLint
-  formatting (lives in `src/generated/`).
+ formatting (lives in `src/generated/`).

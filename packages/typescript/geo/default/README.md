@@ -4,11 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-geo-default
 
-> Parent: [`packages/typescript/`](../../README.md)
->
 > **Audience**: backend Node/TypeScript engineers + BFF composition-root code that needs to bind the actual geo catalog data (per-entity records + lookup maps + nested objects) at process start.
 
-Codegen-emitted in-memory catalog data for the seven geo reference catalogs. Mirrors [`DcsvIo.D2.Geo.Default`](../../../dotnet/geo/default/README.md) (.NET). The interfaces, branded code types, and record shapes this package consumes live in [`@dcsv-io/d2-geo-abstractions`](../abstractions/README.md); this package contributes only the per-entity data + the wire-nav coordinator.
+Codegen-emitted in-memory catalog data for the seven geo reference catalogs. Mirrors `DcsvIo.D2.Geo.Default` (.NET). The interfaces, branded code types, and record shapes this package consumes live in `@dcsv-io/d2-geo-abstractions`; this package contributes only the per-entity data + the wire-nav coordinator.
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-geo-default
+```
 
 ## Per-catalog imports (bundle-friendly)
 
@@ -48,7 +52,7 @@ if (usa.geopoliticalEntityShortCodes.has(GeopoliticalEntityCode.NATO)) {
 | `@dcsv-io/d2-geo-default/geopolitical-entities` | `GeopoliticalEntities.EU` getter + `GeopoliticalEntityLookup.byCode` + `all`                     | Typed access + iteration                                                                     |
 | `@dcsv-io/d2-geo-default/init`                  | Top-level `initializeGeoData()` call                                                             | Importing this sub-path is the idempotent wire-nav trigger.                                  |
 
-The record shape mirrors the [`@dcsv-io/d2-geo-abstractions` record shapes](../abstractions/README.md): one interface per catalog with universal dual-rep for every relationship (typed code field for O(1) membership + nav record field for ordered iteration). Nullable single-primary navs use `?:` per the workspace `undefined`-over-`null` convention.
+The record shape mirrors `@dcsv-io/d2-geo-abstractions` record shapes: one interface per catalog with universal dual-rep for every relationship (typed code field for O(1) membership + nav record field for ordered iteration). Nullable single-primary navs use `?:` per the workspace `undefined`-over-`null` convention.
 
 ### Two-pass populate
 
@@ -85,7 +89,7 @@ mut.subdivisions = SubdivisionLookup.byCountry["US"];
 // ... all nav refs ...
 ```
 
-The cast is confined to this package's codegen-emitted module-init code. Consumer code MUST treat record fields as `readonly` (compile-time enforced). See [the `@dcsv-io/d2-geo-abstractions` record-shape architecture section](../abstractions/README.md#record-shape-architecture) for the full cycle-resolution design.
+The cast is confined to this package's codegen-emitted module-init code. Consumer code MUST treat record fields as `readonly` (compile-time enforced). See `@dcsv-io/d2-geo-abstractions` (record-shape architecture) for the full cycle-resolution design.
 
 ### Wire-nav coordinator
 

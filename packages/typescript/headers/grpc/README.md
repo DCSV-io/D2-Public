@@ -4,11 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-headers-grpc
 
-> Parent: [`packages/typescript/`](../../README.md)
-
-> **Duplicated from [`contracts/headers/headers.spec.json`](../../../../contracts/headers/headers.spec.json) — update both in lockstep.** This catalog mirrors its .NET sibling [`DcsvIo.D2.Headers.Grpc`](../../../dotnet/headers/grpc/README.md) at byte-equal wire values. Both sides emit from the same spec; physical dedup across TS ↔ .NET is not feasible. Parity is asserted by `contract-tests/headers.parity.test.ts` (TS) and `HeaderCatalogConsistencyTests` (.NET).
+> **Duplicated from `contracts/headers/headers.spec.json` — update both in lockstep.** This catalog mirrors its .NET sibling `DcsvIo.D2.Headers.Grpc` at byte-equal wire values. Both sides emit from the same spec; physical dedup across TS ↔ .NET is not feasible. Parity is asserted by `contract-tests/headers.parity.test.ts` (TS) and `HeaderCatalogConsistencyTests` (.NET).
 
 D2 wire-protocol headers applicable to the gRPC transport. Today the catalog holds the gRPC-applicable subset of cross-transport entries (`Authorization`, `x-d2-context`, `traceparent`, `tracestate`) at identical wire values per `headers.spec.json`. Mirrors .NET `DcsvIo.D2.Headers.Grpc.GrpcHeaders`.
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-headers-grpc
+```
 
 ## Public API
 
@@ -40,7 +44,7 @@ None at runtime — pure constants. DevDeps: `vitest` + `@vitest/coverage-v8` + 
 
 ## Reference
 
-- [`contracts/headers/headers.spec.json`](../../../../contracts/headers/headers.spec.json) — source spec
-- [`@dcsv-io/d2-headers-common`](../common/README.md) — cross-transport subset
-- [`@dcsv-io/d2-headers-http`](../http/README.md) — HTTP-applicable subset
-- [`@dcsv-io/d2-headers-amqp`](../amqp/README.md) — AMQP-applicable subset
+- `contracts/headers/headers.spec.json` — source spec
+- `@dcsv-io/d2-headers-common` — cross-transport subset
+- `@dcsv-io/d2-headers-http` — HTTP-applicable subset
+- `@dcsv-io/d2-headers-amqp` — AMQP-applicable subset

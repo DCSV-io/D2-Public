@@ -39,7 +39,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <PackageId>DcsvIo.D2.Handler</PackageId>
     <Description>BaseHandler for D2 — the abstract base every handler inherits, providing scope pre-checks, OpenTelemetry activity and metrics, log scope, and a universal try/catch.</Description>
     <IsPackable>true</IsPackable>

@@ -4,8 +4,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-geo-abstractions
 
-> Parent: [`packages/typescript/`](../../README.md)
->
 > **Audience**: backend Node/TypeScript service and BFF engineers who need
 > a data-free reference-data type surface — interfaces, meta-records, and
 > name-resolution primitives — without dragging the full geo catalog
@@ -14,17 +12,23 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 Codegen-emitted reference-data type surface + hand-written meta-record +
 name-resolution primitives. Mirrors `DcsvIo.D2.Geo.Abstractions` (.NET).
 
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-geo-abstractions
+```
+
 ## Overview
 
 The geo reference-data layer ships in two TS packages:
 
 - **`@dcsv-io/d2-geo-abstractions`** — this package. Type shapes (record interfaces,
-  branded typed-code wrappers, validation schemas) + `DeprecationInfo` +
-  name-resolution helpers. Near-zero runtime payload at import — pure types
-  plus two small string-algorithm functions.
+ branded typed-code wrappers, validation schemas) + `DeprecationInfo` +
+ name-resolution helpers. Near-zero runtime payload at import — pure types
+ plus two small string-algorithm functions.
 - **`@dcsv-io/d2-geo-default`** — the catalog data itself (~200 KB of country /
-  subdivision / currency / language / locale / timezone / geopolitical-entity
-  records). Depends on this package.
+ subdivision / currency / language / locale / timezone / geopolitical-entity
+ records). Depends on this package.
 
 Domain code that takes a `Country` parameter imports from
 `@dcsv-io/d2-geo-abstractions`; only composition-root / catalog-bootstrap code
@@ -72,14 +76,14 @@ on `country.primaryLanguage` / `primaryCurrency` / `primaryLocale`.
 ### PK + FK naming convention
 
 - **Name** describes WHAT the value IS: `iso31661Alpha2Code`,
-  `ietfBcp47Tag`, `ianaName`. Never bare `code` on its own.
+ `ietfBcp47Tag`, `ianaName`. Never bare `code` on its own.
 - **Type** is the typed code wrapper (`CountryCode`, `SubdivisionCode`,
-  `LocaleCode`, …).
+ `LocaleCode`, …).
 - **Relationship prefix** on FKs disambiguates direction / cardinality:
-  `primary` (primary among possibly many), `sovereign` / `territory`
-  (hierarchy direction), `member` (group membership), `spokenIn` /
-  `acceptedIn` (reverse "consumed by"), `coApplicable` (parallel beyond a
-  primary).
+ `primary` (primary among possibly many), `sovereign` / `territory`
+ (hierarchy direction), `member` (group membership), `spokenIn` /
+ `acceptedIn` (reverse "consumed by"), `coApplicable` (parallel beyond a
+ primary).
 
 ### Code-suffix naming on closed-set enums
 
@@ -87,12 +91,12 @@ Closed-set catalog-identifier enums carry the `Code` suffix to disambiguate
 from the record shape:
 
 - **`Code`-suffixed enums**: `CountryCode`, `CurrencyCode`, `LanguageCode`,
-  `GeopoliticalEntityCode`.
+ `GeopoliticalEntityCode`.
 - **Type-discriminator enums (no `Code` suffix)**: `GeopoliticalEntityType`,
-  `WritingDirection`, `DateFormatPattern`, `CurrencyAcceptanceLevel`,
-  `MeasurementSystem`, `DayOfWeek`.
+ `WritingDirection`, `DateFormatPattern`, `CurrencyAcceptanceLevel`,
+ `MeasurementSystem`, `DayOfWeek`.
 - **Open-set branded wrappers (names already disambiguate)**:
-  `SubdivisionCode`, `LocaleCode`, `TimezoneCode`.
+ `SubdivisionCode`, `LocaleCode`, `TimezoneCode`.
 
 ### Cycle resolution — multi-pass cast pattern
 
@@ -161,18 +165,18 @@ and runs as part of the workspace codegen orchestrator (`pnpm codegen`).
 Mirrors `DcsvIo.D2.Geo.Abstractions`:
 
 - `DeprecationInfo` ↔ `DcsvIo.D2.Geo.Abstractions.DeprecationInfo` —
-  same four fields, same JSON wire shape. `DateOnly DeprecatedAt`
-  serializes to ISO-8601 calendar-date string; the TS-side mirror uses
-  `string` carrying the same `YYYY-MM-DD` text.
+ same four fields, same JSON wire shape. `DateOnly DeprecatedAt`
+ serializes to ISO-8601 calendar-date string; the TS-side mirror uses
+ `string` carrying the same `YYYY-MM-DD` text.
 - Record shapes — every `Country` / `Subdivision` / `Currency` / `Language`
-  / `Locale` / `Timezone` / `GeopoliticalEntity` field is byte-for-byte
-  parity with the .NET counterpart (modulo TS casing — `iso31661Alpha2Code`
-  on TS ↔ `Iso31661Alpha2Code` on .NET).
+ / `Locale` / `Timezone` / `GeopoliticalEntity` field is byte-for-byte
+ parity with the .NET counterpart (modulo TS casing — `iso31661Alpha2Code`
+ on TS ↔ `Iso31661Alpha2Code` on .NET).
 - `normalize` ↔ `NameNormalizer.Normalize` — same six-step pipeline.
-  Cross-language parity is pinned by a byte-equivalent fixture.
+ Cross-language parity is pinned by a byte-equivalent fixture.
 - `compare` / `isWithin` ↔ `LevenshteinComparer.Compare` /
-  `LevenshteinComparer.IsWithin` — same Wagner-Fischer DP, same
-  early-termination sentinel (`maxDistance + 1`).
+ `LevenshteinComparer.IsWithin` — same Wagner-Fischer DP, same
+ early-termination sentinel (`maxDistance + 1`).
 
 Optional fields use `undefined` (not `null`) per workspace TS convention.
 `null` arriving from the .NET wire normalizes to `undefined` at the Zod
@@ -181,7 +185,7 @@ deserialization boundary.
 ## Dependencies
 
 - `zod` — runtime dep for the codegen-emitted Zod schemas
-  (`subdivision-code.g.ts`, `fixed-enums.g.ts`, etc.).
+ (`subdivision-code.g.ts`, `fixed-enums.g.ts`, etc.).
 
 ## Telemetry
 
@@ -195,10 +199,10 @@ time via `GEO_CATALOG_VERSION`.
 
 ## Known build-time warnings
 
-The TS geo emitter (`the TypeScript codegen pipeline/src/geo-emitter/`) emits a small
+The TS geo emitter (codegen geo-emitter) emits a small
 number of expected `D2GEO010` catalog-uniqueness warnings (legitimate
 parent-child name collisions like Burkina Faso Centre / Kadiogo,
 real-world ambiguity like Malta's two Rabats). See
-[`contracts/geo/KNOWN_WARNINGS.md`](../../../../contracts/geo/KNOWN_WARNINGS.md)
+`contracts/geo/KNOWN_WARNINGS.md`
 for the full enumerated list + escalation triggers. New warnings NOT
 documented there should be investigated before suppressing.

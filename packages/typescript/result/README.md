@@ -4,10 +4,14 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-result
 
-> Parent: [`packages/typescript/`](../README.md)
-
 `D2Result<T>` + semantic factories + combine/bubble helpers.
 Mirrors `DcsvIo.D2.Result` (.NET) so the cross-language wire is byte-identical.
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-result
+```
 
 ## Public API
 
@@ -27,7 +31,7 @@ Mirrors `DcsvIo.D2.Result` (.NET) so the cross-language wire is byte-identical.
 | `renderMessage(message, translate)`                            | Boundary helper — renders a single `TKMessage` to a localized string via a translator function. Use at the BFF / browser boundary where consumers (toasts, form display) expect rendered text.                                                                                                                                                                                                                                                                                                            |
 | `renderMessages(messages, translate)`                          | Boundary helper — renders a `TKMessage[]` to `string[]`. Null/undefined/empty input returns `[]`.                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `renderInputErrors(inputErrors, translate)`                    | Boundary helper — renders an `InputError[]` to a `field → string[]` map. Suitable for Superforms-style form-error display.                                                                                                                                                                                                                                                                                                                                                                                |
-| `TranslateFn`                                                  | `(key: string, params?: Record<string, unknown>) => string` — signature for translator functions passed to the render helpers. Implementations typically wrap Paraglide's `m[key](params)` keyed lookup.                                                                                                                                                                                                                                                                                                  |
+| `TranslateFn`                                                  | `(key: string, params?: Record<string, unknown>) => string` — signature for translator functions passed to the render helpers. Implementations typically wrap Paraglide's keyed message lookup (`m[key]` with params).                                                                                                                                                                                                                                                                                                  |
 | `ok()` / `created()` / `fail()`                                | Basic success/failure factories. Hand-rolled (not spec-derived).                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `notFound()` / `unauthorized()` / `forbidden()`                | 404 / 401 / 403 semantic factories. Codegen-generated into `factories.g.ts` from `contracts/error-codes/error-codes.spec.json` — the same spec drives the .NET `D2Result` base factories, so signature + status + error code + default message stay byte-aligned. Each is generic with a `void` default (`notFound<T = void>()`) so one function spans the untyped (`D2Result<void>`) and typed (`D2Result<User>`) cases.                                                                                 |
 | `validationFailed()`                                           | 400 + per-field input errors. Spec-generated.                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
@@ -39,9 +43,9 @@ Mirrors `DcsvIo.D2.Result` (.NET) so the cross-language wire is byte-identical.
 
 ## Dependencies
 
-- `@dcsv-io/d2-utilities` (workspace internal — boundary helpers)
-- `@dcsv-io/d2-i18n-abstractions` (workspace internal — the zero-dependency i18n primitive leaf; provides the `TKMessage` type + `tk()` factory, re-exported from this package for compat)
-- `@dcsv-io/d2-i18n-keys` (workspace internal — the TK-constants package; the spec-generated factories reference `TK.common.errors.*` constants from it directly as their default messages — the constant IS a `TKMessage`, cycle-free)
+- `@dcsv-io/d2-utilities` — boundary helpers
+- `@dcsv-io/d2-i18n-abstractions` — the zero-dependency i18n primitive leaf; provides the `TKMessage` type + `tk()` factory, re-exported from this package for compat
+- `@dcsv-io/d2-i18n-keys` — the TK-constants package; the spec-generated factories reference `TK.common.errors.*` constants from it directly as their default messages — the constant IS a `TKMessage`, cycle-free
 
 ## Usage example
 
@@ -73,7 +77,7 @@ Mirrors `DcsvIo.D2.Result`:
 - Semantic factories ↔ `D2Result.{Ok, Created, Fail, NotFound, Unauthorized, Forbidden, ValidationFailed, Conflict, ServiceUnavailable, UnhandledException, PayloadTooLarge, TooManyRequests, Canceled, SomeFound}`. The 10 FAILURE factories (`notFound` … `canceled`) are spec-generated into `factories.g.ts` from the same `error-codes.spec.json` that drives the .NET base factories; `ok` / `created` / `fail` / `someFound` are hand-rolled both sides. The single TS generic method (`notFound<T = void>()`) covers what .NET delivers via its non-generic + `<TData>` overload pair.
 - `combine` / `combineMany` ↔ `D2Result.Combine` (5-arity overloads + IEnumerable).
 - `bubble` / `bubbleFail` ↔ `D2Result.Bubble` / `BubbleFail` extension methods.
-- `ErrorCodes` / `ALL_ERROR_CODES` / `getErrorHttpStatus` ↔ `DcsvIo.D2.Result.ErrorCodes` static (single spec source emits both sides; cross-language parity tested in `host composition packages` at `tests/error-codes.parity.test.ts`).
+- `ErrorCodes` / `ALL_ERROR_CODES` / `getErrorHttpStatus` ↔ `DcsvIo.D2.Result.ErrorCodes` static (single spec source emits both sides; cross-language parity-tested).
 - `TkMessageWireShape` ↔ `DcsvIo.D2.I18n.Abstractions.TkMessageWireShape` static (single spec source; parity-tested at `tests/tk-message.parity.test.ts` including round-trip byte-equal fixtures produced by `TKMessageJsonConverter`). Re-exported here from `@dcsv-io/d2-i18n-abstractions`.
 - `InputErrorWireShape` ↔ `DcsvIo.D2.Result.InputErrorWireShape` static (single spec source; parity-tested at `tests/input-error.parity.test.ts` including nested TKMessage round-trip fixtures).
 - `renderMessage` / `renderMessages` / `renderInputErrors` are TS-only — the .NET-side equivalent is `ITranslator` (outbound notifications path), not used inline at serialization boundaries because .NET ships TKMessage shapes unchanged on the HTTP wire path.

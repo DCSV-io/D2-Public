@@ -4,10 +4,14 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Caching.Abstractions
 
-> Parent: [`packages/dotnet/`](../../README.md)
+Shared abstractions for the whole D² cache stack — used by `DcsvIo.D2.Caching.Local.Default` (per-process),
+`DcsvIo.D2.Caching.Distributed.Redis` (cluster), `DcsvIo.D2.Caching.Tiered` (composed), and every consumer.
 
-Shared abstractions for the whole D² cache stack — used by `local-default` (per-process),
-`distributed-redis` (cluster), `tiered` (composed), and every consumer.
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Caching.Abstractions
+```
 
 ## Public surface
 
@@ -225,7 +229,7 @@ implementation runtime.
 
 ## References
 
-- [`local-default/`](../local-default/README.md) — `DefaultLocalCache` impl
-- [`distributed-redis/`](../distributed-redis/README.md) —
+- `DcsvIo.D2.Caching.Local.Default` — `DefaultLocalCache` impl
+- `DcsvIo.D2.Caching.Distributed.Redis` —
   `RedisDistributedCache` + `RedisCacheInvalidationBackplane` impls
-- [`tiered/`](../tiered/README.md) — `DefaultTieredCache` (L1+L2 composition)
+- `DcsvIo.D2.Caching.Tiered` — `DefaultTieredCache` (L1+L2 composition)

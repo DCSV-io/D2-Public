@@ -4,8 +4,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-problem-details-abstractions
 
-> Parent: [`packages/typescript/`](../README.md)
-
 Foundational, zero-dependency package that declares the RFC 7807
 ProblemDetails wire-format catalog: the type-URI prefix, the
 `application/problem+json` content type, the extension-key wire names, the
@@ -13,6 +11,12 @@ per-status coarse titles, and the `defaultTitleForStatus` lookup. Mirrors
 `DcsvIo.D2.ProblemDetails.Abstractions` on the .NET side — a leaf package
 with no outbound dependencies, so any package can import these wire constants
 without pulling JWT-parsing or route-guard machinery.
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-problem-details-abstractions
+```
 
 ## Public API
 

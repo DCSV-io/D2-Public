@@ -4,11 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Contacts
 
-> Parent: [`packages/dotnet/`](../README.md)
-
 > **Audience**: Backend .NET service engineers attaching contact details (names, demographics, professional info, email, phone) to their own domain entities.
 
 > Composable, self-redacting PII value objects for handlers and service code. Six immutable `sealed record` building blocks — `Personal`, `NameAffixes`, `Demographics`, `Professional`, `EmailAddress`, `PhoneNumber` — each constructed through a `Create(...)` smart constructor returning `D2Result<T>`. The value objects fold into a host's own entities; the reusable Entity Framework Core mapping ships separately in `DcsvIo.D2.Contacts.EntityFrameworkCore`.
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Contacts
+```
 
 ## Purpose
 
@@ -20,17 +24,17 @@ Pure-domain layer policy: depends only on `DcsvIo.D2.Result` (D2Result factories
 
 All six records live in `DcsvIo.D2.Contacts.ValueObjects`; one record per file.
 
-- [`ValueObjects/Personal.cs`](ValueObjects/Personal.cs) — required `FirstName` plus optional `MiddleName`, `LastName`, `PreferredName`, each cleaned and length-capped. Carries a stable correlation `HashId` (`"v1." + SHA-256 hex`) derived from the first / middle / last names — the preferred name is excluded so a display-name change leaves the identity digest stable. Case-, diacritic-, and whitespace-equivalent inputs hash identically.
+- `ValueObjects/Personal.cs` — required `FirstName` plus optional `MiddleName`, `LastName`, `PreferredName`, each cleaned and length-capped. Carries a stable correlation `HashId` (`"v1." + SHA-256 hex`) derived from the first / middle / last names — the preferred name is excluded so a display-name change leaves the identity digest stable. Case-, diacritic-, and whitespace-equivalent inputs hash identically.
   - `Personal.Create(firstName, middleName?, lastName?, preferredName?)` → `D2Result<Personal>`.
-- [`ValueObjects/NameAffixes.cs`](ValueObjects/NameAffixes.cs) — optional honorific `Prefix` (`NamePrefix?`) + `Suffix` (`NameSuffix?`) drawn from closed taxonomies, each with an `Other` escape hatch backed by a custom free-text value. A custom value is required when (and only when) its enum is `Other`. The all-null record is rejected.
+- `ValueObjects/NameAffixes.cs` — optional honorific `Prefix` (`NamePrefix?`) + `Suffix` (`NameSuffix?`) drawn from closed taxonomies, each with an `Other` escape hatch backed by a custom free-text value. A custom value is required when (and only when) its enum is `Other`. The all-null record is rejected.
   - `NameAffixes.Create(prefix?, prefixCustom?, suffix?, suffixCustom?)` → `D2Result<NameAffixes>`.
-- [`ValueObjects/Demographics.cs`](ValueObjects/Demographics.cs) — optional `DateOfBirth` (`NodaTime.LocalDate?`, not in the future, not more than 150 years in the past) + `BiologicalSex` (`BiologicalSex?`). The all-null record is rejected. The date-of-birth bounds resolve "today" from an injectable `DcsvIo.D2.Time.IClock` (defaults to `SystemClock`), via `clock.GetCurrentInstant().InUtc().Date`, so boundary behavior is deterministic under test.
+- `ValueObjects/Demographics.cs` — optional `DateOfBirth` (`NodaTime.LocalDate?`, not in the future, not more than 150 years in the past) + `BiologicalSex` (`BiologicalSex?`). The all-null record is rejected. The date-of-birth bounds resolve "today" from an injectable `DcsvIo.D2.Time.IClock` (defaults to `SystemClock`), via `clock.GetCurrentInstant().InUtc().Date`, so boundary behavior is deterministic under test.
   - `Demographics.Create(dateOfBirth?, biologicalSex?, clock?)` → `D2Result<Demographics>`.
-- [`ValueObjects/Professional.cs`](ValueObjects/Professional.cs) — required `CompanyName` plus optional `JobTitle`, `Department`, and `CompanyWebsite`. The website is accepted as raw text and stored as an absolute `http` / `https` `Uri?` (raw input length-capped before parsing).
+- `ValueObjects/Professional.cs` — required `CompanyName` plus optional `JobTitle`, `Department`, and `CompanyWebsite`. The website is accepted as raw text and stored as an absolute `http` / `https` `Uri?` (raw input length-capped before parsing).
   - `Professional.Create(companyName, jobTitle?, department?, companyWebsite?)` → `D2Result<Professional>`.
-- [`ValueObjects/EmailAddress.cs`](ValueObjects/EmailAddress.cs) — thin wrapper over a normalized `Value`. Floor mode trims / collapses / lowercases / shape-checks and enforces the address-length cap; validator mode bubbles the injected `IEmailValidator` result.
+- `ValueObjects/EmailAddress.cs` — thin wrapper over a normalized `Value`. Floor mode trims / collapses / lowercases / shape-checks and enforces the address-length cap; validator mode bubbles the injected `IEmailValidator` result.
   - `EmailAddress.Create(value, validator?)` → `D2Result<EmailAddress>`.
-- [`ValueObjects/PhoneNumber.cs`](ValueObjects/PhoneNumber.cs) — thin wrapper over a normalized `Value`. Floor mode strips non-digits, enforces the 7-15 digit envelope and the raw-length cap, and stores a digit string; validator mode forwards the optional `CountryCode region` to the injected `IPhoneValidator` and bubbles its (typically E.164) result. The region is ignored in floor mode.
+- `ValueObjects/PhoneNumber.cs` — thin wrapper over a normalized `Value`. Floor mode strips non-digits, enforces the 7-15 digit envelope and the raw-length cap, and stores a digit string; validator mode forwards the optional `CountryCode region` to the injected `IPhoneValidator` and bubbles its (typically E.164) result. The region is ignored in floor mode.
   - `PhoneNumber.Create(value, validator?, region?)` → `D2Result<PhoneNumber>`.
 
 ## Floor vs. validator seam
@@ -94,5 +98,5 @@ The value objects are immutable. Composition into a host entity + the reusable E
 
 ## References
 
-- [`../../validation/abstractions/README.md`](../../validation/abstractions/README.md) — the `FieldConstraints` caps, the taxonomy enums, and the `IEmailValidator` / `IPhoneValidator` contracts this lib consumes.
-- [`../../utilities/README.md`](../../utilities/README.md) — the boundary helpers (`CleanStr`, `Falsey`, `Truthy`, `ToNullIfEmpty`), `NormalizeForHash`, and the `TryParseEmail` / `TryParsePhoneNumber` floor helpers.
+- `DcsvIo.D2.Validation.Abstractions` — the `FieldConstraints` caps, the taxonomy enums, and the `IEmailValidator` / `IPhoneValidator` contracts this lib consumes.
+- `DcsvIo.D2.Utilities` — the boundary helpers (`CleanStr`, `Falsey`, `Truthy`, `ToNullIfEmpty`), `NormalizeForHash`, and the `TryParseEmail` / `TryParsePhoneNumber` floor helpers.

@@ -11,4 +11,11 @@ Keep a Changelog, and this package adheres to Semantic Versioning.
 
 ### Added
 
+### Changed
+
 ### Fixed
+
+## 0.1.1 - 2026-07-17
+### Added
+
+- Ship package gallery README via `<PackageReadmeFile>README.md</PackageReadmeFile>` (nupkg pack).

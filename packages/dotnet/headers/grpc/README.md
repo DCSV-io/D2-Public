@@ -4,13 +4,13 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Headers.Grpc
 
-> Parent: [`packages/dotnet/`](../README.md)
+D2 wire-protocol headers for the gRPC transport. Today the catalog holds the gRPC-applicable subset of cross-transport entries (`Authorization`, `x-d2-context`, `traceparent`, `tracestate`) at identical wire values. Codegen-emitted from the headers contract spec via `DcsvIo.D2.Headers.SourceGen` (filtered with `applicability.Contains("grpc")`). Mirrors the TypeScript package `@dcsv-io/d2-headers-grpc` at byte-equal wire values; parity is asserted by shared contract tests.
 
-> **Duplicated from [`contracts/headers/headers.spec.json`](../../../../contracts/headers/headers.spec.json) — update both in lockstep.** This catalog mirrors its TS sibling [`@dcsv-io/d2-headers-grpc`](../../typescript/headers/grpc/README.md) at byte-equal wire values. Both sides emit from the same spec; physical dedup across .NET ↔ TS is not feasible. Parity is asserted by `HeaderCatalogConsistencyTests` (.NET) and `contract-tests/headers.parity.test.ts` (TS).
+## Install
 
-D2 wire-protocol headers applicable to the gRPC transport. Today the catalog holds the gRPC-applicable subset of cross-transport entries (`Authorization`, `x-d2-context`, `traceparent`, `tracestate`) at identical wire values. Codegen-emitted from `contracts/headers/headers.spec.json` via `DcsvIo.D2.Headers.SourceGen` (filtered with `applicability.Contains("grpc")`). Mirrors TS `@dcsv-io/d2-headers-grpc`.
-
----
+```bash
+dotnet add package DcsvIo.D2.Headers.Grpc
+```
 
 ## Public API
 
@@ -22,31 +22,17 @@ D2 wire-protocol headers applicable to the gRPC transport. Today the catalog hol
 | `GrpcHeaders.TRACESTATE`         | `const string "tracestate"`    | W3C tracestate (cross-transport)                                |
 | `GrpcHeaders.AllGrpcHeaders`     | `IReadOnlyList<string>`        | All wire values in `constName` order                            |
 
----
-
 ## Notes on gRPC framework constants
 
-gRPC framework constants like `grpc-encoding`, `grpc-status`, `grpc-message`, `grpc-timeout` come from `Grpc.Core.Metadata` and are NOT part of `headers.spec.json`. This catalog covers only D2-defined headers and the cross-transport ones that flow through gRPC alongside framework headers.
-
----
+gRPC framework constants like `grpc-encoding`, `grpc-status`, `grpc-message`, `grpc-timeout` come from `Grpc.Core.Metadata` and are NOT part of the headers contract spec. This catalog covers only D2-defined headers and the cross-transport ones that flow through gRPC alongside framework headers.
 
 ## When to reach for this catalog
 
-Use `DcsvIo.D2.Headers.Grpc` from any gRPC-context consumer — gRPC interceptors and host-supplied outbound client wrappers. On a cross-process hop the gRPC client typically forwards a once-minted internal transaction-token unchanged in the `Authorization` header over mTLS, which establishes workload identity; the prior `client_credentials` service-identity layer is superseded by that mTLS workload identity. The catalog values are identical to the corresponding entries in `DcsvIo.D2.Headers.Common` / `DcsvIo.D2.Headers.Http` (codegen-guaranteed and verified by `HeaderCatalogConsistencyTests`).
-
----
+Use `DcsvIo.D2.Headers.Grpc` from any gRPC-context consumer — gRPC interceptors and host-supplied outbound client wrappers. On a cross-process hop the gRPC client typically forwards a once-minted internal transaction-token unchanged in the `Authorization` header over mTLS, which establishes workload identity; the prior `client_credentials` service-identity layer is superseded by that mTLS workload identity. The catalog values are identical to the corresponding entries in `DcsvIo.D2.Headers.Common` / `DcsvIo.D2.Headers.Http` (codegen-guaranteed and verified by header catalog consistency tests).
 
 ## Spec contract
 
-`contracts/headers/headers.spec.json` is the single source of truth. Every entry whose `applicability` array contains `"grpc"` lives in this catalog.
-
----
-
-## Build-time diagnostics + generated output
-
-> Diagnostic IDs `D2HDR001`–`D2HDR007` and the generated-file path convention (`Generated/DcsvIo.D2.Headers.SourceGen/.../<Catalog>Headers.g.cs`) are documented at [`../source-gen/README.md` § Build-time diagnostics](../source-gen/README.md#build-time-diagnostics) and [§ Generated output convention](../source-gen/README.md#generated-output-convention).
-
----
+The headers contract spec is the single source of truth. Every entry whose `applicability` array contains `"grpc"` lives in this catalog.
 
 ## Dependencies
 
@@ -54,12 +40,4 @@ Use `DcsvIo.D2.Headers.Grpc` from any gRPC-context consumer — gRPC interceptor
 
 No runtime dependencies — pure constants.
 
----
-
-## Reference
-
-- [`contracts/headers/headers.spec.json`](../../../../contracts/headers/headers.spec.json) — source spec
-- [`DcsvIo.D2.Headers.SourceGen`](../source-gen/README.md) — emitter
-- [`DcsvIo.D2.Headers.Common`](../common/README.md) — cross-transport subset
-- [`DcsvIo.D2.Headers.Http`](../http/README.md) — HTTP-applicable subset
-- [`DcsvIo.D2.Headers.Amqp`](../amqp/README.md) — AMQP-applicable subset
+Sister packages: `DcsvIo.D2.Headers.Common`, `DcsvIo.D2.Headers.Http`, `DcsvIo.D2.Headers.Amqp`.

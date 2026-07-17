@@ -4,13 +4,17 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-i18n
 
-> Parent: [`packages/typescript/`](../README.md)
-
 `ITranslator` interface + `SupportedLocales` registry + default `Translator`
 implementation. Mirrors `DcsvIo.D2.I18n` (.NET) so cross-language wire stays
 consistent. The TS-side TK constants catalog itself is provided by Paraglide
 in the SvelteKit BFF; this package is the SHARED interface that any TS
 consumer (Paraglide-backed or hand-rolled) implements against.
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-i18n
+```
 
 ## Public API
 
@@ -26,8 +30,8 @@ consumer (Paraglide-backed or hand-rolled) implements against.
 
 ## Dependencies
 
-- `@dcsv-io/d2-utilities` (boundary helpers, env parsing)
-- `@dcsv-io/d2-i18n-abstractions` (TKMessage type + tk() factory)
+- `@dcsv-io/d2-utilities` — boundary helpers, env parsing
+- `@dcsv-io/d2-i18n-abstractions` — TKMessage type + tk() factory
 
 ## Usage example
 

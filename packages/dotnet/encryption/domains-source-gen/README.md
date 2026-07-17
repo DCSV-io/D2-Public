@@ -15,7 +15,7 @@ Roslyn incremental source generator that emits encryption-domain catalogs from `
 | Consuming assembly | Emitted types | Values |
 | --- | --- | --- |
 | `DcsvIo.D2.Encryption` | `EncryptionDomains` / `EncryptionDomainMode` / `EncryptionDomainModes` | public AdditionalFiles only |
-| Host extensions assembly (when present) | product domain overlays under host namespace | public∪host AdditionalFiles |
+| Host extensions assembly (when present) | host domain overlays under host namespace | public∪host AdditionalFiles |
 
 Any other assembly → no emit. A host extensions assembly (when present) is named 1:1 with the public twin plus a `.Extensions` suffix.
 

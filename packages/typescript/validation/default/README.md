@@ -4,11 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-validation
 
-> Parent: [`packages/typescript/`](../../README.md)
->
 > **Audience**: backend Node/TypeScript engineers + BFF code that needs to validate and normalize emails, phone numbers, and postal codes against the same rules the .NET services enforce.
 
-Default implementations of the three validator contracts declared in [`@dcsv-io/d2-validation-abstractions`](../abstractions/README.md). Mirrors [`DcsvIo.D2.Validation`](../../../dotnet/validation/default/README.md) (.NET) — same normalization rules, same per-field `D2Result<string>` contract, so a value accepted on one runtime is accepted on the other.
+Default implementations of the three validator contracts declared in `@dcsv-io/d2-validation-abstractions`. Mirrors `DcsvIo.D2.Validation` (.NET) — same normalization rules, same per-field `D2Result<string>` contract, so a value accepted on one runtime is accepted on the other.
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-validation
+```
 
 ## Validators
 
@@ -51,7 +55,7 @@ const postal = postalCodeValidator.validate("sw1a 1aa", CountryCode.GB);
 
 - **Email** — `EMAIL_PATTERN` is the shared source of truth. The exported constant is asserted byte-identical against the .NET `DefaultEmailValidator.EMAIL_PATTERN` const by a parity test. Change one side and the test fails until both match. ASCII-only by construction; total length 1-254; local part 1-64; at least one dot in the domain.
 - **Phone** — both runtimes delegate to a libphonenumber port (libphonenumber-js here, libphonenumber-csharp on .NET) and normalize to E.164, so the accept/reject decision and the normalized output match.
-- **Postal code** — both runtimes compile the SAME per-country regex map from the single shared dataset [`contracts/validation/postal-code-regexes.json`](../../../../contracts/validation/postal-code-regexes.json) (this package imports the JSON directly; the .NET side embeds it). Country-aware structural check; an **unknown _or absent_ country fails closed** (`POSTAL_CODE_INVALID`, never a throw) on both runtimes — there is no permissive country-agnostic fallback. Both runtimes normalize (trim + uppercase) before matching, and compile each pattern case-insensitively (TS `"i"` flag / .NET `RegexOptions.IgnoreCase`). The dataset is ported from `postcode-validator@3.10.9` with one deliberate correction (`[A-z]` → `[A-Za-z]` in the `UK`/`GB` patterns, an upstream bug).
+- **Postal code** — both runtimes compile the SAME per-country regex map from the single shared dataset `contracts/validation/postal-code-regexes.json` (this package imports the JSON directly; the .NET side embeds it). Country-aware structural check; an **unknown _or absent_ country fails closed** (`POSTAL_CODE_INVALID`, never a throw) on both runtimes — there is no permissive country-agnostic fallback. Both runtimes normalize (trim + uppercase) before matching, and compile each pattern case-insensitively (TS `"i"` flag / .NET `RegexOptions.IgnoreCase`). The dataset is ported from `postcode-validator@3.10.9` with one deliberate correction (`[A-z]` → `[A-Za-z]` in the `UK`/`GB` patterns, an upstream bug).
 - **Country mapping** — `CountryCode` from `@dcsv-io/d2-geo-abstractions` is a branded alpha-2 string whose runtime value IS the 2-letter region identifier `libphonenumber-js` expects and the dataset keys its per-country regexes on, so the bridge is a compile-time cast only.
 
 ## Version pins

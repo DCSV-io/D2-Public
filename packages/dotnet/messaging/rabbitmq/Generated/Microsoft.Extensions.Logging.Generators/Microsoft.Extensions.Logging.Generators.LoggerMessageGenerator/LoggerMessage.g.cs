@@ -19,6 +19,229 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Channels
         }
     }
 }
+namespace DcsvIo.D2.Messaging.RabbitMq.Connection
+{
+    partial class RabbitMqConnectionLog
+    {
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.Int32, global::System.Int32, global::System.Exception?> __ConnectionOpenedCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.Int32, global::System.Int32>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(1, nameof(ConnectionOpened)), "RabbitMQ connection opened to {Host}:{Port} (attempt {Attempt}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void ConnectionOpened(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String host, global::System.Int32 port, global::System.Int32 attempt)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
+            {
+                __ConnectionOpenedCallback(logger, host, port, attempt, null);
+            }
+        }
+        /// <summary> This API supports the logging infrastructure and is not intended to be used directly from your code. It is subject to change in the future. </summary>
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Never)]
+        private readonly struct __ReconnectAttemptFailedStruct : global::System.Collections.Generic.IReadOnlyList<global::System.Collections.Generic.KeyValuePair<string, object?>>
+        {
+            private readonly global::System.Int32 _attempt;
+            private readonly global::System.TimeSpan _delay;
+            private readonly global::System.String _exType;
+
+            public __ReconnectAttemptFailedStruct(global::System.Int32 attempt, global::System.TimeSpan delay, global::System.String exType)
+            {
+                this._attempt = attempt;
+                this._delay = delay;
+                this._exType = exType;
+
+            }
+
+            public override string ToString()
+            {
+                var Attempt = this._attempt;
+                var ExType = this._exType;
+                var Delay = this._delay;
+
+                return string.Create(global::System.Globalization.CultureInfo.InvariantCulture, $"RabbitMQ reconnect attempt {Attempt} failed (exType={ExType}); next try in {Delay}. Publishers return ServiceUnavailable, consumers idle until reconnect succeeds.");
+            }
+
+            public static readonly global::System.Func<__ReconnectAttemptFailedStruct, global::System.Exception?, string> Format = (state, ex) => state.ToString();
+
+            public int Count => 4;
+
+            public global::System.Collections.Generic.KeyValuePair<string, object?> this[int index]
+            {
+                get => index switch
+                {
+                    0 => new global::System.Collections.Generic.KeyValuePair<string, object?>("Attempt", this._attempt),
+                    1 => new global::System.Collections.Generic.KeyValuePair<string, object?>("Delay", this._delay),
+                    2 => new global::System.Collections.Generic.KeyValuePair<string, object?>("ExType", this._exType),
+                    3 => new global::System.Collections.Generic.KeyValuePair<string, object?>("{OriginalFormat}", "RabbitMQ reconnect attempt {Attempt} failed (exType={ExType}); next try in {Delay}. Publishers return ServiceUnavailable, consumers idle until reconnect succeeds."),
+
+                    _ => throw new global::System.IndexOutOfRangeException(nameof(index)),  // return the same exception LoggerMessage.Define returns in this case
+                };
+            }
+
+            public global::System.Collections.Generic.IEnumerator<global::System.Collections.Generic.KeyValuePair<string, object?>> GetEnumerator()
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    yield return this[i];
+                }
+            }
+
+            global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void ReconnectAttemptFailed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.Int32 attempt, global::System.TimeSpan delay, global::System.String exType)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
+            {
+                logger.Log(
+                    global::Microsoft.Extensions.Logging.LogLevel.Warning,
+                    new global::Microsoft.Extensions.Logging.EventId(2, nameof(ReconnectAttemptFailed)),
+                    new __ReconnectAttemptFailedStruct(attempt, delay, exType),
+                    null,
+                    __ReconnectAttemptFailedStruct.Format);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.Exception?> __ConnectionCloseFailedCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(3, nameof(ConnectionCloseFailed)), "RabbitMQ connection close raised an error (exType={ExType}); ignoring on shutdown.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void ConnectionCloseFailed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String exType)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
+            {
+                __ConnectionCloseFailedCallback(logger, exType, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Exception?> __StartupOpeningCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(4, nameof(StartupOpening)), "RabbitMQ ConnectionStartupHostedService starting background reconnect loop (host stays up while connection establishes).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void StartupOpening(global::Microsoft.Extensions.Logging.ILogger logger)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
+            {
+                __StartupOpeningCallback(logger, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.TimeSpan, global::System.Exception?> __ConnectionDegradedCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.TimeSpan>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(5, nameof(ConnectionDegraded)), "RabbitMQ connection has been degraded for {Down}. RabbitMQ.Client automatic recovery should restore it; if it stays down, restart this replica to force reconnection. Publishers return ServiceUnavailable; consumers idle.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void ConnectionDegraded(global::Microsoft.Extensions.Logging.ILogger logger, global::System.TimeSpan down)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
+            {
+                __ConnectionDegradedCallback(logger, down, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.TimeSpan, global::System.Exception?> __ConnectionRecoveredCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.TimeSpan>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(6, nameof(ConnectionRecovered)), "RabbitMQ connection recovered after {Down} of degradation.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void ConnectionRecovered(global::Microsoft.Extensions.Logging.ILogger logger, global::System.TimeSpan down)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
+            {
+                __ConnectionRecoveredCallback(logger, down, null);
+            }
+        }
+    }
+}
+namespace DcsvIo.D2.Messaging.RabbitMq.Topology
+{
+    partial class TopologyLog
+    {
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Int32, global::System.Exception?> __DeclarationStartedCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.Int32>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(200, nameof(DeclarationStarted)), "Declaring messaging topology: {SubscriberCount} subscriber(s).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void DeclarationStarted(global::Microsoft.Extensions.Logging.ILogger logger, global::System.Int32 subscriberCount)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
+            {
+                __DeclarationStartedCallback(logger, subscriberCount, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Double, global::System.Exception?> __DeclarationCompletedCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.Double>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(201, nameof(DeclarationCompleted)), "Topology declaration complete in {DurationMs:F0}ms.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void DeclarationCompleted(global::Microsoft.Extensions.Logging.ILogger logger, global::System.Double durationMs)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
+            {
+                __DeclarationCompletedCallback(logger, durationMs, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String, global::System.String, global::System.String, global::System.String, global::System.String, global::System.Exception?> __SubscriberTopologyDeclaredCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String, global::System.String, global::System.String, global::System.String, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(202, nameof(SubscriberTopologyDeclared)), "Declared exchange={Exchange} type={Type} queue={Queue} pattern={Pattern} (DLX={Dlx}, DLQ={Dlq}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void SubscriberTopologyDeclared(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String exchange, global::System.String type, global::System.String queue, global::System.String pattern, global::System.String dlx, global::System.String dlq)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
+            {
+                __SubscriberTopologyDeclaredCallback(logger, exchange, type, queue, pattern, dlx, dlq, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Int32, global::System.String, global::System.String, global::System.Exception?> __RetryTopologyDeclaredCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.Int32, global::System.String, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(203, nameof(RetryTopologyDeclared)), "Declared {TierCount} retry tier(s) for queue={Queue} (TTLs={Ttls}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void RetryTopologyDeclared(global::Microsoft.Extensions.Logging.ILogger logger, global::System.Int32 tierCount, global::System.String queue, global::System.String ttls)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
+            {
+                __RetryTopologyDeclaredCallback(logger, tierCount, queue, ttls, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String, global::System.Exception?> __DeclarationFailedCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(204, nameof(DeclarationFailed)), "Topology declaration failed ({ExceptionType}, queue={Queue}); host startup will fail. Likely causes: broker permissions, conflicting pre-existing declarations.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void DeclarationFailed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String exceptionType, global::System.String queue)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Error))
+            {
+                __DeclarationFailedCallback(logger, exceptionType, queue, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Exception?> __DeclarationFailedFaultSinkCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(206, nameof(DeclarationFailedFaultSink)), "Topology declaration cycle faulted in background; host startup will fail.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void DeclarationFailedFaultSink(global::Microsoft.Extensions.Logging.ILogger logger, global::System.Exception ex)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Error))
+            {
+                __DeclarationFailedFaultSinkCallback(logger, ex);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Exception?> __NoSubscribersToDeclareCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(205, nameof(NoSubscribersToDeclare)), "Topology hosted service: no subscribers registered; nothing to declare.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void NoSubscribersToDeclare(global::Microsoft.Extensions.Logging.ILogger logger)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
+            {
+                __NoSubscribersToDeclareCallback(logger, null);
+            }
+        }
+    }
+}
 namespace DcsvIo.D2.Messaging.RabbitMq.Subscribing
 {
     partial class SubscriberLog
@@ -385,229 +608,6 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Telemetry
             if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
             {
                 __PublishConfirmTimeoutCallback(logger, timeoutMs, exchange, routingKey, null);
-            }
-        }
-    }
-}
-namespace DcsvIo.D2.Messaging.RabbitMq.Topology
-{
-    partial class TopologyLog
-    {
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Int32, global::System.Exception?> __DeclarationStartedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.Int32>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(200, nameof(DeclarationStarted)), "Declaring messaging topology: {SubscriberCount} subscriber(s).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
-
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        public static partial void DeclarationStarted(global::Microsoft.Extensions.Logging.ILogger logger, global::System.Int32 subscriberCount)
-        {
-            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
-            {
-                __DeclarationStartedCallback(logger, subscriberCount, null);
-            }
-        }
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Double, global::System.Exception?> __DeclarationCompletedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.Double>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(201, nameof(DeclarationCompleted)), "Topology declaration complete in {DurationMs:F0}ms.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
-
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        public static partial void DeclarationCompleted(global::Microsoft.Extensions.Logging.ILogger logger, global::System.Double durationMs)
-        {
-            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
-            {
-                __DeclarationCompletedCallback(logger, durationMs, null);
-            }
-        }
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String, global::System.String, global::System.String, global::System.String, global::System.String, global::System.Exception?> __SubscriberTopologyDeclaredCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String, global::System.String, global::System.String, global::System.String, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(202, nameof(SubscriberTopologyDeclared)), "Declared exchange={Exchange} type={Type} queue={Queue} pattern={Pattern} (DLX={Dlx}, DLQ={Dlq}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
-
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        public static partial void SubscriberTopologyDeclared(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String exchange, global::System.String type, global::System.String queue, global::System.String pattern, global::System.String dlx, global::System.String dlq)
-        {
-            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
-            {
-                __SubscriberTopologyDeclaredCallback(logger, exchange, type, queue, pattern, dlx, dlq, null);
-            }
-        }
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Int32, global::System.String, global::System.String, global::System.Exception?> __RetryTopologyDeclaredCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.Int32, global::System.String, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(203, nameof(RetryTopologyDeclared)), "Declared {TierCount} retry tier(s) for queue={Queue} (TTLs={Ttls}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
-
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        public static partial void RetryTopologyDeclared(global::Microsoft.Extensions.Logging.ILogger logger, global::System.Int32 tierCount, global::System.String queue, global::System.String ttls)
-        {
-            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
-            {
-                __RetryTopologyDeclaredCallback(logger, tierCount, queue, ttls, null);
-            }
-        }
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String, global::System.Exception?> __DeclarationFailedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(204, nameof(DeclarationFailed)), "Topology declaration failed ({ExceptionType}, queue={Queue}); host startup will fail. Likely causes: broker permissions, conflicting pre-existing declarations.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
-
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        public static partial void DeclarationFailed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String exceptionType, global::System.String queue)
-        {
-            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Error))
-            {
-                __DeclarationFailedCallback(logger, exceptionType, queue, null);
-            }
-        }
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Exception?> __DeclarationFailedFaultSinkCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(206, nameof(DeclarationFailedFaultSink)), "Topology declaration cycle faulted in background; host startup will fail.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
-
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        public static partial void DeclarationFailedFaultSink(global::Microsoft.Extensions.Logging.ILogger logger, global::System.Exception ex)
-        {
-            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Error))
-            {
-                __DeclarationFailedFaultSinkCallback(logger, ex);
-            }
-        }
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Exception?> __NoSubscribersToDeclareCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(205, nameof(NoSubscribersToDeclare)), "Topology hosted service: no subscribers registered; nothing to declare.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
-
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        public static partial void NoSubscribersToDeclare(global::Microsoft.Extensions.Logging.ILogger logger)
-        {
-            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
-            {
-                __NoSubscribersToDeclareCallback(logger, null);
-            }
-        }
-    }
-}
-namespace DcsvIo.D2.Messaging.RabbitMq.Connection
-{
-    partial class RabbitMqConnectionLog
-    {
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.Int32, global::System.Int32, global::System.Exception?> __ConnectionOpenedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.Int32, global::System.Int32>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(1, nameof(ConnectionOpened)), "RabbitMQ connection opened to {Host}:{Port} (attempt {Attempt}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
-
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        public static partial void ConnectionOpened(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String host, global::System.Int32 port, global::System.Int32 attempt)
-        {
-            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
-            {
-                __ConnectionOpenedCallback(logger, host, port, attempt, null);
-            }
-        }
-        /// <summary> This API supports the logging infrastructure and is not intended to be used directly from your code. It is subject to change in the future. </summary>
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Never)]
-        private readonly struct __ReconnectAttemptFailedStruct : global::System.Collections.Generic.IReadOnlyList<global::System.Collections.Generic.KeyValuePair<string, object?>>
-        {
-            private readonly global::System.Int32 _attempt;
-            private readonly global::System.TimeSpan _delay;
-            private readonly global::System.String _exType;
-
-            public __ReconnectAttemptFailedStruct(global::System.Int32 attempt, global::System.TimeSpan delay, global::System.String exType)
-            {
-                this._attempt = attempt;
-                this._delay = delay;
-                this._exType = exType;
-
-            }
-
-            public override string ToString()
-            {
-                var Attempt = this._attempt;
-                var ExType = this._exType;
-                var Delay = this._delay;
-
-                return string.Create(global::System.Globalization.CultureInfo.InvariantCulture, $"RabbitMQ reconnect attempt {Attempt} failed (exType={ExType}); next try in {Delay}. Publishers return ServiceUnavailable, consumers idle until reconnect succeeds.");
-            }
-
-            public static readonly global::System.Func<__ReconnectAttemptFailedStruct, global::System.Exception?, string> Format = (state, ex) => state.ToString();
-
-            public int Count => 4;
-
-            public global::System.Collections.Generic.KeyValuePair<string, object?> this[int index]
-            {
-                get => index switch
-                {
-                    0 => new global::System.Collections.Generic.KeyValuePair<string, object?>("Attempt", this._attempt),
-                    1 => new global::System.Collections.Generic.KeyValuePair<string, object?>("Delay", this._delay),
-                    2 => new global::System.Collections.Generic.KeyValuePair<string, object?>("ExType", this._exType),
-                    3 => new global::System.Collections.Generic.KeyValuePair<string, object?>("{OriginalFormat}", "RabbitMQ reconnect attempt {Attempt} failed (exType={ExType}); next try in {Delay}. Publishers return ServiceUnavailable, consumers idle until reconnect succeeds."),
-
-                    _ => throw new global::System.IndexOutOfRangeException(nameof(index)),  // return the same exception LoggerMessage.Define returns in this case
-                };
-            }
-
-            public global::System.Collections.Generic.IEnumerator<global::System.Collections.Generic.KeyValuePair<string, object?>> GetEnumerator()
-            {
-                for (int i = 0; i < 4; i++)
-                {
-                    yield return this[i];
-                }
-            }
-
-            global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
-        }
-
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        public static partial void ReconnectAttemptFailed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.Int32 attempt, global::System.TimeSpan delay, global::System.String exType)
-        {
-            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
-            {
-                logger.Log(
-                    global::Microsoft.Extensions.Logging.LogLevel.Warning,
-                    new global::Microsoft.Extensions.Logging.EventId(2, nameof(ReconnectAttemptFailed)),
-                    new __ReconnectAttemptFailedStruct(attempt, delay, exType),
-                    null,
-                    __ReconnectAttemptFailedStruct.Format);
-            }
-        }
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.Exception?> __ConnectionCloseFailedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(3, nameof(ConnectionCloseFailed)), "RabbitMQ connection close raised an error (exType={ExType}); ignoring on shutdown.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
-
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        public static partial void ConnectionCloseFailed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String exType)
-        {
-            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
-            {
-                __ConnectionCloseFailedCallback(logger, exType, null);
-            }
-        }
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Exception?> __StartupOpeningCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(4, nameof(StartupOpening)), "RabbitMQ ConnectionStartupHostedService starting background reconnect loop (host stays up while connection establishes).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
-
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        public static partial void StartupOpening(global::Microsoft.Extensions.Logging.ILogger logger)
-        {
-            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
-            {
-                __StartupOpeningCallback(logger, null);
-            }
-        }
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.TimeSpan, global::System.Exception?> __ConnectionDegradedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.TimeSpan>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(5, nameof(ConnectionDegraded)), "RabbitMQ connection has been degraded for {Down}. RabbitMQ.Client automatic recovery should restore it; if it stays down, restart this replica to force reconnection. Publishers return ServiceUnavailable; consumers idle.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
-
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        public static partial void ConnectionDegraded(global::Microsoft.Extensions.Logging.ILogger logger, global::System.TimeSpan down)
-        {
-            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
-            {
-                __ConnectionDegradedCallback(logger, down, null);
-            }
-        }
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.TimeSpan, global::System.Exception?> __ConnectionRecoveredCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.TimeSpan>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(6, nameof(ConnectionRecovered)), "RabbitMQ connection recovered after {Down} of degradation.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
-
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        public static partial void ConnectionRecovered(global::Microsoft.Extensions.Logging.ILogger logger, global::System.TimeSpan down)
-        {
-            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
-            {
-                __ConnectionRecoveredCallback(logger, down, null);
             }
         }
     }

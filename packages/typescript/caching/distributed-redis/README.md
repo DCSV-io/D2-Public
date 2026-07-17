@@ -4,9 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-caching-distributed-redis
 
-> Parent: [`../README.md`](../README.md) · .NET mirror: `DcsvIo.D2.Caching.Distributed.Redis`
+.NET mirror: `DcsvIo.D2.Caching.Distributed.Redis`
 
 Node/BFF authors who need a cluster-scoped `IDistributedCache` inject this Redis implementation — Basic + Atomic + Broadcast + Set over Redis, a pub/sub invalidation backplane on channel `d2:cache:invalidations`, JSON serialization, aggregate OTel counters, and `@dcsv-io/d2-result` shapes on every operation.
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-caching-distributed-redis
+```
 
 ## Usage
 
@@ -48,7 +54,8 @@ await using (backplane.subscribe(async (key) => {
   // subscription active
 }
 // backplane dispose quits the owned subscriber only; host still owns `redis`
-await backplane[Symbol.asyncDispose]();
+const dispose = backplane[Symbol.asyncDispose];
+await dispose.call(backplane);
 ```
 
 ## Construction + options
@@ -98,22 +105,22 @@ Construction (`RangeError` / fixed connect throw — not `D2Result`):
 - `commandTimeoutMs` / `connectTimeoutMs` — finite `> 0`.
 - `connectRetries` — non-negative safe integer.
 - `connectionString` falsey on `connectRedis` — fixed message throw (never
-  interpolates input).
+ interpolates input).
 
 Per-call (validationFailed via `InputFailures` unless noted):
 
 - Falsey `key` / keys / `lockId` / set member as applicable.
 - Optional `expirationMs` when present: finite and `> 0`.
 - `increment` `amount` when present: must be a safe integer
-  (`NaN` / ±`Infinity` / `0.5` / non-safe → field `amount`, invalid not
-  NOT_NULL).
+ (`NaN` / ±`Infinity` / `0.5` / non-safe → field `amount`, invalid not
+ NOT_NULL).
 - `increment` result bound: Lua `INCREMENT_WITH_OPTIONAL_TTL` (byte-equal twin
-  of .NET) refuses results outside ±9007199254740991 (`Number.MAX_SAFE_INTEGER`)
-  by reversing `DECRBY` **in the same script** and returning
-  `ERR safe_integer_overflow` → validationFailed field `amount`. No
-  client-side race window; behavior matches .NET.
+ of .NET) refuses results outside ±9007199254740991 (`Number.MAX_SAFE_INTEGER`)
+ by reversing `DECRBY` **in the same script** and returning
+ `ERR safe_integer_overflow` → validationFailed field `amount`. No
+ client-side race window; behavior matches .NET.
 - `acquireLock` `expirationMs`: finite and `> 0` (required param; invalid value
-  → invalid field error).
+ → invalid field error).
 
 ## TTL semantics
 
@@ -160,9 +167,9 @@ An aborted signal at method entry returns `canceled` without touching Redis. The
 - Connection is injected (no MS.DI helper required beyond `connectRedis`).
 - Durations are millisecond numbers, not `TimeSpan`.
 - Counter / lock values are JS numbers within `Number.MAX_SAFE_INTEGER`;
-  `increment` rejects non-safe-integer `amount` and non-safe-integer results
-  (validationFailed field `amount`). Redis integer range is wider; callers must
-  keep counters in the JS safe-integer band.
+ `increment` rejects non-safe-integer `amount` and non-safe-integer results
+ (validationFailed field `amount`). Redis integer range is wider; callers must
+ keep counters in the JS safe-integer band.
 - `AbortSignal` is entry-level only.
 - Broadcast registration and subscribe-after-dispose use plain `Error` (not BCL exception types).
 - Cache type has no dispose (host owns the command client), matching .NET not disposing the multiplexer from the cache.
@@ -181,8 +188,9 @@ An aborted signal at method entry returns `canceled` without touching Redis. The
 | `@opentelemetry/api` | Meter / counters |
 | `ioredis` | Redis command + subscriber clients |
 
-## References
+## Sister packages
 
-- [`../abstractions/README.md`](../abstractions/README.md)
-- [`../README.md`](../README.md)
-- .NET twin: `packages/dotnet/caching/distributed-redis/`
+- `@dcsv-io/d2-caching-abstractions` — ports + result mapping
+- `@dcsv-io/d2-caching-local-default` — typical L1
+- `@dcsv-io/d2-caching-tiered` — L1+L2 composition
+- .NET twin: `DcsvIo.D2.Caching.Distributed.Redis`

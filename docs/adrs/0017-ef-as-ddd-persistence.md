@@ -26,11 +26,11 @@ Entity Framework Core, used correctly, already provides:
 - OTel instrumentation at the SQL level (via `Microsoft.EntityFrameworkCore.Diagnostics`)
 - DB-exception classification via `IDbExceptionClassifier` (already in `BaseRepoHandler`)
 
-KeyCustodian is the first service pilot for the new pattern.
+The first long-lived secret lifecycle store was the pilot for the new pattern.
 
 ### The persistence-mechanism problem: immutable sum-type aggregates do not map to a polymorphic EF entity
 
-KeyCustodian's domain (ADR-0016) is an **immutable sum-type state machine**: a sealed base record (`EncryptionKey`) + one sealed per-state type (`PendingKey` / `ActiveKey` / `RetiringKey` / `RetiredKey` / `CompromisedKey`) + total transitions that return a *new* instance of the next state. This is the right domain model — illegal transitions are uncompilable (§9.31 at the type level). The question this ADR settles is how that domain is persisted.
+That pilot domain is an **immutable sum-type state machine**: a sealed base record (`EncryptionKey`) + one sealed per-state type (`PendingKey` / `ActiveKey` / `RetiringKey` / `RetiredKey` / `CompromisedKey`) + total transitions that return a *new* instance of the next state. This is the right domain model — illegal transitions are uncompilable (§9.31 at the type level). The question this ADR settles is how that domain is persisted.
 
 The original TPH-entity plan was to make the aggregate IS the EF entity and map it TPH (`TABLE PER HIERARCHY`): one table, a `KeyStatus` discriminator column mapped to the CLR type, and "transitions = delete-old-state row + insert-new-state row at the same PK in one `SaveChangesAsync`." A throwaway Testcontainers-Postgres spike (EF Core 10.0.7 / Npgsql.EFC 10.0.1 / Postgres 17, 2026-06-09) **falsified that plan**. The plan rested on the premise that "a discriminator mapped to a read-only `Status` since EF Core 5 is not a tracked mutation, so morphing the entity's runtime type is fine." That premise is FALSE. Three confirmed EF behaviors converge into a wall — EF Core **will not morph a tracked entity's runtime CLR type** (Zoran Horvat's "Wall #1"):
 
@@ -85,7 +85,7 @@ Query handlers (read-only — JWKS assembly, key status lookups) inherit `BaseHa
 
 ### Boilerplate at scale → source-gen amortization
 
-The Record + mapper + EF config + query extensions for a state-machine aggregate are mechanical (~120–180 lines per aggregate, derivable from the sealed-state shapes). **HAND-WRITE the first pilot (KeyCustodian) by hand.** Once the shape is proven across 2–3 aggregates, extract a Roslyn source generator that emits them per aggregate from the sealed-state hierarchy. Do not build the generator before the shape is proven.
+The Record + mapper + EF config + query extensions for a state-machine aggregate are mechanical (~120–180 lines per aggregate, derivable from the sealed-state shapes). **HAND-WRITE the first pilot by hand.** Once the shape is proven across 2–3 aggregates, extract a Roslyn source generator that emits them per aggregate from the sealed-state hierarchy. Do not build the generator before the shape is proven.
 
 ### What is unchanged
 
@@ -132,5 +132,5 @@ For an aggregate that is BOTH **audit-defining** (the history IS the product, no
 
 - Example application: long-lived secret lifecycle stores that use sum-type domain states + a concrete flat record schema this convention persists; `pg_try_advisory_lock` rotation coordination complements the `xmin` concurrency token.
 - [ADR-0001](0001-contacts-folded-owned-component.md) — the EF VO mapping pattern (complex types + value converters) the Record's VO columns reuse.
-- [ADR-0018](0018-spec-driven-error-codes.md) / [ADR-0019](0019-wrapped-result-wire-model.md) — the error-code + wrapped-result conventions KeyCustodian's handlers surface failures through.
+- [ADR-0018](0018-spec-driven-error-codes.md) / [ADR-0019](0019-wrapped-result-wire-model.md) — the error-code + wrapped-result conventions CQRS handlers surface failures through.
 - Persistence-strategy spike (EF Core 10.0.7 / Npgsql.EFC 10.0.1 / Postgres 17) — 6/6 validated; the throwaway Testcontainers spike falsified TPH delete+insert (morph-wall, stale-column UPDATE, get-only discriminator) and confirmed flat-record Shape B as the decision rationale for this ADR.

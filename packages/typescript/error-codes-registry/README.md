@@ -11,18 +11,24 @@ a wire error code to its full metadata (httpStatus, semantic category,
 user-message TK key, factory name/shape, doc, domain) without importing the
 producer's catalog.
 
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-error-codes-registry
+```
+
 ## Key facts
 
 - **Generated**: `src/generated/error-code-registry.g.ts` is auto-generated
-  from the error-codes specs (sources committed) — do not hand-edit.
-  Re-generate with `pnpm --filter ts-codegen run codegen --force`.
+ from the error-codes specs (sources committed) — do not hand-edit.
+ Re-generate with `pnpm --filter ts-codegen run codegen --force`.
 - **Leaf package**: depends only on `@dcsv-io/d2-i18n-abstractions` + `@dcsv-io/d2-i18n-keys`;
-  nothing depends up into it except boundary consumers (Edge/BFF).
+ nothing depends up into it except boundary consumers (Edge/BFF).
 - **Collision-safe**: the emitter hard-fails at codegen time on any
-  cross-catalog code collision (`D2ERC004`) or reserved-namespace violation
-  (`D2ERC005`). No registry is emitted until violations are resolved.
+ cross-catalog code collision (`D2ERC004`) or reserved-namespace violation
+ (`D2ERC005`). No registry is emitted until violations are resolved.
 - **Cross-runtime parity**: mirrors `DcsvIo.D2.ErrorCodes.Registry` (.NET)
-  — same 8 fields, same domain tokens, same category wire-strings.
+ — same 8 fields, same domain tokens, same category wire-strings.
 
 ## API
 

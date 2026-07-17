@@ -15,6 +15,11 @@ Keep a Changelog, and this package adheres to Semantic Versioning.
 
 ### Fixed
 
+## 0.1.3-beta.1 - 2026-07-17
+### Changed
+
+- Dependency update: DcsvIo.D2.AspNetCore bumped.
+- Remains **prerelease** (NU5104) while OpenTelemetry Prometheus / GrpcNetClient / Process instrumentations stay non-stable.
 ## 0.1.2-beta.1 - 2026-07-17
 ### Changed
 

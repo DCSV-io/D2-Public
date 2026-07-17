@@ -4,8 +4,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Location.EntityFrameworkCore
 
-> Parent: [`location/`](../README.md) · [`packages/dotnet/`](../../README.md)
->
 > **Audience**: backend .NET service engineers mapping `DcsvIo.D2.Location` value objects into EF Core entity models via infra `IEntityTypeConfiguration<T>`.
 
 Per-VO complex-type and value-converter mapping helpers for the DcsvIo.D2.Location value
@@ -24,6 +22,12 @@ Each helper, in one call:
 Ships no `DbContext`, no migrations, and no DI engine. The host owns all of those.
 
 ---
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Location.EntityFrameworkCore
+```
 
 ## Domain purity
 
@@ -121,7 +125,7 @@ Tombstone values are non-i18n literals — deliberately stable across locales.
 
 For the EF Core 10 limitation on indexing `ComplexProperty` member columns (e.g.
 `AdminLocation.City`) and the `CreateD2Index` workaround, see
-[`DcsvIo.D2.EntityFrameworkCore`](../../entity-framework-core/README.md).
+`DcsvIo.D2.EntityFrameworkCore`.
 
 ---
 

@@ -71,7 +71,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <PackageId>DcsvIo.D2.Validation.Abstractions</PackageId>
     <Description>Validation contract surface for D2 — email, phone, and postal-code validator interfaces, shared field-length bounds, and the name/sex taxonomy enums.</Description>
     <IsPackable>true</IsPackable>

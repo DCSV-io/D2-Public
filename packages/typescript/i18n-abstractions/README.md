@@ -4,14 +4,18 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-i18n-abstractions
 
-> Parent: [`packages/typescript/`](../README.md)
-
 Foundational, zero-dependency package that declares the i18n primitive types:
 the `TKMessage` translation-message shape, the `tk()` factory that constructs
 one, and the spec-derived `TkMessageWireShape` property-name catalog. Mirrors
 `DcsvIo.D2.I18n.Abstractions` on the .NET side — a leaf package with no outbound
 dependencies, so any package in the graph can import these primitives without
 risking a circular dependency.
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-i18n-abstractions
+```
 
 ## Public API
 

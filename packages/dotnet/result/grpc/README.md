@@ -9,6 +9,12 @@ Faithful in-memory → wire → in-memory `D2Result` round-trip over a gRPC
 as-is; the framework wraps it; the consumer re-materializes an equal `D2Result`
 on the other side — zero caller try-catch for business failures.
 
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Result.Grpc
+```
+
 ## Core API
 
 ```csharp
@@ -58,18 +64,15 @@ Two mechanisms coexist on every gRPC call — each has a distinct role and must 
 
 ## Proto contract
 
-`contracts/protos/common/v1/d2_result.proto` is the single source of truth. The
-generated `D2ResultProto` / `TKMessageProto` / `InputErrorProto` types live in namespace
+The shared `d2_result.proto` contract is the single source of truth. Generated
+`D2ResultProto` / `TKMessageProto` / `InputErrorProto` types live in namespace
 `D2.Services.Protos.Common.V1`.
 
-## Dependencies (acyclic)
+## Dependencies
 
-```
-DcsvIo.D2.Result.Grpc
-  ├── DcsvIo.D2.Result          (result-core — D2Result, InputError, TKMessage)
-  ├── DcsvIo.D2.ErrorCodes.Category   (ErrorCategory, ErrorCategoryWire)
-  ├── DcsvIo.D2.Utilities       (Falsey() null-guard)
-  ├── DcsvIo.D2.I18n.Abstractions     (TKMessage ctor — InternalsVisibleTo)
-  ├── Google.Protobuf           (proto runtime)
-  └── Grpc.Net.Client           (AsyncUnaryCall<T>, RpcException)
-```
+- `DcsvIo.D2.Result` — result-core (`D2Result`, `InputError`, `TKMessage` surface)
+- `DcsvIo.D2.ErrorCodes.Category` — `ErrorCategory`, `ErrorCategoryWire`
+- `DcsvIo.D2.Utilities` — `Falsey()` null-guard
+- `DcsvIo.D2.I18n.Abstractions` — `TKMessage` ctor (`InternalsVisibleTo`)
+- `Google.Protobuf` — proto runtime
+- `Grpc.Net.Client` — `AsyncUnaryCall<T>`, `RpcException`

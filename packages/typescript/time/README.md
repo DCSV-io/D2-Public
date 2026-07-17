@@ -4,12 +4,16 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-time
 
-> Parent: [`packages/typescript/`](../README.md)
->
 > **Audience**: backend Node/TypeScript service and BFF engineers who need the same deterministic clock seam and temporal storage types as `DcsvIo.D2.Time` (.NET).
 
 Temporal-API wrapper providing the `IClock` injection seam + Category 1/3
 temporal storage types. Mirrors `DcsvIo.D2.Time` (.NET).
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-time
+```
 
 ## Overview
 
@@ -121,5 +125,5 @@ No configuration — zero-config; consumers register `IClock → SystemClock` th
 ## Dependencies
 
 - `temporal-polyfill` (npm)
-- `@dcsv-io/d2-i18n-keys` (workspace) — generated TK constant catalog; `TK.common.errors.*` and `TK.common.time.*` keys used by the `create` factories.
-- `@dcsv-io/d2-result` (workspace) — `D2Result<T>`, `InputError`, and TK helpers returned by the `create` factories.
+- `@dcsv-io/d2-i18n-keys` — generated TK constant catalog; `TK.common.errors.*` and `TK.common.time.*` keys used by the `create` factories.
+- `@dcsv-io/d2-result` — `D2Result<T>`, `InputError`, and TK helpers returned by the `create` factories.

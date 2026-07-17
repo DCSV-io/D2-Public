@@ -4,13 +4,17 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Validation
 
-> Parent: [`packages/dotnet/`](../../README.md)
->
 > **Audience**: backend .NET service engineers integrating the validators via DI — email,
 > phone, and postal-code validation backed by libphonenumber-csharp and a ported
 > postcode-validator dataset.
 
 Default implementations of the three validator contracts from `DcsvIo.D2.Validation.Abstractions`.
+
+## Install
+
+```bash
+dotnet add package DcsvIo.D2.Validation
+```
 
 ## Validators
 

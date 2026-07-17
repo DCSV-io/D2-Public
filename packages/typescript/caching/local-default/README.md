@@ -4,9 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-caching-local-default
 
-> Parent: [`../README.md`](../README.md) · .NET mirror: `DcsvIo.D2.Caching.Local.Default`
+.NET mirror: `DcsvIo.D2.Caching.Local.Default`
 
 Node/BFF authors who need a per-process `ILocalCache` inject this default in-process implementation — an LRU map store with TTL tracking, process-scope atomic primitives (set-if-absent, counters, locks), aggregate OTel counters, and `@dcsv-io/d2-result` shapes on every operation. This README covers usage, construction, per-operation semantics, TTL and eviction rules, telemetry, and disposal.
+
+## Install
+
+```bash
+pnpm add @dcsv-io/d2-caching-local-default
+```
 
 ## Usage
 
@@ -60,10 +66,10 @@ Construct once at the composition root and share the instance
 ## Public surface
 
 - **`DefaultLocalCache`** — implements `ILocalCache` (`ICacheBasic` +
-  `ICacheAtomic`) and `Disposable`.
+ `ICacheAtomic`) and `Disposable`.
 - **`LOCAL_CACHE_METER_NAME`**, **`LOCAL_CACHE_METER_VERSION`**,
-  **`LOCAL_CACHE_INSTRUMENTS`** — OpenTelemetry meter identity + instrument
-  metadata SoT (used by counters and dual-runtime parity).
+ **`LOCAL_CACHE_INSTRUMENTS`** — OpenTelemetry meter identity + instrument
+ metadata SoT (used by counters and dual-runtime parity).
 
 **Basic:** `get`, `getMany`, `exists`, `getTtl`, `set`, `setMany`, `remove`,
 `removeMany` (each accepts optional trailing `signal?: AbortSignal`; durations
@@ -94,20 +100,20 @@ Validation failures name the TS parameter (`expirationMs`, `amount`, `key`,
 Construction (`RangeError`, not `D2Result`):
 
 - `maxEntries` — non-negative safe integer (`Number.isSafeInteger` and `>= 0`);
-  rejects `NaN`, ±`Infinity`, non-integers, and values outside safe-integer range.
+ rejects `NaN`, ±`Infinity`, non-integers, and values outside safe-integer range.
 - `defaultExpirationMs` — finite number (`Number.isFinite`); `Number.MAX_VALUE`
-  is accepted; `<= 0` means “no default TTL” (not a construction error).
+ is accepted; `<= 0` means “no default TTL” (not a construction error).
 
 Per-call (validationFailed via `InputFailures`):
 
 - Falsey `key` / element of `keys` / map key in `entries` / `lockId`.
 - Optional `expirationMs` when present: must be finite and `> 0`
-  (`NaN` / ±`Infinity` / `<= 0` → field `expirationMs`).
+ (`NaN` / ±`Infinity` / `<= 0` → field `expirationMs`).
 - `increment` `amount` when present: must be a safe integer
-  (`NaN` / ±`Infinity` / non-integer / non-safe → field `amount`).
+ (`NaN` / ±`Infinity` / non-integer / non-safe → field `amount`).
 - `increment` after computing `next = current + amount`: if
-  `!Number.isSafeInteger(next)` → field `amount` **before** write (store
-  unchanged). Existing non-safe-integer / non-number values → `conflict`.
+ `!Number.isSafeInteger(next)` → field `amount` **before** write (store
+ unchanged). Existing non-safe-integer / non-number values → `conflict`.
 - `acquireLock` `expirationMs`: finite and `> 0` (required).
 
 ## TTL semantics
@@ -115,9 +121,9 @@ Per-call (validationFailed via `InputFailures`):
 - Omitted `expirationMs` on write → `defaultExpirationMs`.
 - `defaultExpirationMs <= 0` means entries store without expiry.
 - Explicit `expirationMs` must be a positive finite number (zero / negative /
-  non-finite are validation failures, never "no TTL").
+ non-finite are validation failures, never "no TTL").
 - `increment` / `setNx` apply TTL only on create; existing keys preserve TTL
-  (`increment` ignores `expirationMs` on the existing path).
+ (`increment` ignores `expirationMs` on the existing path).
 - `getTtl` has three outcomes: `notFound` / `ok(ms)` / `ok(undefined)`.
 - Expiry is checked lazily on access with the injected clock (strict `<=`).
 
@@ -189,17 +195,17 @@ operation completes synchronously in process, so there is no cancellation window
 - Synchronous LRU vs async IMemoryCache compaction (see Capacity + eviction).
 - Single-record TTL (no transient no-TTL `getTtl` after capacity eviction).
 - Post-dispose exception type — every operation, including `acquireLock` /
-  `releaseLock`, throws after `dispose()` (matching .NET fail-closed dispose on
-  all public ops including locks). TS throws a plain `Error` with a pinned
-  message; .NET throws `ObjectDisposedException`.
+ `releaseLock`, throws after `dispose()` (matching .NET fail-closed dispose on
+ all public ops including locks). TS throws a plain `Error` with a pinned
+ message; .NET throws `ObjectDisposedException`.
 - Validation additionally rejects non-finite `expirationMs` / non-safe-integer
-  `amount`, and refuses an `increment` whose computed next value is outside
-  `Number.MAX_SAFE_INTEGER` (field `amount`; write skipped). The `number` type
-  admits values `TimeSpan` / `long` structurally cannot.
+ `amount`, and refuses an `increment` whose computed next value is outside
+ `Number.MAX_SAFE_INTEGER` (field `amount`; write skipped). The `number` type
+ admits values `TimeSpan` / `long` structurally cannot.
 - Counter values are safe-integer JS numbers (port-documented bound); precision
-  beyond that range is not supported.
+ beyond that range is not supported.
 - `get<T>` type parameters are caller-asserted and erased at runtime (the .NET
-  generic cast throws on a wrong-type read; TS cannot).
+ generic cast throws on a wrong-type read; TS cannot).
 
 ## Dependencies
 
@@ -208,9 +214,9 @@ operation completes synchronously in process, so there is no cancellation window
 - `@dcsv-io/d2-utilities` — `falsey`
 - `@opentelemetry/api` — counters
 
-## References
+## Sister packages
 
-- [`../abstractions/README.md`](../abstractions/README.md) — ports + result mapping
-  + key convention / PII guidance
-- [`../README.md`](../README.md) — caching cluster
-- .NET twin: `packages/dotnet/caching/local-default/`
+- `@dcsv-io/d2-caching-abstractions` — ports + result mapping + key convention / PII guidance
+- `@dcsv-io/d2-caching-distributed-redis` — Redis + backplane
+- `@dcsv-io/d2-caching-tiered` — L1+L2 composition
+- .NET twin: `DcsvIo.D2.Caching.Local.Default`
