@@ -3,78 +3,6 @@
 
 namespace DcsvIo.D2.Encryption
 {
-    partial class SealedEncryptionSourceStartupCheckLog
-    {
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Exception?> __NoRecipientsRegisteredCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(1, nameof(NoRecipientsRegistered)), "SealedEncryptionSourceStartupCheck registered but no sealed recipients were registered — nothing to verify.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
-
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        public static partial void NoRecipientsRegistered(global::Microsoft.Extensions.Logging.ILogger logger)
-        {
-            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
-            {
-                __NoRecipientsRegisteredCallback(logger, null);
-            }
-        }
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.Exception?> __SourceCheckPassedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Debug, new global::Microsoft.Extensions.Logging.EventId(2, nameof(SourceCheckPassed)), "Sealed encryption recipient {RecipientServiceId} is KeyCustodian-sourced — provenance check passed.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
-
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        public static partial void SourceCheckPassed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String recipientServiceId)
-        {
-            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Debug))
-            {
-                __SourceCheckPassedCallback(logger, recipientServiceId, null);
-            }
-        }
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.Exception?> __StaticSourceInDevelopmentCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(3, nameof(StaticSourceInDevelopment)), "Sealed encryption recipient {RecipientServiceId} is backed by a static / unmarked source rather than a KeyCustodian-sourced, rotation-aware keyring. Permitted only in a Development host; a non-Development host crashes. Register it through a KeyCustodian sealed source (or mark it via MarkD2EncryptionSource).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
-
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        public static partial void StaticSourceInDevelopment(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String recipientServiceId)
-        {
-            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
-            {
-                __StaticSourceInDevelopmentCallback(logger, recipientServiceId, null);
-            }
-        }
-    }
-}
-namespace DcsvIo.D2.Encryption
-{
-    partial class EncryptionStartupCheckLog
-    {
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Exception?> __NoKeysRegisteredCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(1, nameof(NoKeysRegistered)), "EncryptionStartupCheck registered but no IPayloadCrypto keys were registered via AddD2EncryptionFor.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
-
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        public static partial void NoKeysRegistered(global::Microsoft.Extensions.Logging.ILogger logger)
-        {
-            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
-            {
-                __NoKeysRegisteredCallback(logger, null);
-            }
-        }
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.Exception?> __SelfTestPassedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(2, nameof(SelfTestPassed)), "Encryption self-test passed for service key {ServiceKey}.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
-
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        public static partial void SelfTestPassed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String serviceKey)
-        {
-            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
-            {
-                __SelfTestPassedCallback(logger, serviceKey, null);
-            }
-        }
-    }
-}
-namespace DcsvIo.D2.Encryption
-{
     partial class EncryptionSourceStartupCheckLog
     {
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
@@ -165,6 +93,78 @@ namespace DcsvIo.D2.Encryption
             if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
             {
                 __OpenerOnlyRegisteredCallback(logger, recipientServiceId, null);
+            }
+        }
+    }
+}
+namespace DcsvIo.D2.Encryption
+{
+    partial class SealedEncryptionSourceStartupCheckLog
+    {
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Exception?> __NoRecipientsRegisteredCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(1, nameof(NoRecipientsRegistered)), "SealedEncryptionSourceStartupCheck registered but no sealed recipients were registered — nothing to verify.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void NoRecipientsRegistered(global::Microsoft.Extensions.Logging.ILogger logger)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
+            {
+                __NoRecipientsRegisteredCallback(logger, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.Exception?> __SourceCheckPassedCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Debug, new global::Microsoft.Extensions.Logging.EventId(2, nameof(SourceCheckPassed)), "Sealed encryption recipient {RecipientServiceId} is KeyCustodian-sourced — provenance check passed.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void SourceCheckPassed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String recipientServiceId)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Debug))
+            {
+                __SourceCheckPassedCallback(logger, recipientServiceId, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.Exception?> __StaticSourceInDevelopmentCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(3, nameof(StaticSourceInDevelopment)), "Sealed encryption recipient {RecipientServiceId} is backed by a static / unmarked source rather than a KeyCustodian-sourced, rotation-aware keyring. Permitted only in a Development host; a non-Development host crashes. Register it through a KeyCustodian sealed source (or mark it via MarkD2EncryptionSource).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void StaticSourceInDevelopment(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String recipientServiceId)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
+            {
+                __StaticSourceInDevelopmentCallback(logger, recipientServiceId, null);
+            }
+        }
+    }
+}
+namespace DcsvIo.D2.Encryption
+{
+    partial class EncryptionStartupCheckLog
+    {
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Exception?> __NoKeysRegisteredCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(1, nameof(NoKeysRegistered)), "EncryptionStartupCheck registered but no IPayloadCrypto keys were registered via AddD2EncryptionFor.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void NoKeysRegistered(global::Microsoft.Extensions.Logging.ILogger logger)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
+            {
+                __NoKeysRegisteredCallback(logger, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.Exception?> __SelfTestPassedCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(2, nameof(SelfTestPassed)), "Encryption self-test passed for service key {ServiceKey}.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void SelfTestPassed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String serviceKey)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
+            {
+                __SelfTestPassedCallback(logger, serviceKey, null);
             }
         }
     }

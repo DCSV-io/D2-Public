@@ -104,10 +104,15 @@ jobs:
           name: d2-libs-${{ steps.tag.outputs.value }}
           path: bundle/
 
+      # Bulk first-cut (~45 nupkgs / ~30 tgz) can trip registry rate limits.
+      # Space publishes on BOTH nuget.org and npmjs; skip already-published so
+      # re-runs after a partial success are safe (NuGet --skip-duplicate + npm view).
       - name: Publish to nuget.org
         if: ${{ inputs.publish }}
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_PUBLISH_DELAY_SEC: "3"
+          NUGET_PUBLISH_MAX_ATTEMPTS: "6"
         run: |
           set -euo pipefail
           if [ -z "${NUGET_API_KEY:-}" ]; then
@@ -115,15 +120,56 @@ jobs:
             exit 1
           fi
           shopt -s nullglob
+          delay="${NUGET_PUBLISH_DELAY_SEC:-3}"
+          max_attempts="${NUGET_PUBLISH_MAX_ATTEMPTS:-6}"
+          first=1
           for nupkg in bundle/nuget/*.nupkg; do
-            echo "Pushing $nupkg"
-            dotnet nuget push "$nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+            # Symbols packages are pushed as side-cars when present; skip *symbols*.
+            case "$nupkg" in
+              *.symbols.nupkg) continue ;;
+            esac
+            if [ "$first" -eq 0 ]; then
+              echo "Waiting ${delay}s before next push (nuget.org rate limit)..."
+              sleep "$delay"
+            fi
+            first=0
+
+            attempt=1
+            while true; do
+              echo "Pushing $nupkg (attempt ${attempt}/${max_attempts})"
+              set +e
+              out="$(dotnet nuget push "$nupkg" \
+                --api-key "$NUGET_API_KEY" \
+                --source https://api.nuget.org/v3/index.json \
+                --skip-duplicate 2>&1)"
+              code=$?
+              set -e
+              printf '%s\n' "$out"
+              if [ "$code" -eq 0 ]; then
+                break
+              fi
+              if printf '%s\n' "$out" | grep -qiE '429|Too Many Requests|rate limit|try again later'; then
+                if [ "$attempt" -ge "$max_attempts" ]; then
+                  echo "::error::nuget.org rate limited after ${max_attempts} attempts: $nupkg"
+                  exit 1
+                fi
+                backoff=$((delay * attempt * 3))
+                echo "Rate limited — backing off ${backoff}s..."
+                sleep "$backoff"
+                attempt=$((attempt + 1))
+                continue
+              fi
+              echo "::error::dotnet nuget push failed: $nupkg (exit $code)"
+              exit "$code"
+            done
           done
 
       - name: Publish to npmjs
         if: ${{ inputs.publish }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_PUBLISH_DELAY_SEC: "10"
+          NPM_PUBLISH_MAX_ATTEMPTS: "6"
         run: |
           set -euo pipefail
           if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
@@ -131,9 +177,56 @@ jobs:
             exit 1
           fi
           shopt -s nullglob
+          delay="${NPM_PUBLISH_DELAY_SEC:-10}"
+          max_attempts="${NPM_PUBLISH_MAX_ATTEMPTS:-6}"
+          first=1
           for tgz in bundle/npm/*.tgz; do
-            echo "Publishing $tgz"
-            npm publish "$tgz" --access public
+            if [ "$first" -eq 0 ]; then
+              echo "Waiting ${delay}s before next publish (npm rate limit)..."
+              sleep "$delay"
+            fi
+            first=0
+
+            # npm pack layout: package/package.json inside the tarball
+            name="$(tar -xOf "$tgz" package/package.json | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).name))")"
+            version="$(tar -xOf "$tgz" package/package.json | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).version))")"
+            id="${name}@${version}"
+
+            if npm view "$id" version --silent 2>/dev/null; then
+              echo "Skip (already on registry): $id"
+              continue
+            fi
+
+            attempt=1
+            while true; do
+              echo "Publishing $tgz ($id) attempt ${attempt}/${max_attempts}"
+              set +e
+              out="$(npm publish "$tgz" --access public 2>&1)"
+              code=$?
+              set -e
+              printf '%s\n' "$out"
+              if [ "$code" -eq 0 ]; then
+                break
+              fi
+              # Idempotent re-run: version already published (race or prior success)
+              if printf '%s\n' "$out" | grep -qiE 'cannot publish over existing|EPUBLISHCONFLICT|previously published|403 Forbidden.*cannot publish'; then
+                echo "Skip (already published / conflict): $id"
+                break
+              fi
+              if printf '%s\n' "$out" | grep -qiE 'E429|Too Many Requests|rate limit'; then
+                if [ "$attempt" -ge "$max_attempts" ]; then
+                  echo "::error::npm rate limited after ${max_attempts} attempts: $id"
+                  exit 1
+                fi
+                backoff=$((delay * attempt * 2))
+                echo "429 — backing off ${backoff}s..."
+                sleep "$backoff"
+                attempt=$((attempt + 1))
+                continue
+              fi
+              echo "::error::npm publish failed: $id (exit $code)"
+              exit "$code"
+            done
           done
 
       - name: GitHub Release
