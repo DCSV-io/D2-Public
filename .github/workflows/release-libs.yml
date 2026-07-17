@@ -104,15 +104,16 @@ jobs:
           name: d2-libs-${{ steps.tag.outputs.value }}
           path: bundle/
 
-      # Bulk first-cut (~45 nupkgs / ~30 tgz) can trip registry rate limits.
-      # Space publishes on BOTH nuget.org and npmjs; skip already-published so
-      # re-runs after a partial success are safe (NuGet --skip-duplicate + npm view).
+      # Publish policy (no inter-package sleep — only 429 uses expo backoff):
+      #   1) One bulk inventory fetch → in-memory id@version set (short-circuit
+      #      skip — never hit publish API for packages we KNOW already exist).
+      #   2) Rate-limit retries only: sleep 1,2,4,8,16,32s then FAIL (7 attempts).
+      #   3) Safety backstop: NuGet --skip-duplicate; npm EPUBLISHCONFLICT skip
+      #      (inventory is latest-version search only — weird races still covered).
       - name: Publish to nuget.org
         if: ${{ inputs.publish }}
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-          NUGET_PUBLISH_DELAY_SEC: "3"
-          NUGET_PUBLISH_MAX_ATTEMPTS: "6"
         run: |
           set -euo pipefail
           if [ -z "${NUGET_API_KEY:-}" ]; then
@@ -120,23 +121,68 @@ jobs:
             exit 1
           fi
           shopt -s nullglob
-          delay="${NUGET_PUBLISH_DELAY_SEC:-3}"
-          max_attempts="${NUGET_PUBLISH_MAX_ATTEMPTS:-6}"
-          first=1
+
+          # Fixed expo: after attempt N fails → sleep schedule[N]; attempt 7 fail → FAIL
+          rate_limit_backoff_sec() {
+            case "$1" in
+              1) echo 1 ;;
+              2) echo 2 ;;
+              3) echo 4 ;;
+              4) echo 8 ;;
+              5) echo 16 ;;
+              6) echo 32 ;;
+              *) echo "" ;;
+            esac
+          }
+          max_attempts=7
+
+          echo "Fetching NuGet inventory (latest-version search)…"
+          inv_file="$(mktemp)"
+          curl -fsSL \
+            "https://azuresearch-usnc.nuget.org/query?q=DcsvIo.D2&prerelease=true&take=100" \
+            -H "Accept: application/json" \
+            -o "$inv_file"
+          # keysLower: one id@version per line (lowercase id)
+          node -e '
+            const fs = require("fs");
+            const j = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            const data = Array.isArray(j.data) ? j.data : [];
+            for (const row of data) {
+              if (!row?.id || !row?.version) continue;
+              console.log(String(row.id).trim().toLowerCase() + "@" + String(row.version).trim());
+            }
+            console.error("inventory totalHits=" + (j.totalHits ?? data.length) + " keys=" + data.filter(r => r?.id && r?.version).length);
+          ' "$inv_file" > "${inv_file}.keys"
+          inv_count="$(wc -l < "${inv_file}.keys" | tr -d " ")"
+          echo "NuGet inventory keys: ${inv_count}"
+
           for nupkg in bundle/nuget/*.nupkg; do
-            # Symbols packages are pushed as side-cars when present; skip *symbols*.
             case "$nupkg" in
               *.symbols.nupkg) continue ;;
             esac
-            if [ "$first" -eq 0 ]; then
-              echo "Waiting ${delay}s before next push (nuget.org rate limit)..."
-              sleep "$delay"
+
+            # id + version from embedded nuspec (nupkg is a zip)
+            meta="$(unzip -p "$nupkg" "*.nuspec" 2>/dev/null || true)"
+            if [ -z "$meta" ]; then
+              echo "::error::could not read nuspec from $nupkg"
+              exit 1
             fi
-            first=0
+            id="$(printf "%s" "$meta" | sed -n "s/.*<id>\\([^<]*\\)<\\/id>.*/\\1/p" | head -1 | tr -d "\r")"
+            version="$(printf "%s" "$meta" | sed -n "s/.*<version>\\([^<]*\\)<\\/version>.*/\\1/p" | head -1 | tr -d "\r")"
+            if [ -z "$id" ] || [ -z "$version" ]; then
+              echo "::error::could not parse id/version from nuspec in $nupkg"
+              exit 1
+            fi
+            key="$(printf "%s" "$id" | tr "[:upper:]" "[:lower:]")@${version}"
+
+            if grep -Fqx "$key" "${inv_file}.keys"; then
+              echo "Skip (inventory short-circuit): ${id}@${version}"
+              continue
+            fi
 
             attempt=1
             while true; do
-              echo "Pushing $nupkg (attempt ${attempt}/${max_attempts})"
+              echo "Pushing $nupkg (${id}@${version}) attempt ${attempt}/${max_attempts}"
               set +e
               out="$(dotnet nuget push "$nupkg" \
                 --api-key "$NUGET_API_KEY" \
@@ -144,17 +190,19 @@ jobs:
                 --skip-duplicate 2>&1)"
               code=$?
               set -e
-              printf '%s\n' "$out"
+              printf "%s\n" "$out"
               if [ "$code" -eq 0 ]; then
+                # Keep inventory warm for later packages in this run (same version race)
+                printf "%s\n" "$key" >> "${inv_file}.keys"
                 break
               fi
-              if printf '%s\n' "$out" | grep -qiE '429|Too Many Requests|rate limit|try again later'; then
-                if [ "$attempt" -ge "$max_attempts" ]; then
-                  echo "::error::nuget.org rate limited after ${max_attempts} attempts: $nupkg"
+              if printf "%s\n" "$out" | grep -qiE "429|Too Many Requests|rate limit|try again later"; then
+                backoff="$(rate_limit_backoff_sec "$attempt")"
+                if [ -z "$backoff" ]; then
+                  echo "::error::nuget.org rate limited after ${max_attempts} attempts (1,2,4,8,16,32 then FAIL): $nupkg"
                   exit 1
                 fi
-                backoff=$((delay * attempt * 3))
-                echo "Rate limited — backing off ${backoff}s..."
+                echo "Rate limited — backing off ${backoff}s (then retry)…"
                 sleep "$backoff"
                 attempt=$((attempt + 1))
                 continue
@@ -168,8 +216,6 @@ jobs:
         if: ${{ inputs.publish }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_PUBLISH_DELAY_SEC: "10"
-          NPM_PUBLISH_MAX_ATTEMPTS: "6"
         run: |
           set -euo pipefail
           if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
@@ -177,23 +223,52 @@ jobs:
             exit 1
           fi
           shopt -s nullglob
-          delay="${NPM_PUBLISH_DELAY_SEC:-10}"
-          max_attempts="${NPM_PUBLISH_MAX_ATTEMPTS:-6}"
-          first=1
-          for tgz in bundle/npm/*.tgz; do
-            if [ "$first" -eq 0 ]; then
-              echo "Waiting ${delay}s before next publish (npm rate limit)..."
-              sleep "$delay"
-            fi
-            first=0
 
-            # npm pack layout: package/package.json inside the tarball
+          rate_limit_backoff_sec() {
+            case "$1" in
+              1) echo 1 ;;
+              2) echo 2 ;;
+              3) echo 4 ;;
+              4) echo 8 ;;
+              5) echo 16 ;;
+              6) echo 32 ;;
+              *) echo "" ;;
+            esac
+          }
+          max_attempts=7
+
+          echo "Fetching npm inventory (search text=dcsv, filter @dcsv-io/)…"
+          inv_file="$(mktemp)"
+          curl -fsSL \
+            "https://registry.npmjs.org/-/v1/search?text=dcsv&size=250" \
+            -H "Accept: application/json" \
+            -o "$inv_file"
+          node -e '
+            const fs = require("fs");
+            const j = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            const objects = Array.isArray(j.objects) ? j.objects : [];
+            let matched = 0;
+            for (const obj of objects) {
+              const name = obj?.package?.name;
+              const version = obj?.package?.version;
+              if (!name || !version) continue;
+              if (!name.startsWith("@dcsv-io/")) continue;
+              console.log(name + "@" + version);
+              matched++;
+            }
+            console.error("inventory total=" + (j.total ?? objects.length) + " matched=" + matched);
+          ' "$inv_file" > "${inv_file}.keys"
+          inv_count="$(wc -l < "${inv_file}.keys" | tr -d " ")"
+          echo "npm inventory keys (@dcsv-io/* latest): ${inv_count}"
+
+          for tgz in bundle/npm/*.tgz; do
             name="$(tar -xOf "$tgz" package/package.json | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).name))")"
             version="$(tar -xOf "$tgz" package/package.json | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).version))")"
             id="${name}@${version}"
 
-            if npm view "$id" version --silent 2>/dev/null; then
-              echo "Skip (already on registry): $id"
+            # In-mem inventory short-circuit — no per-package npm view (that was a GET storm)
+            if grep -Fqx "$id" "${inv_file}.keys"; then
+              echo "Skip (inventory short-circuit): $id"
               continue
             fi
 
@@ -204,22 +279,24 @@ jobs:
               out="$(npm publish "$tgz" --access public 2>&1)"
               code=$?
               set -e
-              printf '%s\n' "$out"
+              printf "%s\n" "$out"
               if [ "$code" -eq 0 ]; then
+                printf "%s\n" "$id" >> "${inv_file}.keys"
                 break
               fi
-              # Idempotent re-run: version already published (race or prior success)
-              if printf '%s\n' "$out" | grep -qiE 'cannot publish over existing|EPUBLISHCONFLICT|previously published|403 Forbidden.*cannot publish'; then
-                echo "Skip (already published / conflict): $id"
+              # Safety backstop: version already published (race / inventory lag / weird)
+              if printf "%s\n" "$out" | grep -qiE "cannot publish over existing|EPUBLISHCONFLICT|previously published|403 Forbidden.*cannot publish"; then
+                echo "Skip (already published / conflict backstop): $id"
+                printf "%s\n" "$id" >> "${inv_file}.keys"
                 break
               fi
-              if printf '%s\n' "$out" | grep -qiE 'E429|Too Many Requests|rate limit'; then
-                if [ "$attempt" -ge "$max_attempts" ]; then
-                  echo "::error::npm rate limited after ${max_attempts} attempts: $id"
+              if printf "%s\n" "$out" | grep -qiE "E429|Too Many Requests|rate limit"; then
+                backoff="$(rate_limit_backoff_sec "$attempt")"
+                if [ -z "$backoff" ]; then
+                  echo "::error::npm rate limited after ${max_attempts} attempts (1,2,4,8,16,32 then FAIL): $id"
                   exit 1
                 fi
-                backoff=$((delay * attempt * 2))
-                echo "429 — backing off ${backoff}s..."
+                echo "429 — backing off ${backoff}s (then retry)…"
                 sleep "$backoff"
                 attempt=$((attempt + 1))
                 continue
