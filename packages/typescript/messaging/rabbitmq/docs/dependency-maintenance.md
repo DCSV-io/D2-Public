@@ -42,7 +42,7 @@ the monorepo wrapper license inherited by native packing.
 5. Regenerate the root lock, producer lock and provenance with pnpm and the helper.
 6. Run unit, real-broker, clean packed-consumer and raw-byte tests on Windows and Linux.
 7. Verify the bundled license and include the patched client in dependency/security inventories.
-8. Run canonical version and API/fingerprint reseeds after staging new inputs.
+8. Regenerate the package's API report (`etc/*.api.md`) after staging new inputs, because the release sizes the version from it.
 9. Record the tested version, commands, results and maintenance elapsed time in release evidence.
 
 No fixed maintenance interval is assumed. Security updates can require immediate

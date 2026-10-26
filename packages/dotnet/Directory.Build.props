@@ -11,6 +11,10 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
   <PropertyGroup>
+    <!-- Placeholder: no project carries a version in the tree. The release
+         stamps the real version into the project, which evaluates after this
+         file and so wins. -->
+    <Version>0.0.0-dev</Version>
     <IsPackable>false</IsPackable>
     <Authors>DCSV</Authors>
     <Company>DCSV</Company>

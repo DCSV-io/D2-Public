@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.2.0</Version>
     <RootNamespace>DcsvIo.D2.Handler.Repo</RootNamespace>
   </PropertyGroup>
 
@@ -31,7 +32,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.2.0</Version>
     <PackageId>DcsvIo.D2.Handler.Repo</PackageId>
     <Description>EF-flavored BaseRepoHandler for D2 - converts database exceptions captured during execution into typed D2Result failures.</Description>
     <IsPackable>true</IsPackable>

@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.2.27</Version>
     <RootNamespace>DcsvIo.D2.Outbox.EntityFrameworkCore.Postgres</RootNamespace>
 
     <!-- Emit the LoggerMessage generator's output to <project-dir>/Generated/.
@@ -68,7 +69,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.2.27</Version>
     <PackageId>DcsvIo.D2.Outbox.EntityFrameworkCore.Postgres</PackageId>
     <Description>PostgreSQL relay for the D2 transactional outbox.</Description>
     <IsPackable>true</IsPackable>

@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.3.10</Version>
     <RootNamespace>DcsvIo.D2.Utilities</RootNamespace>
   </PropertyGroup>
 
@@ -36,7 +37,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.3.10</Version>
     <PackageId>DcsvIo.D2.Utilities</PackageId>
     <Description>Foundational boundary helpers for D2 - Falsey/Truthy semantics, string cleaning, parse-or-default extensions, connection-string conversion, and JSON-cycle-safe serialization.</Description>
     <IsPackable>true</IsPackable>

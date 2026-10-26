@@ -60,8 +60,8 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
       one call is unsupported (the build targets evaluate against the
       pre-restore import state). Restoring here makes a clean checkout
       self-sufficient: CI and fresh clones have no prior project.assets.json for
-      the tool, and the solution restore does not cover it (the tool lives
-      outside D2.slnx). Both invocations are incremental fast no-ops once
+      the tool, and the solution restore does not cover it (no solution file
+      lists the tool). Both invocations are incremental fast no-ops once
       current, and the <MSBuild> task caches by (Project, Targets, Properties)
       within a session so the consuming csprojs share one restore and one build
       of the tool.

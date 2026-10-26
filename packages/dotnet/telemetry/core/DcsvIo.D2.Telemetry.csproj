@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
+    <Version>0.2.19-beta.1</Version>
     <RootNamespace>DcsvIo.D2.Telemetry</RootNamespace>
     <!--
       Sdk.Web defaults OutputType to Exe (intended for runnable web apps);
@@ -167,7 +168,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
       stable package version from depending on prerelease packages.
       Graduate to a non-prerelease Version when they ship stable.
     -->
-    <Version>0.2.19-beta.1</Version>
     <PackageId>DcsvIo.D2.Telemetry</PackageId>
     <Description>OpenTelemetry SDK setup for D2 - traces, metrics, logs, OTLP exporters, an IP-restricted Prometheus endpoint, and aggregation of every shared library's ActivitySource and Meter.</Description>
     <IsPackable>true</IsPackable>

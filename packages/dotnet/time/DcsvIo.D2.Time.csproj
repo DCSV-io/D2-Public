@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.2.11</Version>
     <RootNamespace>DcsvIo.D2.Time</RootNamespace>
   </PropertyGroup>
 
@@ -53,7 +54,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.2.11</Version>
     <PackageId>DcsvIo.D2.Time</PackageId>
     <Description>Deterministic timestamp handling for D2 - a dependency-injected clock seam and temporal storage types. Provider-neutral.</Description>
     <IsPackable>true</IsPackable>

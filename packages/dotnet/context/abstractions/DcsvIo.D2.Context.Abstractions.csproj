@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.3.21</Version>
     <RootNamespace>DcsvIo.D2.Context.Abstractions</RootNamespace>
 
     <!-- Emit the generator's output (IRequestContext.g.cs, MutableRequestContext.g.cs,
@@ -105,7 +106,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.3.21</Version>
     <PackageId>DcsvIo.D2.Context.Abstractions</PackageId>
     <Description>Spec-driven request-context primitives for D2 - IRequestContext, MutableRequestContext, and the cross-hop propagation codecs.</Description>
     <IsPackable>true</IsPackable>

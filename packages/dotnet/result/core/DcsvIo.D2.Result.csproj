@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.5.8</Version>
     <RootNamespace>DcsvIo.D2.Result</RootNamespace>
     <!--
       Emit SrcGen-emitted ErrorCodes.g.cs (driven by error-codes-source-gen
@@ -105,7 +106,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.5.8</Version>
     <PackageId>DcsvIo.D2.Result</PackageId>
     <Description>D2Result - the errors-as-values pattern for D2, replacing exception-based control flow with TKMessage-typed user-facing messages.</Description>
     <IsPackable>true</IsPackable>

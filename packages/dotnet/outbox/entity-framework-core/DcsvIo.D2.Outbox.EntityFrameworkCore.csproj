@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.8.9</Version>
     <RootNamespace>DcsvIo.D2.Outbox.EntityFrameworkCore</RootNamespace>
   </PropertyGroup>
 
@@ -52,7 +53,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.8.9</Version>
     <PackageId>DcsvIo.D2.Outbox.EntityFrameworkCore</PackageId>
     <Description>EF Core storage for the D2 transactional outbox.</Description>
     <IsPackable>true</IsPackable>

@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.1.17</Version>
     <RootNamespace>DcsvIo.D2.Usernames</RootNamespace>
   </PropertyGroup>
 
@@ -23,7 +24,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.17</Version>
     <PackageId>DcsvIo.D2.Usernames</PackageId>
     <Description>Pure friendly username generator (adj+noun+suffix) for D2 consumers.</Description>
     <IsPackable>true</IsPackable>

@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.2.20</Version>
     <RootNamespace>DcsvIo.D2.AuthContext.Abstractions</RootNamespace>
 
     <!-- Emit the generator's output (IAuthContext.g.cs) to <project-dir>/Generated/.
@@ -65,7 +66,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.2.20</Version>
     <PackageId>DcsvIo.D2.AuthContext.Abstractions</PackageId>
     <Description>Read-only IAuthContext interface for reasoning about caller identity, organization, scopes, and impersonation context in D2.</Description>
     <IsPackable>true</IsPackable>

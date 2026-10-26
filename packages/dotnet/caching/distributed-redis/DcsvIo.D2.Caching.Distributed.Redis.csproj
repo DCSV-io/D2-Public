@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.4.16</Version>
     <RootNamespace>DcsvIo.D2.Caching.Distributed.Redis</RootNamespace>
   </PropertyGroup>
 
@@ -28,7 +29,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.4.16</Version>
     <PackageId>DcsvIo.D2.Caching.Distributed.Redis</PackageId>
     <Description>Redis-backed IDistributedCache and cache-invalidation backplane implementation for D2, wrapping StackExchange.Redis.</Description>
     <IsPackable>true</IsPackable>

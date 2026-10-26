@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.1.33</Version>
     <RootNamespace>DcsvIo.D2.Location.EntityFrameworkCore</RootNamespace>
   </PropertyGroup>
 
@@ -49,7 +50,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.33</Version>
     <PackageId>DcsvIo.D2.Location.EntityFrameworkCore</PackageId>
     <Description>Reusable Entity Framework Core mapping for the DcsvIo.D2.Location value objects, applied via infra IEntityTypeConfiguration.</Description>
     <IsPackable>true</IsPackable>

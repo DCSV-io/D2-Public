@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.1.6</Version>
     <RootNamespace>DcsvIo.D2.I18n</RootNamespace>
 
     <!-- Emit the generator's output (TkMessageWireShape.g.cs) to <project-dir>/Generated/.
@@ -81,7 +82,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.6</Version>
     <PackageId>DcsvIo.D2.I18n.Abstractions</PackageId>
     <Description>Domain-safe i18n slice for D2 - the TKMessage primitive and the ITranslator interface, with zero external dependencies.</Description>
     <IsPackable>true</IsPackable>

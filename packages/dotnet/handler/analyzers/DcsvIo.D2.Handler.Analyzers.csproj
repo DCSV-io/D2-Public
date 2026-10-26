@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.1.9</Version>
     <RootNamespace>DcsvIo.D2.Handler.Analyzers</RootNamespace>
     <!-- Roslyn analyzers target netstandard2.0 (host compiler environment). -->
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -17,7 +18,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <!-- Packable analyzer companion of DcsvIo.D2.Handler (portable defense-in-depth). -->
     <IsPackable>true</IsPackable>
-    <Version>0.1.9</Version>
     <PackageId>DcsvIo.D2.Handler.Analyzers</PackageId>
     <Description>Roslyn analyzer for D2 handler scope DiD (D2HND001-003): product I{Op}Handler implementers must be named {Op}Handler, partial, and carry sealed DefaultOptions / D2GeneratedHandlerScope.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>

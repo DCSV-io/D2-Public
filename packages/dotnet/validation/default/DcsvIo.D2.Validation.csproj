@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.1.31</Version>
     <RootNamespace>DcsvIo.D2.Validation</RootNamespace>
   </PropertyGroup>
 
@@ -68,9 +69,10 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   <ItemGroup>
     <!--
       Postal-code regex map - the single cross-runtime source of truth at
-      contracts/validation/postal-code-regexes.json (also read by the TS
-      @dcsv-io/d2-validation package). The data is embedded in the assembly, so
-      no file-system access is needed at runtime. The <Link> keeps the logical
+      contracts/validation/postal-code-regexes.json (the TS @dcsv-io/d2-validation
+      package embeds the same patterns through a generated module). The data is
+      embedded in the assembly, so no file-system access is needed at runtime.
+      The <Link> keeps the logical
       manifest-resource name PostalCodeRegexData.json, so the
       DcsvIo.D2.Validation.PostalCodeRegexData.json lookup in PostalCodeRegexData.cs
       resolves unchanged regardless of the on-disk source path.
@@ -86,7 +88,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata: per-package semver and NuGet identity. -->
   <PropertyGroup>
-    <Version>0.1.30</Version>
     <PackageId>DcsvIo.D2.Validation</PackageId>
     <Description>Default validators for D2 - email, phone, and postal-code validation backed by libphonenumber-csharp and a ported postcode dataset.</Description>
     <IsPackable>true</IsPackable>

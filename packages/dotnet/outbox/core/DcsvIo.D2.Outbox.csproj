@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.5.11</Version>
     <RootNamespace>DcsvIo.D2.Outbox</RootNamespace>
   </PropertyGroup>
 
@@ -40,7 +41,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.5.11</Version>
     <PackageId>DcsvIo.D2.Outbox</PackageId>
     <Description>Transactional outbox message states, ports and dispatcher registry for D2.</Description>
     <IsPackable>true</IsPackable>

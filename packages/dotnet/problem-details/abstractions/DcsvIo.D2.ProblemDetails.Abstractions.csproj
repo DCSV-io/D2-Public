@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.1.7</Version>
     <RootNamespace>DcsvIo.D2.ProblemDetails</RootNamespace>
 
     <!--
@@ -55,7 +56,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.7</Version>
     <PackageId>DcsvIo.D2.ProblemDetails.Abstractions</PackageId>
     <Description>RFC 7807 ProblemDetails wire-format catalog for D2 - type-URI prefix, extension keys, per-status titles, and the TitleFor helper.</Description>
     <IsPackable>true</IsPackable>

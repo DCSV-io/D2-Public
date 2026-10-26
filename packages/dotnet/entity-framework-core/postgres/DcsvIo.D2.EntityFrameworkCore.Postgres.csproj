@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.4.13</Version>
     <RootNamespace>DcsvIo.D2.EntityFrameworkCore.Postgres</RootNamespace>
 
     <!-- Emit LoggerMessage generator output to <project-dir>/Generated/.
@@ -88,7 +89,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.4.13</Version>
     <PackageId>DcsvIo.D2.EntityFrameworkCore.Postgres</PackageId>
     <Description>PostgreSQL-backed EF Core DbContext wiring for D2 with advisory-lock-guarded migrations and startup validation.</Description>
     <IsPackable>true</IsPackable>

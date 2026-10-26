@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.1.29</Version>
     <RootNamespace>DcsvIo.D2.Geo.Abstractions</RootNamespace>
 
     <!--
@@ -105,7 +106,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.29</Version>
     <PackageId>DcsvIo.D2.Geo.Abstractions</PackageId>
     <Description>Strongly-typed ISO geo reference-data type surface for D2 (countries, subdivisions, currencies, languages, locales, timezones) without catalog data.</Description>
     <IsPackable>true</IsPackable>

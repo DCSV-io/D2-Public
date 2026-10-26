@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.1.5</Version>
     <RootNamespace>DcsvIo.D2.EnvFiles</RootNamespace>
   </PropertyGroup>
 
@@ -29,7 +30,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.5</Version>
     <PackageId>DcsvIo.D2.EnvFiles</PackageId>
     <Description>Convention-based .env file loader for D2 - nearest-directory discovery, process-env-wins precedence, and idempotent loading.</Description>
     <IsPackable>true</IsPackable>

@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.5.7</Version>
     <RootNamespace>DcsvIo.D2.Messaging.RabbitMq</RootNamespace>
     <!-- The nested generator shell is a separate netstandard2.0 csproj; never compile it in. -->
     <DefaultItemExcludes>$(DefaultItemExcludes);error-codes-source-gen/**</DefaultItemExcludes>
@@ -124,7 +125,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.5.7</Version>
     <PackageId>DcsvIo.D2.Messaging.RabbitMq</PackageId>
     <Description>Default RabbitMQ implementation of the D2 messaging abstractions - publishing, subscribing, encryption frames, and dead-letter handling.</Description>
     <IsPackable>true</IsPackable>

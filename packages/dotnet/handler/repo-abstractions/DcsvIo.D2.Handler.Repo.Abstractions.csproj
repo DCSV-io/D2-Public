@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.1.19</Version>
     <RootNamespace>DcsvIo.D2.Handler.Repo.Abstractions</RootNamespace>
   </PropertyGroup>
 
@@ -27,7 +28,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.19</Version>
     <PackageId>DcsvIo.D2.Handler.Repo.Abstractions</PackageId>
     <Description>Vocabulary for repo-flavored D2 handlers - the database-failure discrimination contract (unique, FK, deadlock, concurrency, connection), zero infrastructure dependencies.</Description>
     <IsPackable>true</IsPackable>

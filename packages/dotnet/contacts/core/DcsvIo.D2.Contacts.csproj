@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.1.29</Version>
     <RootNamespace>DcsvIo.D2.Contacts</RootNamespace>
   </PropertyGroup>
 
@@ -61,7 +62,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.29</Version>
     <PackageId>DcsvIo.D2.Contacts</PackageId>
     <Description>Composable, self-redacting PII value objects for D2 - immutable Create-constructed building blocks (name, demographics, professional, email, phone) that fold into host entities.</Description>
     <IsPackable>true</IsPackable>

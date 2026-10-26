@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.5.8</Version>
     <RootNamespace>DcsvIo.D2.Pagination</RootNamespace>
     <!-- Nested package folders are separate csprojs; never compile into pure Pagination. -->
     <DefaultItemExcludes>$(DefaultItemExcludes);entity-framework-core/**;entity-framework-core-nodatime/**;entity-framework-core-postgres/**;error-codes-source-gen/**</DefaultItemExcludes>
@@ -75,7 +76,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.5.8</Version>
     <PackageId>DcsvIo.D2.Pagination</PackageId>
     <Description>Portable keyset cursor pagination helpers for D2 list APIs.</Description>
     <IsPackable>true</IsPackable>

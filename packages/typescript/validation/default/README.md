@@ -66,11 +66,12 @@ const postal = postalCodeValidator.validate("sw1a 1aa", CountryCode.GB);
 - Phone: both runtimes delegate to a libphonenumber port (libphonenumber-js here, libphonenumber-csharp on .NET) and
   normalize to E.164, so the accept or reject decision and the normalized output match.
 - Postal code: both runtimes compile the SAME per-country regex map from the single shared dataset
-  `contracts/validation/postal-code-regexes.json`. This package imports the JSON directly, and the .NET side embeds
-  it. The check is country-aware and structural. An unknown or absent country fails closed on both runtimes: the
-  validator returns `POSTAL_CODE_INVALID` and never throws, and there is no permissive country-agnostic fallback. Both
-  runtimes normalize (trim and uppercase) before matching, and compile each pattern case-insensitively (TS `"i"`
-  flag, .NET `RegexOptions.IgnoreCase`). The dataset is ported from `postcode-validator@3.10.9` with one deliberate
+  `contracts/validation/postal-code-regexes.json`. The `ts-codegen` tool generates `src/postal-code-regexes.g.ts` from
+  that file, so the published package carries the patterns, and the .NET side embeds the JSON. The check is
+  country-aware and structural. An unknown or absent country fails closed on both runtimes: the validator returns
+  `POSTAL_CODE_INVALID` and never throws, and there is no permissive country-agnostic fallback. Both runtimes normalize
+  (trim and uppercase) before matching, and compile each pattern case-insensitively (TS `"i"` flag, .NET
+  `RegexOptions.IgnoreCase`). The dataset is ported from `postcode-validator@3.10.9` with one deliberate
   correction: `[A-z]` becomes `[A-Za-z]` in the `UK` and `GB` patterns, which fixes an upstream bug.
 - Country mapping: `CountryCode` from `@dcsv-io/d2-geo-abstractions` is a branded alpha-2 string. Its runtime value is
   the 2-letter region identifier that `libphonenumber-js` expects and that the dataset uses as the key of its
@@ -83,8 +84,8 @@ that client and library validation stay identical. Libraries that ship metadata 
 between minor releases, and an exact pin keeps that boundary stable across consumers and across the .NET parity
 fixtures.
 
-Postal-code validation reads the shared `contracts/validation/postal-code-regexes.json` dataset directly and does not
-depend on the `postcode-validator` npm package. The provenance and version stamp (ported from
+Postal-code validation uses patterns generated from the shared `contracts/validation/postal-code-regexes.json`
+dataset and does not depend on the `postcode-validator` npm package. The provenance and version stamp (ported from
 `postcode-validator@3.10.9`, with the `[A-z]` -> `[A-Za-z]` UK/GB correction) is in that file's `$comment`.
 
 ## Dependencies
@@ -98,5 +99,6 @@ depend on the `postcode-validator` npm package. The provenance and version stamp
 - `@dcsv-io/d2-utilities`: the `falsey` boundary helper for null, empty and whitespace input guards.
 - `libphonenumber-js`: phone-number parsing and E.164 normalization (exact pin).
 
-Postal-code validation has no runtime npm dependency: it imports the shared
-`contracts/validation/postal-code-regexes.json` dataset directly (`resolveJsonModule`).
+Postal-code validation has no runtime npm dependency: it uses the patterns in `src/postal-code-regexes.g.ts`,
+generated from the shared `contracts/validation/postal-code-regexes.json` dataset. After a change to the dataset, run
+`pnpm --filter ts-codegen codegen:postal-code-regexes`.

@@ -13,25 +13,25 @@ import {
 import { falsey } from "@dcsv-io/d2-utilities";
 import type { IPostalCodeValidator } from "@dcsv-io/d2-validation-abstractions";
 
-// long import path - cannot wrap
-import postalCodeRegexes from "../../../../../contracts/validation/postal-code-regexes.json" with { type: "json" };
+import { POSTAL_CODE_REGEXES } from "./postal-code-regexes.g.js";
 
 /**
  * Per-country postal-code regex map, compiled once at module load. Keys are
  * ISO 3166-1 alpha-2 country codes; each value is the anchored pattern from
  * the shared dataset, compiled with the `"i"` flag to mirror the .NET side's
- * `RegexOptions.IgnoreCase`. The `$comment` metadata key in the JSON is
- * skipped because it is documentation, not a country entry.
+ * `RegexOptions.IgnoreCase`.
  *
- * Sourced from `contracts/validation/postal-code-regexes.json`, the SINGLE
+ * The patterns come from `postal-code-regexes.g.ts`, which `ts-codegen`
+ * generates from `contracts/validation/postal-code-regexes.json`, the single
  * cross-runtime source of truth (the .NET `DcsvIo.D2.Validation` embeds the
- * same file). Building a `RegExp` per entry up front avoids recompiling on
- * every `validate` call.
+ * same file). The generated record is part of this package's own `dist`, so
+ * the published package does not import the JSON file. Building a `RegExp`
+ * per entry up front avoids recompiling on every `validate` call.
  */
 const COUNTRY_REGEXES: ReadonlyMap<string, RegExp> = new Map(
-  Object.entries(postalCodeRegexes as Record<string, string>)
-    .filter(([key]) => !key.startsWith("$"))
-    .map(([key, pattern]) => [key, new RegExp(pattern, "i")] as const),
+  Object.entries(POSTAL_CODE_REGEXES).map(
+    ([key, pattern]) => [key, new RegExp(pattern, "i")] as const,
+  ),
 );
 
 /**

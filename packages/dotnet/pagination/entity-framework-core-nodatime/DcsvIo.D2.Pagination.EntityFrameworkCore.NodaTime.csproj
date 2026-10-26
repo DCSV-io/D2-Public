@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.2.25</Version>
     <RootNamespace>DcsvIo.D2.Pagination.EntityFrameworkCore.NodaTime</RootNamespace>
   </PropertyGroup>
 
@@ -27,7 +28,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   </ItemGroup>
 
   <PropertyGroup>
-    <Version>0.2.25</Version>
     <PackageId>DcsvIo.D2.Pagination.EntityFrameworkCore.NodaTime</PackageId>
     <Description>NodaTime Instant sort modes for D2 multi-mode list page (ExtendedIso cursors).</Description>
     <IsPackable>true</IsPackable>

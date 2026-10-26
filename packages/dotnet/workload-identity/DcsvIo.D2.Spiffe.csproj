@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.1.18</Version>
     <RootNamespace>DcsvIo.D2.Spiffe</RootNamespace>
   </PropertyGroup>
 
@@ -45,7 +46,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata: per-package semver and NuGet identity. -->
   <PropertyGroup>
-    <Version>0.1.18</Version>
     <PackageId>DcsvIo.D2.Spiffe</PackageId>
     <Description>SPIFFE workload-identity value object and peer validator for D2 mTLS - the subject-alternative-name a leaf certificate carries and the trust-domain grammar.</Description>
     <IsPackable>true</IsPackable>

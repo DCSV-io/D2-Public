@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.1.29</Version>
     <RootNamespace>DcsvIo.D2.Validation.Abstractions</RootNamespace>
 
     <!--
@@ -71,7 +72,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata: per-package semver and NuGet identity. -->
   <PropertyGroup>
-    <Version>0.1.29</Version>
     <PackageId>DcsvIo.D2.Validation.Abstractions</PackageId>
     <Description>Validation contract surface for D2 - email, phone, and postal-code validator interfaces, shared field-length bounds, and the name/sex taxonomy enums.</Description>
     <IsPackable>true</IsPackable>

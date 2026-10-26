@@ -14,6 +14,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using AwesomeAssertions;
+using DcsvIo.D2.Tests.Unit.Auth;
 using DcsvIo.D2.Tests.Unit.Geo.SourceGen.Fixtures;
 using DcsvIo.D2.Tests.Unit.SourceGen.Fixtures;
 using GeoSourceGen::DcsvIo.D2.Geo.SourceGen;
@@ -340,7 +341,7 @@ public sealed class GeoDataGapDiagnosticsTests
     [Fact]
     public void Generate_RepositoryGeoSpecs_ReportsNoDataGap()
     {
-        var geoDirectory = Path.Combine(RepositoryRoot(), "public", "contracts", "geo");
+        var geoDirectory = Path.Combine(TestPaths.PublicContractsRoot(), "geo");
         var texts = Directory.GetFiles(geoDirectory, "*.spec.json")
             .Select(path => (AdditionalText)new InMemoryAdditionalTextFixture(
                 path, File.ReadAllText(path)))
@@ -383,16 +384,6 @@ public sealed class GeoDataGapDiagnosticsTests
                 new Dictionary<string, string>()));
 
         return driver.RunGenerators(compilation);
-    }
-
-    private static string RepositoryRoot()
-    {
-        var directory = new DirectoryInfo(System.AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "D2.slnx")))
-            directory = directory.Parent;
-
-        directory.Should().NotBeNull("the test runs inside the repository, which has D2.slnx at its root");
-        return directory.FullName;
     }
 
     private static string Country(

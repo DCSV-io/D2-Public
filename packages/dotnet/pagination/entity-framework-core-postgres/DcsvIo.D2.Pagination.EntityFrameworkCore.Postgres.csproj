@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.3.23</Version>
     <RootNamespace>DcsvIo.D2.Pagination.EntityFrameworkCore.Postgres</RootNamespace>
   </PropertyGroup>
 
@@ -30,7 +31,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   </ItemGroup>
 
   <PropertyGroup>
-    <Version>0.3.23</Version>
     <PackageId>DcsvIo.D2.Pagination.EntityFrameworkCore.Postgres</PackageId>
     <Description>PostgreSQL trigram list-search helpers for D2 - the search dialect, the generated search-blob column and its index.</Description>
     <IsPackable>true</IsPackable>

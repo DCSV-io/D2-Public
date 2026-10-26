@@ -22,7 +22,7 @@ tools, and other product-specific composition kits are **not published here**
 | **npm**            | [`@dcsv-io/d2-*`](https://www.npmjs.com/org/dcsv-io)                                                                                                                                       |
 | **Releases**       | [GitHub Releases](https://github.com/DCSV-io/D2-Public/releases)                                                                                                                           |
 | **Issues**         | [GitHub Issues](https://github.com/DCSV-io/D2-Public/issues)                                                                                                                               |
-| **Open inventory** | The versioned NuGet and npm packages listed in [Packages at a glance](#packages-at-a-glance) (catalog source-gen shells may exist on disk for parents; they are not separate publish rows) |
+| **Open inventory** | The NuGet and npm packages listed in [Packages at a glance](#packages-at-a-glance) (catalog source-gen shells may exist on disk for parents; they are not separate publish rows)           |
 
 ```bash
 # .NET
@@ -176,7 +176,7 @@ notes appear on **NuGet / npm** and on
 **[Releases](https://github.com/DCSV-io/D2-Public/releases)**. Each package's
 `CHANGELOG.md` tracks that package only.
 
-Open **publish inventory** is the set of versioned packages under
+Open **publish inventory** is the set of packages under
 `packages/{dotnet,typescript}/` that are meant to ship to NuGet/npm. Supporting
 catalog **source-gen shells** may sit next to parent packages for build-time
 codegen; they are not separate public install products.

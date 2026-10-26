@@ -7,6 +7,13 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 All notable changes to this package are documented here. The format follows
 Keep a Changelog, and this package adheres to Semantic Versioning.
 
+## 0.1.18 - 2026-10-26
+
+### Fixed
+
+- The published package imported a JSON file that its tarball did not contain, so importing `@dcsv-io/d2-validation` failed
+  with a module-not-found error. The package now embeds the postal-code patterns in its own output.
+
 ## 0.1.17 - 2026-10-25
 ### Changed
 

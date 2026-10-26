@@ -44,7 +44,8 @@ the single cross-runtime source of truth, read by both runtimes. This project
 embeds it as a build-time `EmbeddedResource` (`Link`'d to the logical name
 `PostalCodeRegexData.json`, so the manifest-resource lookup in
 `PostalCodeRegexData.cs` resolves unchanged); the TypeScript `@dcsv-io/d2-validation`
-package imports the same file directly. Neither runtime keeps its own copy.
+package embeds the same patterns in its generated `postal-code-regexes.g.ts`. Neither
+runtime keeps a hand-written copy.
 
 The dataset is ported from `postcode-validator@3.10.9` with **one deliberate
 correction**: the `UK` and `GB` patterns used `[A-z]` (ASCII 65-122, which
@@ -58,7 +59,8 @@ entries are: `GI`, `BT`, `AL`, `CU`, `UM`, `AI`, `AF`, `SD`, `VC`, `TA`, `NA`,
 there is no fallback to a permissive global-range pattern.
 
 To update the dataset, edit `contracts/validation/postal-code-regexes.json` and
-its `$comment` version stamp - both runtimes pick up the change on their next build.
+its `$comment` version stamp, then regenerate the TypeScript package's
+`postal-code-regexes.g.ts`. This project picks up the change on its next build.
 
 ## DI Registration
 

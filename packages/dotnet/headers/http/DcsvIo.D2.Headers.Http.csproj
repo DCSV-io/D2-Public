@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.1.7</Version>
     <RootNamespace>DcsvIo.D2.Headers.Http</RootNamespace>
 
     <!-- Emit SourceGen output to <project-dir>/Generated/. Git tracks this
@@ -46,7 +47,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.7</Version>
     <PackageId>DcsvIo.D2.Headers.Http</PackageId>
     <Description>D2 wire-protocol header constants applicable to the HTTP transport, code-generated from the shared headers spec.</Description>
     <IsPackable>true</IsPackable>

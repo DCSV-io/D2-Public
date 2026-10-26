@@ -1,0 +1,25 @@
+# -----------------------------------------------------------------------
+# Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
+# -----------------------------------------------------------------------
+
+# Store text files with LF and check them out with LF on every platform. Tests
+# hash some committed files, such as the RabbitMQ client patch, and a CRLF
+# checkout on Windows changes those hashes.
+* text=auto eol=lf
+*.svg text eol=lf
+
+# Binary files: line endings are never changed.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
+
+# Generated code is committed; GitHub collapses its diffs by default.
+*.g.cs linguist-generated=true
+*.g.ts linguist-generated=true

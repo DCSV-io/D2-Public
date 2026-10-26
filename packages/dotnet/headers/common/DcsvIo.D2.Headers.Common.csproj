@@ -3,6 +3,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>0.1.7</Version>
     <RootNamespace>DcsvIo.D2.Headers.Common</RootNamespace>
 
     <!-- Emit SourceGen output to <project-dir>/Generated/. Git tracks this
@@ -45,7 +46,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.7</Version>
     <PackageId>DcsvIo.D2.Headers.Common</PackageId>
     <Description>Cross-transport D2 wire-protocol header constants (headers that appear identically on multiple transports), code-generated from the shared headers spec.</Description>
     <IsPackable>true</IsPackable>
