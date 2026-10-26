@@ -22,7 +22,7 @@ using Xunit;
 /// CI-enforced byte-parity gate: regenerates the committed <c>Scopes.g.cs</c> from
 /// the real <c>contracts/auth-scopes/scopes.spec.json</c> AND the real
 /// <c>OrgType</c> / <c>Role</c> enum sources (via the same <see cref="ScopesGenerator"/>
-/// path used by the Roslyn build — wildcard <c>grantedTo</c> expansion reads the enum
+/// path used by the Roslyn build - wildcard <c>grantedTo</c> expansion reads the enum
 /// members straight from the compilation) and asserts the result equals the committed
 /// file byte-for-byte after normalizing line endings to LF. A failure means the
 /// committed file is stale and must be regenerated (<c>dotnet build</c>).
@@ -77,7 +77,7 @@ public sealed class ScopesOutputParityTests
         specJson.Should().Contain(
             original,
             because:
-                "the drift test mutates this exact scope description — if the real "
+                "the drift test mutates this exact scope description - if the real "
                 + "spec's wording changed, update this literal too");
 
         var drifted = specJson.Replace(original, original + " DRIFT-TEST-MARKER.");
@@ -89,13 +89,13 @@ public sealed class ScopesOutputParityTests
             Normalize(committed),
             because:
                 "a deliberately drifted spec must produce output that differs from the "
-                + "committed file — proves the parity check is not vacuous");
+                + "committed file - proves the parity check is not vacuous");
     }
 
     private static Dictionary<string, string> RunGenerator(string specJson)
     {
         // The wildcard grantedTo expansion reads OrgType + Role members straight from
-        // the compilation (ExtractEnumMembers) — feed the REAL enum sources rather than
+        // the compilation (ExtractEnumMembers) - feed the REAL enum sources rather than
         // a synthetic stand-in so a real-world enum-member addition surfaces as drift
         // here too, not just in ScopesGeneratorTests' synthetic-enum unit coverage.
         var orgTypeSource = File.ReadAllText(

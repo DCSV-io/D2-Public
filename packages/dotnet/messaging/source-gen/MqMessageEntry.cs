@@ -17,10 +17,10 @@ namespace DcsvIo.D2.Messaging.SourceGen;
 /// class.</param>
 /// <param name="Exchange">AMQP exchange name (lowercase, dot- and hyphen-
 /// separated; convention <c>d2.{producer}.{purpose}</c>).</param>
-/// <param name="ExchangeType">AMQP exchange type — <c>fanout</c>, <c>topic</c>,
+/// <param name="ExchangeType">AMQP exchange type - <c>fanout</c>, <c>topic</c>,
 /// or <c>direct</c>.</param>
 /// <param name="Encryption">Either an <c>EncryptionDomains</c> constant value
-/// (e.g. <c>"audit"</c>) OR the literal string <c>"plaintext"</c>.</param>
+/// (e.g. <c>"payload-fixture-sealed"</c>) OR the literal string <c>"plaintext"</c>.</param>
 /// <param name="EncryptionReason">Required when
 /// <paramref name="Encryption"/> is <c>"plaintext"</c>; null otherwise.</param>
 /// <param name="DefaultRoutingKey">Routing key used by publishers when no

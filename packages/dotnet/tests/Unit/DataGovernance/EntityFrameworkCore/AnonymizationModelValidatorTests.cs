@@ -20,7 +20,7 @@ using Xunit;
 
 /// <summary>
 /// DB-free unit tests for <c>AnonymizationModelValidator</c>. Builds model-only contexts
-/// (Npgsql provider, dummy connection string — connection never opened) and exercises
+/// (Npgsql provider, dummy connection string - connection never opened) and exercises
 /// each validation rule plus the aggregation and opt-out paths.
 /// </summary>
 /// <remarks>
@@ -46,7 +46,7 @@ public sealed class AnonymizationModelValidatorTests
         await using var ctx = GoodModelContext.Build();
         var validator = BuildValidator(ctx);
 
-        // No throw — test passes.
+        // No throw - test passes.
         await validator.StartAsync(default);
     }
 
@@ -139,7 +139,7 @@ public sealed class AnonymizationModelValidatorTests
     }
 
     // =========================================================================
-    // V4: malformed template — parse failure branch (M-4)
+    // V4: malformed template - parse failure branch
     // =========================================================================
 
     [Fact]
@@ -235,8 +235,8 @@ public sealed class AnonymizationModelValidatorTests
     }
 
     // =========================================================================
-    // H-1 regression: non-exempt root that OwnsOne .ToJson() with [Anonymizable]
-    // on the child → V3 on the ROOT, NOT V1/V2 on the child entity type
+    // Regression: non-exempt root that OwnsOne .ToJson() with [Anonymizable]
+    // on the child -> V3 on the ROOT, NOT V1/V2 on the child entity type
     // =========================================================================
 
     [Fact]
@@ -271,7 +271,7 @@ public sealed class AnonymizationModelValidatorTests
         var validator = BuildValidator(ctx);
 
         // Should NOT throw even though the exempt entity lacks IAnonymizationTrackable
-        // and carries a Tier-C shape.
+        // and has a Tier-C shape.
         await validator.StartAsync(default);
     }
 
@@ -295,7 +295,7 @@ public sealed class AnonymizationModelValidatorTests
     }
 
     // =========================================================================
-    // H-2 regression: V5/V6 must recurse into complex sub-properties
+    // Regression: V5/V6 must recurse into complex sub-properties
     // =========================================================================
 
     [Fact]
@@ -418,7 +418,7 @@ public sealed class AnonymizationModelValidatorTests
 
         public void Dispose()
         {
-            // Scope disposal — context lifetime managed by the caller.
+            // Scope disposal - context lifetime managed by the caller.
         }
     }
 
@@ -837,7 +837,7 @@ public sealed class AnonymizationModelValidatorTests
             {
                 e.HasKey(x => x.Id);
 
-                // Attribute says SetEmpty; fluent writes Constant("[diverged]") — divergent.
+                // Attribute says SetEmpty; fluent writes Constant("[diverged]") - divergent.
                 e.Property(x => x.Email).Anonymize("[diverged]");
             });
         }
@@ -1000,7 +1000,7 @@ public sealed class AnonymizationModelValidatorTests
             {
                 e.HasKey(x => x.Id);
 
-                // Unmatched opening brace — triggers the ArgumentException catch in
+                // Unmatched opening brace - triggers the ArgumentException catch in
                 // ValidateV4Templates, firing the parse-failure branch of V4.
                 e.Property(x => x.Alias)
                     .AnonymizeTemplate("deleted_{malformed");
@@ -1082,8 +1082,8 @@ public sealed class AnonymizationModelValidatorTests
 
         protected override void OnModelCreating(ModelBuilder model)
         {
-            // No ApplyAnonymizationConventions() → [Anonymizable] on ComplexNamePart.Code
-            // produces no annotation → V5 must fire.
+            // No ApplyAnonymizationConventions() -> [Anonymizable] on ComplexNamePart.Code
+            // produces no annotation -> V5 must fire.
             model.Entity<ComplexOwnerForV5>(e =>
             {
                 e.HasKey(x => x.Id);
@@ -1117,7 +1117,7 @@ public sealed class AnonymizationModelValidatorTests
 
         protected override void OnModelCreating(ModelBuilder model)
         {
-            // Attribute says Constant("[deleted-code]"); fluent writes SetEmpty — divergent.
+            // Attribute says Constant("[deleted-code]"); fluent writes SetEmpty - divergent.
             model.Entity<ComplexOwnerForV6>(e =>
             {
                 e.HasKey(x => x.Id);

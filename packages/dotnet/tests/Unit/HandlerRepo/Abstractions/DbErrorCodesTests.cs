@@ -13,11 +13,11 @@ using DcsvIo.D2.Handler.Repo.Abstractions;
 using Xunit;
 
 /// <summary>
-/// Pinning tests for <see cref="DbErrorCodes"/> — the constants are part of
+/// Pinning tests for <see cref="DbErrorCodes"/> - the constants are part of
 /// the public wire contract (booleans match by string equality, not by symbol
-/// reference). A silent rename would break consumers that hand-craft results
-/// with these codes (middleware emitting from <see cref="DcsvIo.D2.Result.D2Result.Fail"/>
-/// without referencing the abstractions package).
+/// reference). A silent rename would break every result hand-crafted with
+/// these codes through <see cref="DcsvIo.D2.Result.D2Result.Fail"/>, including
+/// results built by middleware that does not reference the abstractions package.
 /// </summary>
 public sealed class DbErrorCodesTests
 {
@@ -37,9 +37,9 @@ public sealed class DbErrorCodesTests
     [Fact]
     public void Constants_AllScreamingSnakeCase()
     {
-        // Adversarial: enforce naming convention. A new constant added in
+        // Adversarial: enforce naming convention. A constant added in
         // camelCase / PascalCase would silently break the discriminator
-        // contract (DbResultDbBooleans matches by literal string).
+        // contract (D2ResultDbBooleans matches by literal string).
         var fields = typeof(DbErrorCodes).GetFields(
             BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
 
@@ -70,9 +70,9 @@ public sealed class DbErrorCodesTests
     [Fact]
     public void Constants_NameAndValueMatch()
     {
-        // Each constant is `nameof(NAME)` — value MUST equal the field
-        // name. Documents that contract; a future hand-typed value that
-        // accidentally diverges from the field name would trip this.
+        // Each constant is `nameof(NAME)` - value MUST equal the field
+        // name. This documents the contract; a hand-typed value that
+        // diverges from the field name fails this test.
         var fields = typeof(DbErrorCodes).GetFields(
             BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
 
@@ -81,7 +81,7 @@ public sealed class DbErrorCodesTests
             var value = (string)f.GetRawConstantValue()!;
             value.Should().Be(
                 f.Name,
-                $"constant {f.Name} should use nameof() — value '{value}' != name");
+                $"constant {f.Name} should use nameof() - value '{value}' != name");
         }
     }
 }

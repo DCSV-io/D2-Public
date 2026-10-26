@@ -15,7 +15,7 @@ using System.ComponentModel;
 /// Polyfill enabling C# 9 <c>init</c> accessors on records when targeting
 /// netstandard2.0. The runtime ignores the marker; the compiler synthesizes
 /// it into init-only setters when emitting record types. Required because
-/// Roslyn analyzers / source generators MUST target netstandard2.0 and
+/// Roslyn analyzers and source generators must target netstandard2.0, and
 /// netstandard2.0 does not ship this type. Wired into each source-gen
 /// csproj via the shared <c>Compile Include</c> from
 /// <c>source-gen-shared/</c>.

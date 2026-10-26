@@ -12,10 +12,9 @@ using Xunit;
 
 /// <summary>
 /// Pins the <c>D2WS###</c> diagnostic IDs surfaced by the wire-shapes
-/// source generator. Cross-language counterparts ride in
-/// <c>tools/ts-codegen/src/lib/diagnostics.ts</c> under <c>WS_*</c> keys
-/// — identical IDs by spec since both sides describe the same predicate
-/// violations against the same spec source.
+/// source generator. The TypeScript code generator defines the same IDs under
+/// <c>WS_*</c> keys - identical IDs by spec since both sides describe the same
+/// predicate violations against the same spec source.
 /// </summary>
 public sealed class WireShapesDiagnosticIdsTests
 {

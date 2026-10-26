@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
 /// <summary>
-/// Internal middleware impl behind
+/// Internal middleware implementation behind
 /// <see cref="SecurityHeadersApplicationBuilderExtensions.UseD2SecurityHeaders"/>.
 /// Registers an <c>HttpResponse.OnStarting</c> callback so the headers are
 /// written into the response before the body is flushed (writing during
@@ -55,9 +55,9 @@ internal sealed class SecurityHeadersMiddleware
     }
 
     /// <summary>
-    /// OnStarting callback writing the security-header set into the
-    /// response. Static so the closure carries no captures (state is
-    /// passed in via the second OnStarting argument).
+    /// OnStarting callback that writes the security-header set into the
+    /// response. It is static, so it captures nothing; the state is passed
+    /// as the second OnStarting argument.
     /// </summary>
     private static Task WriteHeadersCallback(object state)
     {
@@ -100,7 +100,7 @@ internal sealed class SecurityHeadersMiddleware
             options.CrossOriginOpenerPolicy,
             D2SecurityHeadersOptions.DEFAULT_CROSS_ORIGIN_OPENER_POLICY);
 
-        // HSTS only on HTTPS — HSTS over HTTP is meaningless and the spec
+        // HSTS only on HTTPS - HSTS over HTTP is meaningless and the spec
         // forbids preload submission for non-HTTPS-only origins.
         if (isHttps)
         {
@@ -115,10 +115,10 @@ internal sealed class SecurityHeadersMiddleware
     }
 
     /// <summary>
-    /// Applies the per-header tri-state semantic:
-    /// <c>null override</c> → write the default value;
-    /// empty string override → suppress (do not write);
-    /// non-empty override → write the override literal.
+    /// Applies the per-header tri-state rule:
+    /// <c>null override</c> -> write the default value;
+    /// empty string override -> suppress (do not write);
+    /// non-empty override -> write the override literal.
     /// </summary>
     private static void ApplyHeader(
         HttpResponse response,
@@ -127,10 +127,10 @@ internal sealed class SecurityHeadersMiddleware
         string defaultValue)
     {
         // Tri-state: null = use default; "" = suppress; non-empty = override.
-        // overrideValue is null  → write default.
-        // overrideValue is ""    → suppress (return without write).
-        // overrideValue is " "   → suppress (Falsey() returns true on whitespace too).
-        // overrideValue is "foo" → write "foo".
+        // overrideValue is null  -> write default.
+        // overrideValue is ""    -> suppress (return without write).
+        // overrideValue is " "   -> suppress (Falsey() returns true on whitespace too).
+        // overrideValue is "foo" -> write "foo".
         if (overrideValue is null)
         {
             response.Headers[headerName] = defaultValue;

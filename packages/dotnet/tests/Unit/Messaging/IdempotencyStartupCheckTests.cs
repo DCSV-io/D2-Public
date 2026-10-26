@@ -78,11 +78,12 @@ public sealed class IdempotencyStartupCheckTests
     [Fact]
     public async Task StartAsync_OperatorProvidedStore_BypassesCacheRequirement()
     {
-        // An operator-provided IMessageIdempotencyStore (e.g. integration
-        // test fakes) satisfies the startup check even when IDistributedCache
-        // is missing. Without this bypass, GetService would throw on the
-        // default CacheIdempotencyStore's missing dependency before reaching
-        // the operator-store check.
+        // An operator-provided IMessageIdempotencyStore (for example an
+        // integration test fake) satisfies the startup check even when
+        // IDistributedCache is missing. Without this bypass, GetService would
+        // throw on the missing dependency of the default
+        // CacheIdempotencyStore before the startup check reached the
+        // operator-store check.
         var registry = new SubscriberRegistry([
             BuildRegistration<SampleAuditHandler, SampleAuditEvent>("q-op", idempotency: true),
         ]);
@@ -101,9 +102,9 @@ public sealed class IdempotencyStartupCheckTests
     [Fact]
     public async Task StartAsync_NoOperatorStore_NoCache_StillFails()
     {
-        // Inverse of above: with neither operator-provided store nor
-        // distributed cache, the check still hard-fails. Pin so a refactor
-        // doesn't soften the guard.
+        // The inverse of the test above: with neither an operator-provided
+        // store nor a distributed cache, the check still fails. The test fails
+        // if a refactor weakens the check.
         var registry = new SubscriberRegistry([
             BuildRegistration<SampleAuditHandler, SampleAuditEvent>("q-bare", idempotency: true),
         ]);
@@ -153,6 +154,15 @@ public sealed class IdempotencyStartupCheckTests
             string k, T v, TimeSpan? e = null, CancellationToken c = default)
             => throw new NotImplementedException();
 
+        public ValueTask<D2Result<bool>> SetIfEqualAsync<T>(
+            string k, T expected, T v, TimeSpan? e = null, CancellationToken c = default)
+            => throw new NotImplementedException();
+
+        /// <inheritdoc/>
+        public ValueTask<D2Result<bool>> RemoveIfEqualAsync<T>(
+            string k, T expected, CancellationToken c = default)
+            => throw new NotImplementedException();
+
         public ValueTask<D2Result<bool>> ExistsAsync(
             string k, CancellationToken c = default)
             => throw new NotImplementedException();
@@ -191,6 +201,15 @@ public sealed class IdempotencyStartupCheckTests
             string k,
             long a = 1,
             TimeSpan? e = null,
+            CancellationToken c = default)
+            => throw new NotImplementedException();
+
+        public ValueTask<D2Result<TokenBucketDecision>> ConsumeTokenAsync(
+            string k,
+            long refillTokens,
+            TimeSpan refillInterval,
+            long burst,
+            long cost = 1,
             CancellationToken c = default)
             => throw new NotImplementedException();
 

@@ -13,11 +13,11 @@ using DcsvIo.D2.SourceGen;
 
 /// <summary>
 /// Pure logic for emitting the <c>EncryptionFrameLayout</c> static class
-/// source from a parsed <see cref="EncryptionFrameSpec"/>. Emits per-field
-/// offset + length constants plus a constraints sub-class. Mirrors the
-/// TS-side <c>EncryptionFrame</c> catalog in <c>@dcsv-io/d2-encryption-abstractions</c>
-/// — both sides reference the same spec so the binary layout cannot drift
-/// across the .NET encoder and the TS decoder.
+/// source from a parsed <see cref="EncryptionFrameSpec"/>. It emits per-field
+/// offset and length constants and constants for the frame constraints. The
+/// TypeScript <c>EncryptionFrame</c> catalog in <c>@dcsv-io/d2-encryption-abstractions</c>
+/// mirrors it. Both sides read the same spec, so the binary layout cannot drift
+/// between the .NET constants and the TypeScript catalog.
 /// </summary>
 internal static class EncryptionFrameEmitter
 {
@@ -27,9 +27,9 @@ internal static class EncryptionFrameEmitter
     /// <summary>The emitted class name.</summary>
     public const string CLASS_NAME = "EncryptionFrameLayout";
 
-    /// <summary>Emits the layout-class source + diagnostics.</summary>
+    /// <summary>Emits the layout-class source and its diagnostics.</summary>
     /// <param name="spec">Parsed encryption-frame spec.</param>
-    /// <returns>Generated source + diagnostics.</returns>
+    /// <returns>The generated source and the diagnostics.</returns>
     public static EmitResult Emit(EncryptionFrameSpec spec)
     {
         var diagnostics = ImmutableArray.CreateBuilder<EmitDiagnostic>();
@@ -69,7 +69,7 @@ internal static class EncryptionFrameEmitter
             valid.Add(entry);
         }
 
-        // Overlap check for fixed-offset fixed-length entries (offset >= 0 AND length > 0).
+        // Overlap check for fixed-offset fixed-length entries (offset >= 0 and length > 0).
         for (var i = 0; i < valid.Count; i++)
         {
             for (var j = i + 1; j < valid.Count; j++)
@@ -159,7 +159,9 @@ internal static class EncryptionFrameEmitter
             "    /// <summary>AES-GCM authentication tag length in bytes (trailing bytes of "
                 + "CIPHERTEXT_WITH_TAG).</summary>");
         sb.AppendLine($"    public const int CONSTRAINT_TAG_LENGTH = {c.TagLength};");
-        sb.AppendLine("    /// <summary>Smallest valid frame size in bytes.</summary>");
+        sb.AppendLine(
+            "    /// <summary>Fixed-field floor in bytes: VERSION, KID_LENGTH, NONCE and the "
+                + "tag. The KID is excluded; its length is checked separately.</summary>");
         sb.AppendLine($"    public const int CONSTRAINT_MIN_FRAME_SIZE = {c.MinFrameSize};");
         sb.AppendLine("}");
         return sb.ToString().LfNormalized();

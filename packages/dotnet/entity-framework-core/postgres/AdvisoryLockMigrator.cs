@@ -26,7 +26,7 @@ using Npgsql;
 /// <strong>Multi-replica safety.</strong> Multiple instances starting simultaneously all
 /// try to acquire the same lock. The first acquires it and migrates; the others block.
 /// When the first releases the lock, each waiter acquires it in turn and finds no
-/// pending migrations — idempotent.
+/// pending migrations - idempotent.
 /// </para>
 /// <para>
 /// <strong>Fail-fast.</strong> Any migration failure throws, crash-looping the host. A
@@ -51,7 +51,7 @@ public sealed partial class AdvisoryLockMigrator<TContext> : IHostedService
     /// <summary>
     /// Initializes a new instance of <see cref="AdvisoryLockMigrator{TContext}"/>.
     /// </summary>
-    /// <param name="scopeFactory">DI scope factory — migrator creates its own scope.</param>
+    /// <param name="scopeFactory">DI scope factory - migrator creates its own scope.</param>
     /// <param name="connectionString">Target database connection string.</param>
     /// <param name="migratorLockKey">
     /// Advisory lock key used during migration. Must be unique within the database
@@ -112,20 +112,20 @@ public sealed partial class AdvisoryLockMigrator<TContext> : IHostedService
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     // =========================================================================
-    // Internal helpers (test seam — InternalsVisibleTo DcsvIo.D2.Tests)
+    // Internal helpers (test seam - InternalsVisibleTo DcsvIo.D2.Tests)
     // =========================================================================
 
     /// <summary>
     /// Returns <see langword="true"/> when a <see cref="PostgresException"/> thrown
     /// by <c>CREATE DATABASE</c> indicates that the database already exists, making
-    /// the error benign (idempotent). Two distinct SqlState codes cover the race:
+    /// the error benign (idempotent). These SqlState codes cover the race:
     /// <list type="bullet">
     ///   <item><description>
-    ///     <c>42P04</c> (duplicate_database) — the common outcome when another
+    ///     <c>42P04</c> (duplicate_database) - the common outcome when another
     ///     migrator finishes <c>CREATE DATABASE</c> before this one's statement runs.
     ///   </description></item>
     ///   <item><description>
-    ///     <c>23505</c> (unique_violation) — the narrow interleave where both
+    ///     <c>23505</c> (unique_violation) - the narrow interleave where both
     ///     migrators read "absent", both attempt <c>CREATE DATABASE</c>, and the
     ///     second hits a primary-key conflict on <c>pg_database</c>.
     ///   </description></item>
@@ -176,7 +176,7 @@ public sealed partial class AdvisoryLockMigrator<TContext> : IHostedService
             MigratorLog.CreatingDatabase(r_logger, targetDb);
 
             // Database name is from the connection string, not user input.
-            // Use NpgsqlConnection.CreateCommand — identifier quoting applied manually
+            // Use NpgsqlConnection.CreateCommand - identifier quoting applied manually
             // because parameterized DDL is not supported in PostgreSQL.
             await using var createCmd = conn.CreateCommand();
             createCmd.CommandText = $"CREATE DATABASE \"{targetDb.Replace("\"", "\"\"")}\"";
@@ -194,7 +194,7 @@ public sealed partial class AdvisoryLockMigrator<TContext> : IHostedService
                 //   both try INSERT into pg_database, second one hits PK conflict).
                 // 42P04 = duplicate_database (common case: migrator A finishes
                 //   CREATE DATABASE before migrator B's statement runs).
-                // Either code means the database now exists — idempotent.
+                // Either code means the database now exists - idempotent.
                 MigratorLog.DatabaseAlreadyExists(r_logger, targetDb);
             }
         }
@@ -205,7 +205,7 @@ public sealed partial class AdvisoryLockMigrator<TContext> : IHostedService
     }
 
     // =========================================================================
-    // [LoggerMessage] delegates — no Exception params (§3.1 PII safety)
+    // [LoggerMessage] delegates - no Exception params (PII safety)
     // =========================================================================
     private static partial class MigratorLog
     {

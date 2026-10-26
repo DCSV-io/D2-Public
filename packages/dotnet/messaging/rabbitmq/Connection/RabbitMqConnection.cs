@@ -6,27 +6,31 @@
 
 namespace DcsvIo.D2.Messaging.RabbitMq.Connection;
 
-using DcsvIo.D2.Utilities.Extensions;
 using global::RabbitMQ.Client;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 /// <summary>
-/// Default <see cref="ID2Connection"/> impl. Holds the singleton
-/// <see cref="IConnection"/> for the process. Opens lazily via a background
-/// reconnect loop kicked off at host startup; retries forever with
-/// exponential backoff so a temporarily-unreachable broker doesn't crash
-/// the host.
+/// Default <see cref="ID2Connection"/> implementation. Holds the shared
+/// <see cref="IConnection"/> for ordinary publishing and consumption.
+/// DLQ republishing owns separate connections.
 /// </summary>
 /// <remarks>
+/// <para>
+/// Opens through a background reconnect loop started at host startup. The
+/// loop retries forever with exponential backoff, so a broker that is
+/// temporarily unreachable does not stop the host.
+/// </para>
+/// <para>
 /// Once a connection is established, RabbitMQ.Client 7.x's
-/// <c>AutomaticRecoveryEnabled = true</c> + <c>TopologyRecoveryEnabled =
+/// <c>AutomaticRecoveryEnabled = true</c> and <c>TopologyRecoveryEnabled =
 /// true</c> handle in-flight reconnection (re-declaring topology,
-/// re-attaching consumers) without our involvement. Our background loop
-/// covers the gap before that first connection is established AND the
-/// edge case where automatic recovery silently fails (we periodically
-/// verify the connection is still healthy).
+/// re-attaching consumers) with no action from this class. The background
+/// loop opens the first connection. After that it only observes the
+/// connection: it logs when the connection is degraded or has recovered, and
+/// it never replaces the connection.
+/// </para>
 /// </remarks>
 [MustDisposeResource(false)]
 internal sealed class RabbitMqConnection : ID2Connection
@@ -67,7 +71,7 @@ internal sealed class RabbitMqConnection : ID2Connection
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        if (r_options.ConnectionUri.Falsey())
+        if (!r_options.HasConnectionUri)
         {
             throw new InvalidOperationException(
                 "RabbitMqConnectionOptions.ConnectionUri is required.");
@@ -129,9 +133,9 @@ internal sealed class RabbitMqConnection : ID2Connection
             }
             catch (Exception ex)
             {
-                // Same PII discipline as ReconnectAttemptFailed (L5): never
-                // pass the Exception object — its Message can include the
-                // ConnectionUri with embedded password.
+                // As in ReconnectAttemptFailed, never pass the Exception
+                // object: its Message can include the ConnectionUri with the
+                // embedded password.
                 RabbitMqConnectionLog.ConnectionCloseFailed(
                     r_logger, ex.GetType().FullName ?? ex.GetType().Name);
             }
@@ -146,23 +150,23 @@ internal sealed class RabbitMqConnection : ID2Connection
     {
         var factory = new ConnectionFactory
         {
-            Uri = new Uri(r_options.ConnectionUri),
+            Uri = new Uri(r_options.RevealConnectionUri()),
             ClientProvidedName = r_options.ClientProvidedName,
             ConsumerDispatchConcurrency = r_options.ConsumerDispatchConcurrency,
             AutomaticRecoveryEnabled = true,
             TopologyRecoveryEnabled = true,
         };
 
-        // Stage 1 — open the FIRST connection. Retry forever with
+        // Stage 1 - open the FIRST connection. Retry forever with
         // exponential backoff. Once succeeded, transition to Stage 2.
         if (!await OpenInitialConnectionAsync(factory, ct)) return;
 
-        // Stage 2 — observe only. RabbitMQ.Client owns reconnection from
-        // here on (AutomaticRecoveryEnabled + TopologyRecoveryEnabled
-        // re-declare topology + re-attach consumers without our help).
-        // We never replace the IConnection mid-flight — doing so orphans
-        // any consumers registered against the old instance, which is a
-        // worse outcome than waiting for ops to restart the replica.
+        // Stage 2 - observe only. RabbitMQ.Client owns reconnection from
+        // here on (AutomaticRecoveryEnabled and TopologyRecoveryEnabled
+        // re-declare topology and re-attach consumers). This class never
+        // replaces the IConnection mid-flight, because that orphans any
+        // consumers registered against the old instance, which is worse than
+        // waiting for an operator to restart the replica.
         await ObservationLoopAsync(ct);
     }
 
@@ -178,6 +182,7 @@ internal sealed class RabbitMqConnection : ID2Connection
             try
             {
                 var fresh = await factory.CreateConnectionAsync(ct);
+                Observe(fresh);
                 _connection = fresh;
                 RabbitMqConnectionLog.ConnectionOpened(
                     r_logger, factory.HostName, factory.Port, attempt);
@@ -190,11 +195,11 @@ internal sealed class RabbitMqConnection : ID2Connection
             }
             catch (Exception ex)
             {
-                // L5: do NOT pass the exception object — its Message includes
-                // the full ConnectionUri (with embedded password) when the
-                // RabbitMQ.Client library can't open the socket. The
-                // exception type alone is enough for ops triage; full
-                // detail is available in the broker's own log if needed.
+                // Never pass the exception object: its Message includes the
+                // full ConnectionUri, with the embedded password, when the
+                // RabbitMQ.Client library cannot open the socket. The
+                // exception type is enough for triage, and the broker's own
+                // log has the full detail.
                 RabbitMqConnectionLog.ReconnectAttemptFailed(
                     r_logger,
                     attempt,
@@ -218,6 +223,80 @@ internal sealed class RabbitMqConnection : ID2Connection
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Attaches the client's own recovery and shutdown callbacks to the log. Automatic
+    /// recovery re-opens the connection and re-declares topology on its own schedule, so
+    /// without these the only symptom of a recovery is that a publish issued inside the
+    /// window reaches no queue and a consumer stops receiving - both silent.
+    /// </summary>
+    private void Observe(IConnection connection)
+    {
+        connection.ConnectionShutdownAsync += (_, e) =>
+        {
+            // An Application initiator is this process closing its own connection on
+            // shutdown, which is not a fault. Peer and Library initiators are the ones
+            // that start a recovery this process did not request.
+            if (e.Initiator != ShutdownInitiator.Application)
+            {
+                RabbitMqConnectionLog.ConnectionShutdown(
+                    r_logger, e.Initiator.ToString(), e.ReplyCode, e.ReplyText);
+            }
+
+            return Task.CompletedTask;
+        };
+
+        connection.RecoverySucceededAsync += (_, _) =>
+        {
+            RabbitMqConnectionLog.RecoverySucceeded(r_logger);
+            return Task.CompletedTask;
+        };
+
+        connection.ConnectionRecoveryErrorAsync += (_, e) =>
+        {
+            // Never pass the exception object: its Message can include the
+            // ConnectionUri with the embedded password.
+            RabbitMqConnectionLog.RecoveryFailed(
+                r_logger, e.Exception.GetType().FullName ?? e.Exception.GetType().Name);
+            return Task.CompletedTask;
+        };
+
+        connection.CallbackExceptionAsync += (_, e) =>
+        {
+            RabbitMqConnectionLog.ConnectionCallbackFailed(
+                r_logger,
+                e.Exception.GetType().FullName ?? e.Exception.GetType().Name,
+                string.Join(",", e.Detail.Keys));
+            return Task.CompletedTask;
+        };
+
+        connection.RecoveringConsumerAsync += (_, e) =>
+        {
+            RabbitMqConnectionLog.RecoveringConsumer(r_logger, e.ConsumerTag);
+            return Task.CompletedTask;
+        };
+
+        connection.QueueNameChangedAfterRecoveryAsync += (_, e) =>
+        {
+            RabbitMqConnectionLog.QueueNameChangedAfterRecovery(
+                r_logger,
+                e.NameBefore,
+                e.NameAfter);
+            return Task.CompletedTask;
+        };
+
+        connection.ConnectionBlockedAsync += (_, e) =>
+        {
+            RabbitMqConnectionLog.ConnectionBlocked(r_logger, e.Reason);
+            return Task.CompletedTask;
+        };
+
+        connection.ConnectionUnblockedAsync += (_, _) =>
+        {
+            RabbitMqConnectionLog.ConnectionUnblocked(r_logger);
+            return Task.CompletedTask;
+        };
     }
 
     private async Task ObservationLoopAsync(CancellationToken ct)

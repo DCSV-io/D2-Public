@@ -13,15 +13,17 @@ using DcsvIo.D2.Result;
 using Xunit;
 
 /// <summary>
-/// Pins the typed <see cref="D2Result.Category"/> field — that every
-/// spec-derived semantic factory stamps the <see cref="ErrorCategory"/>
+/// Pins the typed <see cref="D2Result.Category"/> field.
+/// </summary>
+/// <remarks>
+/// Every spec-derived semantic factory stamps the <see cref="ErrorCategory"/>
 /// declared for its code in
 /// <c>contracts/error-codes/error-codes.spec.json</c> (baked at generation
-/// time, no runtime registry lookup), that the hand-rolled success / raw
-/// factories carry no category, and that the field round-trips through the
+/// time, with no runtime registry lookup). The hand-rolled success and raw
+/// factories carry no category. The field round-trips through the
 /// constructor, <see cref="D2Result.WithTraceId"/>, and the
-/// <c>Bubble</c> / <c>BubbleFail</c> propagation factories.
-/// </summary>
+/// <c>Bubble</c> and <c>BubbleFail</c> propagation factories.
+/// </remarks>
 public sealed class D2ResultCategoryTests
 {
     [Fact]
@@ -77,9 +79,9 @@ public sealed class D2ResultCategoryTests
     public void GenericTwin_StampsSameCategoryAsNonGeneric(
         string wire, ErrorCategory expected)
     {
-        // The <TData> twin of each base factory stamps the identical category;
-        // pin the wire string against the typed enum to catch any divergence
-        // between the generic + non-generic emit passes.
+        // The <TData> twin of each base factory stamps the same category.
+        // The test compares the wire string with the typed enum, so a difference
+        // between the generic and non-generic generator output fails it.
         var category = wire switch
         {
             "not_found" => D2Result<string>.NotFound().Category,
@@ -99,9 +101,9 @@ public sealed class D2ResultCategoryTests
     [Fact]
     public void Forbidden_CategoryOverrideWins()
     {
-        // Every error factory (the universal standard shape) exposes a category
-        // override so a delegating domain factory can stamp its own code's
-        // category onto the base factory.
+        // Every error factory (the standard shape) takes a category override, so
+        // a domain factory that delegates to a base factory can pass its own
+        // code's category.
         var result = D2Result.Forbidden(category: ErrorCategory.ValidationFailure);
 
         result.Category.Should().Be(ErrorCategory.ValidationFailure);

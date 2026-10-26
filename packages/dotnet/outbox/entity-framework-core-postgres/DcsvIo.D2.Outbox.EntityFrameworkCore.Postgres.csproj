@@ -1,0 +1,81 @@
+<!--
+Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>DcsvIo.D2.Outbox.EntityFrameworkCore.Postgres</RootNamespace>
+
+    <!-- Emit the LoggerMessage generator's output to <project-dir>/Generated/.
+         The directory is tracked in git so reviewers see codegen diffs without
+         a local build. -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      The SourceGen pipeline feeds the in-memory compiler with the same content
+      that lands on disk under Generated/. Without this Remove, the SDK-default
+      <Compile Include="**/*.cs" /> glob picks up the on-disk copy and the build
+      fails with duplicate-definition errors (CS0101 / CS0111).
+    -->
+    <Compile Remove="$(CompilerGeneratedFilesOutputPath)\**\*.cs" />
+  </ItemGroup>
+
+  <!--
+    The PostgreSQL leaf of the transactional outbox: the relay that drains the
+    table under a PostgreSQL advisory lock, and the registration that hosts it.
+    The advisory lock is provider-specific, so it sits here rather than in
+    DcsvIo.D2.Outbox.EntityFrameworkCore, which a consumer may reference for the
+    row and the staging seam alone.
+  -->
+
+  <ItemGroup>
+    <!-- DcsvIo.D2.Outbox.EntityFrameworkCore - IOutboxStore, the row, OutboxTelemetry. -->
+    <ProjectReference Include="..\entity-framework-core\DcsvIo.D2.Outbox.EntityFrameworkCore.csproj" />
+    <!-- DcsvIo.D2.Outbox - the message states, the ports and the options. -->
+    <ProjectReference Include="..\core\DcsvIo.D2.Outbox.csproj" />
+    <!-- DcsvIo.D2.Result - the dispatcher returns D2Result. -->
+    <ProjectReference Include="..\..\result\core\DcsvIo.D2.Result.csproj" />
+    <!-- DcsvIo.D2.Time - IClock, which the due predicate and every stamp read from. -->
+    <ProjectReference Include="..\..\time\DcsvIo.D2.Time.csproj" />
+    <!-- DcsvIo.D2.Utilities - SanitizedExceptionRender on the relay's catch
+         arms. -->
+    <ProjectReference Include="..\..\utilities\DcsvIo.D2.Utilities.csproj" />
+    <!-- DcsvIo.D2.EntityFrameworkCore.Postgres - PgAdvisoryLock for the relay. -->
+    <ProjectReference Include="..\..\entity-framework-core\postgres\DcsvIo.D2.EntityFrameworkCore.Postgres.csproj" />
+    <!-- DcsvIo.D2.Context.Abstractions - ISystemWorkScopeFactory opens each tick's scope. -->
+    <ProjectReference Include="..\..\context\abstractions\DcsvIo.D2.Context.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- NodaTime - Instant and Duration on the states and the backoff curve. -->
+    <PackageReference Include="NodaTime" />
+    <!-- Microsoft.Extensions.DependencyInjection.Abstractions - the Add extension. -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <!-- Microsoft.Extensions.Hosting.Abstractions - BackgroundService on the relay. -->
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <!-- Microsoft.Extensions.Logging.Abstractions - the relay's LoggerMessage delegates. -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <!-- Microsoft.Extensions.Options - IOptionsMonitor<OutboxOptionsFor<TDb>>
+         on the relay. -->
+    <PackageReference Include="Microsoft.Extensions.Options" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DcsvIo.D2.Tests" />
+  </ItemGroup>
+
+  <!-- Publish metadata (per-package semver + NuGet identity). -->
+  <PropertyGroup>
+    <Version>0.2.27</Version>
+    <PackageId>DcsvIo.D2.Outbox.EntityFrameworkCore.Postgres</PackageId>
+    <Description>PostgreSQL relay for the D2 transactional outbox.</Description>
+    <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>

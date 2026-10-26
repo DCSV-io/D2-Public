@@ -13,7 +13,7 @@ using Xunit;
 public sealed class KeyDecomposerTests
 {
     // ----------------------------------------------------------------------
-    // Happy path — well-formed keys decompose to the expected TK path
+    // Happy path - well-formed keys decompose to the expected TK path
     // ----------------------------------------------------------------------
 
     [Theory]
@@ -48,7 +48,8 @@ public sealed class KeyDecomposerTests
     [Fact]
     public void Decompose_SingleCharSegments_ProducesValidTriple()
     {
-        // Boundary: minimal valid key — every segment is one character.
+        // Boundary: the shortest valid key, where every segment is one
+        // character.
         var result = KeyDecomposer.Decompose("a_b_c");
 
         result.IsValid.Should().BeTrue();
@@ -60,8 +61,9 @@ public sealed class KeyDecomposerTests
     [Fact]
     public void Decompose_AlreadyPascalCaseDomain_PreservesCasing()
     {
-        // Adversarial: ToPascalCase is idempotent — a leading-uppercase segment
-        // is left untouched. This means callers can mix conventions without breakage.
+        // ToPascalCase is idempotent: a segment that starts with an uppercase
+        // letter is left unchanged. Keys that mix conventions decompose
+        // without error.
         var result = KeyDecomposer.Decompose("Common_Errors_NOT_FOUND");
 
         result.IsValid.Should().BeTrue();
@@ -82,7 +84,7 @@ public sealed class KeyDecomposerTests
     }
 
     // ----------------------------------------------------------------------
-    // Invalid — too few segments
+    // Invalid - too few segments
     // ----------------------------------------------------------------------
 
     [Theory]
@@ -118,7 +120,7 @@ public sealed class KeyDecomposerTests
     }
 
     // ----------------------------------------------------------------------
-    // Invalid — empty segments (consecutive / leading / trailing underscores)
+    // Invalid - empty segments (consecutive / leading / trailing underscores)
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -152,7 +154,8 @@ public sealed class KeyDecomposerTests
     [Fact]
     public void Decompose_ConsecutiveUnderscoresInDomain_IsInvalid()
     {
-        // common__errors_X → segments are ["common", "", "errors", "X"]; index 1 is empty.
+        // common__errors_X has the segments ["common", "", "errors", "X"], and
+        // the segment at index 1 is empty.
         var result = KeyDecomposer.Decompose("common__errors_X");
 
         result.IsValid.Should().BeFalse();
@@ -162,14 +165,15 @@ public sealed class KeyDecomposerTests
     [Fact]
     public void Decompose_ConsecutiveUnderscoresInIdentifier_IsInvalid()
     {
-        // common_errors__X → segments are ["common", "errors", "", "X"]; index 2 is empty.
+        // common_errors__X has the segments ["common", "errors", "", "X"], and
+        // the segment at index 2 is empty.
         var result = KeyDecomposer.Decompose("common_errors__X");
 
         result.IsValid.Should().BeFalse();
     }
 
     // ----------------------------------------------------------------------
-    // Invalid — identifier rules (ASCII, no leading digit, no whitespace)
+    // Invalid - identifier rules (ASCII, no leading digit, no whitespace)
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -193,7 +197,8 @@ public sealed class KeyDecomposerTests
     [Fact]
     public void Decompose_ConstantStartsWithDigit_IsInvalid()
     {
-        // common_errors_404_NOT_FOUND → constant joins to "404_NOT_FOUND"; starts with digit.
+        // In common_errors_404_NOT_FOUND the constant name joins to
+        // "404_NOT_FOUND", which starts with a digit.
         var result = KeyDecomposer.Decompose("common_errors_404_NOT_FOUND");
 
         result.IsValid.Should().BeFalse();
@@ -203,7 +208,7 @@ public sealed class KeyDecomposerTests
     [Fact]
     public void Decompose_WhitespaceInSegment_IsInvalid()
     {
-        // Segment containing space → invalid C# identifier.
+        // A segment that contains a space is not a valid C# identifier.
         var result = KeyDecomposer.Decompose("common errors NOT_FOUND");
 
         result.IsValid.Should().BeFalse();
@@ -212,7 +217,8 @@ public sealed class KeyDecomposerTests
     [Fact]
     public void Decompose_UnicodeInIdentifier_IsInvalid()
     {
-        // ASCII-only restriction keeps emitted code predictable across encoding tooling.
+        // Identifiers must be ASCII-only, which keeps emitted code predictable
+        // across encoding tooling, so a non-ASCII letter makes the key invalid.
         var result = KeyDecomposer.Decompose("common_errors_naïve");
 
         result.IsValid.Should().BeFalse();
@@ -228,23 +234,26 @@ public sealed class KeyDecomposerTests
     }
 
     // ----------------------------------------------------------------------
-    // Reserved-word collision (defensive — uppercase identifiers shouldn't collide)
+    // Keyword spelling (the constant name is upper case, never a C# keyword)
     // ----------------------------------------------------------------------
 
-    [Fact]
-    public void Decompose_ConstantNameCollidesWithReservedWord_IsInvalid()
+    [Theory]
+    [InlineData("common_errors_class", "CLASS")]
+    [InlineData("common_errors_int", "INT")]
+    public void Decompose_ConstantNameSpellingAKeyword_IsValidWithTheUpperCaseName(
+        string key,
+        string constantName)
     {
-        // Hypothetical: common_errors_class → constant name "CLASS" lowercased to "class"
-        // matches a reserved word. Defensive guard against future SrcGen changes that
-        // might emit non-uppercased identifiers.
-        var result = KeyDecomposer.Decompose("common_errors_class");
+        // C# keywords are lower case. The constant name is upper-cased, so CLASS is a
+        // legal identifier and the key is valid.
+        var result = KeyDecomposer.Decompose(key);
 
-        result.IsValid.Should().BeFalse();
-        result.InvalidReason.Should().Contain("reserved");
+        result.IsValid.Should().BeTrue();
+        result.ConstantName.Should().Be(constantName);
     }
 
     // ----------------------------------------------------------------------
-    // Property test — every real v1 key must decompose successfully
+    // Property test - every key of the live catalog decomposes successfully
     // ----------------------------------------------------------------------
 
     [Theory]
@@ -277,9 +286,9 @@ public sealed class KeyDecomposerTests
     [InlineData("comms_errors_NO_DELIVERABLE_CHANNELS")]
     public void Decompose_RealCatalogKey_ProducesValidDecomposition(string realKey)
     {
-        // Property: every key shipped in contracts/messages/en-US.json must
-        // decompose cleanly. Failure here means SrcGen would have rejected
-        // a real key — drift detector for the JSON catalog.
+        // Every key in contracts/messages/en-US.json must decompose cleanly.
+        // A failure means the generator would reject a real key, so this test
+        // detects drift between the JSON catalog and the key rules.
         var result = KeyDecomposer.Decompose(realKey);
 
         result.IsValid.Should().BeTrue(

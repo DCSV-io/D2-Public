@@ -61,6 +61,7 @@ describe("construction + barrel", () => {
   it("barrel_exportsExactPublicSet", () => {
     expect(Object.keys(barrel).sort()).toEqual(
       [
+        "CONSUME_TOKEN",
         "INCREMENT_WITH_OPTIONAL_TTL",
         "JsonCacheSerializer",
         "REDIS_CACHE_DEFAULTS",
@@ -68,9 +69,11 @@ describe("construction + barrel", () => {
         "REDIS_CACHE_METER_NAME",
         "REDIS_CACHE_METER_VERSION",
         "RELEASE_LOCK_IF_OWNER",
+        "REMOVE_IF_EQUAL",
         "RedisCacheInvalidationBackplane",
         "RedisDistributedCache",
         "SET_ADD_WITH_OPTIONAL_TTL",
+        "SET_IF_EQUAL",
         "connectRedis",
         "createRedisCacheOptions",
       ].sort(),

@@ -12,9 +12,9 @@ import { collectAllRedactedFields } from "./redaction.js";
  * `redact={ remove: true }` so redacted paths drop entirely from output.
  *
  * The `redactPaths` array merges with `markRedactedFields()` registrations
- * + codegen-emitted `<TypeName>RedactPaths` constants the caller provides
- * directly. Spec-driven redaction (codegen) + hand-written-type redaction
- * (registry) compose into the single Pino redaction list.
+ * and with the codegen-emitted `<TypeName>RedactPaths` constants the caller
+ * provides directly. Spec-driven redaction (codegen) and hand-written-type
+ * redaction (registry) combine into the single Pino redaction list.
  */
 export interface LoggerOptions {
   /** Service name; emitted as `service` on every record. */
@@ -23,10 +23,10 @@ export interface LoggerOptions {
   readonly environment?: string;
   /** Minimum level (`trace` / `debug` / `info` / `warn` / `error` / `fatal`). */
   readonly minLevel?: "trace" | "debug" | "info" | "warn" | "error" | "fatal";
-  /** Pretty-print transport for local dev. NEVER true in prod. */
+  /** Pretty-print transport for local dev. Never true in prod. */
   readonly pretty?: boolean;
   /**
-   * Additional redact-path arrays — typically codegen-emitted
+   * Additional redact-path arrays, typically codegen-emitted
    * `<TypeName>RedactPaths` constants. These merge with paths registered
    * via `markRedactedFields()` to build Pino's redaction config.
    */
@@ -35,7 +35,7 @@ export interface LoggerOptions {
 
 /**
  * Pino-backed `ILogger` implementation. Wraps a `PinoLogger` to project
- * the .NET-mirroring per-level shape — `(message, bindings?)`.
+ * the .NET-mirroring per-level shape: `(message, bindings?)`.
  */
 class PinoBackedLogger implements ILogger {
   constructor(private readonly inner: PinoLogger) {}

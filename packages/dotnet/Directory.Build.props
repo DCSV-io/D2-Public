@@ -3,9 +3,10 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project>
   <!--
-    Public package tree packaging properties. Applies to every .csproj under
-    public/packages/dotnet/. Imports monorepo-root Directory.Build.props for
-    dual roots / TFM / StyleCop default, then overrides StyleCop to Apache stamp.
+    Packaging properties for the public package tree. They apply to every
+    .csproj under packages/dotnet/. The file imports the Directory.Build.props
+    above this tree for the dual roots, the target framework and the default
+    StyleCop settings, then overrides StyleCop with the Apache header stamp.
   -->
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
@@ -24,10 +25,12 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <None Include="$(D2PublicRoot)LICENSE" Pack="true" PackagePath="\" Visible="false" />
   </ItemGroup>
 
-  <!-- Dual StyleCop: strip monorepo-root ARR settings; StyleCop discovers by physical
-       path ending in stylecop.json (Link alone is not enough). Public tree uses the
-       Apache stamp at public/packages/dotnet/stylecop.json (mirrored from
-       public/stylecop.public.json for export clarity). -->
+  <!-- Dual StyleCop: remove the proprietary-license settings of the stylecop.json
+       above this tree; StyleCop discovers its settings by a physical path that
+       ends in stylecop.json (Link alone is not enough). The public tree uses the
+       Apache stamp at packages/dotnet/stylecop.json (mirrored from the
+       stylecop.public.json at the root of the public tree, for export
+       clarity). -->
   <ItemGroup>
     <AdditionalFiles Remove="$(D2RepoRoot)stylecop.json" />
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)stylecop.json" />

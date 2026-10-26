@@ -8178,7 +8178,7 @@ public static class CountryLookup
             WeekendStart = GeoDayOfWeek.Saturday,
             WeekendEnd = GeoDayOfWeek.Sunday,
             MeasurementSystem = MeasurementSystem.Metric,
-            PrimaryLanguageIso6391Code = null,
+            PrimaryLanguageIso6391Code = LanguageCode.En,
             PrimaryCurrencyIso4217AlphaCode = CurrencyCode.USD,
             PrimaryLocaleIetfBcp47Tag = LocaleCode.FromString("en-MP"),
             SovereignCountryIso31661Alpha2Code = CountryCode.US,
@@ -9227,7 +9227,7 @@ public static class CountryLookup
             WeekendStart = GeoDayOfWeek.Saturday,
             WeekendEnd = GeoDayOfWeek.Sunday,
             MeasurementSystem = MeasurementSystem.Metric,
-            PrimaryLanguageIso6391Code = null,
+            PrimaryLanguageIso6391Code = LanguageCode.En,
             PrimaryCurrencyIso4217AlphaCode = CurrencyCode.NZD,
             PrimaryLocaleIetfBcp47Tag = LocaleCode.FromString("en-NU"),
             SovereignCountryIso31661Alpha2Code = CountryCode.NZ,
@@ -9958,7 +9958,7 @@ public static class CountryLookup
             WeekendStart = GeoDayOfWeek.Saturday,
             WeekendEnd = GeoDayOfWeek.Sunday,
             MeasurementSystem = MeasurementSystem.Metric,
-            PrimaryLanguageIso6391Code = null,
+            PrimaryLanguageIso6391Code = LanguageCode.En,
             PrimaryCurrencyIso4217AlphaCode = CurrencyCode.USD,
             PrimaryLocaleIetfBcp47Tag = LocaleCode.FromString("en-PW"),
             SovereignCountryIso31661Alpha2Code = null,
@@ -10599,7 +10599,7 @@ public static class CountryLookup
             WeekendStart = GeoDayOfWeek.Saturday,
             WeekendEnd = GeoDayOfWeek.Sunday,
             MeasurementSystem = MeasurementSystem.Metric,
-            PrimaryLanguageIso6391Code = null,
+            PrimaryLanguageIso6391Code = LanguageCode.Zh,
             PrimaryCurrencyIso4217AlphaCode = CurrencyCode.SGD,
             PrimaryLocaleIetfBcp47Tag = LocaleCode.FromString("zh-Hans-SG"),
             SovereignCountryIso31661Alpha2Code = null,
@@ -11655,7 +11655,7 @@ public static class CountryLookup
             WeekendStart = GeoDayOfWeek.Saturday,
             WeekendEnd = GeoDayOfWeek.Sunday,
             MeasurementSystem = MeasurementSystem.Metric,
-            PrimaryLanguageIso6391Code = null,
+            PrimaryLanguageIso6391Code = LanguageCode.En,
             PrimaryCurrencyIso4217AlphaCode = CurrencyCode.NZD,
             PrimaryLocaleIetfBcp47Tag = LocaleCode.FromString("en-TK"),
             SovereignCountryIso31661Alpha2Code = CountryCode.NZ,
@@ -11698,7 +11698,7 @@ public static class CountryLookup
             WeekendStart = GeoDayOfWeek.Saturday,
             WeekendEnd = GeoDayOfWeek.Sunday,
             MeasurementSystem = MeasurementSystem.Metric,
-            PrimaryLanguageIso6391Code = null,
+            PrimaryLanguageIso6391Code = LanguageCode.Pt,
             PrimaryCurrencyIso4217AlphaCode = CurrencyCode.USD,
             PrimaryLocaleIetfBcp47Tag = LocaleCode.FromString("pt-TL"),
             SovereignCountryIso31661Alpha2Code = null,
@@ -11983,7 +11983,7 @@ public static class CountryLookup
             WeekendStart = GeoDayOfWeek.Saturday,
             WeekendEnd = GeoDayOfWeek.Sunday,
             MeasurementSystem = MeasurementSystem.Metric,
-            PrimaryLanguageIso6391Code = null,
+            PrimaryLanguageIso6391Code = LanguageCode.En,
             PrimaryCurrencyIso4217AlphaCode = CurrencyCode.AUD,
             PrimaryLocaleIetfBcp47Tag = LocaleCode.FromString("en-TV"),
             SovereignCountryIso31661Alpha2Code = null,
@@ -12768,7 +12768,7 @@ public static class CountryLookup
             WeekendStart = GeoDayOfWeek.Saturday,
             WeekendEnd = GeoDayOfWeek.Sunday,
             MeasurementSystem = MeasurementSystem.Metric,
-            PrimaryLanguageIso6391Code = null,
+            PrimaryLanguageIso6391Code = LanguageCode.Fr,
             PrimaryCurrencyIso4217AlphaCode = CurrencyCode.XPF,
             PrimaryLocaleIetfBcp47Tag = LocaleCode.FromString("fr-WF"),
             SovereignCountryIso31661Alpha2Code = CountryCode.FR,
@@ -18692,6 +18692,7 @@ public static class CountryLookup
         // MP
         {
             var rec = ByCode[CountryCode.MP];
+            rec.PrimaryLanguage = LanguageLookup.ByCode[LanguageCode.En];
             rec.PrimaryCurrency = CurrencyLookup.ByCode[CurrencyCode.USD];
             rec.PrimaryLocale = LocaleLookup.ByCode[LocaleCode.FromString("en-MP")];
             rec.SovereignCountry = ByCode[CountryCode.US];
@@ -19447,6 +19448,7 @@ public static class CountryLookup
         // NU
         {
             var rec = ByCode[CountryCode.NU];
+            rec.PrimaryLanguage = LanguageLookup.ByCode[LanguageCode.En];
             rec.PrimaryCurrency = CurrencyLookup.ByCode[CurrencyCode.NZD];
             rec.PrimaryLocale = LocaleLookup.ByCode[LocaleCode.FromString("en-NU")];
             rec.SovereignCountry = ByCode[CountryCode.NZ];
@@ -19961,6 +19963,7 @@ public static class CountryLookup
         // PW
         {
             var rec = ByCode[CountryCode.PW];
+            rec.PrimaryLanguage = LanguageLookup.ByCode[LanguageCode.En];
             rec.PrimaryCurrency = CurrencyLookup.ByCode[CurrencyCode.USD];
             rec.PrimaryLocale = LocaleLookup.ByCode[LocaleCode.FromString("en-PW")];
             rec.Locales = new Locale[]
@@ -20420,6 +20423,7 @@ public static class CountryLookup
         // SG
         {
             var rec = ByCode[CountryCode.SG];
+            rec.PrimaryLanguage = LanguageLookup.ByCode[LanguageCode.Zh];
             rec.PrimaryCurrency = CurrencyLookup.ByCode[CurrencyCode.SGD];
             rec.PrimaryLocale = LocaleLookup.ByCode[LocaleCode.FromString("zh-Hans-SG")];
             rec.Locales = new Locale[]
@@ -21172,6 +21176,7 @@ public static class CountryLookup
         // TK
         {
             var rec = ByCode[CountryCode.TK];
+            rec.PrimaryLanguage = LanguageLookup.ByCode[LanguageCode.En];
             rec.PrimaryCurrency = CurrencyLookup.ByCode[CurrencyCode.NZD];
             rec.PrimaryLocale = LocaleLookup.ByCode[LocaleCode.FromString("en-TK")];
             rec.SovereignCountry = ByCode[CountryCode.NZ];
@@ -21201,6 +21206,7 @@ public static class CountryLookup
         // TL
         {
             var rec = ByCode[CountryCode.TL];
+            rec.PrimaryLanguage = LanguageLookup.ByCode[LanguageCode.Pt];
             rec.PrimaryCurrency = CurrencyLookup.ByCode[CurrencyCode.USD];
             rec.PrimaryLocale = LocaleLookup.ByCode[LocaleCode.FromString("pt-TL")];
             rec.Locales = new Locale[]
@@ -21401,6 +21407,7 @@ public static class CountryLookup
         // TV
         {
             var rec = ByCode[CountryCode.TV];
+            rec.PrimaryLanguage = LanguageLookup.ByCode[LanguageCode.En];
             rec.PrimaryCurrency = CurrencyLookup.ByCode[CurrencyCode.AUD];
             rec.PrimaryLocale = LocaleLookup.ByCode[LocaleCode.FromString("en-TV")];
             rec.Locales = new Locale[]
@@ -21965,6 +21972,7 @@ public static class CountryLookup
         // WF
         {
             var rec = ByCode[CountryCode.WF];
+            rec.PrimaryLanguage = LanguageLookup.ByCode[LanguageCode.Fr];
             rec.PrimaryCurrency = CurrencyLookup.ByCode[CurrencyCode.XPF];
             rec.PrimaryLocale = LocaleLookup.ByCode[LocaleCode.FromString("fr-WF")];
             rec.SovereignCountry = ByCode[CountryCode.FR];

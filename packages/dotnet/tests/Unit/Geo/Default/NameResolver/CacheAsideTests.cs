@@ -15,18 +15,18 @@ using DcsvIo.D2.Geo.Default.NameResolution;
 using Xunit;
 
 /// <summary>
-/// Cache-aside discipline coverage — first-call builds, subsequent calls
+/// Cache-aside discipline coverage - first-call builds, subsequent calls
 /// hit cache, concurrent first-callers race but only one build wins. Uses
 /// the internal <c>SR_CountryByName</c> Lazy field via the existing
 /// InternalsVisibleTo declaration.
 /// </summary>
 public sealed class CacheAsideTests
 {
-    // §1.2 category: State-lifecycle — first call triggers Lazy.Value.
+    // Category: State-lifecycle - first call triggers Lazy.Value.
     [Fact]
     public void CountryCache_FirstCallBuildsMap()
     {
-        // The Lazy is module-scoped — IsValueCreated may already be true
+        // The Lazy is module-scoped - IsValueCreated may already be true
         // from earlier tests. The behavioral pin is that AFTER any call,
         // the cache IS materialized.
         _ = new DefaultGeoNameResolver().TryResolveCountryByName("United States");
@@ -36,7 +36,7 @@ public sealed class CacheAsideTests
         DefaultGeoNameResolver.SR_CountryByName.Value.Count.Should().BeGreaterThan(100);
     }
 
-    // §1.2 category: State-lifecycle — second call reuses same map instance.
+    // Category: State-lifecycle - second call reuses same map instance.
     [Fact]
     public void CountryCache_SecondCallReusesMap()
     {
@@ -47,12 +47,12 @@ public sealed class CacheAsideTests
         _ = resolver.TryResolveCountryByName("Australia");
         var mapAfterSecond = DefaultGeoNameResolver.SR_CountryByName.Value;
 
-        // Lazy<T> ExecutionAndPublication semantics — second access returns
+        // Lazy<T> ExecutionAndPublication semantics - second access returns
         // the same materialized value.
         mapAfterSecond.Should().BeSameAs(mapAfterFirst);
     }
 
-    // §1.2 category: Concurrency — thundering-herd safety.
+    // Category: Concurrency - thundering-herd safety.
     [Fact]
     public async Task CountryCache_ConcurrentFirstCallers_AllReceiveSameMap()
     {
@@ -66,7 +66,7 @@ public sealed class CacheAsideTests
 
         var results = await Task.WhenAll(tasks);
 
-        // Every caller resolves to the same Country record reference —
+        // Every caller resolves to the same Country record reference -
         // proves the cache published atomically (no torn entries) and
         // every caller hits the same materialized map.
         var first = results[0].Data;
@@ -78,7 +78,7 @@ public sealed class CacheAsideTests
         }
     }
 
-    // §1.2 category: Concurrency — per-key build-once for subdivisions.
+    // Category: Concurrency - per-key build-once for subdivisions.
     [Fact]
     public void SubdivisionCache_DifferentCountries_HaveSeparateMaps()
     {
@@ -100,7 +100,7 @@ public sealed class CacheAsideTests
         usMap.Should().NotBeSameAs(caMap);
     }
 
-    // §1.2 category: State-lifecycle — empty parent country.
+    // Category: State-lifecycle - empty parent country.
     [Fact]
     public void SubdivisionCache_CountryWithNoSubdivisions_BuildsEmptyMap()
     {

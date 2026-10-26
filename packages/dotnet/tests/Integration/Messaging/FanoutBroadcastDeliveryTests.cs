@@ -10,16 +10,16 @@ using AwesomeAssertions;
 using DcsvIo.D2.Handler;
 using DcsvIo.D2.Messaging;
 using DcsvIo.D2.Result;
+using DcsvIo.D2.Tests.Integration.Messaging.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Xunit;
 
 /// <summary>
-/// True fanout two-queue delivery over a real broker — the plaintext
-/// redaction-broadcast shape (prod-used by <c>AuthKeyRotated</c>). Sibling
+/// True fanout two-queue delivery over a real broker - the plaintext
+/// redaction-broadcast shape. Sibling
 /// <see cref="PublishConsumeRoundTripTests.MultipleSubscribers_NoCrossTalk"/>
-/// proves distinct-routing-key ISOLATION on a topic exchange; this proves the
-/// complementary property the deferred row left open: ONE publish to a fanout
+/// proves distinct-routing-key ISOLATION on a topic exchange; this test covers the
+/// complementary property: ONE publish to a fanout
 /// exchange is delivered to EVERY distinct queue bound to it (two separate
 /// consumers, each on its own <see cref="QueuePattern.FanoutExclusiveAutoDelete"/>
 /// queue, BOTH receive the single message).
@@ -27,14 +27,14 @@ using Xunit;
 [Collection("RabbitMq")]
 public sealed class FanoutBroadcastDeliveryTests
 {
-    // Genuine-stuck guard for the async-delivery wait below: a poll-ATTEMPT
-    // budget, never a wall-clock deadline. Each iteration awaits pollInterval,
-    // so under thread-pool saturation (the RabbitMq collection runs parallel to
-    // the Unit collections) the effective wait GROWS with the slowdown instead
-    // of expiring mid-progress. At 50 ms/attempt this floor is ~2 min of real
-    // progress — far above any healthy fanout delivery (well under a second),
-    // so it is never load-reachable, yet a permanently-stuck test still
-    // terminates (this project ships no xunit.runner.json / framework timeout).
+    // Stuck-guard for the async-delivery wait below: a poll-ATTEMPT budget, not
+    // a wall-clock deadline. Each iteration awaits pollInterval, so a slow machine
+    // lengthens the wait instead of expiring it mid-progress. A healthy fanout
+    // delivery resolves in well under a second; exhausting this budget means the
+    // message is not arriving at all, so raise the budget only after establishing
+    // that the delivery is slow rather than absent. The budget is also what
+    // terminates a permanently stuck test - this project ships no framework
+    // test timeout.
     private const int _POLL_ATTEMPT_BUDGET = 2400;
 
     private readonly RabbitMqFixture r_fixture;
@@ -52,12 +52,12 @@ public sealed class FanoutBroadcastDeliveryTests
         TestCollector.Reset<BroadcastFixtureSubB>();
 
         // Two DISTINCT services, each declaring its OWN exclusive fanout queue
-        // (distinct base names → distinct resolved queues) bound to the SAME
+        // (distinct base names -> distinct resolved queues) bound to the SAME
         // fanout exchange resolved from BroadcastFixtureEvent.
         var queueA = "fan.a." + Guid.NewGuid().ToString("N")[..8];
         var queueB = "fan.b." + Guid.NewGuid().ToString("N")[..8];
 
-        using var host = await StartHostAsync(services =>
+        await using var host = await StartHostAsync(services =>
         {
             services.AddTransient<BroadcastFixtureSubA>();
             services.AddTransient<BroadcastFixtureSubB>();
@@ -92,7 +92,7 @@ public sealed class FanoutBroadcastDeliveryTests
             .Which.Marker.Should().Be(marker);
     }
 
-    // Attempt-budgeted stuck-guard — see _POLL_ATTEMPT_BUDGET; no wall-clock deadline.
+    // Attempt-budgeted stuck-guard - see _POLL_ATTEMPT_BUDGET; no wall-clock deadline.
     private static async Task WaitFor(
         Func<bool> predicate, TimeSpan? pollInterval = null)
     {
@@ -107,10 +107,10 @@ public sealed class FanoutBroadcastDeliveryTests
             $"Predicate did not become true within {_POLL_ATTEMPT_BUDGET} poll attempts.");
     }
 
-    private async Task<IHost> StartHostAsync(Action<IServiceCollection> configure)
+    private async Task<MessagingTestHost> StartHostAsync(Action<IServiceCollection> configure)
         => await MessagingHostBuilder.BuildAndStartAsync(r_fixture, configure);
 
-    /// <summary>Distinct broadcast subscriber A — its own fanout queue.</summary>
+    /// <summary>Distinct broadcast subscriber A - its own fanout queue.</summary>
     public sealed class BroadcastFixtureSubA
         : BaseHandler<BroadcastFixtureSubA, BroadcastFixtureEvent, Unit>
     {
@@ -130,7 +130,7 @@ public sealed class FanoutBroadcastDeliveryTests
         }
     }
 
-    /// <summary>Distinct broadcast subscriber B — its own fanout queue.</summary>
+    /// <summary>Distinct broadcast subscriber B - its own fanout queue.</summary>
     public sealed class BroadcastFixtureSubB
         : BaseHandler<BroadcastFixtureSubB, BroadcastFixtureEvent, Unit>
     {

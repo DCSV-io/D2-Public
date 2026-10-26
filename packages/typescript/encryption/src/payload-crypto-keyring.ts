@@ -6,21 +6,21 @@ import { EncryptionFrame } from "@dcsv-io/d2-encryption-abstractions";
 
 /**
  * Immutable JWKS-style keyring holding the active key plus any retiring keys
- * for a single symmetric encryption purpose (one domain, the root key, etc.).
- * The twin of .NET `DcsvIo.D2.Encryption.PayloadCryptoKeyring`.
+ * for a single symmetric encryption purpose (one domain, the root key, and so
+ * on). The twin of .NET `DcsvIo.D2.Encryption.PayloadCryptoKeyring`.
  *
- * Holds raw key bytes — never log, serialize, or otherwise expose a keyring
+ * Contains raw key bytes: never log, serialize, or otherwise expose a keyring
  * instance through any I/O path. The constructor copies all key bytes into
  * private buffers so callers may zeroize their own copies immediately.
  * {@link dispose} zeroes the internal buffers (`buffer.fill(0)`); any
  * {@link PayloadCrypto} still referencing this keyring at dispose time throws
  * on its next call.
  *
- * NOTE on zeroization (GC reality): `fill(0)` clears the specific backing
- * `Uint8Array` this keyring holds. Unlike .NET, the JS runtime may have
- * retained other copies (during import into a WebCrypto key, GC-moved buffers);
- * zeroization is a best-effort reduction of the in-memory window, not a
- * guarantee no copy survives.
+ * Note on zeroization in a garbage-collected runtime: `fill(0)` clears the
+ * specific backing `Uint8Array` this keyring holds. Unlike .NET, the JS runtime
+ * may have retained other copies (during import into a WebCrypto key, or in
+ * buffers the garbage collector moved); zeroization is a best-effort reduction
+ * of the in-memory window, not a guarantee that no copy survives.
  */
 export class PayloadCryptoKeyring {
   /** Required key length in bytes (256-bit AES key). */
@@ -97,7 +97,7 @@ export class PayloadCryptoKeyring {
         );
       }
 
-      // Defensive copy — caller may zeroize / mutate their original.
+      // Defensive copy: the caller may zeroize or mutate the original.
       this.#keys.set(kid, Uint8Array.from(key));
     }
 
@@ -106,8 +106,9 @@ export class PayloadCryptoKeyring {
   }
 
   /**
-   * The AEAD additional-authenticated-data bound to every operation. Caller
-   * decides what bytes carry domain semantics; this lib treats it as opaque.
+   * The AEAD additional-authenticated-data bound to every operation. The
+   * caller decides which bytes to use and what they mean in the domain; this
+   * lib treats them as opaque.
    *
    * @throws {Error} When the keyring has been disposed.
    */
@@ -118,7 +119,7 @@ export class PayloadCryptoKeyring {
   }
 
   /**
-   * Every kid in the keyring (active + retiring). Diagnostic only.
+   * Every kid in the keyring (active and retiring). Diagnostic only.
    *
    * @throws {Error} When the keyring has been disposed.
    */
@@ -131,7 +132,7 @@ export class PayloadCryptoKeyring {
   /**
    * Resolves a kid to its key bytes.
    *
-   * @param kid The kid to look up (a null/undefined kid returns undefined).
+   * @param kid The kid to look up (a null or undefined kid returns undefined).
    * @returns The key bytes when present; undefined otherwise.
    * @throws {Error} When the keyring has been disposed.
    */
@@ -156,7 +157,7 @@ export class PayloadCryptoKeyring {
     this.#disposed = true;
   }
 
-  /** Returns a redacted string — never includes key bytes or AAD bytes. */
+  /** Returns a redacted string that never includes key bytes or AAD bytes. */
   toString(): string {
     return this.#disposed
       ? "PayloadCryptoKeyring(disposed)"

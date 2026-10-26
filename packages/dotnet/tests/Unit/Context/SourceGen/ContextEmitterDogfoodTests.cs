@@ -14,13 +14,13 @@ using DcsvIo.D2.Tests.Unit.Auth;
 using Xunit;
 
 /// <summary>
-/// Regression test pinning the dogfood discipline for the context source
-/// generator. The shared <c>StringExt.Falsey</c> / <c>Truthy</c> polyfill
+/// Regression test pinning that the context source generator uses its own
+/// shared polyfill. The shared <c>StringExt.Falsey</c> / <c>Truthy</c> polyfill
 /// (wired via the <c>Compile Include</c> from <c>source-gen-shared/</c>)
-/// must be the only path the emitter / generator code uses to test for
-/// null/empty/whitespace strings — never a direct call to
-/// <c>string.IsNullOrEmpty</c> or <c>string.IsNullOrWhiteSpace</c>. A future
-/// edit re-introducing such a call is a regression of the bug class that
+/// must be the only way the emitter and generator code tests for
+/// null, empty or whitespace strings, and never a direct call to
+/// <c>string.IsNullOrEmpty</c> or <c>string.IsNullOrWhiteSpace</c>. An edit
+/// that re-introduces such a call is a regression of the bug class that
 /// shipped before the shared polyfill existed.
 /// </summary>
 public sealed class ContextEmitterDogfoodTests
@@ -51,13 +51,13 @@ public sealed class ContextEmitterDogfoodTests
             "context/source-gen production code must dogfood the shared "
             + "StringExt.Falsey / StringExt.Truthy polyfill from source-gen-shared/. "
             + "Direct calls to string.IsNullOrEmpty / string.IsNullOrWhiteSpace are "
-            + "forbidden — the polyfill exists, so use it. Offending files: "
+            + "forbidden - the polyfill exists, so use it. Offending files: "
             + string.Join(", ", offenders));
     }
 
     private static string? LocateSourceGenDirectory()
     {
-        // Layout-aware: monorepo public/packages/dotnet/… or public OSS packages/dotnet/….
+        // Layout-aware: monorepo public/packages/dotnet/... or public OSS packages/dotnet/....
         var candidate = Path.Combine(
             TestPaths.PublicPackagesDotnetRoot(), "context", "source-gen");
 

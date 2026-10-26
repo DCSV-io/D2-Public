@@ -17,10 +17,9 @@ using Microsoft.CodeAnalysis.Text;
 /// Roslyn incremental source generator that emits the
 /// <c>D2ResultEnvelopeFieldNames</c> catalog into <c>DcsvIo.D2.Result</c>
 /// from <c>contracts/d2result-envelope/d2result-envelope.spec.json</c>.
-/// Single-target dispatch on assembly name — any other consumer emits
-/// nothing. The hand-written <c>D2Result</c> class consumes the emitted
-/// constants via <c>[JsonPropertyName(D2ResultEnvelopeFieldNames.*)]</c>
-/// attributes — single source of truth for the wire field-name strings.
+/// Single-target dispatch on assembly name: any other consuming assembly
+/// emits nothing. The emitted constants are the single source of truth for
+/// the wire field-name strings.
 /// </summary>
 [Generator]
 public sealed class D2ResultEnvelopeGenerator : IIncrementalGenerator
@@ -48,7 +47,7 @@ public sealed class D2ResultEnvelopeGenerator : IIncrementalGenerator
             var (specFiles, compilation) = tuple;
             var assemblyName = compilation.AssemblyName ?? string.Empty;
 
-            // Single-target dispatch — anything other than the DcsvIo.D2.Result
+            // Single-target dispatch - anything other than the DcsvIo.D2.Result
             // assembly emits nothing.
             if (!string.Equals(assemblyName, _TARGET_ASSEMBLY, StringComparison.Ordinal))
                 return;

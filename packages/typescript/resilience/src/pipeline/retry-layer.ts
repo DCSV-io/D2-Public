@@ -8,7 +8,8 @@ import type { IResilientLayer } from "./i-resilient-layer.js";
 
 /**
  * Layer wrapping an inner layer with retry policy. Mirrors .NET
- * `RetryLayer<TKey, TValue>` → `RetryHelper.RetryAsync((_, c) => next(c), …, ct)`.
+ * `RetryLayer<TKey, TValue>`, which calls
+ * `RetryHelper.RetryAsync((_, c) => next(c), ..., ct)`.
  *
  * The caller signal threads through to {@link RetryHelper.retryAsync}: it
  * pre-flight-aborts, aborts the inter-attempt backoff delay, and (because

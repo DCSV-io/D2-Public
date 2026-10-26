@@ -12,8 +12,9 @@ namespace DcsvIo.D2.Messaging;
 /// </summary>
 /// <remarks>
 /// Connection-level settings (channel pool size, default confirm timeout,
-/// AMQP URI, etc.) live on the transport-specific options class in the
-/// impl lib (<c>RabbitMqMessagingOptions</c>), not here.
+/// AMQP URI, etc.) live on the transport-specific options classes in the
+/// impl lib (<c>RabbitMqConnectionOptions</c>, <c>ChannelPoolOptions</c> and
+/// <c>RabbitMqPublisherOptions</c>), not here.
 /// </remarks>
 public sealed class PublisherOptions
 {
@@ -21,8 +22,8 @@ public sealed class PublisherOptions
     /// Gets or sets whether the publisher waits for the broker's
     /// publisher-confirm before returning success. <c>null</c> uses the
     /// transport-level default (typically true). Setting <c>false</c>
-    /// fires-and-forgets — caller accepts that lost-on-broker-crash is
-    /// possible.
+    /// publishes fire-and-forget - a message can be lost if the broker
+    /// crashes.
     /// </summary>
     public bool? WaitForConfirm { get; set; }
 
@@ -49,13 +50,13 @@ public sealed class PublisherOptions
     /// Gets or sets the maximum number of publish attempts (including the
     /// initial call) on transient failure. <c>null</c> uses the
     /// transport-level default (typically 5). Set to <c>1</c> for true
-    /// fire-and-forget semantics — no retry on transient failure, caller
-    /// gets <c>ServiceUnavailable</c> immediately.
+    /// fire-and-forget semantics - no retry on transient failure, and the
+    /// publish returns <c>ServiceUnavailable</c> immediately.
     /// </summary>
     /// <remarks>
     /// "Transient" means: broker unreachable, channel dropped mid-publish,
     /// confirm timeout, AMQP-level connection interrupt. Schema / encryption
-    /// / argument-validation failures are NOT retried (they'll keep failing).
+    /// / argument-validation failures are NOT retried (they would fail again).
     /// </remarks>
     public int? MaxAttempts { get; set; }
 }

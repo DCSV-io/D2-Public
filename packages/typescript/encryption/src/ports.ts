@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------
 
 /**
- * Symmetric payload confidentiality — AES-256-GCM over a JWKS-style multi-kid
+ * Symmetric payload confidentiality: AES-256-GCM over a JWKS-style multi-kid
  * keyring. The behavioral twin of .NET `IPayloadCrypto`. Async because the
  * underlying WebCrypto primitives are async (the .NET twin is synchronous).
  */
@@ -27,7 +27,7 @@ export interface IPayloadCrypto {
 }
 
 /**
- * The producer side of the sealed (ECDH-ES hybrid) encryption mode — seals a
+ * The producer side of the sealed (ECDH-ES hybrid) encryption mode: seals a
  * plaintext to a recipient service's public keyring. The behavioral twin of
  * .NET `IPayloadSealer`. A sealer can never open a frame (not even its own):
  * decryption authority is structurally separate.
@@ -43,7 +43,7 @@ export interface IPayloadSealer {
 }
 
 /**
- * The consumer side of the sealed encryption mode — opens version-2 sealed
+ * The consumer side of the sealed encryption mode: opens version-2 sealed
  * frames with this service's private keyring. The behavioral twin of .NET
  * `IPayloadOpener`.
  */

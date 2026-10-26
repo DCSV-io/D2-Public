@@ -26,8 +26,9 @@ using ErrorCodesSpec = ResultErrorCodesSourceGen::DcsvIo.D2.ErrorCodes.SourceGen
 /// the .NET error-code emitters. A deprecated entry MUST emit
 /// <c>[System.Obsolete("&lt;reason&gt;. Use &lt;replacedBy&gt; instead.")]</c> on
 /// the generated constant + every generated factory; a non-deprecated entry
-/// MUST emit no <c>[Obsolete]</c> at all. Driven by SYNTHETIC fixture entries —
-/// no real production spec entry is deprecated by this step.
+/// MUST emit no <c>[Obsolete]</c> at all. The tests use SYNTHETIC fixture entries;
+/// no entry in an error-code spec under <c>contracts/error-codes</c> is
+/// deprecated.
 /// </summary>
 public sealed class ErrorCodesDeprecationEmitterTests
 {
@@ -48,13 +49,13 @@ public sealed class ErrorCodesDeprecationEmitterTests
         result.Diagnostics.Should().BeEmpty();
         result.GeneratedSource.Should().Contain(_EXPECTED_OBSOLETE);
         result.GeneratedSource.Should().Contain(
-            "public const string NOT_FOUND = \"NOT_FOUND\";");
+            "public const string GEN_NOT_FOUND = \"GEN_NOT_FOUND\";");
 
         // The attribute must immediately precede the constant declaration.
         var attrIndex = result.GeneratedSource.IndexOf(
             _EXPECTED_OBSOLETE, System.StringComparison.Ordinal);
         var constIndex = result.GeneratedSource.IndexOf(
-            "public const string NOT_FOUND", System.StringComparison.Ordinal);
+            "public const string GEN_NOT_FOUND", System.StringComparison.Ordinal);
         attrIndex.Should().BeLessThan(constIndex);
     }
 
@@ -86,14 +87,14 @@ public sealed class ErrorCodesDeprecationEmitterTests
     [Fact]
     public void Constants_NonDeprecatedEntry_EmitsNoObsoleteAttribute()
     {
-        var spec = MakeSpec(new ErrorCodeEntry("NOT_FOUND", 404, "X doc."));
+        var spec = MakeSpec(new ErrorCodeEntry("GEN_NOT_FOUND", 404, "X doc."));
 
         var result = ConstantsEmitter.Emit(spec, Config, ImmutableHashSet<string>.Empty);
 
         result.Diagnostics.Should().BeEmpty();
         result.GeneratedSource.Should().NotContain("System.Obsolete");
         result.GeneratedSource.Should().Contain(
-            "public const string NOT_FOUND = \"NOT_FOUND\";");
+            "public const string GEN_NOT_FOUND = \"GEN_NOT_FOUND\";");
     }
 
     [Fact]
@@ -139,7 +140,7 @@ public sealed class ErrorCodesDeprecationEmitterTests
     // so the factory fields stay null for the constants assertion.
     private static ErrorCodeEntry DeprecatedEntry() =>
         new(
-            Code: "NOT_FOUND",
+            Code: "GEN_NOT_FOUND",
             HttpStatus: 404,
             Doc: "Indicates that the requested resource was not found.",
             Deprecated: true,

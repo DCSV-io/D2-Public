@@ -16,7 +16,7 @@ using Xunit;
 /// Unit tests for <see cref="NpgsqlContextDefaults.ApplyD2NpgsqlDefaults"/>.
 /// Exercises the public extension surface: same-builder return, no-throw on a valid
 /// connection string, and the deliberate absence of a retrying execution strategy
-/// (see class remarks — EnableRetryOnFailure is intentionally absent).
+/// (see class remarks - EnableRetryOnFailure is intentionally absent).
 /// </summary>
 [Trait("Category", "Unit")]
 public sealed class NpgsqlContextDefaultsTests
@@ -83,11 +83,11 @@ public sealed class NpgsqlContextDefaultsTests
             var maxRetry = (int?)maxRetryProp.GetValue(npgsqlExt);
             maxRetry.Should().Be(
                 0,
-                "EnableRetryOnFailure must NOT be registered — session advisory locks " +
+                "EnableRetryOnFailure must NOT be registered - session advisory locks " +
                 "depend on connection continuity; a silent reconnect drops the lock");
         }
 
-        // Belt-and-suspenders: the extension's info must NOT advertise a non-zero retry count.
+        // Second check: the extension's info must NOT report a non-zero retry count.
         var infoType = npgsqlExt.GetType().GetProperty("Info")?.GetValue(npgsqlExt);
         if (infoType is not null)
         {
@@ -98,7 +98,7 @@ public sealed class NpgsqlContextDefaultsTests
     }
 
     // =========================================================================
-    // Probe DbContext — self-contained, no migration assembly required
+    // Probe DbContext - self-contained, no migration assembly required
     // =========================================================================
 
     private sealed class ProbeDbContext(DbContextOptions<ProbeDbContext> options)

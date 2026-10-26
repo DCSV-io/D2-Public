@@ -15,12 +15,11 @@ using Xunit;
 using SingleflightT = DcsvIo.D2.Resilience.Singleflight.Singleflight<string, int>;
 
 /// <summary>
-/// Adversarial nesting tests covering all six pipeline layers in varied
-/// orderings. Asserts order-of-operations behavior — not just that the
-/// pipeline returns a result, but that the specific layer semantics are
-/// enforced by the order chosen.
+/// Adversarial nesting tests that combine the pipeline layers in varied
+/// orderings. The tests assert the effect of the order, not only that the
+/// pipeline returns a result: each layer's semantics depend on where it sits.
 /// <para>
-/// Six layers under test:
+/// Layers under test and their abbreviations:
 /// SF = Singleflight (outermost when used),
 /// RL = RateLimiter, Tt = Total-Timeout, R = Retry,
 /// CB = CircuitBreaker, Ta = Per-Attempt-Timeout.
@@ -29,18 +28,18 @@ using SingleflightT = DcsvIo.D2.Resilience.Singleflight.Singleflight<string, int
 public sealed class PipelineCompositionTests
 {
     // ----------------------------------------------------------------
-    // 1. Canonical full stack: RL → Tt → R → CB → Ta
-    //    Flaky op (throws-transient-then-succeeds) → succeeds via R.
-    //    Permanently-down op → CB trips, R exhausts → ServiceUnavailable.
+    // 1. Canonical full stack: RL -> Tt -> R -> CB -> Ta
+    //    Flaky op (throws a transient exception, then succeeds) -> succeeds via R.
+    //    Permanently down op -> CB opens, R runs out of attempts -> ServiceUnavailable.
     // ----------------------------------------------------------------
 
     [Fact]
     public async Task FullStack_RL_Tt_R_CB_Ta_FlakyOp_RecoversViaRetry()
     {
-        // RL → Tt → R → CB → Ta. The op throws transiently twice then succeeds.
+        // RL -> Tt -> R -> CB -> Ta. The op throws a transient exception twice, then succeeds.
         // Assertions: Success=true, call-count == 3 (1 initial + 2 retries),
-        // CB stays Closed (each attempt was a separate CB call; 2 failures
-        // increment its counter to 2 which is below threshold=10).
+        // CB stays Closed (each attempt is a separate CB call; 2 failures
+        // raise its failure count to 2, which is below threshold=10).
         var cb = new CircuitBreaker<int>(_ => false, options: new(failureThreshold: 10, nowFunc: static () => 0L));
         using var pipeline = new ResilientPipeline<string, int>(
             new RateLimiterLayer<string, int>(new RateLimiterOptions(maxConcurrency: 10)),
@@ -63,8 +62,8 @@ public sealed class PipelineCompositionTests
         calls.Should().Be(3);
         cb.State.Should().Be(CircuitState.Closed);
 
-        // CB saw 3 separate executions; 2 failures → still below threshold=10;
-        // final success reset the counter to 0.
+        // CB ran 3 separate executions; 2 failures stay below threshold=10, and
+        // the final success resets the failure count to 0.
         cb.FailureCount.Should().Be(0);
     }
 
@@ -72,10 +71,10 @@ public sealed class PipelineCompositionTests
     public async Task FullStack_RL_Tt_R_CB_Ta_PermanentlyDown_CbTrips_RExhausts_ServiceUnavailable()
     {
         // CB threshold=2; Retry budget=4. Op always throws TimeoutException (transient).
-        // CB opens after 2 real-op failures; the 3rd and 4th retry attempts
-        // find CB open → CircuitOpenException (also transient) → R retries but
-        // CB remains open → retries exhaust → ServiceUnavailable (the last
-        // exception is CircuitOpenException → ServiceUnavailable at boundary).
+        // CB opens after 2 real-op failures; the 3rd and 4th attempts find CB
+        // open and get CircuitOpenException (also transient). R retries, CB
+        // remains open, and the attempts run out. The last exception is
+        // CircuitOpenException, which the pipeline boundary maps to ServiceUnavailable.
         var cb = new CircuitBreaker<int>(_ => false, options: new(failureThreshold: 2, nowFunc: static () => 0L));
         using var pipeline = new ResilientPipeline<string, int>(
             new RateLimiterLayer<string, int>(new RateLimiterOptions(maxConcurrency: 10)),
@@ -89,47 +88,48 @@ public sealed class PipelineCompositionTests
         {
             Interlocked.Increment(ref realOpCalls);
 
-            // TimeoutException is transient — R retries; also CB records failures.
+            // TimeoutException is transient, so R retries it; CB also records each failure.
             throw new TimeoutException("permanently slow");
         });
 
         result.Success.Should().BeFalse();
         result.IsServiceUnavailable.Should().BeTrue();
 
-        // CB should have opened (2 real failures hit the threshold).
+        // CB is open: 2 real failures reached the threshold.
         cb.State.Should().Be(CircuitState.Open);
 
-        // Real op called exactly 2 times (then CB opened and subsequent
-        // retries got CircuitOpenException without reaching the real op).
+        // The real op ran exactly 2 times. After CB opened, later retries got
+        // CircuitOpenException without reaching the real op.
         realOpCalls.Should().Be(2);
     }
 
     // ----------------------------------------------------------------
-    // 2. CB↔R order sensitivity: the key "order matters" proof.
+    // 2. CB<->R order sensitivity: the order changes the result.
     //
-    //    CB outside R  (R → CB):  each attempt is a separate CB execution.
-    //    R outside CB  (CB → R):  one full retry sequence = one CB execution.
+    //    R outside CB  (R -> CB):  each attempt is a separate CB execution.
+    //    CB outside R  (CB -> R):  one full retry sequence = one CB execution.
     //
-    //    With threshold=1 and a 3-attempt retry budget:
-    //    - R→CB:  the very first failure opens CB; subsequent retries get CO
-    //             (transient) → retry keeps going → budget exhausts → SU.
-    //    - CB→R:  the inner R retries twice more, all within one CB execution;
+    //    CO = CircuitOpenException, SU = ServiceUnavailable.
+    //    With threshold=1 (R -> CB uses a 4-attempt retry budget, CB -> R uses 3):
+    //    - R->CB:  the very first failure opens CB; subsequent retries get CO
+    //             (transient) -> retry keeps going -> attempts run out -> SU.
+    //    - CB->R:  the inner R retries twice more, all within one CB execution;
     //             CB counts them as a single sequence and counts 0 successes
-    //             + 1 sequence failure → CB opens only after the full sequence
-    //             fails. Final CO exits R → SU.
+    //             + 1 sequence failure -> CB opens only after the full sequence
+    //             fails. The final exception leaves R and maps to SU.
     //
-    //    The concrete observable difference: how many times the real op is
-    //    called before the pipeline surfaces ServiceUnavailable.
+    //    The difference to observe: how many times the real op runs
+    //    before the pipeline returns ServiceUnavailable.
     // ----------------------------------------------------------------
 
     [Fact]
     public async Task RetryOutsideCb_EachAttemptIsSeparateCbExecution_CbOpensEarly()
     {
-        // R → CB (Retry outermost, CB innermost).
-        // Op always throws. CB threshold=1 → opens on the very first real-op
-        // failure. Subsequent retries hit CircuitOpenException (transient)
+        // R -> CB (Retry outermost, CB innermost).
+        // Op always throws. CB threshold=1, so CB opens on the very first real-op
+        // failure. Subsequent retries get CircuitOpenException (transient)
         // without reaching the real op at all.
-        // Real op call-count == 1; subsequent retries see only CO.
+        // Real op call-count == 1; every later retry gets CO.
         var cb = new CircuitBreaker<int>(_ => false, options: new(failureThreshold: 1, nowFunc: static () => 0L));
         using var pipeline = new ResilientPipeline<string, int>(
             NoDelayOptions(maxAttempts: 4),
@@ -140,18 +140,18 @@ public sealed class PipelineCompositionTests
         {
             Interlocked.Increment(ref realOpCalls);
 
-            // TimeoutException is transient — R retries; CB records each as a failure.
+            // TimeoutException is transient, so R retries it; CB records each as a failure.
             // After threshold=1 failures, CB opens; subsequent retries get
-            // CircuitOpenException (also transient) → R retries but CB stays open
-            // → budget exhausts → ServiceUnavailable.
+            // CircuitOpenException (also transient). R retries, CB stays open
+            // and the attempts run out -> ServiceUnavailable.
             throw new TimeoutException("down");
         });
 
         result.Success.Should().BeFalse();
         result.IsServiceUnavailable.Should().BeTrue();
 
-        // CB sees one real-op execution; opens on failure; remaining retry
-        // attempts never reach the real op.
+        // CB records one real-op execution and opens on its failure; the remaining
+        // retry attempts never reach the real op.
         realOpCalls.Should().Be(1);
         cb.State.Should().Be(CircuitState.Open);
     }
@@ -159,11 +159,11 @@ public sealed class PipelineCompositionTests
     [Fact]
     public async Task CbOutsideRetry_FullRetryBudgetIsOneCbExecution_CbOpensAfterFullSequence()
     {
-        // CB → R (CB outermost, Retry innermost = upstream-protecting).
-        // CB threshold=1 → opens only after ONE full CB-level execution fails.
-        // Inner R budget=3 → 3 real-op calls all within that single CB execution.
-        // CB opens AFTER the full retry sequence exhausts (because CB sees it as
-        // one execution that ultimately threw).
+        // CB -> R (CB outermost, Retry innermost).
+        // CB threshold=1, so CB opens only after ONE full CB-level execution fails.
+        // Inner R budget=3 gives 3 real-op calls, all within that single CB execution.
+        // CB opens AFTER the full retry sequence runs out of attempts, because CB
+        // counts the sequence as one execution that threw.
         var cb = new CircuitBreaker<int>(_ => false, options: new(failureThreshold: 1, nowFunc: static () => 0L));
         using var pipeline = new ResilientPipeline<string, int>(
             new CircuitBreakerLayer<string, int>(cb),
@@ -174,39 +174,41 @@ public sealed class PipelineCompositionTests
         {
             Interlocked.Increment(ref realOpCalls);
 
-            // TimeoutException is transient — inner R retries all 3 attempts;
-            // they're INSIDE CB so CB counts them as ONE execution.
-            // When R exhausts, re-throws TimeoutException (transient) to CB;
-            // CB records 1 execution-failure → opens; re-throws → SU at boundary.
+            // TimeoutException is transient, so the inner R retries every attempt;
+            // the attempts run INSIDE CB, so CB counts them as ONE execution.
+            // When R runs out of attempts, it rethrows TimeoutException (transient) to CB;
+            // CB records 1 execution failure and opens, then rethrows, and the
+            // pipeline boundary maps the exception to SU.
             throw new TimeoutException("down");
         });
 
         result.Success.Should().BeFalse();
         result.IsServiceUnavailable.Should().BeTrue();
 
-        // All 3 retry attempts reached the real op (they're INSIDE the CB).
+        // Every retry attempt reached the real op (they run INSIDE the CB): the
+        // call count equals the retry budget of 3.
         realOpCalls.Should().Be(3);
 
-        // CB opened only after the full sequence failed (it saw 1 execution).
+        // CB opened only after the full sequence failed (it recorded 1 execution).
         cb.State.Should().Be(CircuitState.Open);
     }
 
     // ----------------------------------------------------------------
     // 3. Total-timeout OUTSIDE retry vs per-attempt-timeout INSIDE retry.
     //
-    //    Tt → R: total-timeout fires across the retry loop → terminal SU.
-    //    R → Ta: a slow attempt times out → R RETRIES it → eventual success.
+    //    Tt -> R: total-timeout fires across the retry loop -> final SU.
+    //    R -> Ta: a slow attempt times out -> R RETRIES it -> later success.
     // ----------------------------------------------------------------
 
     [Fact]
     public async Task TotalTimeoutOutsideRetry_FiresAcrossRetryLoop_TerminalServiceUnavailable()
     {
-        // Tt → R. Total-timeout fires before the retry loop completes.
-        // TimeoutLayer converts the OCE → TimeoutException when the timeout
+        // Tt -> R. Total-timeout fires before the retry loop completes.
+        // TimeoutLayer converts the OCE -> TimeoutException when the timeout
         // fired and caller ct was NOT canceled. The pipeline's
-        // IsTransientException arm catches TimeoutException → ServiceUnavailable.
-        // Very short total budget (50 ms) fires during the first slow operation.
-        // This proves the total-timeout terminates the retry loop.
+        // IsTransientException arm catches TimeoutException -> ServiceUnavailable.
+        // A short total budget (50 ms) fires during the first slow operation,
+        // which shows that the total-timeout ends the retry loop.
         using var pipeline = new ResilientPipeline<string, int>(
             new TimeoutLayer<string, int>(new TimeoutOptions(TimeSpan.FromMilliseconds(50))),
             NoDelayOptions(maxAttempts: 5));
@@ -217,11 +219,11 @@ public sealed class PipelineCompositionTests
             Interlocked.Increment(ref calls);
 
             // Infinite delay (-1 ms): the operation blocks until the timeout CTS fires.
-            // Using -1 instead of a finite 500 ms removes the timing race: the timeout
-            // fires deterministically before an infinite wait completes, regardless of
-            // scheduler pressure or CPU contention. Note: `Timeout` is ambiguous here
+            // A finite delay of 500 ms would race the timeout. -1 never completes on
+            // its own, so the timeout always fires first, regardless of scheduler
+            // pressure or CPU contention. `Timeout` is ambiguous here
             // (DcsvIo.D2.Tests.Unit.Resilience.Timeout namespace shadows System.Threading.Timeout),
-            // so the literal -1 is used directly — identical to Timeout.Infinite.
+            // so the literal -1 is used directly. It equals Timeout.Infinite.
             await Task.Delay(-1, ct);
             return 1;
         });
@@ -229,7 +231,7 @@ public sealed class PipelineCompositionTests
         result.Success.Should().BeFalse();
         result.IsServiceUnavailable.Should().BeTrue();
 
-        // Only 1 call — total-timeout fires during the first attempt, terminating
+        // Only 1 call: the total-timeout fires during the first attempt and ends
         // the retry loop before it can schedule a second attempt.
         calls.Should().Be(1);
     }
@@ -237,11 +239,11 @@ public sealed class PipelineCompositionTests
     [Fact]
     public async Task PerAttemptTimeoutInsideRetry_TimedOutAttemptIsRetried_EventualSuccess()
     {
-        // R → Ta. Per-attempt-timeout fires on the first slow attempt.
-        // TimeoutLayer converts the OCE → TimeoutException (transient).
+        // R -> Ta. Per-attempt-timeout fires on the first slow attempt.
+        // TimeoutLayer converts the OCE -> TimeoutException (transient).
         // The outer RetryLayer retries it (TimeoutException IS in IsTransientException).
-        // The second attempt is fast → succeeds.
-        // Call-count > 1 proves the retry happened after the per-attempt timeout.
+        // The second attempt is fast and succeeds.
+        // Call-count > 1 shows the retry happened after the per-attempt timeout.
         using var pipeline = new ResilientPipeline<string, int>(
             NoDelayOptions(maxAttempts: 3),
             new TimeoutLayer<string, int>(new TimeoutOptions(TimeSpan.FromMilliseconds(50))));
@@ -254,11 +256,11 @@ public sealed class PipelineCompositionTests
             if (n == 1)
             {
                 // Infinite delay (-1 ms): blocks until the per-attempt timeout CTS fires.
-                // Using -1 instead of a finite 500 ms removes the timing race — the
-                // 50 ms timeout fires deterministically before an infinite wait completes,
-                // regardless of scheduler jitter. Note: `Timeout` is ambiguous here
+                // A finite delay of 500 ms would race the 50 ms timeout. -1 never
+                // completes on its own, so the timeout always fires first, regardless
+                // of scheduler jitter. `Timeout` is ambiguous here
                 // (DcsvIo.D2.Tests.Unit.Resilience.Timeout namespace shadows System.Threading.Timeout),
-                // so the literal -1 is used directly — identical to Timeout.Infinite.
+                // so the literal -1 is used directly. It equals Timeout.Infinite.
                 await Task.Delay(-1, ct);
             }
 
@@ -273,17 +275,17 @@ public sealed class PipelineCompositionTests
     }
 
     // ----------------------------------------------------------------
-    // 4. RateLimiter outermost short-circuits before inner layers execute.
-    //    RL (full) → R → CB: rejected caller gets TooManyRequests;
-    //    inner op and CB never execute for the rejected call.
+    // 4. RateLimiter outermost rejects before the inner layers execute.
+    //    RL (full) -> R -> CB: the rejected caller gets TooManyRequests;
+    //    the inner op and CB never execute for the rejected call.
     // ----------------------------------------------------------------
 
     [Fact]
     public async Task RateLimiter_Outermost_GateFull_ShortCircuits_InnerLayersNeverExecute()
     {
-        // RL (maxConcurrency=1) → R → CB. Gate is held by a first concurrent
-        // call. Second call can't acquire a permit (zero acquisition timeout) →
-        // RateLimitRejectedException → TooManyRequests.
+        // RL (maxConcurrency=1) -> R -> CB. The first concurrent call holds the
+        // gate. The second call cannot acquire a permit (zero acquisition timeout),
+        // so RateLimitRejectedException maps to TooManyRequests.
         // The inner R+CB layers never execute for the rejected call.
         var cb = new CircuitBreaker<int>(
             _ => false,
@@ -299,7 +301,7 @@ public sealed class PipelineCompositionTests
 
         var innerOpCalls = 0;
         var gate = new TaskCompletionSource();
-        var acquired = new TaskCompletionSource(); // signals: permit is held
+        var acquired = new TaskCompletionSource(); // completes when the permit is held
 
         // Hold the gate with the first caller.
         var first = pipeline.ExecuteAsync("k", async _ =>
@@ -310,10 +312,10 @@ public sealed class PipelineCompositionTests
             return 1;
         }).AsTask();
 
-        // Wait until the permit is demonstrably held before the rejected call.
+        // Wait until the permit is held before the rejected call.
         await acquired.Task;
 
-        // Second caller: cannot acquire → TooManyRequests immediately.
+        // Second caller: cannot acquire a permit, so it gets TooManyRequests immediately.
         var rejected = await pipeline.ExecuteAsync("k", _ =>
         {
             Interlocked.Increment(ref innerOpCalls);
@@ -328,22 +330,22 @@ public sealed class PipelineCompositionTests
 
         // Only the first caller's op ran; the rejected call's inner op was never reached.
         innerOpCalls.Should().Be(1);
-        cb.FailureCount.Should().Be(0); // CB never saw the rejection.
+        cb.FailureCount.Should().Be(0); // CB recorded no failure for the rejection.
     }
 
     // ----------------------------------------------------------------
-    // 5. RateLimiter rejection is NOT transient-retried.
-    //    R → RL (RL inside Retry): RateLimitRejectedException is not in
-    //    IsTransientException → terminal TooManyRequests after ONE inner attempt.
+    // 5. RateLimiter rejection is NOT retried as a transient failure.
+    //    R -> RL (RL inside Retry): RateLimitRejectedException is not in
+    //    IsTransientException -> final TooManyRequests after ONE inner attempt.
     // ----------------------------------------------------------------
 
     [Fact]
     public async Task RetryOutsideRateLimiter_Rejection_IsNotRetried_TerminalTooManyRequests()
     {
-        // R → RL (Retry outermost, RateLimiter innermost).
-        // Gate is permanently full (maxConcurrency=1, held by a background op,
+        // R -> RL (Retry outermost, RateLimiter innermost).
+        // The gate stays full (maxConcurrency=1, held by a background op,
         // acquisitionTimeout=Zero). RateLimitRejectedException is NOT in
-        // IsTransientException → R does NOT retry.
+        // IsTransientException, so R does NOT retry.
         // Result: TooManyRequests after a single attempt.
         using var rateLimiter = new DcsvIo.D2.Resilience.RateLimiting.RateLimiter(
             new RateLimiterOptions(maxConcurrency: 1, acquisitionTimeout: TimeSpan.Zero));
@@ -353,7 +355,7 @@ public sealed class PipelineCompositionTests
             new RateLimiterLayer<string, int>(rateLimiter));
 
         var gate = new TaskCompletionSource();
-        var acquired = new TaskCompletionSource(); // signals: permit is held
+        var acquired = new TaskCompletionSource(); // completes when the permit is held
 
         // Hold the only permit.
         var holder = rateLimiter.ExecuteAsync(
@@ -365,7 +367,7 @@ public sealed class PipelineCompositionTests
             },
             CancellationToken.None).AsTask();
 
-        // Wait until the permit is demonstrably held before the pipeline call.
+        // Wait until the permit is held before the pipeline call.
         await acquired.Task;
 
         var innerCalls = 0;
@@ -381,20 +383,21 @@ public sealed class PipelineCompositionTests
         result.Success.Should().BeFalse();
         result.IsRateLimited.Should().BeTrue();
 
-        // RateLimitRejectedException is not transient → R does not retry → inner op never reached.
+        // RateLimitRejectedException is not transient, so R does not retry and the
+        // inner op is never reached.
         innerCalls.Should().Be(0);
     }
 
     // ----------------------------------------------------------------
-    // 6. Singleflight outermost deduplicates across the full stack.
-    //    N concurrent same-key callers → stack executes ONCE, all share result.
-    //    Distinct keys → distinct executions.
+    // 6. Singleflight outermost deduplicates calls across the full stack.
+    //    N concurrent same-key callers -> the stack executes ONCE and all callers
+    //    share the result. Distinct keys -> distinct executions.
     // ----------------------------------------------------------------
 
     [Fact]
     public async Task Singleflight_Outermost_DedupsAcrossFullStack_ConcurrentSameKey()
     {
-        // SF → RL → R → CB → Ta. 10 concurrent callers with the same key.
+        // SF -> RL -> R -> CB -> Ta. 10 concurrent callers with the same key.
         // The full inner stack (RL+R+CB+Ta) should execute ONCE for the shared key.
         var sf = new SingleflightT();
         var cb = new CircuitBreaker<int>(_ => false, options: new(failureThreshold: 100));
@@ -412,14 +415,15 @@ public sealed class PipelineCompositionTests
             var innerOpCalls = 0;
             var gate = new TaskCompletionSource();
 
-            // Determinism guarantee: ResilientPipeline.ExecuteAsync is async; its
-            // first synchronous path builds the layer chain then calls wrapped(ct),
-            // which invokes SingleflightLayer.WrapAsync → Singleflight.ExecuteAsync
-            // → r_inflight.GetOrAdd synchronously — all before the first await.
+            // ResilientPipeline.ExecuteAsync is async, but its first synchronous
+            // path builds the layer chain and calls wrapped(ct), which invokes
+            // SingleflightLayer.WrapAsync -> Singleflight.ExecuteAsync
+            // -> r_inflight.GetOrAdd synchronously, all before the first await.
             // Capturing the ValueTask<D2Result<int>> (without awaiting) therefore
-            // proves the caller has joined the singleflight entry. Signalling AFTER
-            // capture makes the wait on all N signals a guarantee that all callers
-            // have joined before the gate opens — no SpinWait/Yield needed.
+            // shows the caller has joined the singleflight entry. Releasing the
+            // semaphore AFTER the capture means that waiting for all N releases
+            // guarantees every caller has joined before the gate opens, with no
+            // SpinWait or Yield.
             const int concurrent_callers = 10;
             var allJoined = new SemaphoreSlim(0, concurrent_callers);
 
@@ -432,24 +436,24 @@ public sealed class PipelineCompositionTests
                         await gate.Task;
                         return 77;
                     });
-                    allJoined.Release(); // signal AFTER join, not before
+                    allJoined.Release(); // release AFTER the join, not before
                     return await vt;
                 }))
                 .ToArray();
 
-            // Wait for all callers to have joined — guaranteed, not polled.
+            // Wait for every caller to join. The wait is on the semaphore, not a poll.
             for (var i = 0; i < concurrent_callers; i++)
                 await allJoined.WaitAsync();
 
-            // All callers are joined to the single in-flight entry.
+            // Every caller has joined the single in-flight entry.
             sf.Size.Should().Be(1);
             gate.SetResult();
             var results = await Task.WhenAll(tasks);
 
-            // Inner stack executed exactly once.
+            // The inner stack ran exactly once.
             innerOpCalls.Should().Be(1);
 
-            // All callers receive the same result.
+            // Every caller receives the same result.
             results.Should().AllSatisfy(r =>
             {
                 r.Success.Should().BeTrue();
@@ -465,7 +469,7 @@ public sealed class PipelineCompositionTests
     [Fact]
     public async Task Singleflight_Outermost_DistinctKeys_ExecuteDistinctly()
     {
-        // SF outermost. Two distinct keys → two independent executions.
+        // SF outermost. Two distinct keys -> two independent executions.
         var sf = new SingleflightT();
         using var pipeline = new ResilientPipeline<string, int>(
             new SingleflightLayer<string, int>(sf),
@@ -485,22 +489,23 @@ public sealed class PipelineCompositionTests
 
         r1.Success.Should().BeTrue();
         r2.Success.Should().BeTrue();
-        calls.Should().Be(2); // Each key executed its own op.
+        calls.Should().Be(2); // Each key ran its own op.
     }
 
     // ----------------------------------------------------------------
-    // 7. Caller-cancellation through a deep stack is NOT masked.
-    //    RL → Tt → R → CB → Ta: caller cancels mid-op → Canceled.
+    // 7. Caller cancellation through a deep stack is NOT mapped to another result.
+    //    RL -> Tt -> R -> CB -> Ta: the caller cancels mid-op -> Canceled.
     // ----------------------------------------------------------------
 
     [Fact]
     public async Task CallerCancellation_ThroughDeepStack_MapsToCancel_NotServiceUnavailable()
     {
-        // RL → Tt → R → CB → Ta. Caller cancels their CancellationToken while
-        // the inner op is in progress. The OCE propagates out through all layers
-        // (TimeoutLayer's when-guard: !ct.IsCancellationRequested is false →
-        // passes through as OCE; RetryHelper catches OCE from ct and re-throws;
-        // pipeline boundary catches OCE when ct.IsCancellationRequested → Canceled).
+        // RL -> Tt -> R -> CB -> Ta. The caller cancels its CancellationToken while
+        // the inner op is in progress. The OCE propagates out through every layer:
+        // TimeoutLayer's when-guard (!ct.IsCancellationRequested) is false, so the
+        // OCE passes through; RetryHelper catches the OCE from ct and rethrows it;
+        // the pipeline boundary catches the OCE when ct.IsCancellationRequested
+        // and returns Canceled.
         var cb = new CircuitBreaker<int>(_ => false, options: new(failureThreshold: 100));
         using var pipeline = new ResilientPipeline<string, int>(
             new RateLimiterLayer<string, int>(new RateLimiterOptions(maxConcurrency: 10)),
@@ -534,7 +539,7 @@ public sealed class PipelineCompositionTests
     [Fact]
     public async Task PassThrough_ZeroLayers_MapsExceptionNoRetry_CallCountOne()
     {
-        // Zero layers → no retry, no CB, no timeout, no RL.
+        // Zero layers -> no retry, no CB, no timeout, no RL.
         // A transient exception (TimeoutException) is mapped to ServiceUnavailable
         // with exactly ONE op invocation.
         var calls = 0;
@@ -547,7 +552,7 @@ public sealed class PipelineCompositionTests
 
         result.Success.Should().BeFalse();
         result.IsServiceUnavailable.Should().BeTrue();
-        calls.Should().Be(1); // Zero retry layers — only one attempt.
+        calls.Should().Be(1); // No retry layer, so only one attempt.
     }
 
     // ----------------------------------------------------------------

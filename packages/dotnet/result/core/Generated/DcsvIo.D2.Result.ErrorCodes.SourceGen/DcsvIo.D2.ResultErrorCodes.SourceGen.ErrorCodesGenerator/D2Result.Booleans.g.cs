@@ -26,80 +26,86 @@ namespace DcsvIo.D2.Result;
 public partial class D2Result
 {
     /// <summary>
-    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.NOT_FOUND"/> error code.
+    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.GEN_NOT_FOUND"/> error code.
     /// </summary>
     [JsonIgnore]
-    public bool IsNotFound => ErrorCode == ErrorCodes.NOT_FOUND;
+    public bool IsNotFound => ErrorCode == ErrorCodes.GEN_NOT_FOUND;
 
     /// <summary>
-    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.FORBIDDEN"/> error code.
+    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.GEN_FORBIDDEN"/> error code.
     /// </summary>
     [JsonIgnore]
-    public bool IsForbidden => ErrorCode == ErrorCodes.FORBIDDEN;
+    public bool IsForbidden => ErrorCode == ErrorCodes.GEN_FORBIDDEN;
 
     /// <summary>
-    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.UNAUTHORIZED"/> error code.
+    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.GEN_UNAUTHORIZED"/> error code.
     /// </summary>
     [JsonIgnore]
-    public bool IsUnauthorized => ErrorCode == ErrorCodes.UNAUTHORIZED;
+    public bool IsUnauthorized => ErrorCode == ErrorCodes.GEN_UNAUTHORIZED;
 
     /// <summary>
-    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.VALIDATION_FAILED"/> error code.
+    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.GEN_VALIDATION_FAILED"/> error code.
     /// </summary>
     [JsonIgnore]
-    public bool IsValidationFailed => ErrorCode == ErrorCodes.VALIDATION_FAILED;
+    public bool IsValidationFailed => ErrorCode == ErrorCodes.GEN_VALIDATION_FAILED;
 
     /// <summary>
-    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.CONFLICT"/> error code.
+    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.GEN_CONFLICT"/> error code.
     /// </summary>
     [JsonIgnore]
-    public bool IsConflict => ErrorCode == ErrorCodes.CONFLICT;
+    public bool IsConflict => ErrorCode == ErrorCodes.GEN_CONFLICT;
 
     /// <summary>
-    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.UNHANDLED_EXCEPTION"/> error code.
+    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.GEN_UNHANDLED_EXCEPTION"/> error code.
     /// </summary>
     [JsonIgnore]
-    public bool IsUnhandledException => ErrorCode == ErrorCodes.UNHANDLED_EXCEPTION;
+    public bool IsUnhandledException => ErrorCode == ErrorCodes.GEN_UNHANDLED_EXCEPTION;
 
     /// <summary>
-    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.SERVICE_UNAVAILABLE"/> error code.
+    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.GEN_SERVICE_UNAVAILABLE"/> error code.
     /// </summary>
     [JsonIgnore]
-    public bool IsServiceUnavailable => ErrorCode == ErrorCodes.SERVICE_UNAVAILABLE;
+    public bool IsServiceUnavailable => ErrorCode == ErrorCodes.GEN_SERVICE_UNAVAILABLE;
 
     /// <summary>
-    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.SOME_FOUND"/> error code.
+    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.GEN_SOME_FOUND"/> error code.
     /// </summary>
     [JsonIgnore]
-    public bool IsSomeFound => ErrorCode == ErrorCodes.SOME_FOUND;
+    public bool IsSomeFound => ErrorCode == ErrorCodes.GEN_SOME_FOUND;
 
     /// <summary>
-    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.PARTIAL_SUCCESS"/> error code.
+    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.GEN_PARTIAL_SUCCESS"/> error code.
     /// </summary>
     [JsonIgnore]
-    public bool IsPartialSuccess => ErrorCode == ErrorCodes.PARTIAL_SUCCESS;
+    public bool IsPartialSuccess => ErrorCode == ErrorCodes.GEN_PARTIAL_SUCCESS;
 
     /// <summary>
-    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.RATE_LIMITED"/> error code.
+    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.GEN_RATE_LIMITED"/> error code.
     /// </summary>
     [JsonIgnore]
-    public bool IsRateLimited => ErrorCode == ErrorCodes.RATE_LIMITED;
+    public bool IsRateLimited => ErrorCode == ErrorCodes.GEN_RATE_LIMITED;
 
     /// <summary>
-    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.IDEMPOTENCY_IN_FLIGHT"/> error code.
+    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.GEN_IDEMPOTENCY_IN_FLIGHT"/> error code.
     /// </summary>
     [JsonIgnore]
-    public bool IsIdempotencyInFlight => ErrorCode == ErrorCodes.IDEMPOTENCY_IN_FLIGHT;
+    public bool IsIdempotencyInFlight => ErrorCode == ErrorCodes.GEN_IDEMPOTENCY_IN_FLIGHT;
 
     /// <summary>
-    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.PAYLOAD_TOO_LARGE"/> error code.
+    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.GEN_PAYLOAD_TOO_LARGE"/> error code.
     /// </summary>
     [JsonIgnore]
-    public bool IsPayloadTooLarge => ErrorCode == ErrorCodes.PAYLOAD_TOO_LARGE;
+    public bool IsPayloadTooLarge => ErrorCode == ErrorCodes.GEN_PAYLOAD_TOO_LARGE;
 
     /// <summary>
-    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.CANCELED"/> error code.
+    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.GEN_CANCELED"/> error code.
     /// </summary>
     [JsonIgnore]
-    public bool IsCanceled => ErrorCode == ErrorCodes.CANCELED;
+    public bool IsCanceled => ErrorCode == ErrorCodes.GEN_CANCELED;
+
+    /// <summary>
+    /// Gets a value indicating whether this result carries the <see cref="ErrorCodes.GEN_FORGERY_REFUSED"/> error code.
+    /// </summary>
+    [JsonIgnore]
+    public bool IsForgeryRefused => ErrorCode == ErrorCodes.GEN_FORGERY_REFUSED;
 }

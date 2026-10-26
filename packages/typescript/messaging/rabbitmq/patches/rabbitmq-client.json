@@ -1,0 +1,33 @@
+{
+  "generatedBy": "scripts/pack-patched.mjs --refresh-producer",
+  "version": "5.0.8",
+  "upstreamUrl": "https://registry.npmjs.org/rabbitmq-client/-/rabbitmq-client-5.0.8.tgz",
+  "integrity": "sha512-nNto/okuVq+d/OamRYX4HIiCkHdOE0RICIDRjS4YQUo2DI/l3R9RlsFaEEYSjIc+LT6DV+1wUub3nD1HwrM4SQ==",
+  "patchSha256": "06943ab648da4f7daf37e6af257e0f41b80d4b3a06b20bda9ec8dff756aac119",
+  "licenseSha256": "14be338af31ff2978c40ab6111a45cbaf0f7bff4bcc52812d152be2e74ea8376",
+  "files": {
+    "LICENSE": "14be338af31ff2978c40ab6111a45cbaf0f7bff4bcc52812d152be2e74ea8376",
+    "README.md": "9fad75f230f873aa2f856baebfc327d839a826589fa2f9cbee7a04e440a5ea59",
+    "lib/Channel.d.ts": "a90e2793739f07f3b8d5b9f9048073d364678c762b58ac01dbc4d9a18fde7f86",
+    "lib/Channel.js": "44234a4c4d432502d598364a1d99b2d879e3988a031a58ea905be7a94cef876c",
+    "lib/Connection.d.ts": "5920f79b9d53a32af405da234d632cff39b72055ddd0a2310498da678a56f494",
+    "lib/Connection.js": "83e827b84f90c664999e9fc32094066727d8efc340674a282fb2bd34a587d206",
+    "lib/Consumer.d.ts": "0fe6e5ce02b1b2023ee90b7ed8ef33e99c51e892e74070bbdffb9cf4dc2cf1a7",
+    "lib/Consumer.js": "0be42e6e8cabe8f3216bfecfe724f69ae5e381d9671c8dae6d6ecf87791bd5b6",
+    "lib/RPCClient.d.ts": "1514c18ad44723a82a2303cf605288b8002c5615c81944b3adbf425316311b17",
+    "lib/RPCClient.js": "823195a0631a812505ec0a63e12d8ab21b25471d18eeeb2cd7cc6eb6063107d0",
+    "lib/SortedMap.d.ts": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "lib/SortedMap.js": "3a07fbf76cceb7a845f6a2ddf953204e38ad414a8ca368fae15131ecc29a4116",
+    "lib/codec.d.ts": "bb2dc9232730a2986aaaab6ff8a8b800fa9f6584c5a00bb8413493efeb6a38eb",
+    "lib/codec.js": "f63a1b1536b2ffa5b517cd68a9280c024c62506148ac780903018f336eccb8d5",
+    "lib/exception.d.ts": "e9066ad3417ca1a5f3d8a04c02b819b29703999f99d3da6048bc9505b0793ea8",
+    "lib/exception.js": "1af872324cc618a3298f0883027277a5d27861794fc1a0959cb74995a8a7730a",
+    "lib/index.d.ts": "a72a40e45d80b82c68ecbf83e0dcf3f5ed693f7b81888b5c04376510805ce144",
+    "lib/index.js": "d8b4338f9d245f2cb676e25ac858edc8a02cc92d07cb5aa0b3eef66d738f8ce2",
+    "lib/normalize.d.ts": "a025a78c0a0319654bce1bb1e77386f244b895a629b7ad1e933a1a844eaeddf4",
+    "lib/normalize.js": "1b9bfc1993b5227f205bf26c6a8d40015f18e6b91b69a279ff2cd51c59226fa5",
+    "lib/util.d.ts": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "lib/util.js": "d73d4a521bb284210ec48f9843dd1fcebb5cd02a8c04fbe6c1088c91652b6580",
+    "package.json": "4b0d6842247656dada0ea0a873591538020e39e19122e4d0baca144a954eafab"
+  }
+}

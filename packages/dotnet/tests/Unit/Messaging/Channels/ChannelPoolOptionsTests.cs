@@ -11,10 +11,10 @@ using DcsvIo.D2.Messaging.RabbitMq.Channels;
 using Xunit;
 
 /// <summary>
-/// Defaults + override coverage for <see cref="ChannelPoolOptions"/>. The
-/// idle-TTL knob drives stale-pool channel eviction; pin the default + the
-/// override path so a regression doesn't silently change the steady-state
-/// pool behavior.
+/// Tests of the defaults and overrides of <see cref="ChannelPoolOptions"/>. The
+/// idle-TTL setting controls the eviction of stale pool channels. The tests pin
+/// the default and the override path. A change to either fails a test, so the
+/// steady-state pool behavior does not change without a test failing.
 /// </summary>
 public sealed class ChannelPoolOptionsTests
 {

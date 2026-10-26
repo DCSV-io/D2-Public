@@ -11,14 +11,14 @@ using DcsvIo.D2.Handler.Abstractions;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Concrete <see cref="IHandlerContext"/> bound to the consuming handler's
-/// type via the generic parameter. Open-generic registration in
-/// <see cref="HandlerServiceCollectionExtensions.AddD2Handler"/> means each
-/// handler resolution gets a <see cref="HandlerContext{T}"/> with the right
-/// <see cref="ILogger{T}"/> source-context already in place.
+/// Concrete <see cref="IHandlerContext"/> bound to the handler's type through
+/// the generic parameter. Open-generic registration in
+/// <see cref="HandlerServiceCollectionExtensions.AddD2Handler"/> gives each
+/// handler resolution a <see cref="HandlerContext{T}"/> whose
+/// <see cref="ILogger{T}"/> already has the right source context.
 /// </summary>
 /// <typeparam name="T">
-/// The handler type — used as the <see cref="ILogger{T}"/> category.
+/// The handler type - used as the <see cref="ILogger{T}"/> category.
 /// </typeparam>
 public sealed class HandlerContext<T> : IHandlerContext
 {

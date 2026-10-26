@@ -6,9 +6,12 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 > Parent: [`packages/typescript/`](../README.md)
 
-The D2 wire-protocol header **constant catalogs** for TS consumers, split per transport. Codegen-emitted from the same `contracts/headers/headers.spec.json` spec that drives the .NET `DcsvIo.D2.Headers.*` catalogs, so a header that appears on multiple transports carries an identical wire value across both languages.
+The D2 wire-protocol header constant catalogs for TypeScript consumers, split per transport. They are emitted from the
+same `contracts/headers/headers.spec.json` spec that drives the .NET `DcsvIo.D2.Headers.*` catalogs, so a header that
+appears on multiple transports has an identical wire value in both languages.
 
-Route-guard / JWT-decode / ProblemDetails helpers for a specific host app are **host-supplied** — this cluster publishes wire-protocol **constant catalogs** only.
+Route-guard, JWT-decode and ProblemDetails helpers for a specific host app are supplied by the host app. This cluster
+publishes wire-protocol constant catalogs only.
 
 ## Packages
 

@@ -10,9 +10,9 @@ namespace DcsvIo.D2.Encryption;
 /// Base type for every exception raised by this lib's framing or keyring
 /// path. AEAD authentication failures surface as the BCL
 /// <see cref="System.Security.Cryptography.AuthenticationTagMismatchException"/>
-/// and are not wrapped — that distinction matters for callers (a tag
-/// mismatch is "tampering or wrong AAD or wrong key for kid", a frame
-/// error is "garbage bytes that never came from us").
+/// and are not wrapped, because they mean different things from a frame error:
+/// a tag mismatch means tampering, wrong AAD or the wrong key for the kid, and a
+/// frame error means garbage bytes that never came from this library.
 /// </summary>
 public abstract class EncryptionException : Exception
 {

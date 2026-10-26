@@ -15,12 +15,13 @@ using DcsvIo.D2.SourceGen;
 using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
-/// Emits the per-country DATA — single shape per entity + cycle-resolution
-/// via friend-assembly <c>internal set</c> + two-pass populate. Output is a
-/// single file (<c>CountryLookup.g.cs</c>) carrying:
+/// Emits the per-country data: one shape per entity, with reference cycles
+/// resolved through friend-assembly <c>internal set</c> and a two-pass
+/// populate. The output is a single file (<c>CountryLookup.g.cs</c>)
+/// containing:
 /// <list type="bullet">
 ///   <item><description>
-///     Static <c>Countries</c> accessor (<c>Countries.US</c> → <c>Country</c>).
+///     Static <c>Countries</c> accessor (<c>Countries.US</c> -> <c>Country</c>).
 ///   </description></item>
 ///   <item><description>
 ///     Static <c>CountryLookup</c> class with the FrozenDictionary indexes.
@@ -32,29 +33,29 @@ using DcsvIo.D2.SourceGen.Polyfills;
 /// </summary>
 /// <remarks>
 /// <para>
-/// First pass lives in <c>CountryLookup</c>'s static constructor. Every
-/// <c>Country</c> record is materialized with scalar required-init fields
-/// AND every code-rep field populated from spec data (typed codes, no
-/// runtime resolution required). Nav-rep fields (PrimaryLanguage /
+/// The first pass runs in the static constructor of <c>CountryLookup</c>. It
+/// creates every <c>Country</c> record with the scalar required-init fields
+/// and every code-rep field populated from spec data (typed codes, so no
+/// runtime resolution is needed). The nav-rep fields (PrimaryLanguage /
 /// PrimaryCurrency / PrimaryLocale / SovereignCountry / Locales /
 /// Territories / GeopoliticalEntities / Subdivisions) start at
 /// <c>null</c> or <c>[]</c>.
 /// </para>
 /// <para>
-/// Second pass lives in <c>internal static void WireNav()</c> which the
-/// <c>GeoDataInitializer</c> module initializer invokes after every
-/// catalog's first-pass static ctor has run. WireNav() walks the spec
-/// entries again and mutates the nav-rep properties via the friend-assembly
-/// <c>internal set</c> accessors. The code reps are already valid from the
-/// first pass — no second-pass code-rep mutation is needed.
+/// The second pass runs in <c>internal static void WireNav()</c>, which the
+/// <c>GeoDataInitializer</c> module initializer calls after every catalog's
+/// first-pass static ctor has run. WireNav() walks the spec entries again
+/// and sets the nav-rep properties through the friend-assembly
+/// <c>internal set</c> accessors. The code reps are already valid after the
+/// first pass, so the second pass does not change them.
 /// </para>
 /// <para>
-/// Three sovereign-but-uninhabited territories (AQ Antarctica, BV Bouvet
-/// Island, HM Heard &amp; McDonald) carry <c>null</c> in the spec for
-/// <c>primaryLanguageISO6391Code</c> / <c>primaryCurrencyISO4217AlphaCode</c>
-/// / <c>primaryLocaleIETFBCP47Tag</c>. The nullable single-primary nav
+/// The sovereign-but-uninhabited territories AQ (Antarctica), BV (Bouvet
+/// Island) and HM (Heard &amp; McDonald) have <c>null</c> in the spec for
+/// <c>primaryLanguageISO6391Code</c>, <c>primaryCurrencyISO4217AlphaCode</c>
+/// and <c>primaryLocaleIETFBCP47Tag</c>. The nullable single-primary nav
 /// properties on the <c>Country</c> record stay <c>null</c> for these
-/// three countries — every other country resolves through wire-nav.
+/// countries, and every other country resolves through wire-nav.
 /// </para>
 /// </remarks>
 internal static class CountryDataEmitter
@@ -74,11 +75,12 @@ internal static class CountryDataEmitter
             return ImmutableArray<EmitResult>.Empty;
 
         var entries = SortByAlpha2(countriesEnv.Entries);
+        var diagnostics = ImmutableArray.CreateBuilder<EmitDiagnostic>();
 
-        // Pre-compute valid LanguageCode members (PascalCased ISO 639-1) so we
-        // can defensively skip Country.PrimaryLanguage references that aren't
-        // in the LanguageCode enum (8 countries reference 639-3 codes like
-        // `fil`, `niu` not present in the ISO 639-1 enum).
+        // Collect the valid LanguageCode members (PascalCased ISO 639-1) so the
+        // emitter can skip Country.PrimaryLanguage references that are not in
+        // the LanguageCode enum. Some countries reference ISO 639-3 codes
+        // such as `fil` and `niu`, which the ISO 639-1 enum does not contain.
         var validLanguageMembers = new HashSet<string>(StringComparer.Ordinal);
         if (context.Languages is { } langsEnv)
         {
@@ -90,30 +92,48 @@ internal static class CountryDataEmitter
             }
         }
 
-        // Pre-compute valid CurrencyCode members so we can defensively skip
+        // Collect the valid CurrencyCode members so the emitter can skip
         // unknown alpha-3 references.
         var validCurrencyMembers = new HashSet<string>(StringComparer.Ordinal);
         if (context.Currencies is { } currenciesEnv)
         {
             foreach (var cur in currenciesEnv.Entries)
             {
-                if (cur.Iso4217AlphaCode.Truthy()
-                    && DefaultEmitterHelpers.IsValidIdentifier(cur.Iso4217AlphaCode))
+                if (cur.Iso4217AlphaCode.Falsey())
+                    continue;
+
+                if (DefaultEmitterHelpers.IsValidIdentifier(cur.Iso4217AlphaCode))
+                {
                     validCurrencyMembers.Add(cur.Iso4217AlphaCode);
+                }
+                else
+                {
+                    diagnostics.Add(EmitDiagnostics.InvalidIdentifier(
+                        cur.Iso4217AlphaCode, "CurrencyCode"));
+                }
             }
         }
 
-        // Pre-compute valid GeopoliticalEntityCode members so we can skip nav
-        // refs to entities whose ShortCode isn't a valid C# identifier (e.g.
-        // punctuation-bearing legacy codes).
+        // Collect the valid GeopoliticalEntityCode members so the emitter can
+        // skip nav refs to entities whose ShortCode is not a valid C#
+        // identifier (for example punctuation-bearing legacy codes).
         var validGpeMembers = new HashSet<string>(StringComparer.Ordinal);
         if (context.GeopoliticalEntities is { } gpesEnv)
         {
             foreach (var gpe in gpesEnv.Entries)
             {
-                if (gpe.ShortCode.Truthy()
-                    && DefaultEmitterHelpers.IsValidIdentifier(gpe.ShortCode))
+                if (gpe.ShortCode.Falsey())
+                    continue;
+
+                if (DefaultEmitterHelpers.IsValidIdentifier(gpe.ShortCode))
+                {
                     validGpeMembers.Add(gpe.ShortCode);
+                }
+                else
+                {
+                    diagnostics.Add(EmitDiagnostics.InvalidIdentifier(
+                        gpe.ShortCode, "GeopoliticalEntityCode"));
+                }
             }
         }
 
@@ -209,7 +229,12 @@ internal static class CountryDataEmitter
         foreach (var entry in entries)
         {
             EmitCountryRecordConstruction(
-                sb, entry, validCurrencyMembers, validLanguageMembers, validGpeMembers);
+                sb,
+                entry,
+                validCurrencyMembers,
+                validLanguageMembers,
+                validGpeMembers,
+                diagnostics);
         }
 
         sb.AppendLine();
@@ -272,7 +297,7 @@ internal static class CountryDataEmitter
         return ImmutableArray.Create(new EmitResult(
             HintName: "CountryLookup.g.cs",
             GeneratedSource: sb.ToString().LfNormalized(),
-            Diagnostics: ImmutableArray<EmitDiagnostic>.Empty));
+            Diagnostics: diagnostics.ToImmutable()));
     }
 
     private static string? ToLanguageMember(string? code)
@@ -291,7 +316,8 @@ internal static class CountryDataEmitter
         CountrySpec entry,
         HashSet<string> validCurrencyMembers,
         HashSet<string> validLanguageMembers,
-        HashSet<string> validGpeMembers)
+        HashSet<string> validGpeMembers,
+        ImmutableArray<EmitDiagnostic>.Builder diagnostics)
     {
         var c = entry.Iso31661Alpha2Code;
         var alpha3 = DefaultEmitterHelpers.EscapeStringLiteral(entry.Iso31661Alpha3Code);
@@ -340,6 +366,12 @@ internal static class CountryDataEmitter
         }
         else
         {
+            if (entry.PrimaryLanguageIso6391Code.Truthy())
+            {
+                diagnostics.Add(EmitDiagnostics.UnknownFk(
+                    "primaryLanguageISO6391Code", c, entry.PrimaryLanguageIso6391Code!));
+            }
+
             sb.AppendLine("            PrimaryLanguageIso6391Code = null,");
         }
 
@@ -352,6 +384,12 @@ internal static class CountryDataEmitter
         }
         else
         {
+            if (entry.PrimaryCurrencyIso4217AlphaCode.Truthy())
+            {
+                diagnostics.Add(EmitDiagnostics.UnknownFk(
+                    "primaryCurrencyISO4217AlphaCode", c, entry.PrimaryCurrencyIso4217AlphaCode!));
+            }
+
             sb.AppendLine("            PrimaryCurrencyIso4217AlphaCode = null,");
         }
 
@@ -387,7 +425,9 @@ internal static class CountryDataEmitter
             sb,
             "GeopoliticalEntityShortCodes",
             entry.GeopoliticalEntityShortCodes,
-            validGpeMembers);
+            validGpeMembers,
+            c,
+            diagnostics);
         EmitTypedCurrencySet(
             sb, "CurrencyIso4217AlphaCodes", entry.Currencies, validCurrencyMembers);
 
@@ -400,7 +440,10 @@ internal static class CountryDataEmitter
                 continue;
 
             if (!validCurrencyMembers.Contains(cc.Iso4217AlphaCode))
+            {
+                diagnostics.Add(EmitDiagnostics.UnknownFk("currencies", c, cc.Iso4217AlphaCode));
                 continue;
+            }
 
             sb.AppendLine("                new CountryCurrencyAcceptance");
             sb.AppendLine("                {");
@@ -480,13 +523,22 @@ internal static class CountryDataEmitter
         StringBuilder sb,
         string fieldName,
         IReadOnlyList<string> codes,
-        HashSet<string> validGpeMembers)
+        HashSet<string> validGpeMembers,
+        string countryCode,
+        ImmutableArray<EmitDiagnostic>.Builder diagnostics)
     {
         var members = new List<string>();
         foreach (var g in codes)
         {
-            if (g.Falsey() || !validGpeMembers.Contains(g))
+            if (g.Falsey())
                 continue;
+
+            if (!validGpeMembers.Contains(g))
+            {
+                diagnostics.Add(EmitDiagnostics.UnknownFk(
+                    "geopoliticalEntityShortCodes", countryCode, g));
+                continue;
+            }
 
             members.Add(g);
         }
@@ -565,9 +617,10 @@ internal static class CountryDataEmitter
                 + $"CurrencyLookup.ByCode[CurrencyCode.{entry.PrimaryCurrencyIso4217AlphaCode}];");
         }
 
-        // PrimaryLocale nav. Direct indexer — fail-loud on missing locale ref;
-        // SpecLoader's MissingLocaleReference (D2GEO011) validation guarantees
-        // every country.primaryLocaleIETFBCP47Tag resolves at build time.
+        // PrimaryLocale nav. The emitted code uses a direct indexer, which
+        // fails loudly on a missing locale ref. The MissingLocaleReference
+        // (D2GEO012) check in LocaleReferenceChecker guarantees that every
+        // country.primaryLocaleIETFBCP47Tag resolves at build time.
         if (entry.PrimaryLocaleIetfBcp47Tag.Truthy())
         {
             var primaryLocale = DefaultEmitterHelpers.EscapeStringLiteral(
@@ -598,10 +651,10 @@ internal static class CountryDataEmitter
 
         if (localeTags.Count > 0)
         {
-            // Direct indexer per tag — fail-loud on missing locale ref;
-            // SpecLoader's MissingLocaleReference (D2GEO011) validation
-            // guarantees every country.localeIETFBCP47Tags[] entry resolves
-            // at build time.
+            // The emitted code uses a direct indexer per tag, which fails
+            // loudly on a missing locale ref. The MissingLocaleReference
+            // (D2GEO012) check in LocaleReferenceChecker guarantees that every
+            // country.localeIETFBCP47Tags[] entry resolves at build time.
             sb.AppendLine("            rec.Locales = new Locale[]");
             sb.AppendLine("            {");
             foreach (var tag in localeTags)
@@ -658,7 +711,7 @@ internal static class CountryDataEmitter
             sb.AppendLine("            };");
         }
 
-        // Subdivisions nav (list) + SubdivisionIso31662Codes set — derived from
+        // Subdivisions nav (list) + SubdivisionIso31662Codes set - derived from
         // SubdivisionLookup.ByCountry.
         sb.AppendLine(
             $"            if (SubdivisionLookup.ByCountry.TryGetValue("

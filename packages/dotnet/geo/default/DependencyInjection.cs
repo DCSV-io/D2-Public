@@ -21,12 +21,12 @@ public static class DependencyInjection
         /// <summary>
         /// Registers <see cref="DefaultGeoNameResolver"/> as the singleton
         /// implementation of <see cref="IGeoNameResolver"/>. The resolver is
-        /// stateless and thread-safe; the singleton lifetime amortizes
-        /// catalog-cache build cost across the whole process. The DI factory
-        /// does not eagerly trigger cache build — the first
+        /// stateless and thread-safe, and the singleton lifetime spreads the
+        /// catalog-cache build cost over the whole process. The DI factory
+        /// does not build the cache eagerly - the first
         /// <see cref="IGeoNameResolver"/> call performs the O(n) build.
         /// </summary>
-        /// <returns>The same <c>services</c> instance for call chaining.</returns>
+        /// <returns>The same <c>services</c> instance, so calls can be chained.</returns>
         public IServiceCollection AddD2GeoDefault()
         {
             services.AddSingleton<IGeoNameResolver, DefaultGeoNameResolver>();

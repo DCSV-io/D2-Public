@@ -8,10 +8,9 @@ namespace DcsvIo.D2.Auth.Abstractions;
 
 /// <summary>
 /// Controls how the auth middleware evaluates the endpoint's declared scope
-/// set against the caller's <c>IRequestContext.Scopes</c>. Attached to
-/// <c>EndpointScopeMetadata</c> via the fluent
-/// <c>RequireAnyScope</c> / <c>RequireAllScopes</c> extensions and consumed
-/// by <c>JwtAuthMiddleware</c> during request dispatch.
+/// set against the caller's <c>IRequestContext.Scopes</c>. Set on the endpoint's
+/// scope metadata by the fluent require-any-scope and require-all-scopes
+/// extensions, and read by the auth middleware during request dispatch.
 /// </summary>
 public enum ScopeMatch
 {

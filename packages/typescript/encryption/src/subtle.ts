@@ -7,19 +7,18 @@ import { webcrypto } from "node:crypto";
 import { AuthenticationTagMismatchError } from "./errors.js";
 
 /**
- * Node's WebCrypto `CryptoKey` type. Aliased centrally so every module speaks
- * the same key type — Node's `webcrypto.subtle` returns `webcrypto.CryptoKey`,
+ * Node's WebCrypto `CryptoKey` type. Aliased centrally so every module uses
+ * the same key type: Node's `webcrypto.subtle` returns `webcrypto.CryptoKey`,
  * which is a distinct (superset) type from the ambient global `CryptoKey`.
  */
 export type WebCryptoKey = webcrypto.CryptoKey;
 
 /**
  * The WebCrypto `SubtleCrypto` instance. Sourced from Node's `webcrypto`
- * (available since Node 16, standard since Node 20) — the WebCrypto API covers
+ * (available since Node 16, standard since Node 20). The WebCrypto API covers
  * every primitive this lib needs (AES-256-GCM, ECDH P-256 `deriveBits`,
- * HKDF-SHA256), so no legacy `node:crypto` fallback is required. Kept behind a
- * single module accessor so a capability gap (if one ever surfaces) is a
- * one-file change.
+ * HKDF-SHA256), so no legacy `node:crypto` fallback is required. The instance
+ * sits behind a single module accessor, so replacing it is a one-file change.
  */
 const subtle = webcrypto.subtle;
 
@@ -27,7 +26,7 @@ const subtle = webcrypto.subtle;
 const _TAG_LENGTH_BITS = 128;
 
 /**
- * Fills a fresh buffer with cryptographically strong random bytes — the twin of
+ * Fills a fresh buffer with cryptographically strong random bytes; the twin of
  * .NET `RandomNumberGenerator.Fill`, used for per-message GCM nonces.
  *
  * @param size The number of random bytes to generate.
@@ -39,7 +38,7 @@ export function randomBytes(size: number): Uint8Array {
 
 /**
  * AES-256-GCM encrypt. Returns the ciphertext with the 16-byte authentication
- * tag appended — the byte layout WebCrypto produces natively and the exact
+ * tag appended: the byte layout WebCrypto produces natively and the exact
  * shape the .NET `AesGcm.Encrypt(nonce, plaintext, ciphertext, tag, aad)` path
  * emits into its frame (ciphertext ‖ tag).
  *
@@ -79,8 +78,8 @@ export async function aesGcmEncrypt(
 /**
  * AES-256-GCM decrypt. Takes the ciphertext with the 16-byte authentication
  * tag appended (the same layout {@link aesGcmEncrypt} produces). An
- * authentication failure — tampering, a wrong-recipient/wrong-AAD frame, or a
- * mismatched key for the kid — surfaces as {@link AuthenticationTagMismatchError}
+ * authentication failure (tampering, a wrong-recipient or wrong-AAD frame, or a
+ * mismatched key for the kid) surfaces as {@link AuthenticationTagMismatchError}
  * (WebCrypto raises an opaque `OperationError`; this normalizes it to the named
  * type the .NET twin propagates).
  *
@@ -128,7 +127,7 @@ export async function aesGcmDecrypt(
  *
  * @param ikm The input keying material (the raw ECDH shared secret).
  * @param salt The HKDF salt.
- * @param info The HKDF info (context/application-specific bytes).
+ * @param info The HKDF info (context or application-specific bytes).
  * @param lengthBytes The desired output length in bytes.
  * @returns The derived key material.
  */

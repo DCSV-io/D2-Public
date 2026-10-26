@@ -1,0 +1,71 @@
+#nullable enable
+DcsvIo.D2.Outbox.EntityFrameworkCore.EfMessageOutbox<TDb, TDbContext>
+DcsvIo.D2.Outbox.EntityFrameworkCore.EfMessageOutbox<TDb, TDbContext>.EfMessageOutbox(TDbContext! db, DcsvIo.D2.Time.IClock! clock) -> void
+DcsvIo.D2.Outbox.EntityFrameworkCore.EfMessageOutbox<TDb, TDbContext>.StageAsync<TKind, TPayload>(TKind kind, DcsvIo.D2.Outbox.OutboxMessageId id, TPayload! payload, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result!>
+DcsvIo.D2.Outbox.EntityFrameworkCore.EfMessageOutbox<TDb, TDbContext>.StageAsync<TKind, TPayload>(TKind kind, TPayload! payload, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result!>
+DcsvIo.D2.Outbox.EntityFrameworkCore.EfOutboxStore<TDb, TDbContext>
+DcsvIo.D2.Outbox.EntityFrameworkCore.EfOutboxStore<TDb, TDbContext>.ClaimDueAsync(NodaTime.Instant now, int batchSize, NodaTime.Duration lease, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result<System.Collections.Generic.IReadOnlyList<DcsvIo.D2.Outbox.StagedOutboxMessage!>!>!>
+DcsvIo.D2.Outbox.EntityFrameworkCore.EfOutboxStore<TDb, TDbContext>.EfOutboxStore(TDbContext! db) -> void
+DcsvIo.D2.Outbox.EntityFrameworkCore.EfOutboxStore<TDb, TDbContext>.PruneSettledAsync(NodaTime.Instant publishedBefore, NodaTime.Instant abandonedBefore, int batchSize, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result<int>!>
+DcsvIo.D2.Outbox.EntityFrameworkCore.EfOutboxStore<TDb, TDbContext>.RecordAsync(DcsvIo.D2.Outbox.OutboxMessage! message, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result!>
+DcsvIo.D2.Outbox.EntityFrameworkCore.IOutboxStore<TDb>
+DcsvIo.D2.Outbox.EntityFrameworkCore.IOutboxStore<TDb>.ClaimDueAsync(NodaTime.Instant now, int batchSize, NodaTime.Duration lease, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result<System.Collections.Generic.IReadOnlyList<DcsvIo.D2.Outbox.StagedOutboxMessage!>!>!>
+DcsvIo.D2.Outbox.EntityFrameworkCore.IOutboxStore<TDb>.PruneSettledAsync(NodaTime.Instant publishedBefore, NodaTime.Instant abandonedBefore, int batchSize, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result<int>!>
+DcsvIo.D2.Outbox.EntityFrameworkCore.IOutboxStore<TDb>.RecordAsync(DcsvIo.D2.Outbox.OutboxMessage! message, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result!>
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxEntityFrameworkCoreServiceCollectionExtensions
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxEntityFrameworkCoreServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxEntityFrameworkCoreServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddD2OutboxEntityFrameworkCore<TDb, TDbContext>() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.AbandonedAt.get -> NodaTime.Instant?
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.AbandonedAt.set -> void
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.Attempts.get -> int
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.Attempts.set -> void
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.Id.get -> System.Guid
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.Id.set -> void
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.Kind.get -> string!
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.Kind.set -> void
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.LastFailureCode.get -> string?
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.LastFailureCode.set -> void
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.NextAttemptAt.get -> NodaTime.Instant?
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.NextAttemptAt.set -> void
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.OutboxMessageRow() -> void
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.Payload.get -> string!
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.Payload.set -> void
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.PublishedAt.get -> NodaTime.Instant?
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.PublishedAt.set -> void
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.StagedAt.get -> NodaTime.Instant
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.StagedAt.set -> void
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.Status.get -> DcsvIo.D2.Outbox.OutboxMessageStatus
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.Status.set -> void
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.Version.get -> uint
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow.Version.set -> void
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRowConfiguration
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRowConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow!>! builder) -> void
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRowConfiguration.OutboxMessageRowConfiguration() -> void
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRowMapper
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRowMapper.extension(DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow!)
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRowMapper.extension(DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow!).ToDomain() -> DcsvIo.D2.Outbox.OutboxMessage!
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRowMapper.extension(DcsvIo.D2.Outbox.OutboxMessage!)
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRowMapper.extension(DcsvIo.D2.Outbox.OutboxMessage!).ProjectOnto(DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow! row) -> void
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRowMapper.extension(DcsvIo.D2.Outbox.OutboxMessage!).ToNewRow() -> DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow!
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxPayloadSerializer
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxTelemetry
+DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxTelemetry.Outcome
+const DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxTelemetry.METER_NAME = "DcsvIo.D2.Outbox" -> string!
+const DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxTelemetry.Outcome.DISPATCHER_REFUSED = "dispatcher_refused" -> string!
+const DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxTelemetry.Outcome.DISPATCHER_THREW = "dispatcher_threw" -> string!
+const DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxTelemetry.Outcome.NO_DISPATCHER = "no_dispatcher" -> string!
+const DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxTelemetry.TAG_KIND = "kind" -> string!
+const DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxTelemetry.TAG_OUTCOME = "outcome" -> string!
+static DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxEntityFrameworkCoreServiceCollectionExtensions.AddD2OutboxEntityFrameworkCore<TDb, TDbContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRowMapper.ProjectOnto(this DcsvIo.D2.Outbox.OutboxMessage! message, DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow! row) -> void
+static DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRowMapper.ToDomain(this DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow! row) -> DcsvIo.D2.Outbox.OutboxMessage!
+static DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRowMapper.ToNewRow(this DcsvIo.D2.Outbox.OutboxMessage! message) -> DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxMessageRow!
+static DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxPayloadSerializer.Deserialize<TPayload>(string! payload) -> TPayload?
+static DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxPayloadSerializer.Options.get -> System.Text.Json.JsonSerializerOptions!
+static readonly DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxTelemetry.SR_AbandonedTotal -> System.Diagnostics.Metrics.Counter<long>!
+static readonly DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxTelemetry.SR_DispatchDurationSeconds -> System.Diagnostics.Metrics.Histogram<double>!
+static readonly DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxTelemetry.SR_DispatchFailuresTotal -> System.Diagnostics.Metrics.Counter<long>!
+static readonly DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxTelemetry.SR_Meter -> System.Diagnostics.Metrics.Meter!
+static readonly DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxTelemetry.SR_PrunedTotal -> System.Diagnostics.Metrics.Counter<long>!
+static readonly DcsvIo.D2.Outbox.EntityFrameworkCore.OutboxTelemetry.SR_PublishedTotal -> System.Diagnostics.Metrics.Counter<long>!

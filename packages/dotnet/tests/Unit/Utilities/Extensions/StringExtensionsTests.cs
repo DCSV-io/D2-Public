@@ -6,6 +6,8 @@
 
 namespace DcsvIo.D2.Tests.Unit.Utilities.Extensions;
 
+using System.Reflection;
+using System.Text.RegularExpressions;
 using AwesomeAssertions;
 using DcsvIo.D2.I18n;
 using DcsvIo.D2.Location.ValueObjects;
@@ -132,12 +134,13 @@ public sealed class StringExtensionsTests
     [Fact]
     public void CleanDisplayStr_OnAllInvalid_ReturnsNull()
     {
-        // After stripping all chars, only empty remains → CleanStr returns null.
+        // After every character is stripped, only an empty string remains, and
+        // CleanStr returns null for it.
         "@@@***".CleanDisplayStr().Should().BeNull();
     }
 
     // ----------------------------------------------------------------------
-    // TryParseEmail — returns D2Result<string>
+    // TryParseEmail - returns D2Result<string>
     // ----------------------------------------------------------------------
 
     [Theory]
@@ -167,17 +170,52 @@ public sealed class StringExtensionsTests
     [InlineData("user@example.")]
     [InlineData("user@@example.com")]
     [InlineData("us er@example.com")]
+    [InlineData("a@b..c")]
+    [InlineData("a@b.")]
+    [InlineData("a@b.c.")]
+    [InlineData("a@.b.c")]
     public void TryParseEmail_OnInvalid_ReturnsValidationFailedWithEmailInvalidKey(string? input)
     {
         var result = input.TryParseEmail();
 
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.VALIDATION_FAILED);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_VALIDATION_FAILED);
         result.Messages.Should().Equal(TK.Common.Validation.EMAIL_INVALID);
     }
 
+    [Theory]
+    [InlineData("a@b.c")]
+    [InlineData("a.b@c.d.e")]
+    public void TryParseEmail_ShortestAndMultiLabelShapes_ReturnOk(string input)
+    {
+        input.TryParseEmail().Success.Should().BeTrue();
+    }
+
+    [Fact]
+    public void TryParseEmail_Pattern_IsTheLinearShape()
+    {
+        // A change to the pattern fails here, so it is reviewed against the backtracking bucket
+        // its summary states. The TypeScript EMAIL_RE parity test reads this same text.
+        var method = typeof(StringExtensions).GetMethod(
+            "EmailRegex",
+            BindingFlags.NonPublic | BindingFlags.Static);
+
+        var regex = (Regex)method!.Invoke(null, null)!;
+
+        regex.ToString().Should().Be(@"^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+$");
+    }
+
+    [Fact]
+    public void TryParseEmail_ManyDomainLabelsEndingInADot_IsRejected()
+    {
+        // An address of 5,000 domain labels that ends in a dot is malformed.
+        var input = "a@" + string.Concat(Enumerable.Repeat("a.", 5_000));
+
+        input.TryParseEmail().Success.Should().BeFalse();
+    }
+
     // ----------------------------------------------------------------------
-    // TryParsePhoneNumber — returns D2Result<string>
+    // TryParsePhoneNumber - returns D2Result<string>
     // ----------------------------------------------------------------------
 
     [Theory]
@@ -206,7 +244,7 @@ public sealed class StringExtensionsTests
         var result = input.TryParsePhoneNumber();
 
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.VALIDATION_FAILED);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_VALIDATION_FAILED);
         result.Messages.Should().Equal(TK.Common.Validation.PHONE_INVALID);
     }
 
@@ -238,9 +276,9 @@ public sealed class StringExtensionsTests
     [Fact]
     public void GetNormalizedStrForHashing_PreservesPositionsForFalseyParts()
     {
-        // Falsey segments collapse to empty, so the pipe positions remain stable
-        // — important when caller builds composite hash keys like
-        // "city|region|country" where any field may be missing.
+        // Falsey segments collapse to empty, so the pipe positions stay stable.
+        // This matters for a composite hash key such as "city|region|country" in
+        // which any field may be missing.
         string?[] parts = [" Test One ", "   ", "TEST3"];
 
         parts.GetNormalizedStrForHashing().Should().Be("test one||test3");
@@ -294,12 +332,13 @@ public sealed class StringExtensionsTests
     [InlineData("&^%$#~")]
     public void NormalizeForHash_OnNoLettersOrDigits_ReturnsEmpty(string input)
     {
-        // Punctuation/symbols/emoji carry no Letter or Decimal-digit code
-        // points → everything stripped → empty result.
+        // Punctuation, symbols and emoji contain no Letter or Decimal-digit code
+        // points, so everything is stripped and the result is empty.
         input.NormalizeForHash().Should().BeEmpty();
     }
 
-    // Diacritic collapse, case-fold, multi-script — NFC inputs collapse to same.
+    // Diacritic collapse, case-fold and several scripts - NFC inputs collapse to the
+    // same output.
     [Theory]
     [InlineData("Café", "CAFE")]
     [InlineData("Cafe", "CAFE")]
@@ -309,10 +348,10 @@ public sealed class StringExtensionsTests
     [InlineData("JOSÉ", "JOSE")]
     [InlineData("josé", "JOSE")]
     [InlineData("José", "JOSE")]
-    [InlineData("Иван", "ИВАН")] // Cyrillic — caseless upper
-    [InlineData("日本語", "日本語")] // CJK — caseless, kept as-is
-    [InlineData("Ελλάδα", "ΕΛΛΑΔΑ")] // Greek — diacritics stripped + uppercased
-    [InlineData("مرحبا", "مرحبا")] // Arabic — caseless, kept as-is
+    [InlineData("Иван", "ИВАН")] // Cyrillic - uppercased
+    [InlineData("日本語", "日本語")] // CJK - caseless, kept as-is
+    [InlineData("Ελλάδα", "ΕΛΛΑΔΑ")] // Greek - diacritics stripped and uppercased
+    [InlineData("مرحبا", "مرحبا")] // Arabic - caseless, kept as-is
     [InlineData("O'Neil-Jr.", "ONEILJR")] // punctuation dropped mid-word
     [InlineData("a&b", "AB")]
     public void NormalizeForHash_UnicodeNormalization_MatchesExpected(
@@ -322,12 +361,12 @@ public sealed class StringExtensionsTests
         input.NormalizeForHash().Should().Be(expected);
     }
 
-    // Decimal-digit \p{Nd} kept regardless of script; Arabic-Indic '٣' (U+0663) is
-    // Rune.IsDigit true.
+    // Decimal-digit \p{Nd} characters are kept regardless of script; the Arabic-Indic
+    // '٣' (U+0663) returns true from Rune.IsDigit.
     [Theory]
     [InlineData("٣", "٣")] // Arabic-Indic digit kept
     [InlineData("123", "123")] // ASCII digits kept
-    [InlineData("٣abc", "٣ABC")] // Arabic-Indic + ASCII mixed
+    [InlineData("٣abc", "٣ABC")] // Arabic-Indic and ASCII mixed
     public void NormalizeForHash_DecimalDigitsFromAnyScript_Kept(
         string input,
         string expected)
@@ -338,8 +377,9 @@ public sealed class StringExtensionsTests
     [Fact]
     public void NormalizeForHash_InternalSingleSpace_Preserved()
     {
-        // Stage-2 does NOT collapse whitespace; stage-1 is the caller's
-        // responsibility. Single internal space passes through as ASCII space.
+        // Stage 2 does not collapse whitespace; collapsing belongs to stage 1, a
+        // separate step applied before it that NormalizeForHash does not
+        // perform. A single internal space passes through as an ASCII space.
         "123 Main St".NormalizeForHash().Should().Be("123 MAIN ST");
     }
 
@@ -347,7 +387,7 @@ public sealed class StringExtensionsTests
     public void NormalizeForHash_MultipleInternalSpaces_NotCollapsed()
     {
         // Pins the stage-2-only contract: multi-space runs survive unchanged.
-        // This is intentional — stage-1 collapse is the CALLER's concern.
+        // This is intentional: collapsing them belongs to stage 1.
         "123  Main  St".NormalizeForHash().Should().Be("123  MAIN  ST");
     }
 
@@ -360,8 +400,8 @@ public sealed class StringExtensionsTests
     [Fact]
     public void NormalizeForHash_SupplementaryPlaneCjkLetter_Kept()
     {
-        // U+20000 (𠀀) — supplementary-plane CJK letter, requires two UTF-16
-        // surrogates. Rune.IsLetter must return true and the pair must NOT be
+        // U+20000 (𠀀) - supplementary-plane CJK letter, requires two UTF-16
+        // surrogates. Rune.IsLetter must return true and the pair must not be
         // split into two replacement chars (char.IsLetter is surrogate-unsafe).
         var cjk = "\U00020000"; // 𠀀
         var result = cjk.NormalizeForHash();
@@ -371,18 +411,18 @@ public sealed class StringExtensionsTests
     [Fact]
     public void NormalizeForHash_SupplementaryPlaneEmoji_DroppedWithoutSplitting()
     {
-        // 💥 (U+1F4A5) is a supplementary-plane Symbol → dropped.
-        // The Rune iteration must not produce two U+FFFD replacement chars —
-        // the result must be completely empty (not two garbage chars).
+        // 💥 (U+1F4A5) is a supplementary-plane Symbol -> dropped.
+        // The Rune iteration must not produce two U+FFFD replacement chars -
+        // the result must be completely empty.
         "💥".NormalizeForHash().Should().BeEmpty();
     }
 
-    // Non-Letter/Digit/ASCII-space chars are stripped — BiDi overrides, zero-width
+    // Non-Letter/Digit/ASCII-space chars are stripped - BiDi overrides, zero-width
     // joiners, and non-ASCII spaces (NBSP U+00A0) are all in this class.
     [Theory]
     [InlineData("‮evil", "EVIL")] // BiDi override U+202E
     [InlineData("a‍b", "AB")] // zero-width joiner U+200D
-    [InlineData("x y", "XY")] // non-breaking space U+00A0 — not ASCII space
+    [InlineData("x\u00A0y", "XY")] // non-breaking space, not ASCII space
     public void NormalizeForHash_StripsNonLetterNonDigitNonAsciiSpace(
         string input,
         string expected)
@@ -417,14 +457,15 @@ public sealed class StringExtensionsTests
     [Fact]
     public void NormalizeForHash_OnLongInput_DoesNotThrow()
     {
-        // Robustness smoke: 10 000-char string — linear algorithm, no regex.
+        // Long input: a 10 000-char string. The algorithm is linear and uses no regex.
         var longInput = new string('a', 5_000) + new string('é', 5_000);
         var act = () => longInput.NormalizeForHash();
         act.Should().NotThrow();
     }
 
-    // Byte-identical to Location's internal StreetAddress.NormalizeForHash; this parity
-    // test guards that identity so any algorithm divergence fails here immediately.
+    // StreetAddress.NormalizeForHash in the location package forwards to this
+    // extension, so the outputs are identical. This test fails when the forwarder
+    // stops delegating or changes the result.
     [Theory]
     [InlineData("123 Main St")]
     [InlineData("123 Main St.")]
@@ -440,13 +481,13 @@ public sealed class StringExtensionsTests
     [InlineData("Иван")] // Cyrillic
     [InlineData("日本語")] // CJK
     [InlineData("💥")] // Emoji (supplementary-plane symbol)
-    [InlineData("a b")] // thin space U+2009 — non-ASCII space, dropped → "AB"
-    [InlineData("a　b")] // ideographic space U+3000 — non-ASCII space, dropped → "AB"
+    [InlineData("a b")] // thin space U+2009 - non-ASCII space, dropped -> "AB"
+    [InlineData("a　b")] // ideographic space U+3000 - non-ASCII space, dropped -> "AB"
     [InlineData("𠀀")] // Supplementary-plane CJK letter (U+20000)
     public void NormalizeForHash_ByteIdenticalToStreetAddressNormalizeForHash(string? input)
     {
-        // Utilities extension must produce the exact same output as
-        // Location's internal algorithm.
+        // The extension must produce the exact same output as
+        // StreetAddress.NormalizeForHash.
         input.NormalizeForHash().Should().Be(StreetAddress.NormalizeForHash(input));
     }
 }

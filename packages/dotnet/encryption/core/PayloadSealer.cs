@@ -9,21 +9,21 @@ namespace DcsvIo.D2.Encryption;
 using System.Security.Cryptography;
 
 /// <summary>
-/// Default <see cref="IPayloadSealer"/> implementation: the P-256 ECDH-ES →
-/// HKDF-SHA256 → AES-256-GCM hybrid seal over a
+/// Default <see cref="IPayloadSealer"/> implementation: the P-256 ECDH-ES ->
+/// HKDF-SHA256 -> AES-256-GCM hybrid seal over a
 /// <see cref="RecipientPublicKeyring"/>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Per seal: a fresh ephemeral P-256 keypair → ECDH against the recipient's
-/// active public key → HKDF-SHA256 (under the frozen
-/// <see cref="SealedKeyDerivation"/> conventions) → a per-message AES-256-GCM
-/// content-encryption key → a fresh 12-byte nonce → the version-2 sealed
+/// Per seal: a fresh ephemeral P-256 keypair -> ECDH against the recipient's
+/// active public key -> HKDF-SHA256 (under the frozen
+/// <see cref="SealedKeyDerivation"/> conventions) -> a per-message AES-256-GCM
+/// content-encryption key -> a fresh 12-byte nonce -> the version-2 sealed
 /// frame. The shared secret and the derived key are zeroized in
 /// <c>finally</c> on every path.
 /// </para>
 /// <para>
-/// Thread-safe: no shared mutable state — every operation is self-contained
+/// Thread-safe: no shared mutable state - every operation is self-contained
 /// (per-call ephemeral keypair, per-call <see cref="AesGcm"/>, mirroring the
 /// per-call discipline of <see cref="PayloadCrypto"/>).
 /// </para>
@@ -43,7 +43,7 @@ public sealed class PayloadSealer : IPayloadSealer
         ArgumentNullException.ThrowIfNull(keyring);
         r_keyring = keyring;
 
-        // Salt + AAD bytes are fixed per recipient — non-secret, computed once.
+        // Salt + AAD bytes are fixed per recipient - non-secret, computed once.
         r_serviceIdBytes = SealedKeyDerivation.ServiceIdBytes(keyring.RecipientServiceId);
     }
 
@@ -91,7 +91,7 @@ public sealed class PayloadSealer : IPayloadSealer
     }
 
     /// <summary>
-    /// Returns the type name only — never includes keyring contents.
+    /// Returns the type name only - never includes keyring contents.
     /// </summary>
     public override string ToString() => nameof(PayloadSealer);
 }

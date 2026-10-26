@@ -18,14 +18,14 @@ using DcsvIo.D2.Validation.Abstractions;
 /// optional generational / ordinal suffix, each drawn from a closed taxonomy
 /// (<see cref="NamePrefix"/> / <see cref="NameSuffix"/>) with an
 /// <c>Other</c> escape hatch backed by a custom free-text value. A custom value
-/// is required when (and only when) the corresponding enum is <c>Other</c>. The
-/// all-null caller is rejected as a degenerate empty record.
+/// is required when (and only when) the corresponding enum is <c>Other</c>. A call
+/// with every argument null is rejected as a degenerate empty record.
 /// </summary>
 /// <remarks>
 /// <b>Self-redacting PII.</b> <see cref="PrefixCustom"/> and
 /// <see cref="SuffixCustom"/> are marked <c>[RedactData(PersonalInformation)]</c>
-/// — a free-text custom affix can carry identifying detail. The enum members
-/// <see cref="Prefix"/> and <see cref="Suffix"/> are left visible — a closed-list
+/// - a free-text custom affix can contain identifying detail. The enum members
+/// <see cref="Prefix"/> and <see cref="Suffix"/> are left visible - a closed-list
 /// honorific / generational marker is coarse-grained and not individually
 /// identifying on its own.
 /// </remarks>
@@ -33,7 +33,7 @@ public sealed record NameAffixes
 {
     /// <summary>
     /// Gets the optional honorific prefix.
-    /// Emitted unredacted in logs — a closed-list honorific is coarse-grained.
+    /// Emitted unredacted in logs - a closed-list honorific is coarse-grained.
     /// </summary>
     public NamePrefix? Prefix { get; init; }
 
@@ -46,7 +46,7 @@ public sealed record NameAffixes
 
     /// <summary>
     /// Gets the optional generational / ordinal suffix.
-    /// Emitted unredacted in logs — a closed-list suffix is coarse-grained.
+    /// Emitted unredacted in logs - a closed-list suffix is coarse-grained.
     /// </summary>
     public NameSuffix? Suffix { get; init; }
 
@@ -60,7 +60,8 @@ public sealed record NameAffixes
     /// <summary>
     /// Creates a <see cref="NameAffixes"/> from any combination of prefix /
     /// suffix enum + custom value. Enforces the custom-required-iff-<c>Other</c>
-    /// coherence rule on each side and rejects the all-null degenerate record.
+    /// coherence rule on each side and rejects the degenerate record with every
+    /// argument null.
     /// </summary>
     /// <param name="prefix">Optional honorific prefix.</param>
     /// <param name="prefixCustom">
@@ -74,7 +75,7 @@ public sealed record NameAffixes
     /// </param>
     /// <returns>
     /// <c>Ok</c> on success;
-    /// <see cref="D2Result{TData}.ValidationFailed"/> for: all-null inputs,
+    /// <see cref="D2Result{TData}.ValidationFailed"/> for: every input null,
     /// a missing custom value when the enum is <c>Other</c>, a custom value
     /// supplied when the enum is not <c>Other</c>, or an over-length custom value.
     /// </returns>
@@ -87,8 +88,8 @@ public sealed record NameAffixes
         var cleanedPrefixCustom = prefixCustom.CleanStr();
         var cleanedSuffixCustom = suffixCustom.CleanStr();
 
-        // Degenerate empty record — all four fields null/empty after cleaning.
-        // Checked first (AdminLocation parity); coherence checks below reference
+        // Degenerate empty record - every field null/empty after cleaning.
+        // Checked first (as AdminLocation does); coherence checks below reference
         // an Other enum, which is unreachable when prefix/suffix are both null.
         if (prefix is null && suffix is null
             && cleanedPrefixCustom.Falsey() && cleanedSuffixCustom.Falsey())

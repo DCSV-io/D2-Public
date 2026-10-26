@@ -9,9 +9,8 @@ import {
 } from "@opentelemetry/core";
 
 /**
- * Builds the W3C-compliant context propagator stack — `traceparent` +
- * `tracestate` (W3C trace context) + W3C baggage. Mirrors .NET
- * `TextMapPropagator` defaults.
+ * Builds the W3C context propagator stack: `traceparent` + `tracestate` (W3C
+ * trace context) + W3C baggage. Mirrors .NET `TextMapPropagator` defaults.
  */
 export function buildPropagators(): CompositePropagator {
   return new CompositePropagator({

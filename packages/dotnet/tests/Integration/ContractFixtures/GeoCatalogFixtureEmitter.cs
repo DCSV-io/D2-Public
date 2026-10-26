@@ -16,16 +16,15 @@ using Xunit;
 /// Emits the parity fixture for the codegen-emitted
 /// <see cref="GeoCatalog"/> provenance constants
 /// (<see cref="GeoCatalog.CatalogVersion"/> +
-/// <see cref="GeoCatalog.CatalogPublishedAt"/>). Both sides snapshot the
-/// same spec metadata; drift here surfaces a regen mis-sync (one runtime's
-/// catalog was rebuilt without the other).
+/// <see cref="GeoCatalog.CatalogPublishedAt"/>). Both runtimes snapshot the
+/// same spec metadata, so a difference between them means one runtime's
+/// catalog was regenerated without the other.
 /// </summary>
 /// <remarks>
-/// The timestamp is serialized as a strict ISO-8601 UTC string with
-/// millisecond precision (round-trip <c>"O"</c> format), matching the
-/// TS-side <c>CATALOG_PUBLISHED_AT</c> string. The TS parity test loads
-/// <c>fixtures/geo/catalog.json</c> and asserts byte-equality against the
-/// TS-exported constants.
+/// The timestamp is serialized as an ISO-8601 UTC string with millisecond
+/// precision in the format <c>yyyy-MM-ddTHH:mm:ss.fffZ</c>, the form of the
+/// TypeScript <c>CATALOG_PUBLISHED_AT</c> string. The emitter writes the
+/// fixture to <c>fixtures/geo/catalog.json</c>.
 /// </remarks>
 public sealed class GeoCatalogFixtureEmitter
 {

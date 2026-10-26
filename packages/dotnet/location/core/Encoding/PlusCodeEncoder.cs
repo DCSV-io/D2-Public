@@ -16,21 +16,21 @@ using DcsvIo.D2.Utilities.Extensions;
 /// <para>
 /// OLC encodes a rectangular bounding box. Format: exactly 8 pair-phase digits
 /// (4 lon+lat pairs, base-20 per axis) + '+' separator + grid-refinement digits
-/// (each encodes a 5-row × 4-col sub-cell). Selected cell sizes at the equator:
+/// (each encodes a 5-row x 4-col sub-cell). Selected cell sizes at the equator:
 /// <list type="bullet">
-/// <item><c>codeLength=10</c> — 2 grid digits → 11-char string → ~14 m lat × ~14 m lon
+/// <item><c>codeLength=10</c> - 2 grid digits -> 11-char string -> ~14 m lat x ~14 m lon
 /// </item>
-/// <item><c>codeLength=12</c> — 4 grid digits → 13-char string → ~0.2 m lat × ~1 m lon
+/// <item><c>codeLength=12</c> - 4 grid digits -> 13-char string -> ~0.2 m lat x ~1 m lon
 /// </item>
 /// </list>
-/// The pair phase alone (8 chars before '+') covers ~125 m lat × ~250 m lon.
-/// Each grid digit subdivides by 5 lat × 4 lon, so two grid digits give ÷25 lat × ÷16 lon
-/// and four grid digits give ÷625 lat × ÷256 lon.
+/// The pair phase alone (8 chars before '+') covers ~125 m lat x ~250 m lon.
+/// Each grid digit subdivides by 5 lat x 4 lon, so two grid digits give ÷25 lat x ÷16 lon
+/// and four grid digits give ÷625 lat x ÷256 lon.
 /// </para>
 /// </remarks>
 internal static class PlusCodeEncoder
 {
-    // OLC base-20 alphabet (digits 2–9 + upper-case letters, 20 chars).
+    // OLC base-20 alphabet (digits 2-9 + upper-case letters, 20 chars).
     private const string _ALPHABET = "23456789CFGHJMPQRVWX";
     private const int _ENCODING_BASE = 20;
 
@@ -56,7 +56,7 @@ internal static class PlusCodeEncoder
     private static readonly double sr_PairLatSize = 180.0 / Math.Pow(_ENCODING_BASE, _FULL_PAIRS);
     private static readonly double sr_PairLonSize = 360.0 / Math.Pow(_ENCODING_BASE, _FULL_PAIRS);
 
-    // Lookup table: ASCII character → OLC digit value (−1 = invalid).
+    // Lookup table: ASCII character -> OLC digit value (-1 = invalid).
     private static readonly int[] sr_Lookup = new int[128];
 
     static PlusCodeEncoder()
@@ -71,14 +71,14 @@ internal static class PlusCodeEncoder
     /// <summary>
     /// Encodes a coordinate pair to an Open Location Code (plus-code) string.
     /// </summary>
-    /// <param name="latitude">Latitude (−90 to +90).</param>
-    /// <param name="longitude">Longitude (−180 to +180).</param>
+    /// <param name="latitude">Latitude (-90 to +90).</param>
+    /// <param name="longitude">Longitude (-180 to +180).</param>
     /// <param name="codeLength">
     /// Number of significant code digits (excluding '+' separator and padding '0').
     /// The default of 10 produces an 11-character string (8 pair digits + '+' + 2 grid digits),
-    /// giving a cell of ~14 m × 14 m at the equator. For ~1 m precision use 12, which produces
+    /// giving a cell of ~14 m x 14 m at the equator. For ~1 m precision use 12, which produces
     /// a 13-character string (8 pair digits + '+' + 4 grid digits).
-    /// Valid range is 2–15.
+    /// Valid range is 2-15.
     /// </param>
     /// <returns>OLC plus-code string (e.g., <c>"87G7MQ8V+RG"</c>).</returns>
     public static string Encode(double latitude, double longitude, int codeLength = 10)
@@ -86,7 +86,7 @@ internal static class PlusCodeEncoder
         // Clip latitude to avoid overflow at exact +90.
         var lat = Math.Min(latitude, _LAT_MAX - 1e-9);
 
-        // Normalize longitude to [−180, +180).
+        // Normalize longitude to [-180, +180).
         var lon = longitude;
         while (lon < -_LON_MAX)
             lon += 360.0;
@@ -103,7 +103,7 @@ internal static class PlusCodeEncoder
         Span<char> buf = stackalloc char[_SEPARATOR_POSITION + 1 + gridDigits];
         var pos = 0;
 
-        // Pair phase — 4 complete (lon, lat) pairs in base-20.
+        // Pair phase - 4 complete (lon, lat) pairs in base-20.
         // Step sizes for the first pair: lat-step = 180/20, lon-step = 360/20.
         var latRem = lat;
         var lonRem = lon;
@@ -128,9 +128,9 @@ internal static class PlusCodeEncoder
         // Separator always at position 8.
         buf[pos++] = _SEPARATOR;
 
-        // Grid phase — subdivide the pair cell into GRID_ROWS × GRID_COLUMNS.
+        // Grid phase - subdivide the pair cell into GRID_ROWS x GRID_COLUMNS.
         // After the pair loop, latRem and lonRem are the residuals within the pair cell.
-        // The pair cell dimensions are sr_PairLatSize × sr_PairLonSize.
+        // The pair cell dimensions are sr_PairLatSize x sr_PairLonSize.
         var gridLatSize = sr_PairLatSize / _GRID_ROWS;
         var gridLonSize = sr_PairLonSize / _GRID_COLUMNS;
 
@@ -178,7 +178,7 @@ internal static class PlusCodeEncoder
         // Each pair contributes 2 chars (lon digit, lat digit).
         var fullPairs = prefix.Length / 2;
 
-        // Pair phase — reconstruct lat and lon from base-20 digit pairs.
+        // Pair phase - reconstruct lat and lon from base-20 digit pairs.
         var lat = 0.0;
         var lon = 0.0;
         var latStep = 180.0 / _ENCODING_BASE;
@@ -201,7 +201,7 @@ internal static class PlusCodeEncoder
         var latError = sr_PairLatSize / 2.0;
         var lonError = sr_PairLonSize / 2.0;
 
-        // Grid phase — refine within the pair cell.
+        // Grid phase - refine within the pair cell.
         var gridLatSize = sr_PairLatSize / _GRID_ROWS;
         var gridLonSize = sr_PairLonSize / _GRID_COLUMNS;
 

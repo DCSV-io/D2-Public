@@ -31,7 +31,7 @@ describe("InMemoryMessageIdempotencyStore", () => {
     nowMs = 1499;
     expect((await store.hasSeen("m1")).data).toBe(true);
 
-    nowMs = 1500; // expiry is <= now → expired
+    nowMs = 1500; // expiry is <= now -> expired
     const afterExpiry = await store.hasSeen("m1");
     expect(afterExpiry.data).toBe(false);
 
@@ -47,13 +47,13 @@ describe("InMemoryMessageIdempotencyStore", () => {
   });
 
   it("enforces the hard entry cap, evicting the oldest-marked id first", async () => {
-    // now() fixed + a huge TTL so nothing EXPIRES — any eviction here is the
-    // hard cap doing its job (unbounded-growth pin: the lazy-only store before
-    // the cap existed retained every id, so the oldest would still report seen).
+    // now() is fixed and the TTL is large, so no entry expires. Any eviction
+    // here comes from the hard cap. Without the cap the store keeps every id, so
+    // the oldest id would still report seen.
     const store = new InMemoryMessageIdempotencyStore(1_000_000, () => 0, 2);
     await store.markSeen("a");
     await store.markSeen("b");
-    await store.markSeen("c"); // exceeds the cap of 2 → oldest ("a") evicted
+    await store.markSeen("c"); // exceeds the cap of 2 -> oldest ("a") evicted
 
     expect((await store.hasSeen("a")).data).toBe(false); // evicted by the cap
     expect((await store.hasSeen("b")).data).toBe(true);
@@ -63,13 +63,13 @@ describe("InMemoryMessageIdempotencyStore", () => {
   it("sweeps elapsed entries on write (front-to-back, stops at the first live one)", async () => {
     let nowMs = 0;
     const store = new InMemoryMessageIdempotencyStore(500, () => nowMs);
-    await store.markSeen("a"); // now 0 → expiry 500
+    await store.markSeen("a"); // now 0 -> expiry 500
     nowMs = 100;
-    await store.markSeen("b"); // now 100 → expiry 600
+    await store.markSeen("b"); // now 100 -> expiry 600
 
     // now 550: "a" (500) has elapsed, "b" (600) is still live. A fresh write
-    // sweeps "a" (delete branch) and stops at "b" (break branch) — so expired
-    // ids don't linger to the process restart.
+    // sweeps "a" (delete branch) and stops at "b" (break branch), so expired
+    // ids do not stay until the process restarts.
     nowMs = 550;
     await store.markSeen("c");
 

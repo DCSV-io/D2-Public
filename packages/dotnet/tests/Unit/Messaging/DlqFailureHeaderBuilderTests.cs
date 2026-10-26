@@ -19,13 +19,13 @@ public sealed class DlqFailureHeaderBuilderTests
     [Fact]
     public void FromException_BuildsHandlerExceptionMetadata()
     {
-        // PII guard: exception.Message is NOT propagated into the DLQ header —
-        // handler-built strings can interpolate user input.
-        // ErrorCode carries the exception type (developer-controlled);
+        // PII guard: the builder does not copy exception.Message into the DLQ
+        // header, because handler-built strings can interpolate user input.
+        // ErrorCode holds the exception type, which developers control, and
         // Detail stays null.
         var ex = new InvalidOperationException("boom");
         var bytes = DlqFailureHeaderBuilder.FromException(
-            ex, attemptCount: 3, traceId: "abcdef", nackedBy: "audit");
+            ex, attemptCount: 3, traceId: "abcdef", nackedBy: "orders");
 
         var meta = Decode(bytes);
         meta.Cause.Should().Be(DlqFailureCauses.HANDLER_EXCEPTION);
@@ -33,13 +33,14 @@ public sealed class DlqFailureHeaderBuilderTests
         meta.Detail.Should().BeNull("ex.Message must not leak into broker header");
         meta.AttemptCount.Should().Be(3);
         meta.TraceId.Should().Be("abcdef");
-        meta.NackedBy.Should().Be("audit");
+        meta.NackedBy.Should().Be("orders");
     }
 
     [Fact]
     public void FromException_LongMessage_DetailRemainsNull()
     {
-        // PII guard: even arbitrarily long ex.Message is dropped, not truncated.
+        // PII guard: the builder drops even a very long ex.Message and does not
+        // truncate it.
         var longMsg = new string('x', 1_000);
         var ex = new InvalidOperationException(longMsg);
         var bytes = DlqFailureHeaderBuilder.FromException(ex);
@@ -79,7 +80,8 @@ public sealed class DlqFailureHeaderBuilderTests
     [Fact]
     public void FromBoundary_DecryptCause_Works()
     {
-        // PII guard: same protection for boundary failures — type only, no message.
+        // PII guard: boundary failures get the same protection. The header
+        // holds the exception type and no message.
         var ex = new InvalidOperationException("bad frame");
         var bytes = DlqFailureHeaderBuilder.FromBoundary(
             DlqFailureCauses.DECRYPT_FAILURE, ex, traceId: "trc");
@@ -131,10 +133,10 @@ public sealed class DlqFailureHeaderBuilderTests
     [Fact]
     public void FromResult_DetailKeyOnly_NeverInterpolatedText()
     {
-        // FromResult's Detail joins Message KEYS (translation tokens —
-        // developer-controlled constants), never user-input-interpolated
-        // strings. The 256-char truncation still applies — it's a safety
-        // net for accidentally-long key joins, not a PII guard.
+        // The Detail of FromResult joins Message keys, which are translation
+        // tokens and constants that developers control, and never strings that
+        // interpolate user input. The 256-character truncation still applies.
+        // It limits the length of a long join of keys and is not a PII guard.
         var result = D2Result.NotFound();
         var bytes = DlqFailureHeaderBuilder.FromResult(result);
         var meta = Decode(bytes);
@@ -155,14 +157,14 @@ public sealed class DlqFailureHeaderBuilderTests
     public void FromRetriesExhausted_SetsCorrectCauseAndAttemptCount()
     {
         var bytes = DlqFailureHeaderBuilder.FromRetriesExhausted(
-            attemptCount: 5, traceId: "abcdef", nackedBy: "audit");
+            attemptCount: 5, traceId: "abcdef", nackedBy: "orders");
         var meta = Decode(bytes);
         meta.Cause.Should().Be(DlqFailureCauses.RETRIES_EXHAUSTED);
         meta.ErrorCode.Should().Be(DlqFailureCauses.RETRIES_EXHAUSTED);
         meta.Detail.Should().BeNull();
         meta.AttemptCount.Should().Be(5);
         meta.TraceId.Should().Be("abcdef");
-        meta.NackedBy.Should().Be("audit");
+        meta.NackedBy.Should().Be("orders");
     }
 
     [Fact]

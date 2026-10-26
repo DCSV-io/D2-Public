@@ -46,7 +46,7 @@ describe("CountryLookup", () => {
     expect(byStr).toBe(byCode);
   });
 
-  // §1.2 category: Domain-specific — per-VALUE pins for headline countries.
+  // Category: Domain-specific - per-VALUE pins for headline countries.
   it("US: all required fields pinned", () => {
     const us = Countries.US;
     expect(us.iso31661Alpha2Code).toBe(CountryCode.US);
@@ -104,7 +104,7 @@ describe("CountryLookup", () => {
     expect(gb.primaryCurrencyIso4217AlphaCode).toBe(CurrencyCode.GBP);
   });
 
-  // §1.2 category: Domain-specific — uninhabited territories.
+  // Category: Domain-specific - uninhabited territories.
   it("AQ: primaries are undefined", () => {
     const aq = Countries.AQ;
     expect(aq.primaryLanguageIso6391Code).toBeUndefined();
@@ -131,7 +131,7 @@ describe("CountryLookup", () => {
     expect(Countries.AQ.subdivisions.length).toBe(0);
   });
 
-  // §1.2 category: Cross-field — nav rep + code rep agreement.
+  // Category: Cross-field - nav rep + code rep agreement.
   it("every Country: nav PrimaryLanguage matches code when set", () => {
     for (const country of CountryLookup.all) {
       if (country.primaryLanguage !== undefined) {

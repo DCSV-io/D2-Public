@@ -9,9 +9,9 @@ import type { TKMessage } from "@dcsv-io/d2-i18n-abstractions";
 /**
  * Locale-aware translator function. Implementations bind `key + params`
  * to a localized string (typically backed by Paraglide on the
- * BFF/browser, or the `ITranslator` on the .NET server-side notifications
- * path). The function receives the raw `key` plus an OPTIONAL parameter
- * dictionary — implementations MUST tolerate an undefined `params`.
+ * BFF/browser, or an `ITranslator` implementation on a .NET server).
+ * The function receives the raw `key` plus an OPTIONAL parameter
+ * dictionary; implementations MUST tolerate an undefined `params`.
  *
  * @example
  * ```ts
@@ -30,21 +30,20 @@ export type TranslateFn = (
 
 /**
  * Renders a single `TKMessage` to a localized string using the supplied
- * translator. Boundary helper for consumers (toast notifications, form
- * error display, plain-text logs) that expect rendered strings rather
- * than the i18n-preserving `TKMessage` shape.
+ * translator. The result is final text rather than the i18n-preserving
+ * `TKMessage` shape.
  *
- * Used at the BFF/browser boundary where the client locale is known and
- * a presentation surface needs final text. The wire path keeps
- * `TKMessage` shapes end-to-end — pre-rendering at the server destroys
- * client-side locale-switching ability.
+ * Rendering belongs where the client locale is known and final text is
+ * displayed. The wire path keeps
+ * `TKMessage` shapes end-to-end, because pre-rendering at the server removes
+ * client-side locale switching.
  *
  * @param message The translation-key message to render.
  * @param translate Locale-aware translator function.
- * @returns The localized string. If the translator does not recognize
- *  the key, falls back to returning the key verbatim (best-effort: the
- *  raw key is still recognizable to operators and ships information
- *  about what was supposed to render).
+ * @returns The localized string, exactly as `translate` returns it. The
+ *  function adds no fallback; for a key the translator does not recognize,
+ *  the result is the value `translate` returns for it (the translator in the
+ *  `TranslateFn` example returns the key verbatim).
  */
 export function renderMessage(
   message: TKMessage,
@@ -56,13 +55,13 @@ export function renderMessage(
 /**
  * Renders an array of `TKMessage`s to localized strings. Empty input
  * returns an empty array (does not throw). Null / undefined input is
- * normalized to an empty array — defensive on input from untrusted
+ * normalized to an empty array, as protection against untrusted
  * gateway responses where the field MAY be omitted.
  *
- * Wire-boundary carve-out per rules.md §6.15: the parameter accepts
+ * Wire-boundary carve-out: the parameter accepts
  * `null` because gateway response envelopes (deserialized from JSON over
- * the wire) may carry `null` for missing message arrays; this boundary
- * absorbs both `null` and `undefined` and emits the empty-array sentinel.
+ * the wire) may hold `null` for missing message arrays; this boundary
+ * absorbs both `null` and `undefined` and returns an empty array.
  *
  * @param messages Array of `TKMessage` to render. `undefined` / `null`
  *  treated as empty.
@@ -78,15 +77,15 @@ export function renderMessages(
 }
 
 /**
- * Renders an array of `InputError`s to a field-name → string[] map.
+ * Renders an array of `InputError`s to a field-name -> string[] map.
  * Boundary helper for Superforms-style form error display where each
- * field carries a list of human-readable error strings.
+ * field has a list of human-readable error strings.
  *
  * Empty / undefined / null input returns an empty object. Duplicate
  * fields are merged (subsequent errors append to the existing array).
  * Entries with empty field name or zero errors are skipped.
  *
- * Wire-boundary carve-out per rules.md §6.15: see {@link renderMessages}.
+ * Wire-boundary carve-out: see {@link renderMessages}.
  *
  * @param inputErrors Array of `InputError` to render. `undefined` /
  *  `null` treated as empty.

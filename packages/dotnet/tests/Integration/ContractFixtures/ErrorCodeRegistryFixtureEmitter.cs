@@ -14,18 +14,18 @@ using Xunit;
 
 /// <summary>
 /// Emits the cross-runtime parity fixture for the merged
-/// <see cref="ErrorCodeRegistry"/>. Reflects the built registry —
-/// every <see cref="ErrorCodeInfo"/> entry — and writes a deterministic,
+/// <see cref="ErrorCodeRegistry"/>. Reflects the built registry -
+/// every <see cref="ErrorCodeInfo"/> entry - and writes a deterministic,
 /// sorted <c>registry.json</c> fixture to
-/// <c>contract-tests/fixtures/error-codes-registry/</c>. The TS-side
-/// parity test reads this fixture and asserts the TS
-/// <c>errorCodeRegistry</c> exposes an identical map.
+/// <c>fixtures/error-codes-registry/</c> in the fixture directory that the TypeScript
+/// contract tests read.
+/// The fixture holds the map that the TypeScript <c>errorCodeRegistry</c> also exposes.
 /// </summary>
 /// <remarks>
 /// JSON shape per entry:
 /// <code>
 /// {
-///   "code": "AUTH_BEARER_MISSING",
+///   "code": "LIB_AUTH_BEARER_MISSING",
 ///   "httpStatus": 401,
 ///   "category": "validation_failure",
 ///   "userMessageKeySnake": "auth_errors_UNAUTHORIZED",
@@ -33,19 +33,21 @@ using Xunit;
 ///   "factoryName": "BearerMissing",
 ///   "factoryShape": "standard",
 ///   "doc": "...",
-///   "domain": "auth"
+///   "domain": "auth",
+///   "owner": "lib",
+///   "isDeprecated": false
 /// }
 /// </code>
 /// The <c>category</c> field is the snake_case wire string (e.g.
 /// <c>"validation_failure"</c>) produced by
-/// <see cref="ErrorCategoryWire.ToWire"/>; the TS parity axis is
-/// <c>fixture.category === ts.category</c> (both are the wire string).
+/// <see cref="ErrorCategoryWire.ToWire"/>, the same string the TypeScript
+/// registry holds in <c>category</c>.
 /// The <c>userMessageKeySnake</c> field contains the runtime <c>.Key</c>
-/// value the .NET <see cref="DcsvIo.D2.I18n.TKMessage"/> carries; the
+/// value of the .NET <see cref="DcsvIo.D2.I18n.TKMessage"/>; the
 /// <c>userMessageKeyPath</c> field contains the spec's TK symbol-path
-/// reference (derived by inverse-transforming the snake key). The TS
-/// parity test asserts BOTH fields match the TS registry's corresponding
-/// entry so any symbol-vs-snake drift surfaces immediately.
+/// reference (derived by inverse-transforming the snake key). The fixture
+/// holds both fields so that a difference between the symbol path and the
+/// snake key shows in a comparison with the TypeScript registry entry.
 /// </remarks>
 public sealed class ErrorCodeRegistryFixtureEmitter
 {
@@ -70,6 +72,8 @@ public sealed class ErrorCodeRegistryFixtureEmitter
                 ["factoryShape"] = info.FactoryShape,
                 ["doc"] = info.Doc,
                 ["domain"] = info.Domain,
+                ["owner"] = info.Owner,
+                ["isDeprecated"] = info.IsDeprecated,
             };
             data[info.Code] = entry;
         }
@@ -78,9 +82,9 @@ public sealed class ErrorCodeRegistryFixtureEmitter
     }
 
     /// <summary>
-    /// Forward-transforms a snake_case TK key back to its TK symbol-path
-    /// reference so the TS parity test can compare both representations.
-    /// Mirrors the inverse of <c>TkKeyTransform.ToSnakeKey</c> in the engine.
+    /// Transforms a snake_case TK key into its TK symbol-path reference.
+    /// This is the inverse of <c>TkKeyTransform.ToSnakeKey</c> of the
+    /// error-codes emitter.
     /// </summary>
     /// <remarks>
     /// Input: <c>auth_errors_UNAUTHORIZED</c>.
@@ -91,8 +95,8 @@ public sealed class ErrorCodeRegistryFixtureEmitter
     private static string SnakeKeyToPath(string snakeKey)
     {
         // snake key is <domain>_<category>_<CONSTANT...>
-        // Split on '_' but only the first two underscores are segment boundaries;
-        // the rest of the constant after the second underscore is the SCREAMING part.
+        // Split on '_' at the first and second underscore only; everything after the
+        // second underscore is the constant, which keeps its own underscores.
         var underscoreIdx1 = snakeKey.IndexOf('_');
         if (underscoreIdx1 < 0)
             return snakeKey;

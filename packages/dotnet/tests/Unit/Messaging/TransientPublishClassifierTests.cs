@@ -25,9 +25,10 @@ public sealed class TransientPublishClassifierTests
     [Fact]
     public void IsTransient_AlreadyClosed_True()
     {
-        // RabbitMQ.Client's AlreadyClosedException takes a ShutdownEventArgs in
-        // its public ctor — awkward to construct in unit tests. The classifier
-        // only inspects the runtime type, so an uninitialized instance suffices.
+        // The public constructor of RabbitMQ.Client's AlreadyClosedException
+        // takes a ShutdownEventArgs, which is hard to construct in a unit test.
+        // The classifier inspects only the runtime type, so an uninitialized
+        // instance is enough.
         var ex = (AlreadyClosedException)RuntimeHelpers.GetUninitializedObject(
             typeof(AlreadyClosedException));
         TransientPublishClassifier.IsTransient(ex).Should().BeTrue();
@@ -50,8 +51,8 @@ public sealed class TransientPublishClassifierTests
     [Fact]
     public void IsTransient_BrokerUnreachable_True()
     {
-        // BrokerUnreachableException is in the classifier switch; pin it here
-        // so a future "simplify" refactor doesn't quietly drop the case.
+        // BrokerUnreachableException is a case in the classifier switch. This
+        // test fails if a refactor removes that case.
         var ex = (BrokerUnreachableException)RuntimeHelpers.GetUninitializedObject(
             typeof(BrokerUnreachableException));
         TransientPublishClassifier.IsTransient(ex).Should().BeTrue();
@@ -60,8 +61,8 @@ public sealed class TransientPublishClassifierTests
     [Fact]
     public void IsTransient_InvalidOperation_False()
     {
-        // Programmer errors are not transient — surfacing immediately tells
-        // the caller their pipeline is broken (e.g. missing [MqPub]).
+        // A programmer error, such as a missing [MqPub], is not transient. The
+        // classifier returns false so that the error surfaces immediately.
         TransientPublishClassifier.IsTransient(new InvalidOperationException()).Should().BeFalse();
     }
 
@@ -74,22 +75,45 @@ public sealed class TransientPublishClassifierTests
     [Fact]
     public void IsTransient_NullArg_ReturnsFalse()
     {
-        // Switch on null matches default arm, then RetryHelper.IsTransientException's
-        // own switch matches default → returns false. Defensive: the publisher
-        // should never see a null exception, but if it did the contract is
-        // "not transient" rather than NRE-cascading from the classifier itself.
+        // The switch on null matches the default arm. Then the switch in
+        // RetryHelper.IsTransientException matches its default arm and returns
+        // false. The publisher never passes a null exception, but if one
+        // arrived, the result is "not transient" and the classifier does not
+        // throw a NullReferenceException.
         TransientPublishClassifier.IsTransient(null!).Should().BeFalse();
     }
 
     [Fact]
     public void IsTransient_PublishException_NotReturn_True()
     {
-        // M3: broker NACK on a confirm — queue full / mirror sync / restart.
-        // PublishException with IsReturn=false IS transient (worth a backoff
-        // retry). The exception's IsReturn property is read-only so we use
-        // an uninitialized instance — defaults make IsReturn=false.
+        // A broker NACK on a confirm happens when the queue is full, during a
+        // mirror sync or during a restart. A PublishException with
+        // IsReturn=false is transient, so a retry with backoff is worthwhile.
+        // The IsReturn property is read-only, so the test uses an
+        // uninitialized instance, whose default makes IsReturn false.
         var ex = (PublishException)RuntimeHelpers.GetUninitializedObject(
             typeof(PublishException));
+        TransientPublishClassifier.IsTransient(ex).Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsTransient_PublishException_Return_True()
+    {
+        // A basic.return means the publish matched no queue. It is transient
+        // in the case that loses messages: two hosts declare the same binding
+        // at once and both get bind-ok before the broker writes the exchange
+        // index. That window closes on its own, so a retry succeeds. A binding
+        // that is absent stays absent, and the publish fails once the attempts
+        // run out.
+        var ex = new PublishReturnException(
+            publishSequenceNumber: 1,
+            message: "returned",
+            exchange: "d2.test.exchange",
+            routingKey: "probe",
+            replyCode: 312,
+            replyText: "NO_ROUTE");
+
+        ex.IsReturn.Should().BeTrue("the fixture must be the returned variant");
         TransientPublishClassifier.IsTransient(ex).Should().BeTrue();
     }
 }

@@ -8,23 +8,23 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!--
     Per-VO complex-type and value-converter mapping helpers for the DcsvIo.D2.Location
-    value objects (StreetAddress, AdminLocation, Coordinates). Called from the host's
-    IEntityTypeConfiguration<T> class — the domain aggregate holds plain VO-typed
-    properties and carries zero EF references. Helpers wire HasMaxLength from
+    value objects (StreetAddress, AdminLocation, Coordinates). Called from an
+    IEntityTypeConfiguration<T> class, so the domain aggregate has plain VO-typed
+    properties and no EF references. Helpers wire HasMaxLength from
     FieldConstraints (DcsvIo.D2.Validation.Abstractions; plus the encoder-intrinsic
     geohash/plus-code caps), value converters (SubdivisionCode struct, CountryCode enum),
     and the per-VO anonymize defaults via the fluent .Anonymize* API on
     DcsvIo.D2.DataGovernance.EntityFrameworkCore.
-    NO DbContext, NO migrations, NO DI engine — the host owns those.
+    NO DbContext, NO migrations, NO DI engine - the host defines those.
     The generic CreateD2Index migration helper lives in DcsvIo.D2.EntityFrameworkCore;
-    a host that needs to index a Location complex member references that lib directly.
+    to index a Location complex member, reference that lib directly.
   -->
 
   <ItemGroup>
     <ProjectReference Include="..\core\DcsvIo.D2.Location.csproj" />
     <ProjectReference Include="..\..\data-governance\entity-framework-core\DcsvIo.D2.DataGovernance.EntityFrameworkCore.csproj" />
     <!--
-      DcsvIo.D2.Validation.Abstractions — FieldConstraints.* length caps
+      DcsvIo.D2.Validation.Abstractions - FieldConstraints.* length caps
       (STREET_LINE_MAX / CITY_MAX / POSTAL_CODE_MAX) applied by the decorators. Does not
       flow transitively via location/core (which refs geo/abstractions, not validation).
     -->
@@ -33,7 +33,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <ItemGroup>
     <!--
-      Microsoft.EntityFrameworkCore.Relational — CPM-pinned in Directory.Packages.props.
+      Microsoft.EntityFrameworkCore.Relational - CPM-pinned in Directory.Packages.props.
       Provides ComplexPropertyBuilder<T>, ComplexTypePropertyBuilder<T>, HasMaxLength,
       HasConversion, ValueConverter<,>, and the relational metadata APIs. Base EF Core
       flows transitively via Relational; do NOT add a separate base
@@ -49,7 +49,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.1</Version>
+    <Version>0.1.33</Version>
     <PackageId>DcsvIo.D2.Location.EntityFrameworkCore</PackageId>
     <Description>Reusable Entity Framework Core mapping for the DcsvIo.D2.Location value objects, applied via infra IEntityTypeConfiguration.</Description>
     <IsPackable>true</IsPackable>

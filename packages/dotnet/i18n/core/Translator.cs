@@ -18,10 +18,10 @@ using DcsvIo.D2.Utilities.Extensions;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Most translation happens client-side via the SvelteKit / Paraglide
-/// frontend consuming <see cref="TKMessage"/> objects shipped over the wire.
+/// Most translation happens client-side: the SvelteKit / Paraglide
+/// frontend renders <see cref="TKMessage"/> objects shipped over the wire.
 /// This server-side <see cref="Translator"/> exists for outbound notifications
-/// (Courier email / SMS / push) where the recipient's preferred locale is
+/// (email, SMS and push) where the recipient's preferred locale is
 /// known from their user profile and the rendered text must be inlined into
 /// the notification payload before delivery.
 /// </para>
@@ -47,7 +47,7 @@ public sealed partial class Translator : ITranslator
     private readonly SupportedLocales r_supportedLocales;
 
     /// <summary>
-    /// Locale code → (key → translated string). Outer key is the locale filename
+    /// Locale code -> (key -> translated string). Outer key is the locale filename
     /// stem in canonical BCP 47 casing.
     /// </summary>
     private readonly Dictionary<string, Dictionary<string, string>> r_catalogs = [];
@@ -115,7 +115,7 @@ public sealed partial class Translator : ITranslator
             return Interpolate(baseValue, message.Parameters);
         }
 
-        // No translation found anywhere — return the raw key (dev-readable).
+        // No translation found anywhere - return the raw key (dev-readable).
         return message.Key;
     }
 
@@ -128,9 +128,10 @@ public sealed partial class Translator : ITranslator
 
     /// <summary>
     /// Matches <c>{paramName}</c> placeholders in translation templates.
-    /// <c>\w</c> can't match <c>}</c>, so the greedy <c>\w+</c> stops naturally
+    /// Backtracking bucket: linear with a bounded input, which assumes a
+    /// template of bounded length. <c>\w</c> cannot match <c>}</c>, so the greedy <c>\w+</c> stops
     /// at the closing brace without backtracking on the success path; failure
-    /// case is at most O(n) once → no <c>matchTimeout</c> needed.
+    /// case is at most O(n) once -> no <c>matchTimeout</c> needed.
     /// </summary>
     [GeneratedRegex(@"\{(\w+)\}", RegexOptions.None)]
     private static partial Regex ParamRegex();

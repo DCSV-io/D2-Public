@@ -14,49 +14,54 @@ using DcsvIo.D2.ErrorCodes.SourceGen;
 using DcsvIo.D2.SourceGen;
 
 /// <summary>
-/// Aggregates all error-code spec files surfaced via <c>AdditionalFiles</c>
+/// Aggregates all error-code spec files provided through <c>AdditionalFiles</c>
 /// into a flat list of <see cref="RegistrySpecEntry"/> records. Each spec
-/// is parsed using the shared <see cref="ErrorCodeSpecLoader"/> (reusing all
-/// JSON-shape validation from the per-catalog engine) and enriched with the
-/// registry-level <c>domain</c> token derived from the spec filename.
+/// is parsed using the shared <see cref="ErrorCodeSpecLoader"/> and enriched
+/// with owner-aware catalog identity (Owner, DomainToken and DomainPrefix). It
+/// never derives the domain from the filename alone for multi-segment catalogs.
 /// </summary>
-/// <remarks>
-/// <para>
-/// Domain derivation: the generic spec
-/// (<c>error-codes.spec.json</c>) maps to <c>common</c>; every per-domain
-/// spec (<c>{domain}-error-codes.spec.json</c>) maps to the leading segment
-/// (e.g. <c>auth-error-codes.spec.json</c> → <c>auth</c>).
-/// </para>
-/// <para>
-/// Entries whose spec is missing any of the four factory fields
-/// (<c>category</c> / <c>userMessageKey</c> / <c>factoryName</c> /
-/// <c>factoryShape</c>) are skipped with a malformed-spec diagnostic — the
-/// registry requires all 8 fields to be present on every entry (all current
-/// spec entries satisfy this; the schema enforces it).
-/// </para>
-/// </remarks>
 internal static class RegistrySpecLoader
 {
     private const string _GENERIC_SPEC_NAME = "error-codes.spec.json";
     private const string _DOMAIN_SPEC_SUFFIX = "-error-codes.spec.json";
-    private const string _GENERIC_DOMAIN = "common";
 
     /// <summary>
-    /// Parses all surfaced spec files and returns the aggregated registry
+    /// Built-in catalog identities keyed by filename (GEN and public LIB).
+    /// DOM catalogs are added through the
+    /// <c>extraIdentities</c> argument to <see cref="LoadAll"/> /
+    /// <see cref="ResolveIdentity"/>; they are never hard-coded here.
+    /// A catalog in neither map is rejected with <c>D2ERC008</c>.
+    /// </summary>
+    private static readonly Dictionary<string, CatalogIdentity> sr_identities =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["error-codes.spec.json"] = new("gen", "common", "GEN_"),
+            ["auth-error-codes.spec.json"] = new("lib", "auth", "LIB_AUTH_"),
+            ["pagination-error-codes.spec.json"] = new("lib", "pagination", "LIB_PAGINATION_"),
+            ["messaging-error-codes.spec.json"] = new("lib", "messaging", "LIB_MESSAGING_"),
+        };
+
+    /// <summary>
+    /// Parses all provided spec files and returns the aggregated registry
     /// entries plus any load-time diagnostics.
     /// </summary>
     /// <param name="specFiles">
-    /// All spec files surfaced via <c>AdditionalFiles</c>. The loader
+    /// All spec files provided through <c>AdditionalFiles</c>. The loader
     /// distinguishes the generic spec from domain specs by filename.
     /// </param>
     /// <param name="diagnostics">
-    /// Builder to append load-time diagnostics to. Callers check this
-    /// after return and abort emission on any error-severity diagnostic.
+    /// Builder to append load-time diagnostics to. An error-severity
+    /// diagnostic means emission must not proceed.
+    /// </param>
+    /// <param name="extraIdentities">
+    /// Optional host-supplied catalog identity map for catalogs the built-in
+    /// map lacks. Pass <see langword="null"/> when the built-in map is enough.
     /// </param>
     /// <returns>Aggregated entries in the order they were loaded.</returns>
     public static IReadOnlyList<RegistrySpecEntry> LoadAll(
         ImmutableArray<SpecFile> specFiles,
-        ImmutableArray<EmitDiagnostic>.Builder diagnostics)
+        ImmutableArray<EmitDiagnostic>.Builder diagnostics,
+        IReadOnlyDictionary<string, CatalogIdentity>? extraIdentities = null)
     {
         var entries = new List<RegistrySpecEntry>();
 
@@ -75,7 +80,13 @@ internal static class RegistrySpecLoader
             if (!IsErrorCodeSpec(fileName))
                 continue;
 
-            var domain = DeriveDomain(fileName);
+            var identity = ResolveIdentity(fileName, extraIdentities);
+
+            if (identity is null)
+            {
+                diagnostics.Add(RegistryDiagnostics.UnregisteredCatalog(fileName));
+                continue;
+            }
 
             var loadResult = ErrorCodeSpecLoader.Load(
                 spec.Path,
@@ -90,8 +101,8 @@ internal static class RegistrySpecLoader
 
             foreach (var entry in loadResult.Spec!.ErrorCodes)
             {
-                // All 8 fields are required in the registry. Every valid spec
-                // entry will have them; guard defensively.
+                // All factory fields are required in the registry. Every valid
+                // spec entry will have them; guard defensively.
                 if (entry.Category is null || entry.UserMessageKey is null
                     || entry.FactoryName is null || entry.FactoryShape is null)
                 {
@@ -110,7 +121,9 @@ internal static class RegistrySpecLoader
                     FactoryName: entry.FactoryName,
                     FactoryShape: entry.FactoryShape,
                     Doc: entry.Doc,
-                    Domain: domain,
+                    Domain: identity.DomainToken,
+                    Owner: identity.Owner,
+                    DomainPrefix: identity.DomainPrefix,
                     SpecFileName: fileName,
                     IsDeprecated: entry.Deprecated));
             }
@@ -136,21 +149,72 @@ internal static class RegistrySpecLoader
     }
 
     /// <summary>
-    /// Derives the domain token from a spec filename. The generic spec
-    /// (<c>error-codes.spec.json</c>) returns <c>common</c>; domain specs
-    /// (<c>auth-error-codes.spec.json</c>) return the leading segment
-    /// before the <c>-error-codes</c> suffix (<c>auth</c>).
+    /// Resolves owner-aware catalog identity for a registered filename.
     /// </summary>
-    /// <param name="fileName">The spec filename (e.g. <c>auth-error-codes.spec.json</c>).</param>
-    /// <returns>The domain token (lowercase).</returns>
-    public static string DeriveDomain(string fileName)
+    /// <param name="fileName">Spec filename.</param>
+    /// <param name="extraIdentities">
+    /// Optional host-supplied map. Checked after the built-in map.
+    /// </param>
+    /// <returns>
+    /// Owner, domain token, and full DomainPrefix, or <see langword="null"/>
+    /// when the filename is in neither map.
+    /// </returns>
+    public static CatalogIdentity? ResolveIdentity(
+        string fileName,
+        IReadOnlyDictionary<string, CatalogIdentity>? extraIdentities = null)
     {
-        if (string.Equals(fileName, _GENERIC_SPEC_NAME, StringComparison.OrdinalIgnoreCase))
-            return _GENERIC_DOMAIN;
+        if (sr_identities.TryGetValue(fileName, out var known))
+            return known;
 
-        // Strip the -error-codes.spec.json suffix.
-        var suffixLen = _DOMAIN_SPEC_SUFFIX.Length;
-        var domainPart = fileName.Substring(0, fileName.Length - suffixLen);
-        return domainPart.ToLowerInvariant();
+        if (extraIdentities is not null
+            && (extraIdentities.TryGetValue(fileName, out known)
+                || TryGetExtraIgnoreCase(extraIdentities, fileName, out known)))
+        {
+            return known;
+        }
+
+        return null;
     }
+
+    /// <summary>
+    /// Derives the domain token from a spec filename.
+    /// Prefer <see cref="ResolveIdentity"/> for Owner and DomainPrefix.
+    /// </summary>
+    /// <param name="fileName">The spec filename.</param>
+    /// <param name="extraIdentities">Optional host-supplied map.</param>
+    /// <returns>
+    /// The domain token (lowercase), or <see langword="null"/> when the
+    /// filename is in neither map.
+    /// </returns>
+    public static string? DeriveDomain(
+        string fileName,
+        IReadOnlyDictionary<string, CatalogIdentity>? extraIdentities = null) =>
+        ResolveIdentity(fileName, extraIdentities)?.DomainToken;
+
+    private static bool TryGetExtraIgnoreCase(
+        IReadOnlyDictionary<string, CatalogIdentity> extras,
+        string fileName,
+        out CatalogIdentity identity)
+    {
+        foreach (var pair in extras)
+        {
+            if (string.Equals(pair.Key, fileName, StringComparison.OrdinalIgnoreCase))
+            {
+                identity = pair.Value;
+                return true;
+            }
+        }
+
+        identity = null!;
+        return false;
+    }
+
+    /// <summary>Owner, DomainToken and full DomainPrefix for one catalog file.</summary>
+    /// <param name="Owner">gen | lib | dom.</param>
+    /// <param name="DomainToken">Business domain token.</param>
+    /// <param name="DomainPrefix">Full wire prefix.</param>
+    public sealed record CatalogIdentity(
+        string Owner,
+        string DomainToken,
+        string DomainPrefix);
 }

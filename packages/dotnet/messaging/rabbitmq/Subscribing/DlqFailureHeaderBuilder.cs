@@ -15,16 +15,15 @@ using DcsvIo.D2.Utilities.Extensions;
 /// Builds the <c>x-d2-failure-reason</c> header value (JSON-encoded
 /// <see cref="DlqFailureMetadata"/>) attached when a consumer NACKs a
 /// message to its DLQ. Truncates the diagnostic detail at 256 chars so the
-/// header doesn't blow past AMQP frame limits.
+/// header stays within AMQP frame limits.
 /// </summary>
 /// <remarks>
-/// PII discipline: <see cref="DlqFailureMetadata.Detail"/> is built from
-/// the exception's TYPE NAME or the result's MESSAGE-KEYS (stable
-/// translation tokens), NEVER from <c>exception.Message</c> or any
-/// free-form result text. Handler code is responsible for not leaking
-/// user input into exception messages, but this builder defends against
-/// it anyway by NOT propagating those strings into the broker-readable
-/// DLQ header.
+/// PII discipline: <see cref="DlqFailureMetadata.Detail"/> is null for an
+/// exception and holds the result's message keys (stable translation tokens)
+/// for a result failure, and the exception's type name goes in ErrorCode. The
+/// header never holds <c>exception.Message</c> or any free-form result text.
+/// Handler code must not leak user input into exception messages, and this
+/// builder also keeps those strings out of the broker-readable DLQ header.
 /// </remarks>
 internal static class DlqFailureHeaderBuilder
 {
@@ -47,7 +46,7 @@ internal static class DlqFailureHeaderBuilder
             Cause = DlqFailureCauses.HANDLER_EXCEPTION,
             ErrorCode = exception.GetType().FullName ?? exception.GetType().Name,
 
-            // PII guard: do NOT propagate exception.Message (handler-built
+            // PII guard: do not propagate exception.Message (handler-built
             // strings can interpolate user input). The exception type name
             // already lives in ErrorCode; Detail stays null.
             Detail = null,
@@ -83,10 +82,10 @@ internal static class DlqFailureHeaderBuilder
     }
 
     /// <summary>Builds the header bytes for a retries-exhausted DLQ
-    /// route — used when the broker's <c>x-death</c> header reports we've
-    /// already burned the subscriber's
-    /// <see cref="TieredRetryDescriptor.MaxAttempts"/>. No exception is
-    /// involved (we never even invoked the handler this time).</summary>
+    /// route, used when the broker's <c>x-death</c> header reports that the
+    /// subscriber's <see cref="TieredRetryDescriptor.MaxAttempts"/> is already
+    /// used up. No exception is involved: the handler was not invoked this
+    /// time.</summary>
     /// <param name="attemptCount">Total redelivery attempts observed.</param>
     /// <param name="traceId">Optional W3C trace id for correlation.</param>
     /// <param name="nackedBy">Optional service name.</param>
@@ -125,7 +124,7 @@ internal static class DlqFailureHeaderBuilder
             Cause = cause,
             ErrorCode = exception.GetType().FullName ?? exception.GetType().Name,
 
-            // PII guard: same as FromException — exception.Message is not safe
+            // PII guard: same as FromException; exception.Message is not safe
             // to attach to the broker-readable header.
             Detail = null,
             AttemptCount = 0,

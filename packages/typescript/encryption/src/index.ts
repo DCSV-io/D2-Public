@@ -2,9 +2,9 @@
 // Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 // -----------------------------------------------------------------------
 
-// Runtime crypto twin of .NET `DcsvIo.D2.Encryption` — WebCrypto AES-256-GCM
-// (v1 symmetric) + P-256 ECDH-ES → HKDF-SHA256 → AES-256-GCM (v2 sealed), both
-// directions, byte-identical to the .NET encoder (KAT-pinned). Consumes the
+// Runtime crypto twin of .NET `DcsvIo.D2.Encryption`: WebCrypto AES-256-GCM
+// (v1 symmetric) and P-256 ECDH-ES -> HKDF-SHA256 -> AES-256-GCM (v2 sealed), both
+// directions, byte-identical to the .NET encoder (a KAT pins this). Uses the
 // wire-layout constants from @dcsv-io/d2-encryption-abstractions.
 
 // Ports.

@@ -14,14 +14,14 @@ using Microsoft.Extensions.Logging;
 /// at type-load (no allocations / format-string parsing at the call site) per CA1848.
 /// </summary>
 /// <remarks>
-/// <strong>PII discipline</strong>: NO delegate accepts an <see cref="Exception"/>
-/// and the only string parameter is a non-PII workload service label (the host's own
-/// service id); the established call-path is summarized by its entry COUNT, never its
-/// contents.
+/// <strong>PII discipline</strong>: no delegate accepts an <see cref="Exception"/>.
+/// The only string parameter is a non-PII workload service label (the host's own
+/// service id), and the log records the established call-path as an entry count and
+/// never its contents.
 /// </remarks>
-// §5.6 carve-out: [LoggerMessage] partial methods cannot be declared inside a
-// C# 14 extension(...) block (compiler-syntactic restriction), so the block form
-// is categorically inapplicable here; instance-extension style is correct.
+// Exception to the block form: a [LoggerMessage] partial method cannot be declared
+// inside a C# 14 extension(...) block (a compiler syntax restriction), so this class
+// declares the delegate as an instance extension method.
 internal static partial class SystemRequestContextBootstrapLog
 {
     [LoggerMessage(

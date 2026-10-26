@@ -12,7 +12,7 @@
     "             || result.data.itemStatuses.contains('PENDING')",
     "             || result.data.partial == true",
     "  failWhen:  result.data.itemStatuses.count == 0",
-    "             || result.errorCode == 'VALIDATION_FAILED'",
+    "             || result.errorCode == 'GEN_VALIDATION_FAILED'",
     "",
     "`category` is the snake_case wire string (C# Category?.ToWire(); TS r.category). `data`",
     "null models a failure with no payload (the nullable D2Result.Data); both runtimes must",
@@ -22,7 +22,7 @@
   "cases": [
     {
       "name": "retryWhen_category_infraUnavailable",
-      "$note": "data is null → itemStatuses.count coalesces to 0 → failWhen TRUE (identical C#/TS); retryWhen also true via category. Both predicates fire — at runtime failWhen WINS in the client closure (no retry).",
+      "$note": "data is null -> itemStatuses.count coalesces to 0 -> failWhen TRUE (identical C#/TS); retryWhen also true via category. Both predicates fire - at runtime failWhen WINS in the client closure (no retry).",
       "success": false,
       "statusCode": 503,
       "errorCode": null,
@@ -73,7 +73,7 @@
       "name": "failWhen_errorCodeValidationFailed",
       "success": false,
       "statusCode": 400,
-      "errorCode": "VALIDATION_FAILED",
+      "errorCode": "GEN_VALIDATION_FAILED",
       "category": "validation_failure",
       "data": null,
       "expectedRetry": false,
@@ -83,7 +83,7 @@
       "name": "failWhenWins_bothMatch",
       "success": false,
       "statusCode": 503,
-      "errorCode": "VALIDATION_FAILED",
+      "errorCode": "GEN_VALIDATION_FAILED",
       "category": "infrastructure_unavailable",
       "data": {
         "orderCode": "o4",
@@ -111,7 +111,7 @@
       "name": "nullData_noPayload",
       "success": false,
       "statusCode": 404,
-      "errorCode": "NOT_FOUND",
+      "errorCode": "GEN_NOT_FOUND",
       "category": "not_found",
       "data": null,
       "expectedRetry": false,
@@ -135,7 +135,7 @@
       "name": "neither_unknownCategory_nonEmpty",
       "success": false,
       "statusCode": 409,
-      "errorCode": "CONFLICT",
+      "errorCode": "GEN_CONFLICT",
       "category": "conflict",
       "data": {
         "orderCode": "o7",

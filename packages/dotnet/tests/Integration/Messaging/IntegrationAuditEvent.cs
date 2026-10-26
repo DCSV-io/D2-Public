@@ -6,11 +6,14 @@
 
 namespace DcsvIo.D2.Tests.Integration.Messaging;
 
+using DcsvIo.D2.Messaging;
+
 /// <summary>Integration message fixture exercising the encrypted code path.
-/// The resolver descriptor (exchange, encryption domain) is pre-seeded by
-/// <see cref="IntegrationMessageFixtures"/>, NOT by an <c>[MqPub]</c>
-/// attribute — the production registry only covers real domain messages,
-/// and integration fixtures use the test-only registration seam.</summary>
+/// Its descriptor (exchange, encryption domain) lives in
+/// <see cref="IntegrationMessageFixtures.Catalog"/>, which a fixture host
+/// registers in place of the framework default - the generated registries
+/// only cover real domain messages.</summary>
+[MqPub(IntegrationMessageFixtures.INTEGRATION_AUDIT)]
 public sealed class IntegrationAuditEvent
 {
     /// <summary>Gets or sets the test correlation marker.</summary>

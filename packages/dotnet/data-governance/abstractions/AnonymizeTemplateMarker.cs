@@ -7,9 +7,10 @@
 namespace DcsvIo.D2.DataGovernance.Abstractions;
 
 /// <summary>
-/// Discriminator sentinel used by the third <see cref="AnonymizableAttribute"/> constructor
-/// to distinguish the <see cref="AnonymizeKind.Template"/> path from the constant-string
-/// path at the call site.
+/// Discriminator sentinel used by the template constructor of
+/// <see cref="AnonymizableAttribute"/> to distinguish the
+/// <see cref="AnonymizeKind.Template"/> path from the constant-string path at the call
+/// site.
 /// </summary>
 /// <remarks>
 /// <para>

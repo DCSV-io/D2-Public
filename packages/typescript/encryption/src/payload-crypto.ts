@@ -16,8 +16,8 @@ import { aesGcmDecrypt, aesGcmEncrypt, randomBytes } from "./subtle.js";
  * .NET `DcsvIo.D2.Encryption.PayloadCrypto`.
  *
  * A fresh 12-byte nonce is generated per encrypt; the content-encryption key is
- * the keyring's active key. Thread-safe by JS's single-threaded event loop — no
- * shared mutable state.
+ * the keyring's active key. Thread-safe by JS's single-threaded event loop; it
+ * has no shared mutable state.
  */
 export class PayloadCrypto implements IPayloadCrypto {
   readonly #keyring: PayloadCryptoKeyring;
@@ -32,7 +32,7 @@ export class PayloadCrypto implements IPayloadCrypto {
     const activeKid = this.#keyring.activeKid;
     const key = this.#keyring.tryGetKey(activeKid);
 
-    /* v8 ignore start — defensive invariant guard: the keyring ctor guarantees
+    /* v8 ignore start - defensive invariant guard: the keyring ctor guarantees
        activeKid is present, so this is unreachable via the public API */
     if (key === undefined) {
       throw new KidNotInKeyringError(activeKid);
@@ -67,7 +67,7 @@ export class PayloadCrypto implements IPayloadCrypto {
     );
   }
 
-  /** Returns the type name only — never includes keyring contents. */
+  /** Returns the type name only; it never includes keyring contents. */
   toString(): string {
     return "PayloadCrypto";
   }

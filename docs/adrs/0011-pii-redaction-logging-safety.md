@@ -2,64 +2,128 @@
 Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 
-# ADR-0011: PII redaction and logging safety — `[RedactData]` + destructuring policy + `SanitizedExceptionRender` + explicit LOG-OK / NOT-LOGGED field split
+# ADR-0011: PII redaction and logging safety - `[RedactData]` + destructuring policy + `SanitizedExceptionRender` + explicit LOG-OK / NOT-LOGGED field split
 
 - **Status**: Accepted
-- **Date**: 2026-05-30 (service-identity-removal re-verify note: 2026-06-18)
-- **Deliverable**: D2 shared libraries (backfilled)
+- **Date**: 2026-05-30
 
 ## Context
 
-D2 services log structured events using Serilog (.NET) and Pino (TypeScript). Both runtimes receive objects that frequently carry PII: email addresses, phone numbers, IP addresses, sub-country geographic precision, names, message bodies, file names, presigned URLs with credentials in query parameters, and AMQP/DB connection strings that embed passwords. Left unguarded, any of these can leak into log aggregation (Loki), operator dashboards, or off-cluster forwarding.
+D2 services log structured events using Serilog (.NET) and Pino (TypeScript). Both runtimes receive objects that
+frequently contain PII: email addresses, phone numbers, IP addresses, sub-country geographic precision, names, message
+bodies, file names, presigned URLs with credentials in query parameters, and AMQP/DB connection strings that embed
+passwords. Left unguarded, any of these can leak into log aggregation (Loki), operator dashboards, or off-cluster
+forwarding.
 
-Three concrete leak vectors drove the decisions below:
+These leak vectors shaped the decisions below:
 
 1. **Structured object capture.** `logger.LogInformation("{@User}", user)` serializes every public property of `User` into structured JSON; without active redaction, PII reaches the sink verbatim.
 2. **Exception messages.** Broker and database libraries embed runtime secrets in `Exception.Message`: RabbitMQ.Client's `BrokerUnreachableException.Message` contains the full AMQP URI including password; StackExchange.Redis includes connection-string fragments; Npgsql includes constraint-violation row excerpts; subscriber-isolation `catch` blocks capture arbitrary user-handler exceptions. Passing an `Exception` to a `[LoggerMessage]` delegate causes the pipeline to call `ex.ToString()`, which includes `ex.Message`.
-3. **Request-context over-projection.** The spec-driven `IRequestContext` (ADR-0007) contains 50+ fields; projecting all of them onto every request-completion line would emit raw client IPs, city/postal/subdivision coordinates, and GPS coordinates — all PII — without per-call-site review.
+3. **Request-context over-projection.** The spec-driven `IRequestContext` (ADR-0007) contains every field declared in
+   its spec; projecting all of them onto every request-completion line would emit raw client IPs,
+   city/postal/subdivision coordinates, and GPS coordinates - all PII - without per-call-site review.
 
 The codebase spans two runtimes; a redaction decision expressed only in .NET leaves TypeScript-side Pino logging unprotected unless the same intent is re-expressed there, preferably from the same authoritative source.
 
 ## Decision
 
-**1. `[RedactData]` attribute + `RedactDataDestructuringPolicy`: structural, type-driven PII redaction.** A `[RedactData]` marker (`packages/dotnet/utilities/Attributes/RedactDataAttribute.cs`), carrying a `RedactReason` enum and optional `CustomReason`, is placed on any type or public property carrying PII. `RedactDataDestructuringPolicy` (`packages/dotnet/logging/Destructuring/RedactDataDestructuringPolicy.cs`), registered as a Serilog `IDestructuringPolicy` by `AddD2Logging`, reflects over each `@`-captured object once (caching the result in a `ConcurrentDictionary<Type, TypeRedactionInfo>`): a type carrying `[RedactData]` is replaced wholesale with `[REDACTED: {Reason}]`; specific annotated properties are masked and siblings recursively destructured. Two documented limitations: the policy covers public instance **properties** only (field-level `[RedactData]` is silently ignored), and capture without `@` (e.g. `{User}`) calls `.ToString()` and bypasses destructuring — both enforced by call-site discipline (always capture annotated types with `@` so the policy runs).
+**1. `[RedactData]` attribute + `RedactDataDestructuringPolicy`: structural, type-driven PII redaction.** A
+`[RedactData]` marker (`packages/dotnet/utilities/Attributes/RedactDataAttribute.cs`), which has a `RedactReason` enum
+and optional `CustomReason`, is placed on any type or public property that contains PII. `RedactDataDestructuringPolicy`
+(`packages/dotnet/logging/Destructuring/RedactDataDestructuringPolicy.cs`), registered as a Serilog
+`IDestructuringPolicy` by `AddD2Logging`, reflects over each `@`-captured object once (caching the result in a
+`ConcurrentDictionary<Type, TypeRedactionInfo>`): a type with `[RedactData]` is replaced entirely with
+`[REDACTED: {Reason}]`; specific annotated properties are masked and siblings recursively destructured. The policy has
+these documented limitations: it covers public instance **properties** only (field-level `[RedactData]` is silently
+ignored), and capture without `@` (e.g. `{User}`) calls `.ToString()` and bypasses destructuring - both enforced by
+call-site discipline (always capture annotated types with `@` so the policy runs).
 
-**2. No `Exception` parameter in any `[LoggerMessage]` delegate; use `SanitizedExceptionRender` instead.** `SanitizedExceptionRender` (`packages/dotnet/utilities/Diagnostics/SanitizedExceptionRender.cs`) exposes `TypeName(ex)` (the exception type's `FullName`) and `FirstFrame(ex)` (`"{Method} at {File}:{Line}"`) — method names and source paths are developer-controlled, so both are safe to log. Every `[LoggerMessage]` declaration across every surface (`BaseHandlerLog`, `AuthLog`, outbound auth, RabbitMQ subscriber channels) accepts `string exceptionType` + `string firstFrame`, never `Exception`; call sites pass a sanitized exception-type string (`SanitizedExceptionRender.TypeName(ex)`, or `ex.GetType().Name` as `BaseHandler` does) — never the raw `Exception` or `ex.Message`. The contract is pinned by reflection-based tests (e.g. `HandlerLogDelegateContractTests` enumerates every `BaseHandlerLog` method and asserts none has a parameter assignable from `Exception`). Host-supplied outbound-auth modules may contribute additional `[LoggerMessage]` surfaces; public Telemetry does not require an auth runtime ProjectReference. The no-`Exception`-parameter rule binds every `[LoggerMessage]` surface regardless of which surfaces exist.
+**2. No `Exception` parameter in any `[LoggerMessage]` delegate; use `SanitizedExceptionRender` instead.**
+`SanitizedExceptionRender` (`packages/dotnet/utilities/Diagnostics/SanitizedExceptionRender.cs`) exposes `TypeName(ex)`
+(the exception type's `FullName`) and `FirstFrame(ex)` (`"{Method} at {File}:{Line}"`) - method names and source paths
+are developer-controlled, so both are safe to log. Every `[LoggerMessage]` declaration across every surface
+(`BaseHandlerLog`, host-supplied auth modules, RabbitMQ subscriber channels) accepts `string exceptionType` +
+`string firstFrame`, never `Exception`; call sites pass a sanitized exception-type string
+(`SanitizedExceptionRender.TypeName(ex)`, or `ex.GetType().Name` as `BaseHandler` does) - never the raw `Exception` or
+`ex.Message`. The contract is pinned by reflection-based tests (e.g. `HandlerLogDelegateContractTests` enumerates every
+`BaseHandlerLog` method and asserts none has a parameter assignable from `Exception`). Host-supplied outbound-auth
+modules may contribute additional `[LoggerMessage]` surfaces; public Telemetry does not require an auth runtime
+ProjectReference. The no-`Exception`-parameter rule applies to every `[LoggerMessage]` surface regardless of which surfaces
+exist.
 
-**3. Explicit LOG-OK allowlist + NOT-LOGGED suppression for `IRequestContext`, pinned by integration test.** `D2RequestContextEnricher` (`packages/dotnet/logging/Internal/D2RequestContextEnricher.cs`) projects exactly 42 named LOG-OK fields onto the Serilog diagnostic context (each null-gated; collection fields additionally `Truthy()`-gated). Seven fields are NEVER emitted regardless of population: `ClientIp` (raw IP is PII), `City`/`SubdivisionIso31662Code`/`PostalCode` (sub-country precision), `Latitude`/`Longitude`/`Geohash` (GPS-exact). Country grain (`CountryIso31661Alpha2Code`) is LOG-OK; sub-country precision is not (available to operators via an authenticated, auditable `WhoIsHashId` lookup instead). The NOT-LOGGED contract is pinned by an integration test that populates all seven suppressed fields in a full `TestHost` and asserts none appears in the rendered output; a positive test pins that all 42 LOG-OK fields appear when populated.
+**3. Explicit LOG-OK allowlist + NOT-LOGGED suppression for `IRequestContext`, pinned by integration test.**
+`D2RequestContextEnricher` (`packages/dotnet/logging/Internal/D2RequestContextEnricher.cs`) projects exactly the named
+LOG-OK fields listed in the remarks of its xmldoc onto the Serilog diagnostic context
+(each null-gated; collection fields additionally `Truthy()`-gated).
+These fields are never emitted regardless of population: `ClientIp` (raw IP is PII),
+`City`/`SubdivisionIso31662Code`/`PostalCode` (sub-country precision), `Latitude`/`Longitude`/`Geohash` (GPS-exact).
+Country grain (`CountryIso31661Alpha2Code`) is LOG-OK; sub-country precision is not (available to operators via an
+authenticated, auditable `WhoIsHashId` lookup instead). The NOT-LOGGED contract is pinned by an integration test that
+populates every suppressed field in a full `TestHost` and asserts none appears in the rendered output; a positive test
+pins that every LOG-OK field appears when populated.
 
-**4. Cross-language redaction intent is spec-driven from the same source.** On the TypeScript side, `sanitizedErrorRender` (`packages/typescript/logging/src/sanitized-error-render.ts`) mirrors `SanitizedExceptionRender` and never exposes `.message`; `@dcsv-io/d2-logging`'s `ILogger` forbids passing `Error` objects directly. For data-type redaction, the spec-driven codegen decision (ADR-0002) generates `<TypeName>RedactPaths` constants (e.g. `IRequestContextRedactPaths`) that consumers pass to `setupLogger` as Pino `redactPaths`. The source of truth for which context fields carry `redact: true` is the same spec that drives both the .NET codegen and the TS constant — so .NET's `[RedactData]` posture and TS's Pino redaction derive from the same annotation, not independent per-runtime curation.
+**4. Cross-language redaction intent is spec-driven from the same source.** On the TypeScript side,
+`sanitizedErrorRender` (`packages/typescript/logging/src/sanitized-error-render.ts`) mirrors `SanitizedExceptionRender`
+and never exposes `.message`; `@dcsv-io/d2-logging`'s `ILogger` does not accept `Error` objects directly. For data-type
+redaction, the spec-driven codegen decision (ADR-0002) generates `<TypeName>RedactPaths` constants (e.g.
+`IRequestContextRedactPaths`) that consumers pass to `setupLogger` as Pino `redactPaths`. The source of truth for which
+context fields carry `redact: true` is the same spec that drives both the .NET codegen and the TS constant - so .NET's
+`[RedactData]` posture and TS's Pino redaction derive from the same annotation, not independent per-runtime curation.
+
+`setupLogger` takes each path in Pino's redact syntax, written from the root of the logged object: `field` at the top
+level, `parent.child` through a nested object, and `parent[*].child` through every element of an array. A generated
+`<TypeName>RedactPaths` constant and a `markRedactedFields` registration feed one path set, which `setupLogger` passes
+to Pino with `remove: true`: each listed value is dropped from every record, and its unlisted siblings stay. A path
+has no redaction reason, because Pino's configuration takes paths alone.
 
 ## Consequences
 
 **Positive.**
 
 - PII redaction is enforced structurally at the type level: annotate a record once, and protection applies across every service, call site, and future caller for `@`-captured annotated types.
-- Exception-message leaks are blocked at the type-system boundary; reflection contract tests catch any future regression immediately, structurally preventing broker-credential and user-input leaks.
-- The LOG-OK / NOT-LOGGED split is reviewed once, pinned by integration tests; drift surfaces at CI.
+- Exception-message leaks are blocked at the type-system boundary; reflection contract tests catch a regression
+  immediately. This prevents broker-credential and user-input leaks structurally.
+- The LOG-OK / NOT-LOGGED split is reviewed once, pinned by integration tests; drift is detected in CI.
 - Cross-language alignment: .NET attribute redaction and TS `redactPaths` derive from the same spec annotation.
-- Reflection results are cached per type — no repeated reflection cost in production.
+- A path passed to `setupLogger` reaches a field inside a nested object or an array, not only a top-level field, and
+  leaves the unlisted siblings in the record.
+- Reflection results are cached per type - no repeated reflection cost in production.
 
 **Negative / risks.**
 
-- **Capture-mode footgun is not mechanically prevented**: `{User}` (no `@`) bypasses destructuring; a `[RedactData]` property whose type overrides `ToString()` to include it will leak. Enforced by review discipline, not the compiler.
-- **Field-only `[RedactData]` is silently ignored** (properties only) — no compile-time warning.
-- **`[RedactData]` cannot apply to proto-generated DTOs** — the compensating control is `DefaultOptions.LogInput/LogOutput=false` on the handler (per-handler opt-out rather than per-type opt-in).
-- **`IDiagnosticContext.Set` calls bypass destructuring** — callers adding structured fields via the request-logging extension own their own PII discipline.
-- **The NOT-LOGGED test is only as complete as its field enumeration** — a new PII `IRequestContext` field not added to the assertion list is not caught; mitigated by the spec-driven codegen review gate and PII audit discipline.
+- **A capture-mode mistake is not mechanically prevented**: `{User}` (no `@`) bypasses destructuring; a `[RedactData]`
+  property whose type overrides `ToString()` to include it will leak. Enforced by review discipline, not the compiler.
+- **Field-only `[RedactData]` is silently ignored** (properties only) - no compile-time warning.
+- **`[RedactData]` cannot apply to proto-generated DTOs** - the compensating control is
+  `DefaultOptions.LogInput/LogOutput=false` on the handler (per-handler opt-out rather than per-type opt-in).
+- **`IDiagnosticContext.Set` calls bypass destructuring** - callers adding structured fields via the request-logging
+  extension are responsible for the PII safety of those fields.
+- **A generated paths constant is opt-in per logger**: it does nothing until the host passes it to `setupLogger`, and a
+  host that logs an object without its paths logs every field of it.
+- **The NOT-LOGGED test is only as complete as its field enumeration** - a new PII `IRequestContext` field not added to
+  the assertion list is not caught; mitigated by the spec-driven codegen review gate and PII audit discipline.
 
 ## Alternatives considered
 
 **Manual per-call-site scrubbing.** Developers decide per `logger.Log*` call which fields to include. Does not scale across the team or future contributors, requires per-call-site rather than per-type correctness, and a single missed `{@ctx}` sends the full context to the sink. Rejected: one miss is a PII incident.
 
-**Log `ex.Message` and rely on log-pipeline scrubbing.** Regex secret-detection at ingest has a well-known false-negative profile (unusual AMQP URIs, non-standard credential encoding, novel user-input patterns) and does not help logs already exported. Credentials must be excluded before reaching the sink, not after.
+**Log `ex.Message` and rely on log-pipeline scrubbing.** Regex secret-detection at ingest can miss secrets (unusual AMQP
+URIs, non-standard credential encoding, novel user-input patterns) and does not help logs already exported. Credentials
+must be excluded before reaching the sink, not after.
 
 **Log all `IRequestContext` fields and suppress at query time.** The PII is still in the pipeline and at-rest in the index regardless of query-time filtering. Data-minimization requires PII not reach the index in the first place.
 
 ## References
 
 - `packages/dotnet/utilities/Attributes/RedactDataAttribute.cs`; `packages/dotnet/utilities/Diagnostics/SanitizedExceptionRender.cs`.
-- `packages/dotnet/logging/Destructuring/RedactDataDestructuringPolicy.cs` + `TypeRedactionInfo.cs`; `packages/dotnet/logging/Internal/D2RequestContextEnricher.cs`; `packages/dotnet/logging/README.md` (LOG-OK / NOT-LOGGED tables).
+- `packages/dotnet/logging/Destructuring/RedactDataDestructuringPolicy.cs` + `TypeRedactionInfo.cs`;
+  `packages/dotnet/logging/Internal/D2RequestContextEnricher.cs` (its xmldoc remarks list the LOG-OK fields and the
+  suppressed fields); `packages/dotnet/logging/README.md`.
 - `packages/dotnet/handler/core/BaseHandler.Logging.cs` (no-`Exception` delegates); `packages/dotnet/tests/Unit/Handler/HandlerLogDelegateContractTests.cs`; `packages/dotnet/tests/Integration/Logging/RequestContextEnricherIntegrationTests.cs`.
-- `packages/typescript/logging/src/sanitized-error-render.ts` + README.
-- [ADR-0002](0002-spec-driven-codegen.md) — `<TypeName>RedactPaths` constants are codegen'd from the same spec annotations. [ADR-0006](0006-abstractions-implementation-split.md) — the enricher depends only on the `IRequestContext` abstraction. [ADR-0010](0010-observability-dual-enrichment.md) — PII safety of the 42 LOG-OK fields is the prerequisite for always-on enrichment.
+- `packages/typescript/logging/src/sanitized-error-render.ts` + README;
+  `packages/typescript/logging/tests/setup-logger.test.ts` (a top-level, a nested and a collection path removed from
+  the serialized record).
+- [ADR-0002](0002-spec-driven-codegen.md) - `<TypeName>RedactPaths` constants are codegen'd from the same spec
+  annotations. [ADR-0006](0006-abstractions-implementation-split.md) - the enricher depends only on the
+  `IRequestContext` abstraction. [ADR-0010](0010-observability-dual-enrichment.md) - PII safety of the LOG-OK fields is
+  the prerequisite for always-on enrichment.

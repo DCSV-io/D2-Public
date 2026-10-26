@@ -9,14 +9,13 @@ namespace DcsvIo.D2.Caching.Distributed.Redis;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// <c>LoggerMessage</c> delegates for the Redis cache impl. Per
-/// PII safety: none of the delegates take
-/// <see cref="Exception"/> directly — <c>ex.Message</c> on a
-/// <c>RedisException</c> can carry connection-string fragments and
-/// command details that leak into log sinks. Callers compute
-/// <c>ex.GetType().Name</c> (and a non-PII operation context) before
-/// invoking the delegate; the exception's structured details stay out
-/// of the log scope.
+/// <c>LoggerMessage</c> delegates for the Redis cache implementation. For
+/// PII safety, no delegate takes an
+/// <see cref="Exception"/> directly - <c>ex.Message</c> on a
+/// <c>RedisException</c> can contain connection-string fragments and
+/// command details that leak into log sinks. Each delegate takes
+/// <c>ex.GetType().Name</c> (and a non-PII operation context) instead, so the
+/// exception's structured details stay out of the log scope.
 /// </summary>
 internal static partial class RedisCacheLog
 {

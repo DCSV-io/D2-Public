@@ -22,7 +22,7 @@ public interface IPhoneValidator
     /// Optional ISO 3166-1 alpha-2 country code used to interpret national-format input
     /// (e.g. <c>"2125551234"</c> with <c>defaultRegion = CountryCode.US</c> resolves
     /// to <c>"+12125551234"</c>). When <see langword="null"/>, the input must already
-    /// carry an explicit international dialing prefix.
+    /// include an explicit international dialing prefix.
     /// </param>
     /// <returns>
     /// <c>Ok</c> wrapping the E.164-normalized number (e.g. <c>"+12125551234"</c>) on success;

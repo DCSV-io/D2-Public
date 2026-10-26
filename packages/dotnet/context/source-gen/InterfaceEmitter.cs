@@ -12,10 +12,10 @@ using DcsvIo.D2.SourceGen;
 using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
-/// Pure logic for emitting a read-only interface (e.g. <c>IAuthContext</c>,
-/// <c>IRequestContext</c>) from a parsed <see cref="ContextSpec"/>. Sectioned
-/// via <c>#region</c> blocks; XML doc on every property; properties are
-/// declared <c>{ get; }</c> only (read-only contract).
+/// Pure logic for emitting a read-only interface (for example <c>IAuthContext</c>,
+/// <c>IRequestContext</c>) from a parsed <see cref="ContextSpec"/>. It groups
+/// properties into <c>#region</c> blocks, writes XML doc on every property and
+/// declares each property <c>{ get; }</c> only (read-only contract).
 /// </summary>
 internal static class InterfaceEmitter
 {
@@ -23,7 +23,7 @@ internal static class InterfaceEmitter
     /// Emits the interface source for <paramref name="spec"/>.
     /// </summary>
     /// <param name="spec">The parsed context spec.</param>
-    /// <returns>Generated source + diagnostics.</returns>
+    /// <returns>The generated source and the diagnostics.</returns>
     public static EmitResult Emit(ContextSpec spec)
     {
         var diagnostics = ImmutableArray.CreateBuilder<EmitDiagnostic>();
@@ -91,6 +91,16 @@ internal static class InterfaceEmitter
                         prop.Name,
                         prop.Derived!,
                         TypeVocabulary.ValidDerivedRulesForDiagnostics));
+                }
+
+                if (prop.ClaimForm.Truthy() &&
+                    !TypeVocabulary.ClaimFormAppliesTo(prop.ClaimForm!, prop.Type))
+                {
+                    diagnostics.Add(EmitDiagnostics.UnknownClaimForm(
+                        spec.Name,
+                        prop.Name,
+                        prop.ClaimForm!,
+                        TypeVocabulary.ValidClaimFormsForDiagnostics));
                 }
 
                 EmitProperty(sb, prop, indent: 1);

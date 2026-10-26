@@ -10,42 +10,47 @@ namespace DcsvIo.D2.ErrorCodes.Registry.SourceGen;
 /// String identifiers for the cross-catalog registry diagnostics. These
 /// extend the <c>D2ERC*</c> engine-diagnostic family established in
 /// <c>DcsvIo.D2.ErrorCodes.SourceGen.EngineDiagnosticIds</c>
-/// (<c>D2ERC001</c>–<c>D2ERC003</c>) with three registry-level checks:
+/// (<c>D2ERC001</c>-<c>D2ERC003</c>) with these registry-level checks:
 /// <list type="bullet">
 ///   <item>
-///     <c>D2ERC004</c> — the same error <c>code</c> string appears in two
+///     <c>D2ERC004</c> - the same error <c>code</c> string appears in two
 ///     different catalogs (cross-catalog collision). The registry must have a
 ///     unique key per code; a collision means both catalogs are wrong and the
 ///     build fails.
 ///   </item>
 ///   <item>
-///     <c>D2ERC005</c> — reserved-namespace violation: an unprefixed code
+///     <c>D2ERC005</c> - reserved-namespace violation: an unprefixed code
 ///     appears in a per-domain spec (only the generic catalog may own
-///     unprefixed codes), OR a prefixed code appears in the generic spec
+///     unprefixed codes), or a prefixed code appears in the generic spec
 ///     (per-domain prefixes are forbidden there). Either direction makes
 ///     the catalog ownership model ambiguous.
 ///   </item>
 ///   <item>
-///     <c>D2ERC006</c> — malformed or invalid registry spec: the spec file
+///     <c>D2ERC006</c> - malformed or invalid registry spec: the spec file
 ///     could not be parsed or is missing required fields. The build fails;
 ///     no registry is emitted.
 ///   </item>
 ///   <item>
-///     <c>D2ERC007</c> — a code's <c>category</c> wire string is not a member
+///     <c>D2ERC007</c> - a code's <c>category</c> wire string is not a member
 ///     of the closed <c>ErrorCategory</c> set defined in
 ///     <c>error-category.spec.json</c>. Without this check the generated file
 ///     would reference a non-existent enum member and fail to compile with an
 ///     opaque error. Build fails; no registry is emitted.
 ///   </item>
+///   <item>
+///     <c>D2ERC008</c> - an error-code catalog whose filename is in neither
+///     catalog identity map, so it has no declared owner, domain token or
+///     prefix. Build fails; no registry is emitted.
+///   </item>
 /// </list>
-/// Kept as plain string constants so pure-logic callers reference them
-/// without pulling <c>Microsoft.CodeAnalysis</c>.
+/// These are plain string constants, so referencing them does not require
+/// <c>Microsoft.CodeAnalysis</c>.
 /// </summary>
 internal static class RegistryDiagnosticIds
 {
     /// <summary>
-    /// Two catalogs declare the same error <c>code</c> string — cross-catalog
-    /// collision. Build fails; no registry is emitted.
+    /// Two catalogs declare the same error <c>code</c> string (a cross-catalog
+    /// collision). Build fails; no registry is emitted.
     /// </summary>
     public const string CrossCatalogDuplicateCode = "D2ERC004";
 
@@ -70,4 +75,11 @@ internal static class RegistryDiagnosticIds
     /// Build fails; no registry is emitted.
     /// </summary>
     public const string UnknownCategory = "D2ERC007";
+
+    /// <summary>
+    /// An error-code catalog's filename is in neither the built-in catalog
+    /// identity map nor the host-supplied one, so its owner, domain token and
+    /// prefix are undeclared. Build fails; no registry is emitted.
+    /// </summary>
+    public const string UnregisteredCatalog = "D2ERC008";
 }

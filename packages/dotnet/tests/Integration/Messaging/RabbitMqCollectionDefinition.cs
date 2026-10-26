@@ -10,7 +10,7 @@ using Xunit;
 
 /// <summary>
 /// xUnit collection definition pinning all RabbitMQ-dependent tests to a
-/// single <see cref="RabbitMqFixture"/> instance — one Testcontainers
+/// single <see cref="RabbitMqFixture"/> instance - one Testcontainers
 /// RabbitMQ broker shared across the collection.
 /// </summary>
 /// <remarks>

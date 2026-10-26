@@ -10,7 +10,7 @@ namespace DcsvIo.D2.Resilience.Timeout;
 /// Configuration for <see cref="Pipeline.TimeoutLayer{TKey, TValue}"/>. Use the
 /// parameterless ctor for the default 10-second timeout; use the parameterized ctor
 /// when you want to override the duration. <see cref="TimeSpan.Zero"/> or any value
-/// ≤ zero disables the timeout (pass-through — no <see cref="CancellationTokenSource"/>
+/// &lt;= zero disables the timeout (pass-through - no <see cref="CancellationTokenSource"/>
 /// is created, the operation's own deadline governs).
 /// </summary>
 /// <remarks>
@@ -21,8 +21,8 @@ namespace DcsvIo.D2.Resilience.Timeout;
 public sealed record TimeoutOptions
 {
     /// <summary>
-    /// Default wall-clock timeout. Internal — consumers either pass an override or
-    /// accept the default via the parameterless ctor.
+    /// Default wall-clock timeout. Internal; the parameterless ctor applies it,
+    /// and the parameterized ctor accepts an override.
     /// </summary>
     internal static readonly TimeSpan SR_DefaultDuration = TimeSpan.FromSeconds(10);
 
@@ -39,7 +39,7 @@ public sealed record TimeoutOptions
     /// Initializes a new <see cref="TimeoutOptions"/>. Passing <c>null</c> (or
     /// omitting the argument) yields the documented 10-second default. An explicit
     /// non-null value (even <see cref="TimeSpan.Zero"/> or a negative value) is
-    /// preserved as-is — zero/negative disables the timeout (pass-through).
+    /// preserved as-is - zero/negative disables the timeout (pass-through).
     /// </summary>
     /// <param name="duration">
     /// Override for <see cref="Duration"/>; <c>null</c> = default 10 seconds.
@@ -48,7 +48,7 @@ public sealed record TimeoutOptions
         => Duration = duration ?? SR_DefaultDuration;
 
     /// <summary>
-    /// Gets the wall-clock timeout. <see cref="TimeSpan.Zero"/> or any value ≤ zero
+    /// Gets the wall-clock timeout. <see cref="TimeSpan.Zero"/> or any value &lt;= zero
     /// disables the timeout (the layer becomes a pass-through). Default: 10 seconds.
     /// </summary>
     public TimeSpan Duration { get; init; }

@@ -1,9 +1,9 @@
 <!--
-Copyright (c) DCSV. All rights reserved.
+Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <!--
   Root Directory.Build.props for the standalone public OSS clone (D2-Public).
-  Installed by Export to public when flattening monorepo stage → public root.
+  Installed by the Release libraries export when flattening monorepo stage -> public root.
   Differs from monorepo root props: D2PublicRoot == repo root (no nested public/).
 -->
 <Project>

@@ -28,8 +28,8 @@ using Xunit;
 /// the column, leaving PII unerased.
 /// <para>
 /// Fix: <c>BuildOneSetterCall</c> now calls
-/// <c>ConvertValue(value, propertyClrType, efProperty)</c> — the same helper
-/// Tier-B uses — which applies the EF value-converter's
+/// <c>ConvertValue(value, propertyClrType, efProperty)</c> - the same helper
+/// Tier-B uses - which applies the EF value-converter's
 /// <c>ConvertFromProvider</c> to turn the raw tombstone string into an
 /// <c>EmailAddress</c> instance before creating the <c>Expression.Constant</c>.
 /// EF's <c>ExecuteUpdateAsync</c> then calls <c>ConvertToProvider</c> on the
@@ -70,10 +70,10 @@ public sealed class AnonymizationEngineTierAConverterRegressionTests : IAsyncLif
             nameof(AnonymizationEngineTierAConverterRegressionTests));
         r_schemaCtx = TierAConverterDbContext.Build(r_connectionString);
 
-        // Fresh isolated DB — EnsureCreatedAsync succeeds unconditionally.
-        // TierAConverterHosts is added via IF NOT EXISTS DDL as a belt-and-suspenders
-        // measure (TierAConverterDbContext only contains that one entity type, so
-        // EnsureCreated would create it anyway — but the explicit DDL is idempotent).
+        // Fresh isolated DB - EnsureCreatedAsync succeeds unconditionally.
+        // The IF NOT EXISTS statement below creates nothing: TierAConverterDbContext
+        // contains that one entity type, so EnsureCreatedAsync already created
+        // TierAConverterHosts.
         await r_schemaCtx.Database.EnsureCreatedAsync();
         await r_schemaCtx.Database.ExecuteSqlRawAsync(@"
             CREATE TABLE IF NOT EXISTS ""TierAConverterHosts"" (
@@ -92,6 +92,7 @@ public sealed class AnonymizationEngineTierAConverterRegressionTests : IAsyncLif
 
         await r_schemaCtx.DisposeAsync();
         AnonymizationTierClassifier.ClearCache();
+        await r_fixture.AssertNoConnectionOpenAsync(r_connectionString);
     }
 
     // =========================================================================
@@ -104,7 +105,7 @@ public sealed class AnonymizationEngineTierAConverterRegressionTests : IAsyncLif
     /// tombstone string was written. Without the fix, <c>BuildOneSetterCall</c>
     /// catches the <see cref="InvalidCastException"/> from <c>Convert.ChangeType</c> and
     /// calls <c>SetterCallResult.Skip()</c>, meaning the Email column is omitted from the
-    /// <c>ExecuteUpdateAsync</c> SET clause and the original value remains in the DB —
+    /// <c>ExecuteUpdateAsync</c> SET clause and the original value remains in the DB -
     /// the assertion <c>raw.Should().Be("deleted@deleted.user.dcsv.io")</c> would fail.
     /// </summary>
     [Fact]
@@ -130,7 +131,7 @@ public sealed class AnonymizationEngineTierAConverterRegressionTests : IAsyncLif
         var pre = await preCtx.TierAConverterHosts.FirstAsync(h => h.UserId == userId);
         pre.Email!.Value.Should().Be(seed_email, "seed must be present before erasure");
 
-        // Run the engine — the entity has NO Template rule → classified Tier-A.
+        // Run the engine - the entity has NO Template rule -> classified Tier-A.
         var engine = BuildEngine();
         var result = await engine.AnonymizeUserAsync(userId);
 
@@ -140,7 +141,7 @@ public sealed class AnonymizationEngineTierAConverterRegressionTests : IAsyncLif
         // Read back the raw DB column via SQL to bypass any CLR value-converter
         // re-hydration that might mask a failure where the store string was not updated.
         await using var rawCtx = TierAConverterDbContext.Build(r_connectionString);
-        string? raw = await rawCtx.Database
+        var raw = await rawCtx.Database
             .SqlQueryRaw<string>(
                 @"SELECT ""Email"" AS ""Value""
                   FROM ""TierAConverterHosts""
@@ -151,9 +152,9 @@ public sealed class AnonymizationEngineTierAConverterRegressionTests : IAsyncLif
         raw.Should().Be(
             expected_tombstone,
             "Tier-A ExecuteUpdate must have SET the Email column to the constant tombstone "
-            + "via ConvertValue — old Convert.ChangeType path would skip the column silently");
+            + "via ConvertValue - old Convert.ChangeType path would skip the column silently");
 
-        // Also verify IsAnonymized is set (belt-and-braces: engine set ALL columns).
+        // Also verify IsAnonymized is set and the Email reads back as the tombstone.
         await using var flagCtx = TierAConverterDbContext.Build(r_connectionString);
         var row = await flagCtx.TierAConverterHosts.FirstAsync(h => h.UserId == userId);
         row.IsAnonymized.Should().BeTrue();
@@ -173,16 +174,16 @@ public sealed class AnonymizationEngineTierAConverterRegressionTests : IAsyncLif
     }
 
     // =========================================================================
-    // TierAConverterDbContext — isolated context for the value-converted regression
+    // TierAConverterDbContext - isolated context for the value-converted regression
     // =========================================================================
 
     /// <summary>
     /// Minimal DbContext for the value-converted Constant tombstone regression.
-    /// Contains ONLY <see cref="TierAConverterHost"/> — a single entity with ONE
+    /// Contains ONLY <see cref="TierAConverterHost"/> - a single entity with ONE
     /// value-converted PII column (<c>EmailAddress?</c> stored as <c>string</c>)
     /// decorated with a <see cref="AnonymizeKind.Constant"/> tombstone and NO
     /// Template rule. The absence of any Template rule forces the engine to
-    /// classify it Tier-A and use <c>ExecuteUpdateAsync</c> — the exact path where
+    /// classify it Tier-A and use <c>ExecuteUpdateAsync</c> - the exact path where
     /// the old <c>Convert.ChangeType</c> code silently skipped the column.
     /// </summary>
     private sealed class TierAConverterDbContext : DbContext
@@ -214,11 +215,11 @@ public sealed class AnonymizationEngineTierAConverterRegressionTests : IAsyncLif
             {
                 e.HasKey(x => x.Id);
 
-                // Wire the EmailAddress ↔ string value converter explicitly.
+                // Wire the EmailAddress <-> string value converter explicitly.
                 // Write the Constant tombstone annotation directly (avoids the
                 // PropertyBuilder<T> where T:notnull constraint on the .Anonymize()
-                // extension when T is EmailAddress? — same approach as EmailMapping).
-                // Constant tombstone — forces Tier-A (no Template rule on this entity).
+                // extension when T is EmailAddress? - same approach as EmailMapping).
+                // Constant tombstone - forces Tier-A (no Template rule on this entity).
                 var emailProp = e.Property(x => x.Email);
                 emailProp
                  .HasConversion(
@@ -235,7 +236,7 @@ public sealed class AnonymizationEngineTierAConverterRegressionTests : IAsyncLif
 
         /// <summary>
         /// Minimal Tier-A entity: one value-converted <c>EmailAddress?</c> column
-        /// decorated with a Constant tombstone. No Template field — forces Tier-A.
+        /// decorated with a Constant tombstone. No Template field - forces Tier-A.
         /// </summary>
         internal sealed class TierAConverterHost : IUserOwned, IAnonymizationTrackable
         {

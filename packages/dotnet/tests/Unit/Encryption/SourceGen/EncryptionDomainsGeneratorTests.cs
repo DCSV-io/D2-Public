@@ -6,11 +6,13 @@
 
 namespace DcsvIo.D2.Tests.Unit.Encryption.SourceGen;
 
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using AwesomeAssertions;
 using DcsvIo.D2.EncryptionDomains.SourceGen;
+using DcsvIo.D2.Tests.Unit.SourceGen.Fixtures;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
@@ -18,7 +20,7 @@ using Xunit;
 
 /// <summary>
 /// IIncrementalGenerator integration tests for the EncryptionDomains SrcGen
-/// — drives <see cref="EncryptionDomainsGenerator"/> via a synthetic
+/// - drives <see cref="EncryptionDomainsGenerator"/> via a synthetic
 /// <see cref="CSharpGeneratorDriver"/> rather than the build pipeline.
 /// </summary>
 public sealed class EncryptionDomainsGeneratorTests
@@ -27,8 +29,8 @@ public sealed class EncryptionDomainsGeneratorTests
     {
       "domains": [
         {
-          "constName": "AUDIT",
-          "value": "audit",
+          "constName": "ORDERS",
+          "value": "orders",
           "doc": "doc"
         }
       ]
@@ -47,17 +49,17 @@ public sealed class EncryptionDomainsGeneratorTests
     {
       "domains": [
         {
-          "constName": "NOTIFICATIONS",
-          "value": "notifications",
+          "constName": "SHIPPING",
+          "value": "shipping",
           "mode": "sealed",
-          "consumerService": "d2-notifications",
+          "consumerService": "d2-shipping",
           "doc": "product"
         },
         {
-          "constName": "COURIER",
-          "value": "courier",
+          "constName": "INVENTORY",
+          "value": "inventory",
           "mode": "sealed",
-          "consumerService": "d2-courier",
+          "consumerService": "d2-inventory",
           "doc": "product"
         }
       ]
@@ -117,13 +119,13 @@ public sealed class EncryptionDomainsGeneratorTests
     [Fact]
     public void Generator_SealedDomainMissingConsumer_SurfacesConsumerDiagnostic()
     {
-        // Proves the generator's ResolveDescriptor switch maps the new
+        // Proves the generator's ResolveDescriptor switch maps the
         // mode/consumer diagnostic IDs to real Roslyn descriptors (a missing
         // switch arm would throw at generation time instead).
         const string sealedNoConsumer = """
         {
           "domains": [
-            { "constName": "AUDIT", "value": "audit", "mode": "sealed", "doc": "d" }
+            { "constName": "ORDERS", "value": "orders", "mode": "sealed", "doc": "d" }
           ]
         }
         """;
@@ -162,33 +164,39 @@ public sealed class EncryptionDomainsGeneratorTests
     }
 
     // ----------------------------------------------------------------------
-    // Dual-target / multi-spec merge (private Encryption.Extensions host)
+    // Extension target / multi-spec merge
     // ----------------------------------------------------------------------
 
     [Fact]
-    public void Generator_PrivateEncryptionExtensions_MultiSpec_EmitsProductEncryptionDomainsUnion()
+    public void Generator_ExtensionTarget_MultiSpec_EmitsPrefixedEncryptionDomainsUnion()
     {
         var driver = RunGenerator(
-            assemblyName: "DcsvIo.D2.Private.Encryption.Extensions",
+            assemblyName: "Fixture.Encryption.Host",
             specJson: null,
             multiSpecs:
             [
                 ("public/encryption-domains.spec.json", _PUBLIC_PLAINTEXT),
                 ("private/encryption-domains.spec.json", _PRIVATE_PRODUCT),
-            ]);
+            ],
+            buildProperties: new Dictionary<string, string>
+            {
+                ["D2EncryptionDomainsExtensionNamespace"] = "Example.Ext",
+                ["D2EncryptionDomainsExtensionClassPrefix"] = "Sample",
+            });
 
         var result = driver.GetRunResult();
         result.GeneratedTrees.Should().HaveCount(1);
         Path.GetFileName(result.GeneratedTrees.Single().FilePath)
-            .Should().Be("ProductEncryptionDomains.g.cs");
+            .Should().Be("SampleEncryptionDomains.g.cs");
 
         var src = result.GeneratedTrees.Single().ToString();
-        src.Should().Contain("namespace DcsvIo.D2.Private.Encryption;");
-        src.Should().Contain("public static class ProductEncryptionDomains");
+        src.Should().Contain("namespace Example.Ext;");
+        src.Should().Contain("public static class SampleEncryptionDomains");
         src.Should().Contain("PLAINTEXT");
-        src.Should().Contain("NOTIFICATIONS");
-        src.Should().Contain("COURIER");
-        src.Should().Contain("ProductEncryptionDomainMode");
+        src.Should().Contain("SHIPPING");
+        src.Should().Contain("INVENTORY");
+        src.Should().Contain("SampleEncryptionDomainMode");
+        src.Should().Contain("SampleEncryptionDomainModes");
         src.Should().NotContain("public static class EncryptionDomains");
     }
 
@@ -210,7 +218,8 @@ public sealed class EncryptionDomainsGeneratorTests
     private static GeneratorDriver RunGenerator(
         string assemblyName,
         string? specJson,
-        (string Path, string Content)[]? multiSpecs = null)
+        (string Path, string Content)[]? multiSpecs = null,
+        IReadOnlyDictionary<string, string>? buildProperties = null)
     {
         var compilation = CSharpCompilation.Create(
             assemblyName: assemblyName,
@@ -241,7 +250,9 @@ public sealed class EncryptionDomainsGeneratorTests
 
         var driver = CSharpGeneratorDriver.Create(
             generators: [generator],
-            additionalTexts: additionalTexts);
+            additionalTexts: additionalTexts,
+            optionsProvider: FixtureAnalyzerConfigOptionsProvider.FromBuildProperties(
+                buildProperties ?? new Dictionary<string, string>()));
 
         return driver.RunGenerators(compilation);
     }

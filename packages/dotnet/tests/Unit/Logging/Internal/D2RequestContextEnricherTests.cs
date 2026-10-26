@@ -6,6 +6,8 @@
 
 namespace DcsvIo.D2.Tests.Unit.Logging.Internal;
 
+using System;
+using System.Collections.Generic;
 using AwesomeAssertions;
 using DcsvIo.D2.Auth.Abstractions;
 using DcsvIo.D2.Context.Abstractions;
@@ -16,9 +18,9 @@ using Serilog;
 using Xunit;
 
 /// <summary>
-/// Unit tests for <see cref="D2RequestContextEnricher"/> — direct enricher
-/// invocation without a full Serilog pipeline. Pipeline-level coverage lives
-/// in <c>Integration.Logging.RequestContextEnricherIntegrationTests</c>.
+/// Unit tests for <see cref="D2RequestContextEnricher"/>. The tests call the
+/// enricher directly, without a full Serilog pipeline. The pipeline-level tests
+/// are in <c>Integration.Logging.RequestContextEnricherIntegrationTests</c>.
 /// </summary>
 public sealed class D2RequestContextEnricherTests
 {
@@ -190,14 +192,16 @@ public sealed class D2RequestContextEnricherTests
         // Auth/Token+Trust
         diag.Recorded.Should().ContainKey(nameof(IRequestContext.Audience))
             .WhoseValue.Should().BeSameAs(audience);
-        diag.Recorded.Should().ContainKey(nameof(IRequestContext.SessionId))
-            .WhoseValue.Should().Be(sessionId);
+        diag.Recorded.Should().NotContainKey(nameof(IRequestContext.SessionId));
+        diag.Recorded.Should().ContainKey(LogSafeIdentifiers.SESSION_ID_HASH)
+            .WhoseValue.Should().Be(LogSafeIdentifiers.SessionDigest(sessionId));
         diag.Recorded.Should().ContainKey(nameof(IRequestContext.TokenIssuedAt))
             .WhoseValue.Should().Be(iat);
         diag.Recorded.Should().ContainKey(nameof(IRequestContext.TokenExpiresAt))
             .WhoseValue.Should().Be(exp);
         diag.Recorded.Should().ContainKey(nameof(IRequestContext.ActorChain))
-            .WhoseValue.Should().BeSameAs(actorChain);
+            .WhoseValue.Should().BeOfType<List<LogSafeActorEntry>>()
+            .Which.Should().HaveSameCount(actorChain);
 
         // Auth/Org
         diag.Recorded.Should().ContainKey(nameof(IRequestContext.OrgId))
@@ -216,8 +220,9 @@ public sealed class D2RequestContextEnricherTests
             .WhoseValue.Should().Be(ImpersonationKind.Consent);
         diag.Recorded.Should().ContainKey(nameof(IRequestContext.ImpersonatedBy))
             .WhoseValue.Should().Be(impersonatedBy);
-        diag.Recorded.Should().ContainKey(nameof(IRequestContext.ImpersonationSessionId))
-            .WhoseValue.Should().Be(impersonationSessionId);
+        diag.Recorded.Should().NotContainKey(nameof(IRequestContext.ImpersonationSessionId));
+        diag.Recorded.Should().ContainKey(LogSafeIdentifiers.IMPERSONATION_SESSION_ID_HASH)
+            .WhoseValue.Should().Be(LogSafeIdentifiers.SessionDigest(impersonationSessionId));
         diag.Recorded.Should().ContainKey(nameof(IRequestContext.ImpersonatorOrgId))
             .WhoseValue.Should().Be(impersonatorOrgId);
         diag.Recorded.Should().ContainKey(nameof(IRequestContext.ImpersonatorOrgName))
@@ -314,16 +319,45 @@ public sealed class D2RequestContextEnricherTests
     }
 
     [Fact]
-    public void Enrich_ActorChainEmpty_ChainNotEmitted()
+    public void Enrich_NeverEmitsTheDeviceAndReachFields_EvenWhenPopulated()
     {
-        // ActorChain is non-nullable per spec; defaults to []. End-user-direct
-        // tokens have an empty chain and we don't want to pollute logs with
-        // "ActorChain":[] on every direct request.
+        // DeviceKey has [RedactData(PersonalInformation)] and is a device
+        // identifier that can correlate requests. AccessibleOrgIds is the
+        // caller's per-request authority set. DeviceConfidence and RootOrgId are
+        // neither PII nor secret, and the enricher's LOG-OK set does not include
+        // them. Adding one of them to that set makes this assertion fail.
         var stub = new StubRequestContext
         {
-            // Touch one field so the enricher emits SOMETHING (otherwise the
-            // partial-populated path emits zero items, which doesn't isolate
-            // the empty-collection-gate behavior).
+            DeviceKey = "device-key-fixture",
+            DeviceConfidence = "High",
+            RootOrgId = Guid.Parse("0192f3a4-5b6c-7d8e-9f01-234567890abc"),
+            AccessibleOrgIds = new HashSet<string>(StringComparer.Ordinal)
+            {
+                "0192f3a4-5b6c-7d8e-9f01-234567890abc",
+            },
+        };
+        var diag = new RecordingDiagnosticContext();
+        var http = BuildHttpContextWith(stub);
+
+        D2RequestContextEnricher.Enrich(diag, http);
+
+        diag.Recorded.Should().NotContainKey(nameof(IRequestContext.DeviceKey));
+        diag.Recorded.Should().NotContainKey(nameof(IRequestContext.DeviceConfidence));
+        diag.Recorded.Should().NotContainKey(nameof(IRequestContext.RootOrgId));
+        diag.Recorded.Should().NotContainKey(nameof(IRequestContext.AccessibleOrgIds));
+    }
+
+    [Fact]
+    public void Enrich_ActorChainEmpty_ChainNotEmitted()
+    {
+        // ActorChain is non-nullable per spec and defaults to []. Tokens for a
+        // direct end-user request have an empty chain, and the enricher does
+        // not write "ActorChain":[] to the log on every direct request.
+        var stub = new StubRequestContext
+        {
+            // Set one field so that the enricher emits at least one item.
+            // Otherwise it emits nothing, and the test would not isolate the
+            // empty-collection gate.
             CountryIso31661Alpha2Code = "US",
         };
         var diag = new RecordingDiagnosticContext();
@@ -337,13 +371,15 @@ public sealed class D2RequestContextEnricherTests
     [Fact]
     public void Enrich_ActorChainPopulated_DestructuredAsArray()
     {
+        var sessionId = Guid.Parse("00000000-0000-0000-0000-0000000000bb");
         var actorChain = new[]
         {
             new ActorEntry(ActorKind.Service, "edge", ClientId: "edge"),
             new ActorEntry(
                 ActorKind.Impersonation,
                 Subject: "00000000-0000-0000-0000-0000000000aa",
-                ImpersonationKind: ImpersonationKind.Consent),
+                ImpersonationKind: ImpersonationKind.Consent,
+                SessionId: sessionId),
         };
         var stub = new StubRequestContext { ActorChain = actorChain };
         var diag = new RecordingDiagnosticContext();
@@ -351,8 +387,16 @@ public sealed class D2RequestContextEnricherTests
 
         D2RequestContextEnricher.Enrich(diag, http);
 
-        diag.Recorded.Should().ContainKey(nameof(IRequestContext.ActorChain))
-            .WhoseValue.Should().BeSameAs(actorChain);
+        // The enricher emits the log-safe projection and not the source
+        // instances, because the source carries a raw session id on every
+        // impersonation entry.
+        var emitted = diag.Recorded.Should().ContainKey(nameof(IRequestContext.ActorChain))
+            .WhoseValue.Should().BeOfType<List<LogSafeActorEntry>>().Subject;
+
+        emitted.Should().HaveCount(2);
+        emitted[0].Subject.Should().Be("edge");
+        emitted[0].SessionIdHash.Should().BeNull();
+        emitted[1].SessionIdHash.Should().Be(LogSafeIdentifiers.SessionDigest(sessionId));
     }
 
     [Fact]
@@ -400,7 +444,7 @@ public sealed class D2RequestContextEnricherTests
     [Fact]
     public void Enrich_AudiencePopulated_DestructuredAsArray()
     {
-        var audience = new[] { "edge", "audit" };
+        var audience = new[] { "edge", "orders" };
         var stub = new StubRequestContext { Audience = audience };
         var diag = new RecordingDiagnosticContext();
         var http = BuildHttpContextWith(stub);
@@ -422,8 +466,8 @@ public sealed class D2RequestContextEnricherTests
     }
 
     /// <summary>
-    /// Recording <see cref="IDiagnosticContext"/> implementation — captures
-    /// every <c>Set</c> call so tests can introspect what the enricher
+    /// Recording <see cref="IDiagnosticContext"/> implementation that captures
+    /// every <c>Set</c> call, so that tests can inspect what the enricher
     /// emitted.
     /// </summary>
     private sealed class RecordingDiagnosticContext : IDiagnosticContext
@@ -442,15 +486,14 @@ public sealed class D2RequestContextEnricherTests
     }
 
     /// <summary>
-    /// Hand-rolled <see cref="IRequestContext"/> stub for unit-level enricher
-    /// coverage. Every property defaults to its type's default (null for
-    /// nullables) so each test sets only what it needs.
+    /// Hand-written <see cref="IRequestContext"/> stub for the enricher unit
+    /// tests. Every property defaults to the default of its type (null for
+    /// nullable types), so each test sets only what it needs.
     /// </summary>
     /// <remarks>
-    /// Property setters that no test exercises are marked unused by analyzers
-    /// — that's by design. The stub MUST cover the entire interface surface
-    /// so adding a new IRequestContext property surfaces as a fail-to-compile
-    /// here.
+    /// Analyzers mark property setters that no test uses as unused, and that is
+    /// expected. The stub must cover the whole interface, so a new
+    /// IRequestContext property makes this file fail to compile.
     /// </remarks>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "ReSharper",
@@ -482,6 +525,10 @@ public sealed class D2RequestContextEnricherTests
 
         public int? RiskScore { get; init; }
 
+        public string? DeviceKey { get; init; }
+
+        public string? DeviceConfidence { get; init; }
+
         // Infrastructure
         public string? EdgeNodeId { get; init; }
 
@@ -497,7 +544,7 @@ public sealed class D2RequestContextEnricherTests
 
         public string? FeatureFlagsCsv { get; init; }
 
-        // WhoIs — Admin Location
+        // WhoIs - Admin Location
         public string? WhoIsHashId { get; init; }
 
         public string? AdminLocationHashId { get; init; }
@@ -510,14 +557,14 @@ public sealed class D2RequestContextEnricherTests
 
         public string? PostalCode { get; init; }
 
-        // WhoIs — Coordinates
+        // WhoIs - Coordinates
         public double? Latitude { get; init; }
 
         public double? Longitude { get; init; }
 
         public string? Geohash { get; init; }
 
-        // WhoIs — Network Privacy
+        // WhoIs - Network Privacy
         public bool? IsVpn { get; init; }
 
         public bool? IsProxy { get; init; }
@@ -526,7 +573,7 @@ public sealed class D2RequestContextEnricherTests
 
         public bool? IsHosting { get; init; }
 
-        // WhoIs — ASN
+        // WhoIs - ASN
         public int? Asn { get; init; }
 
         public string? AsnName { get; init; }
@@ -540,7 +587,7 @@ public sealed class D2RequestContextEnricherTests
 
         public IReadOnlyList<CallPathEntry> CallPath { get; init; } = [];
 
-        // IAuthContext — Token + Trust
+        // IAuthContext - Token + Trust
         public bool? IsAuthenticated { get; init; }
 
         public IReadOnlyList<string> Audience { get; init; } = [];
@@ -557,7 +604,7 @@ public sealed class D2RequestContextEnricherTests
 
         public DateTimeOffset? LastStepUpAt { get; init; }
 
-        // IAuthContext — Identity
+        // IAuthContext - Identity
         public string? Subject { get; init; }
 
         public Guid? UserId { get; init; }
@@ -572,7 +619,7 @@ public sealed class D2RequestContextEnricherTests
 
         public bool? IsServiceIdentity { get; init; }
 
-        // IAuthContext — Organization
+        // IAuthContext - Organization
         public Guid? OrgId { get; init; }
 
         public string? OrgName { get; init; }
@@ -581,7 +628,12 @@ public sealed class D2RequestContextEnricherTests
 
         public Role? OrgRole { get; init; }
 
-        // IAuthContext — Impersonation
+        public Guid? RootOrgId { get; init; }
+
+        public IReadOnlySet<string> AccessibleOrgIds { get; init; } =
+            new HashSet<string>(StringComparer.Ordinal);
+
+        // IAuthContext - Impersonation
         public bool? IsImpersonating { get; init; }
 
         public ImpersonationKind? ImpersonationKind { get; init; }
@@ -598,7 +650,7 @@ public sealed class D2RequestContextEnricherTests
 
         public Role? ImpersonatorOrgRole { get; init; }
 
-        // IAuthContext — Scopes
+        // IAuthContext - Scopes
         public IReadOnlySet<string> Scopes { get; init; } = new HashSet<string>();
     }
 }

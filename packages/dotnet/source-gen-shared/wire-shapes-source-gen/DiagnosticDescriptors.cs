@@ -11,10 +11,9 @@ using Microsoft.CodeAnalysis;
 /// <summary>
 /// Roslyn <see cref="DiagnosticDescriptor"/> instances for the IDs
 /// declared in <see cref="DiagnosticIds"/>. Only loaded inside the Roslyn
-/// host (the generator's <see cref="WireShapesGenerator.Initialize"/>
-/// call site); pure-logic callers should use <see cref="DiagnosticIds"/>
-/// string constants directly to avoid pulling
-/// <c>Microsoft.CodeAnalysis</c> at runtime.
+/// host, through <see cref="WireShapesGenerator.Initialize"/>. Pure-logic
+/// code uses the <see cref="DiagnosticIds"/> string constants directly, so
+/// <c>Microsoft.CodeAnalysis</c> is not loaded at runtime.
 /// </summary>
 internal static class DiagnosticDescriptors
 {
@@ -52,7 +51,7 @@ internal static class DiagnosticDescriptors
         id: DiagnosticIds.InvalidConstName,
         title: "Invalid wire-shape property constName",
         messageFormat:
-            "Wire-shape property constName '{0}' is invalid — must match "
+            "Wire-shape property constName '{0}' is invalid - must match "
             + "UPPER_SNAKE_CASE pattern ^[A-Z][A-Z0-9_]*$",
         category: _CATEGORY,
         defaultSeverity: DiagnosticSeverity.Error,

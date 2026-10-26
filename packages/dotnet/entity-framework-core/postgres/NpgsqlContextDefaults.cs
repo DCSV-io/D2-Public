@@ -6,7 +6,6 @@
 
 namespace DcsvIo.D2.EntityFrameworkCore.Postgres;
 
-using DcsvIo.D2.Time.EfCore;
 using Microsoft.EntityFrameworkCore;
 
 /// <summary>
@@ -14,15 +13,15 @@ using Microsoft.EntityFrameworkCore;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Apply from both the runtime DI registration (<c>AddDbContext</c> lambda) AND the
-/// design-time <see cref="DesignTimeDbContextFactoryBase{TContext}"/> so the two
-/// paths can never drift.
+/// Apply from both the runtime DI registration (<c>AddDbContext</c> lambda) and the
+/// design-time <see cref="DesignTimeDbContextFactoryBase{TContext}"/>, so those
+/// paths cannot drift.
 /// </para>
 /// <para>
 /// <strong>No <c>EnableRetryOnFailure</c>.</strong> An execution strategy's silent
 /// reconnect drops a session advisory lock mid-critical-section, turning a hard
 /// multi-replica correctness guarantee into a silent data race. The deliberate
-/// absence of a retry strategy is a correctness decision, not an omission — services
+/// absence of a retry strategy is a correctness decision, not an omission - services
 /// that need advisory locks must handle transient failures at the application level
 /// (restart the host, skip the tick, etc.).
 /// </para>
@@ -34,7 +33,7 @@ public static class NpgsqlContextDefaults
         /// <summary>
         /// Applies the canonical D2 Npgsql settings: <c>UseNpgsql</c> with
         /// <c>AddD2NodaTime()</c>, <c>CommandTimeout</c>, and
-        /// <c>MigrationsAssembly</c>. No <c>EnableRetryOnFailure</c> — see
+        /// <c>MigrationsAssembly</c>. No <c>EnableRetryOnFailure</c> - see
         /// remarks on <see cref="NpgsqlContextDefaults"/>.
         /// </summary>
         /// <param name="connectionString">The Npgsql connection string.</param>
@@ -60,7 +59,7 @@ public static class NpgsqlContextDefaults
                     npgsql.CommandTimeout(commandTimeoutSeconds);
                     npgsql.MigrationsAssembly(migrationsAssemblyName);
 
-                    // EnableRetryOnFailure is intentionally ABSENT — see class remarks.
+                    // EnableRetryOnFailure is intentionally absent - see class remarks.
                 });
 
             return builder;

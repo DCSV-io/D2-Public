@@ -13,7 +13,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Channels;
 /// </summary>
 /// <remarks>
 /// AMQP channels are not thread-safe; one channel per concurrent publisher
-/// is required. Confirm-tracking state is per-channel too — sharing a single
+/// is required. Confirm-tracking state is per-channel too - sharing a single
 /// channel across many publishers means slow confirms back up the entire
 /// queue.
 /// </remarks>
@@ -21,24 +21,23 @@ public sealed class ChannelPoolOptions
 {
     /// <summary>
     /// Gets or sets the maximum channels held by the publisher pool.
-    /// Default 4 — handles ~1000-5000 publish/sec on a typical service.
-    /// Tune up for high-throughput publishers (audit collector, telemetry
-    /// sink) where confirms back up under sustained load.
+    /// The default is 4. Increase it for high-throughput publishers whose
+    /// confirms back up under sustained load.
     /// </summary>
     public int PublishPoolSize { get; set; } = 4;
 
     /// <summary>
     /// Gets or sets a value indicating whether channels created by the pool
-    /// have publisher confirms enabled. Default true — durability beats the
-    /// per-publish round-trip cost in our context.
+    /// have publisher confirms enabled. The default is true, which accepts
+    /// the per-publish round-trip cost of confirms for durability.
     /// </summary>
     public bool PublisherConfirmsEnabled { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the timeout the pool waits for a free channel when all
-    /// pool slots are leased. Default 30 seconds — well above any normal
-    /// confirm latency, but short enough that a stuck pool surfaces as a
-    /// loud failure rather than indefinite hang.
+    /// pool slots are leased. The default is 30 seconds, well above normal
+    /// confirm latency and short enough that a stuck pool fails with a
+    /// <see cref="TimeoutException"/> instead of hanging indefinitely.
     /// </summary>
     public TimeSpan AcquireTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
@@ -46,10 +45,10 @@ public sealed class ChannelPoolOptions
     /// Gets or sets the idle TTL for pooled channels. On
     /// <c>BoundedChannelPool.AcquireAsync</c>, channels that have been
     /// idle (not leased) longer than this are disposed and replaced with
-    /// a fresh one before being handed out. Default 5 minutes — bounded
-    /// connection state on the broker side (heartbeat / publisher-confirm
-    /// state machines age out cleanly without a slow leak under
-    /// low-traffic services).
+    /// a fresh one before being handed out. The default is 5 minutes, which
+    /// bounds the connection state held on the broker side: heartbeat and
+    /// publisher-confirm state ages out instead of leaking slowly in
+    /// low-traffic services.
     /// </summary>
     public TimeSpan IdleTtl { get; set; } = TimeSpan.FromMinutes(5);
 }

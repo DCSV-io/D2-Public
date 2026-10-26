@@ -41,6 +41,9 @@ DcsvIo.D2.DataGovernance.Abstractions.IOrgOwned
 DcsvIo.D2.DataGovernance.Abstractions.IOrgOwned.OrgId.get -> System.Guid?
 DcsvIo.D2.DataGovernance.Abstractions.IUserOwned
 DcsvIo.D2.DataGovernance.Abstractions.IUserOwned.UserId.get -> System.Guid?
+DcsvIo.D2.DataGovernance.Abstractions.KeepOnAnonymizationAttribute
+DcsvIo.D2.DataGovernance.Abstractions.KeepOnAnonymizationAttribute.KeepOnAnonymizationAttribute(string! reason) -> void
+DcsvIo.D2.DataGovernance.Abstractions.KeepOnAnonymizationAttribute.Reason.get -> string!
 override DcsvIo.D2.DataGovernance.Abstractions.AnonymizationOutcome.Equals(object? obj) -> bool
 override DcsvIo.D2.DataGovernance.Abstractions.AnonymizationOutcome.GetHashCode() -> int
 override DcsvIo.D2.DataGovernance.Abstractions.AnonymizationOutcome.ToString() -> string!

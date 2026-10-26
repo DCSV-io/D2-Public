@@ -10,9 +10,8 @@ using System.Linq;
 
 /// <summary>
 /// Aggregates every <see cref="SealedEncryptionRegistration"/> into a single
-/// queryable registry, resolved by <see cref="SealedEncryptionStartupCheck"/>.
-/// Sealed sibling of <see cref="EncryptionRegistry"/>. Deliberately
-/// <c>internal</c> (minimal surface — see
+/// queryable registry. Sealed sibling of <see cref="EncryptionRegistry"/>. Deliberately
+/// <c>internal</c> (minimal surface - see
 /// <see cref="SealedEncryptionRegistration"/>).
 /// </summary>
 internal sealed class SealedEncryptionRegistry

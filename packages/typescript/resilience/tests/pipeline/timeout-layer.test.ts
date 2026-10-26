@@ -48,10 +48,10 @@ function layerWith(durationMs: number): TimeoutLayer {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("TimeoutLayer — construction", () => {
+describe("TimeoutLayer - construction", () => {
   it("uses TIMEOUT_DEFAULTS when no opts supplied", () => {
-    // Internal opts not directly inspectable; verify defaults via behavior:
-    // just ensure the layer is created without error.
+    // The internal options are not directly inspectable, so this test only
+    // checks that the layer is created without error.
     expect(() => new TimeoutLayer(new TerminalLayer())).not.toThrow();
   });
 
@@ -60,18 +60,18 @@ describe("TimeoutLayer — construction", () => {
   });
 });
 
-describe("TimeoutLayer — disabled (pass-through)", () => {
-  it("durationMs = 0 → pass-through, op runs and resolves", async () => {
+describe("TimeoutLayer - disabled (pass-through)", () => {
+  it("durationMs = 0 -> pass-through, op runs and resolves", async () => {
     const layer = layerWith(0);
     expect(await layer.execute("k", async () => 42)).toBe(42);
   });
 
-  it("durationMs < 0 → pass-through, op runs and resolves", async () => {
+  it("durationMs < 0 -> pass-through, op runs and resolves", async () => {
     const layer = layerWith(-1);
     expect(await layer.execute("k", async () => "ok")).toBe("ok");
   });
 
-  it("durationMs = 0 → pass-through, op error propagates normally", async () => {
+  it("durationMs = 0 -> pass-through, op error propagates normally", async () => {
     const layer = layerWith(0);
     await expect(
       layer.execute("k", async () => Promise.reject(new Error("inner"))),
@@ -79,14 +79,14 @@ describe("TimeoutLayer — disabled (pass-through)", () => {
   });
 });
 
-describe("TimeoutLayer — op completes before deadline", () => {
-  it("op resolves before deadline → returns value, no TimeoutError", async () => {
+describe("TimeoutLayer - op completes before deadline", () => {
+  it("op resolves before deadline -> returns value, no TimeoutError", async () => {
     const layer = layerWith(5_000);
     // Op resolves before the 5-second deadline.
     expect(await layer.execute("k", async () => 99)).toBe(99);
   });
 
-  it("op rejects before deadline → propagates error (not TimeoutError)", async () => {
+  it("op rejects before deadline -> propagates error (not TimeoutError)", async () => {
     const layer = layerWith(5_000);
     await expect(
       layer.execute("k", async () => {
@@ -101,14 +101,14 @@ describe("TimeoutLayer — op completes before deadline", () => {
   });
 });
 
-describe("TimeoutLayer — timeout fires", () => {
+describe("TimeoutLayer - timeout fires", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it("op hangs past deadline → throws TimeoutError (not a generic Error)", async () => {
+  it("op hangs past deadline -> throws TimeoutError (not a generic Error)", async () => {
     const d = deferred<number>();
     const layer = layerWith(100);
-    // Attach a no-op catch BEFORE advancing timers so Node.js sees the
+    // Attach a no-op catch before advancing timers so Node.js sees the
     // rejection handler registered synchronously (prevents PromiseRejectionHandledWarning).
     const p = layer.execute("k", () => d.promise);
     const caught = p.catch((e) => e);
@@ -138,10 +138,10 @@ describe("TimeoutLayer — timeout fires", () => {
   });
 });
 
-describe("TimeoutLayer — caller-abort is NOT masked as TimeoutError", () => {
-  it("caller aborts before timeout → throws AbortError (not TimeoutError)", async () => {
+describe("TimeoutLayer - caller-abort is NOT masked as TimeoutError", () => {
+  it("caller aborts before timeout -> throws AbortError (not TimeoutError)", async () => {
     // Simulate a caller abort by having the inner op throw an AbortError.
-    // The TimeoutLayer must propagate it as-is — not swallow it as TimeoutError.
+    // The TimeoutLayer must propagate it as-is - not swallow it as TimeoutError.
     const layer = layerWith(10_000);
     const abortErr = Object.assign(new Error("aborted"), {
       name: "AbortError",
@@ -160,7 +160,7 @@ describe("TimeoutLayer — caller-abort is NOT masked as TimeoutError", () => {
   });
 });
 
-describe("TimeoutLayer — key forwarded to inner", () => {
+describe("TimeoutLayer - key forwarded to inner", () => {
   it("passes the key through to the inner layer", async () => {
     const seen: string[] = [];
     const recordKey: IResilientLayer = {
@@ -179,7 +179,7 @@ describe("TimeoutLayer — key forwarded to inner", () => {
   });
 });
 
-describe("TimeoutLayer — TimeoutError properties", () => {
+describe("TimeoutLayer - TimeoutError properties", () => {
   it("TimeoutError is an instance of Error", () => {
     expect(new TimeoutError()).toBeInstanceOf(Error);
   });

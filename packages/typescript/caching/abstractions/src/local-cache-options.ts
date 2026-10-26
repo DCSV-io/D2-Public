@@ -7,17 +7,17 @@
  * Defaults are tuned for typical microservice workloads (100K entries,
  * 1-hour default TTL).
  *
- * Per-entry size accounting is intentionally NOT exposed — the default
- * implementation always counts entries as size 1 so `maxEntries`
- * behaves as the literal entry-count cap most callers expect.
+ * Per-entry size accounting is intentionally not exposed: the default
+ * implementation always counts entries as size 1, so `maxEntries`
+ * behaves as a literal entry-count cap.
  *
- * No options validation on this POCO (mirrors .NET — no range check /
+ * No options validation on this POCO (mirrors .NET: no range check and no
  * ValidateOnStart). The factory does not fail on absurd values;
- * enforcement belongs in the local-default implementation.
+ * the local-default implementation is responsible for enforcement.
  */
 export interface LocalCacheOptions {
   /**
-   * Maximum number of entries before LRU-ish eviction kicks in.
+   * Maximum number of entries before approximately-LRU eviction starts.
    * Default 100_000.
    */
   maxEntries: number;

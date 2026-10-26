@@ -10,16 +10,16 @@ using Serilog.Events;
 
 /// <summary>
 /// Configuration for <see cref="LoggingServiceCollectionExtensions.AddD2Logging"/>.
-/// Use the parameterless ctor for all defaults; use the parameterized ctor
-/// (with positional or named args) when you want to override one or more
-/// values without the noise of an object initializer. The <c>with</c>-expression
-/// also works for record-style selective overrides.
+/// The parameterless ctor gives all defaults; the parameterized ctor (with
+/// positional or named args) overrides one or more values without an object
+/// initializer. The <c>with</c>-expression also works for record-style
+/// selective overrides.
 /// </summary>
 /// <remarks>
 /// <para>
-/// All properties have computed defaults — no required fields. Validation
+/// All properties have computed defaults - no required fields. Validation
 /// runs at the first <c>IOptions&lt;D2LoggingOptions&gt;.Value</c> resolution
-/// (typically host-startup composition) via <c>ValidateOnStart()</c> —
+/// (typically host-startup composition) via <c>ValidateOnStart()</c> -
 /// fail-fast on invalid config.
 /// </para>
 /// <para>
@@ -33,17 +33,17 @@ using Serilog.Events;
 public sealed record D2LoggingOptions
 {
     /// <summary>
-    /// Default minimum log level. Internal because consumers don't need to
-    /// reference this — they either pass an override or accept the default
-    /// via the parameterless ctor.
+    /// Default minimum log level. Internal because nothing outside this
+    /// assembly needs to reference it - the parameterless ctor applies it
+    /// unless an override is supplied.
     /// </summary>
     internal const LogEventLevel DEFAULT_MINIMUM_LEVEL = LogEventLevel.Information;
 
     /// <summary>
     /// Default infrastructure-path prefixes excluded from request-completion
     /// log emission at <see cref="LogEventLevel.Information"/> (logged at
-    /// <see cref="LogEventLevel.Verbose"/> instead so they're filtered out by
-    /// the default minimum-level gate). Internal — see
+    /// <see cref="LogEventLevel.Verbose"/> instead, so the default
+    /// minimum-level gate filters them out). Internal - see
     /// <see cref="DEFAULT_MINIMUM_LEVEL"/>.
     /// </summary>
     internal static readonly IReadOnlyList<string> SR_DefaultInfrastructurePaths =
@@ -133,7 +133,7 @@ public sealed record D2LoggingOptions
 
     /// <summary>
     /// Gets the path prefixes treated as infrastructure endpoints by
-    /// <see cref="WebApplicationLoggingExtensions.UseD2RequestLogging"/> —
+    /// <see cref="WebApplicationLoggingExtensions.UseD2RequestLogging"/> -
     /// requests whose <c>HttpContext.Request.Path</c> starts with any of
     /// these segments are logged at <see cref="LogEventLevel.Verbose"/>
     /// instead of <see cref="LogEventLevel.Information"/>, so the default

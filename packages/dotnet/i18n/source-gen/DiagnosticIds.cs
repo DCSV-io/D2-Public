@@ -8,11 +8,10 @@ namespace DcsvIo.D2.I18n.SourceGen;
 
 /// <summary>
 /// String identifiers for the diagnostics emitted by <see cref="TKGenerator"/>.
-/// Kept in a separate class from <see cref="DiagnosticDescriptors"/> so
-/// non-Roslyn-host consumers (e.g. unit tests of the pure-logic
-/// <see cref="TKEmitter"/>) can reference the IDs without dragging in
-/// <c>Microsoft.CodeAnalysis</c> (which the SrcGen csproj marks
-/// <c>PrivateAssets="all"</c>).
+/// This class is separate from <see cref="DiagnosticDescriptors"/> so that code
+/// running outside the Roslyn host, such as <see cref="TKEmitter"/>, can
+/// reference the IDs without referencing <c>Microsoft.CodeAnalysis</c> (which
+/// the SrcGen csproj marks <c>PrivateAssets="all"</c>).
 /// </summary>
 internal static class DiagnosticIds
 {
@@ -33,4 +32,22 @@ internal static class DiagnosticIds
 
     /// <summary>JSON catalog file cannot be parsed.</summary>
     public const string MalformedJsonCatalog = "D2I18N006";
+
+    /// <summary>
+    /// The <c>D2TkExtensionNamespace</c> property is not a dot-separated
+    /// sequence of C# identifiers.
+    /// </summary>
+    public const string InvalidExtensionNamespace = "D2I18N007";
+
+    /// <summary>
+    /// The <c>D2TkExtensionNamespace</c> property is set and the
+    /// <c>D2TkExtensionClassPrefix</c> property is absent or not a C# identifier.
+    /// </summary>
+    public const string InvalidExtensionClassPrefix = "D2I18N008";
+
+    /// <summary>
+    /// The <c>D2TkExtensionClassPrefix</c> property is set and the
+    /// <c>D2TkExtensionNamespace</c> property is not.
+    /// </summary>
+    public const string ExtensionClassPrefixWithoutNamespace = "D2I18N009";
 }

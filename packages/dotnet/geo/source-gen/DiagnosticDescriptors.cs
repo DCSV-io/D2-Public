@@ -10,10 +10,10 @@ using Microsoft.CodeAnalysis;
 
 /// <summary>
 /// Roslyn <see cref="DiagnosticDescriptor"/> instances for the IDs declared
-/// in <see cref="DiagnosticIds"/>. Only loaded inside the Roslyn host (the
-/// generator's <see cref="GeoGenerator.Initialize"/> call site); pure-logic
-/// callers should use <see cref="DiagnosticIds"/> string constants directly
-/// to avoid pulling <c>Microsoft.CodeAnalysis</c> at runtime.
+/// in <see cref="DiagnosticIds"/>. This class loads only inside the Roslyn
+/// host, where <see cref="GeoGenerator.Initialize"/> runs. Code that needs
+/// only the ID strings uses the <see cref="DiagnosticIds"/> constants, which
+/// do not load <c>Microsoft.CodeAnalysis</c> at runtime.
 /// </summary>
 internal static class DiagnosticDescriptors
 {
@@ -27,6 +27,11 @@ internal static class DiagnosticDescriptors
         isEnabledByDefault: true);
 
     /// <inheritdoc cref="DiagnosticIds.UnknownFk"/>
+    /// <remarks>
+    /// The default severity is <see cref="DiagnosticSeverity.Info"/>. The
+    /// emitter writes <c>null</c> or leaves out the reference and continues,
+    /// so the build does not fail.
+    /// </remarks>
     public static readonly DiagnosticDescriptor UnknownFk = new(
         id: DiagnosticIds.UnknownFk,
         title: "Unknown foreign-key reference in geo spec",
@@ -34,21 +39,15 @@ internal static class DiagnosticDescriptors
             "Geo spec field '{0}' on entity '{1}' references unknown code '{2}' "
             + "(no matching entry in target catalog)",
         category: _CATEGORY,
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    /// <inheritdoc cref="DiagnosticIds.FkAmbiguity"/>
-    public static readonly DiagnosticDescriptor FkAmbiguity = new(
-        id: DiagnosticIds.FkAmbiguity,
-        title: "FK detection ambiguity in geo spec",
-        messageFormat:
-            "Geo spec field '{0}' does not match the FK naming convention and has no "
-            + "'fkTo' annotation; cannot classify",
-        category: _CATEGORY,
-        defaultSeverity: DiagnosticSeverity.Error,
+        defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true);
 
     /// <inheritdoc cref="DiagnosticIds.InvalidIdentifier"/>
+    /// <remarks>
+    /// The default severity is <see cref="DiagnosticSeverity.Info"/>. The
+    /// emitter skips the member for that code and continues, so the build
+    /// does not fail.
+    /// </remarks>
     public static readonly DiagnosticDescriptor InvalidIdentifier = new(
         id: DiagnosticIds.InvalidIdentifier,
         title: "Geo code cannot form a valid C# identifier",
@@ -56,18 +55,7 @@ internal static class DiagnosticDescriptors
             "Geo code '{0}' cannot be sanitized into a valid C# identifier; "
             + "emission target '{1}' skipped",
         category: _CATEGORY,
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    /// <inheritdoc cref="DiagnosticIds.VocabularyViolation"/>
-    public static readonly DiagnosticDescriptor VocabularyViolation = new(
-        id: DiagnosticIds.VocabularyViolation,
-        title: "Geo subdivision vocabulary discipline violation",
-        messageFormat:
-            "Geo spec '{0}' uses forbidden identifier '{1}' for the ISO 3166-2 concept; "
-            + "use 'subdivision' (display strings on Subdivision.Type are exempt)",
-        category: _CATEGORY,
-        defaultSeverity: DiagnosticSeverity.Error,
+        defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true);
 
     /// <inheritdoc cref="DiagnosticIds.MissingCatalogMetadata"/>
@@ -92,47 +80,24 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    /// <inheritdoc cref="DiagnosticIds.LocaleMessageMismatch"/>
-    public static readonly DiagnosticDescriptor LocaleMessageMismatch = new(
-        id: DiagnosticIds.LocaleMessageMismatch,
-        title: "Selectable-locale spec does not match Paraglide messages files",
-        messageFormat:
-            "Selectable-locale tag '{0}' has no corresponding contracts/messages/{0}.json file "
-            + "(or vice versa)",
-        category: _CATEGORY,
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    /// <inheritdoc cref="DiagnosticIds.StructuralParityMismatch"/>
-    public static readonly DiagnosticDescriptor StructuralParityMismatch = new(
-        id: DiagnosticIds.StructuralParityMismatch,
-        title: "Geo emitter structural parity mismatch",
-        messageFormat:
-            "Geo spec '{0}' field '{1}' has no matching property on emitted record '{2}'",
-        category: _CATEGORY,
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
     /// <inheritdoc cref="DiagnosticIds.DuplicateNormalizedName"/>
     /// <remarks>
     /// <para>
-    /// Default severity is <see cref="DiagnosticSeverity.Error"/>; the
-    /// diagnostic is <b>disabled by default</b> because the 2026-05-23
-    /// Tier-2 catalog ships with 11 baseline subdivision-name collisions
-    /// that pre-date this check (Spain ES-NA / ES-NC "Navarra" doublet,
-    /// Indonesia ID-PA / ID-PP "Papua" post-split doublet, Malta MT-45 /
-    /// MT-46 "Rabat" doublet, Guinea GN single-letter vs two-letter doublets,
-    /// etc.). The infrastructure is in place; flip
-    /// <c>isEnabledByDefault</c> to <c>true</c> once the catalog cleanup +
-    /// overlay canonicalization land. Consumers MAY opt in early via
-    /// <c>.editorconfig</c>:
+    /// The default severity is <see cref="DiagnosticSeverity.Error"/>, and the
+    /// diagnostic is <b>disabled by default</b>. The 2026-05-23 Tier-2 catalog
+    /// contains subdivision-name collisions that pre-date this check, such as
+    /// the Spain ES-NA / ES-NC "Navarra" pair, the Indonesia ID-PA / ID-PP
+    /// "Papua" pair after the province split, the Malta MT-45 / MT-46 "Rabat"
+    /// pair, and the Guinea GN single-letter and two-letter pairs. Set
+    /// <c>isEnabledByDefault</c> to <c>true</c> after the catalog cleanup and
+    /// the overlay canonicalization remove them. Consumers MAY opt in earlier
+    /// through <c>.editorconfig</c>:
     /// <code>dotnet_diagnostic.D2GEO010.severity = error</code>
     /// </para>
     /// <para>
-    /// The name-resolver impl MUST treat any unresolved-by-construction
-    /// collision as fail-closed (NotFound) regardless of this build-time
-    /// gate's enabled state — silent first-wins picks are explicitly
-    /// disallowed.
+    /// The name resolver MUST treat any collision the build cannot resolve as
+    /// fail-closed (NotFound), whether or not this build-time check is
+    /// enabled. It never silently picks the first match.
     /// </para>
     /// </remarks>
     public static readonly DiagnosticDescriptor DuplicateNormalizedName = new(
@@ -140,7 +105,7 @@ internal static class DiagnosticDescriptors
         title: "Geo catalog has duplicate normalized name",
         messageFormat:
             "Geo spec '{0}' has two or more entities sharing normalized name '{1}': "
-            + "{2}. Name-resolver would have to silently pick one — fail-closed "
+            + "{2}. Name-resolver would have to silently pick one - fail-closed "
             + "by design.",
         category: _CATEGORY,
         defaultSeverity: DiagnosticSeverity.Error,

@@ -11,7 +11,7 @@ import {
   Role,
 } from "../src/index.js";
 
-describe("@dcsv-io/d2-auth-context-abstractions — emitted shape pin", () => {
+describe("@dcsv-io/d2-auth-context-abstractions - emitted shape pin", () => {
   it("OrgType members match spec vocabulary", () => {
     expect(OrgType.Admin).toBe("Admin");
     expect(OrgType.Support).toBe("Support");
@@ -38,10 +38,10 @@ describe("@dcsv-io/d2-auth-context-abstractions — emitted shape pin", () => {
   });
 
   it("IAuthContextRedactPaths excludes observability correlation identifiers", () => {
-    // userId + username are standard observability correlation fields
+    // userId and username are standard observability correlation fields
     // (logs / traces / spans key on them). They are the surrogate
-    // identifiers themselves — NOT personal data that references the user
-    // (email / phone / IP / address) — so they must NOT be redacted from
+    // identifiers themselves - not personal data that references the user
+    // (email / phone / IP / address) - so they must not be redacted from
     // logs. Spec markers `redact: true` are reserved for PII fields that
     // reference the user, not the user's correlation key.
     expect(IAuthContextRedactPaths).not.toContain("userId");

@@ -120,7 +120,7 @@ public sealed class ProblemDetailsTests
 
         var body = await response.Content.ReadAsStringAsync();
 
-        // Plan §3.7 / Plan PII discipline regression: response body must
+        // PII discipline regression: response body must
         // not include the exception message text.
         body.Should().NotContain("Synthetic test failure (do not log).");
     }
@@ -159,7 +159,7 @@ public sealed class ProblemDetailsTests
 
     /// <summary>
     /// Exception handler that triggers ASP.NET Core's IProblemDetailsService
-    /// pipeline (which the D² customizer plugs into) for all exceptions.
+    /// pipeline (which the D2 customizer plugs into) for all exceptions.
     /// </summary>
     private sealed class ThrowingExceptionHandler : IExceptionHandler
     {

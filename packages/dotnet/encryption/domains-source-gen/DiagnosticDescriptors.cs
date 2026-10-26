@@ -66,7 +66,7 @@ internal static class DiagnosticDescriptors
         id: DiagnosticIds.InvalidMode,
         title: "Encryption-domain mode is invalid",
         messageFormat:
-            "Encryption-domain '{0}' has invalid mode '{1}' — "
+            "Encryption-domain '{0}' has invalid mode '{1}' - "
                 + "must be 'symmetric' or 'sealed'",
         category: _CATEGORY,
         defaultSeverity: DiagnosticSeverity.Error,
@@ -89,7 +89,7 @@ internal static class DiagnosticDescriptors
         title: "Non-sealed encryption-domain declares a consumerService",
         messageFormat:
             "Encryption-domain '{0}' declares consumerService '{1}' but is not "
-                + "sealed — consumerService is meaningful only for sealed domains",
+                + "sealed - consumerService is meaningful only for sealed domains",
         category: _CATEGORY,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -103,6 +103,39 @@ internal static class DiagnosticDescriptors
                 + "workload grammar ^[a-z0-9-]{{1,64}}$",
         category: _CATEGORY,
         defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    /// <inheritdoc cref="DiagnosticIds.InvalidExtensionNamespace"/>
+    public static readonly DiagnosticDescriptor SR_InvalidExtensionNamespace = new(
+        id: DiagnosticIds.InvalidExtensionNamespace,
+        title: "Extension namespace property is not a valid namespace",
+        messageFormat:
+            "MSBuild property '{0}' is '{1}', which is not a dot-separated sequence of C# "
+            + "identifiers; no extension output is generated",
+        category: _CATEGORY,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    /// <inheritdoc cref="DiagnosticIds.InvalidExtensionClassPrefix"/>
+    public static readonly DiagnosticDescriptor SR_InvalidExtensionClassPrefix = new(
+        id: DiagnosticIds.InvalidExtensionClassPrefix,
+        title: "Extension class prefix property is missing or invalid",
+        messageFormat:
+            "MSBuild property '{0}' is '{1}', which is not a C# identifier; it must be one "
+            + "when '{2}' is set, and no extension output is generated",
+        category: _CATEGORY,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    /// <inheritdoc cref="DiagnosticIds.ExtensionClassPrefixWithoutNamespace"/>
+    public static readonly DiagnosticDescriptor SR_ExtensionClassPrefixWithoutNamespace = new(
+        id: DiagnosticIds.ExtensionClassPrefixWithoutNamespace,
+        title: "Extension class prefix property is set without a namespace",
+        messageFormat:
+            "MSBuild property '{0}' is '{1}' but '{2}' is not set; no extension output is "
+            + "generated",
+        category: _CATEGORY,
+        defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
     private const string _CATEGORY = "DcsvIo.D2.EncryptionDomains.SourceGen";

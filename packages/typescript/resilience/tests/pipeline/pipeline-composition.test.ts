@@ -2,13 +2,13 @@
 // Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 // -----------------------------------------------------------------------
 //
-// Adversarial composition tests proving layer order-of-operations across the
-// full pipeline — each test makes a non-vacuous assertion that the observable
-// outcome CHANGES depending on layer order, proving the layers nest correctly.
+// Adversarial composition tests of the order in which layers run across the
+// full pipeline. Each test asserts that the observable outcome changes with the
+// layer order, which shows that the layers nest correctly.
 // Mirrors the C# `PipelineCompositionTests`.
 //
-// All proofs use deterministic handshakes (deferred promises / call counters)
-// — no real `setTimeout` races.
+// All tests use deterministic handshakes (deferred promises and call counters),
+// with no real `setTimeout` races.
 // -----------------------------------------------------------------------
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -44,7 +44,7 @@ function deferred<T>(): {
 // ---------------------------------------------------------------------------
 
 describe("ResilientPipeline.PassThrough", () => {
-  it("executes the op directly — no wrapping", async () => {
+  it("executes the op directly - no wrapping", async () => {
     const result = await ResilientPipeline.PassThrough.execute(
       "k",
       async () => 7,
@@ -63,29 +63,28 @@ describe("ResilientPipeline.PassThrough", () => {
   it("each call to PassThrough returns an independent zero-layer pipeline", () => {
     const a = ResilientPipeline.PassThrough;
     const b = ResilientPipeline.PassThrough;
-    // Two distinct instances (value semantics — not the same reference).
+    // Two distinct instances (value semantics - not the same reference).
     expect(a).not.toBe(b);
   });
 });
 
 // ---------------------------------------------------------------------------
-// CB ↔ Retry order-sensitivity
+// CB <-> Retry order-sensitivity
 // ---------------------------------------------------------------------------
 // PROOF: CB-outside-Retry trips after N total failures across all attempts;
 // CB-inside-Retry trips during a single burst of N consecutive per-op failures.
 // The observable difference: total real-op call counts diverge.
 
-describe("CB ↔ Retry order-sensitivity", () => {
-  it("CB outer, Retry inner — CB trips on 3rd real failure (3 op calls, CB then open)", async () => {
-    // CB threshold = 3. Retry maxAttempts = 2.
-    // Outer → inner: CB → Retry → op.
-    // Attempt 1 (CB lets through): Retry runs op twice → both fail → 2 real calls → CB sees 1 top-level failure.
-    // Attempt 2 (CB lets through): Retry runs op twice → both fail → 2 real calls → CB sees 2nd failure.
-    // Attempt 3 ... wait — CB threshold = 3, so CB opens only after 3 CB-level failures.
-    //
-    // Simpler: CB threshold=1 (trips on first failure), Retry=2.
-    // CB outer: first retry-sequence (2 op calls) counts as ONE CB failure → CB open → 2 total calls.
-    // CB inner: CB trips mid-retry when op fails → the CB failure happens INSIDE retry → subsequent retried call hits open CB → rethrows immediately → 1 real call + 1 CB-open error.
+describe("CB <-> Retry order-sensitivity", () => {
+  it("CB outer, Retry inner - CB trips on 3rd real failure (3 op calls, CB then open)", async () => {
+    // Both pipelines use CB threshold 1 (the CB trips on its first failure).
+    // CB outer, Retry inner (CB -> Retry -> op, Retry maxAttempts 2): the first
+    // retry sequence, with all of its op calls, counts as one CB failure, so
+    // the CB opens after 2 total op calls.
+    // CB inner, Retry outer (Retry -> CB -> op, Retry maxAttempts 3): the CB
+    // trips inside the retry loop when the op fails, so the later attempts
+    // meet the open CB, which rethrows immediately: 1 real op call plus
+    // CB-open errors.
     let opCalls = 0;
     const cbOuter = new ResilientPipelineBuilder()
       .useCircuitBreaker({ failureThreshold: 1, cooldownMs: 30_000 })
@@ -124,10 +123,10 @@ describe("CB ↔ Retry order-sensitivity", () => {
 
     const cbInnerCalls = opCalls;
 
-    // CB-outer: retry exhausted all 2 attempts (2 real calls) then CB trips.
-    // CB-inner: first attempt trips the CB; second attempt hits the open CB without calling op.
-    //           So op called exactly once, then retry + open CB on subsequent attempt.
-    // The key property: the call counts ARE different.
+    // CB-outer: retry exhausted all of its attempts, then the CB trips.
+    // CB-inner: the first attempt trips the CB; the later attempts meet the open
+    //           CB without calling the op, so the op is called exactly once.
+    // The call counts differ.
     expect(cbOuterCalls).not.toBe(cbInnerCalls);
     // Specifically: CB-outer = maxAttempts (2) real calls; CB-inner = 1 real call (first).
     expect(cbOuterCalls).toBe(2);
@@ -136,7 +135,7 @@ describe("CB ↔ Retry order-sensitivity", () => {
 });
 
 // ---------------------------------------------------------------------------
-// RateLimiter outermost — inner never runs when rejected
+// RateLimiter outermost - inner never runs when rejected
 // ---------------------------------------------------------------------------
 // PROOF: RL at outermost position short-circuits before any inner layer runs.
 
@@ -152,7 +151,7 @@ describe("RateLimiter outermost short-circuit", () => {
     const d = deferred<number>();
     layer.execute("k", () => d.promise);
 
-    // Second caller → rejected by rate limiter before inner op / retry runs.
+    // Second caller -> rejected by rate limiter before inner op / retry runs.
     await expect(
       layer.execute("k", async () => {
         innerCalls++;
@@ -186,14 +185,14 @@ describe("Total-vs-per-attempt timeout", () => {
     const p = layer.execute("k", async () => {
       calls++;
       if (calls === 1)
-        // First attempt hangs → will time out.
+        // First attempt hangs -> will time out.
         return firstAttempt.promise;
       // Second attempt succeeds immediately.
       return 42;
     });
 
-    // Advance time past the per-attempt timeout → first attempt times out →
-    // retry kicks in → second attempt resolves immediately.
+    // Advance time past the per-attempt timeout -> first attempt times out ->
+    // retry kicks in -> second attempt resolves immediately.
     await vi.advanceTimersByTimeAsync(100);
 
     expect(await p).toBe(42);
@@ -204,11 +203,12 @@ describe("Total-vs-per-attempt timeout", () => {
 
   it("total timeout (outer): fires and terminates pipeline before retry exhaustion", async () => {
     // PROOF: without a total timeout, 10 maxAttempts would all complete.
-    // With a total timeout shorter than the per-attempt budget × maxAttempts,
+    // With a total timeout shorter than the per-attempt budget x maxAttempts,
     // the total timeout terminates the pipeline early.
     //
-    // Scenario: total = 50ms; per-attempt = 200ms (only 1 per-attempt can
-    // complete before total fires). No retry budget matters — total terminates.
+    // Scenario: total = 50ms; per-attempt = 200ms (the total timeout fires
+    // before any per-attempt timeout can). The retry budget does not matter:
+    // the total timeout terminates the pipeline.
     const inner = deferred<number>();
     const layer = new ResilientPipelineBuilder()
       .useTimeout({ durationMs: 50 }) // total (outer)
@@ -221,7 +221,7 @@ describe("Total-vs-per-attempt timeout", () => {
     // PromiseRejectionHandledWarning from Node.js.
     const caught = p.catch((e) => e);
 
-    // Advance 60ms → total fires at 50ms, terminating the pipeline.
+    // Advance 60ms -> total fires at 50ms, terminating the pipeline.
     await vi.advanceTimersByTimeAsync(60);
 
     // Must be a TimeoutError (from the total timeout, not the per-attempt).
@@ -238,7 +238,7 @@ describe("Total-vs-per-attempt timeout", () => {
 // execution, even with retry and CB below it.
 
 describe("Singleflight dedup across full stack", () => {
-  it("SF outer: 10 concurrent callers → exactly 1 real op execution", async () => {
+  it("SF outer: 10 concurrent callers -> exactly 1 real op execution", async () => {
     let executions = 0;
     const d = deferred<number>();
 
@@ -260,7 +260,7 @@ describe("Singleflight dedup across full stack", () => {
 
     // Only 1 real execution despite 10 concurrent callers.
     expect(executions).toBe(1);
-    // All 10 callers received the same result.
+    // Every caller received the same result.
     expect(results.every((r) => r === 99)).toBe(true);
   });
 });
@@ -268,11 +268,11 @@ describe("Singleflight dedup across full stack", () => {
 // ---------------------------------------------------------------------------
 // Canonical stack ordering
 // ---------------------------------------------------------------------------
-// PROOF: the canonical stack (SF → RL → Retry → CB → per-attempt timeout)
+// PROOF: the canonical stack (SF -> RL -> Retry -> CB -> per-attempt timeout)
 // composes without error and admits a successful call.
 
 describe("Canonical stack composition", () => {
-  it("SF → RL → Retry → CB → PerAttemptTimeout: successful call returns result", async () => {
+  it("SF -> RL -> Retry -> CB -> PerAttemptTimeout: successful call returns result", async () => {
     const layer = new ResilientPipelineBuilder()
       .useSingleflight()
       .useRateLimiter({ maxConcurrency: 10, acquisitionTimeoutMs: 0 })
@@ -311,12 +311,12 @@ describe("Canonical stack composition", () => {
 });
 
 // ---------------------------------------------------------------------------
-// useTimeout called twice — two independent TimeoutLayer instances
+// useTimeout called twice - two independent TimeoutLayer instances
 // ---------------------------------------------------------------------------
 // PROOF: calling useTimeout twice produces two independent layers
 // (total outer + per-attempt inner).
 
-describe("useTimeout × 2 yields two independent TimeoutLayer instances", () => {
+describe("useTimeout x 2 yields two independent TimeoutLayer instances", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
@@ -324,9 +324,9 @@ describe("useTimeout × 2 yields two independent TimeoutLayer instances", () => 
     let calls = 0;
     const firstAttempt = deferred<number>();
     const layer = new ResilientPipelineBuilder()
-      .useTimeout({ durationMs: 1_000 }) // total — generous
+      .useTimeout({ durationMs: 1_000 }) // total - generous
       .useRetries({ maxAttempts: 2, delayFunc: noDelay })
-      .useTimeout({ durationMs: 50 }) // per-attempt — tight
+      .useTimeout({ durationMs: 50 }) // per-attempt - tight
       .build();
 
     const p = layer.execute("k", async () => {
@@ -346,7 +346,7 @@ describe("useTimeout × 2 yields two independent TimeoutLayer instances", () => 
 });
 
 // ---------------------------------------------------------------------------
-// ResilientPipelineBuilder — useRateLimiter / useTimeout appear in exports
+// ResilientPipelineBuilder - useRateLimiter / useTimeout appear in exports
 // ---------------------------------------------------------------------------
 
 describe("Builder method presence", () => {

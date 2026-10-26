@@ -14,22 +14,22 @@ using DcsvIo.D2.SourceGen;
 using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
-/// Emits the per-subdivision DATA in two files:
+/// Emits the per-subdivision data in these files:
 /// <list type="bullet">
 ///   <item><description>
-///     <c>SubdivisionLookup.g.cs</c> — first pass constructs every
+///     <c>SubdivisionLookup.g.cs</c>: the first pass creates every
 ///     <c>Subdivision</c> record with the parent <c>Country</c> nav set to
-///     <c>null</c>; wire-nav step mutates each record's <c>Country</c> +
-///     <c>ParentSubdivision</c> navs via the friend-assembly
-///     <c>internal set</c> accessor. The lookup carries
+///     <c>null</c>, and the wire-nav step sets each record's <c>Country</c>
+///     and <c>ParentSubdivision</c> navs through the friend-assembly
+///     <c>internal set</c> accessor. The lookup has
 ///     <c>FrozenDictionary&lt;SubdivisionCode, Subdivision&gt; ByCode</c>
-///     plus a per-country index
+///     and a per-country index
 ///     <c>FrozenDictionary&lt;CountryCode, IReadOnlyList&lt;Subdivision&gt;&gt; ByCountry</c>
-///     that <c>CountryLookup.WireNav</c> consumes.
+///     that <c>CountryLookup.WireNav</c> reads.
 ///   </description></item>
 ///   <item><description>
-///     <c>SubdivisionsNested.g.cs</c> — <c>Subdivisions.US.NY</c> nested
-///     static-class hierarchy where every leaf is a
+///     <c>SubdivisionsNested.g.cs</c>: the <c>Subdivisions.US.NY</c> nested
+///     static-class hierarchy, where every leaf is a
 ///     <c>SubdivisionCode</c> constant. Codes that start with a digit get
 ///     a leading underscore.
 ///   </description></item>
@@ -50,8 +50,8 @@ internal static class SubdivisionDataEmitter
         if (context.Subdivisions is not { } subsEnv)
             return ImmutableArray<EmitResult>.Empty;
 
-        // Build the valid-country member set so we can defensively skip
-        // subdivisions referencing countries that aren't in the catalog.
+        // Build the valid country member set so the emitter can skip
+        // subdivisions that reference countries not in the catalog.
         var validCountryMembers = new HashSet<string>(System.StringComparer.Ordinal);
         if (context.Countries is { } countriesEnv)
         {
@@ -75,7 +75,7 @@ internal static class SubdivisionDataEmitter
 
         var entries = SortByCode(filtered);
 
-        // Build the set of subdivision-codes we actually emitted so we can
+        // Build the set of subdivision codes the emitter emits, so it can
         // skip ParentSubdivisionIso31662Code refs that point at filtered-out
         // entries.
         var validSubdivisionCodes = new HashSet<string>(System.StringComparer.Ordinal);
@@ -170,7 +170,7 @@ internal static class SubdivisionDataEmitter
         sb.AppendLine("        All = all;");
         sb.AppendLine();
 
-        // Per-country index — group by typed CountryCode.
+        // Per-country index, grouped by the typed CountryCode.
         sb.AppendLine(
             "        var byCountryMutable = "
             + "new Dictionary<CountryCode, List<Subdivision>>();");
@@ -275,7 +275,7 @@ internal static class SubdivisionDataEmitter
 
     private static EmitResult EmitNested(IReadOnlyList<SubdivisionSpec> entries)
     {
-        // Group entries by country alpha-2 — the nested class layer.
+        // Group entries by country alpha-2; each group is a nested class.
         var grouped = new SortedDictionary<string, List<SubdivisionSpec>>(
             System.StringComparer.Ordinal);
         foreach (var entry in entries)
@@ -302,7 +302,7 @@ internal static class SubdivisionDataEmitter
         sb.AppendLine();
         sb.AppendLine("/// <summary>");
         sb.AppendLine(
-            "/// Strongly-typed nested-class hierarchy over the subdivision catalog —");
+            "/// Strongly-typed nested-class hierarchy over the subdivision catalog -");
         sb.AppendLine(
             "/// <c>Subdivisions.US.NY</c> returns a <see cref=\"SubdivisionCode\"/>.");
         sb.AppendLine(
@@ -327,7 +327,7 @@ internal static class SubdivisionDataEmitter
                     continue;
 
                 // C# disallows a member with the same name as its enclosing type
-                // (CS0542) — e.g. `BZ-BZ` would produce `Subdivisions.BZ.BZ`.
+                // (CS0542) - e.g. `BZ-BZ` would produce `Subdivisions.BZ.BZ`.
                 // Prefix with `_` (`Subdivisions.BZ._BZ`); the underlying wrapped
                 // string is unchanged.
                 if (string.Equals(memberName, country, System.StringComparison.Ordinal))

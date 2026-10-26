@@ -17,8 +17,8 @@ using Xunit;
 /// Emission contract for the in-host system-worker establishment log delegate
 /// <c>SystemRequestContextBootstrapLog.SystemContextEstablished</c> (EventId 4103):
 /// the boundary logs a hop-count summary at Debug with the host's own (non-PII)
-/// service id. The assembly-wide no-Exception-parameter contract for this delegate
-/// is pinned in <c>EstablishmentLogDelegateContractTests</c>.
+/// service id. This class does not check that the delegate takes no
+/// <see cref="System.Exception"/> parameter.
 /// </summary>
 [Trait("Category", "Unit")]
 public sealed class SystemRequestContextBootstrapLogTests

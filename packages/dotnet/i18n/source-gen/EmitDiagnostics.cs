@@ -40,7 +40,7 @@ internal static class EmitDiagnostics
     /// </summary>
     /// <param name="firstKey">The winning JSON key (kept).</param>
     /// <param name="secondKey">The losing JSON key (skipped).</param>
-    /// <param name="fullPath">The shared TK path the two keys both decompose to.</param>
+    /// <param name="fullPath">The shared TK path that both keys decompose to.</param>
     /// <returns>A new <see cref="EmitDiagnostic"/>.</returns>
     public static EmitDiagnostic Collision(string firstKey, string secondKey, string fullPath) =>
         new(DiagnosticIds.TranslationKeyCollision, [firstKey, secondKey, fullPath]);

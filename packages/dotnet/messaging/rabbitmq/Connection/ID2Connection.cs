@@ -10,17 +10,17 @@ using global::RabbitMQ.Client;
 using JetBrains.Annotations;
 
 /// <summary>
-/// Internal wrapper over <see cref="IConnection"/>. Hides
-/// connection-lifecycle concerns from the rest of the lib (publisher /
-/// consumer / channel pool consume this instead of the raw
-/// <see cref="IConnection"/>) and lets us mock the surface in unit tests.
+/// Internal wrapper over <see cref="IConnection"/>. It hides
+/// connection-lifecycle handling and can be replaced with a test double in
+/// unit tests.
 /// </summary>
 /// <remarks>
-/// Connection management is graceful-degradation by design: <see cref="StartReconnectLoop"/>
-/// kicks off a background task that retries forever with exponential backoff.
-/// Publishers / consumers consult <see cref="IsOpen"/> (or await
-/// <see cref="ReadyTask"/>) and return <c>ServiceUnavailable</c> when the
-/// broker is unreachable rather than throwing the host down.
+/// The connection may be unavailable without failing the host:
+/// <see cref="StartReconnectLoop"/> starts a background task that retries
+/// forever with exponential backoff. <see cref="IsOpen"/> is false and
+/// <see cref="ReadyTask"/> is incomplete until the first connection opens, and
+/// <see cref="CreateChannelAsync"/> throws
+/// <see cref="BrokerUnavailableException"/> while the connection is not open.
 /// </remarks>
 internal interface ID2Connection : IAsyncDisposable
 {
@@ -28,16 +28,14 @@ internal interface ID2Connection : IAsyncDisposable
     /// is currently open.</summary>
     bool IsOpen { get; }
 
-    /// <summary>Gets a task that completes the FIRST time the connection
-    /// successfully opens. Consumers await this before registering
-    /// channels; subsequent reconnects are handled automatically by
-    /// RabbitMQ.Client's topology-recovery and don't re-trigger this.</summary>
+    /// <summary>Gets a task that completes the first time the connection
+    /// successfully opens. Later reconnects are handled automatically by
+    /// RabbitMQ.Client's topology recovery and do not complete it again.</summary>
     Task ReadyTask { get; }
 
     /// <summary>
-    /// Kicks off the background reconnect loop. Returns immediately —
-    /// connection establishment happens asynchronously. Idempotent — calling
-    /// twice is a no-op.
+    /// Starts the background reconnect loop and returns immediately; the
+    /// connection opens asynchronously. Calling it twice has no effect.
     /// </summary>
     void StartReconnectLoop();
 
@@ -51,8 +49,8 @@ internal interface ID2Connection : IAsyncDisposable
     /// <param name="ct">Cancellation token.</param>
     /// <returns>An open <see cref="IChannel"/>; caller owns disposal.</returns>
     /// <exception cref="BrokerUnavailableException">
-    /// Connection is not currently open. Caller (publisher / channel pool)
-    /// catches and converts to <c>D2Result.ServiceUnavailable</c>.
+    /// The connection is not currently open. A publish converts it to
+    /// <c>D2Result.ServiceUnavailable</c>.
     /// </exception>
     [MustDisposeResource]
     ValueTask<IChannel> CreateChannelAsync(

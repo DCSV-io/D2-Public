@@ -18,7 +18,7 @@ internal static class DiagnosticIds
     /// <summary>Two field entries share the same wire <c>value</c>.</summary>
     public const string DuplicateFieldValue = "D2DRE003";
 
-    /// <summary>Entry's <c>constName</c> doesn't match UPPER_SNAKE_CASE.</summary>
+    /// <summary>Entry's <c>constName</c> does not match UPPER_SNAKE_CASE.</summary>
     public const string InvalidConstName = "D2DRE004";
 
     /// <summary>Entry's <c>value</c> is empty or whitespace-only.</summary>

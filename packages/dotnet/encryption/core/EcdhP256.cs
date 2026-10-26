@@ -10,13 +10,12 @@ using System.Security.Cryptography;
 using JetBrains.Annotations;
 
 /// <summary>
-/// Import + validation helpers for the P-256 ECDH keys the sealed encryption
+/// Import and validation helpers for the P-256 ECDH keys the sealed encryption
 /// mode uses. All imports are strict: trailing bytes after the DER structure,
 /// a non-256-bit curve, or key material that cannot complete a P-256
-/// agreement are rejected with <see cref="CryptographicException"/> — callers
-/// wrap into their surface-appropriate exception (keyring constructors throw
-/// <see cref="ArgumentException"/>; the opener throws
-/// <see cref="FrameMalformedException"/> for frame-borne keys).
+/// agreement are rejected with <see cref="CryptographicException"/>. The keyring
+/// constructors convert it to <see cref="ArgumentException"/>, and the opener
+/// converts it to <see cref="FrameMalformedException"/> for frame-borne keys.
 /// </summary>
 internal static class EcdhP256
 {
@@ -49,8 +48,8 @@ internal static class EcdhP256
             {
                 // Windows CNG raises PlatformNotSupportedException for a
                 // DER-valid SPKI whose point is invalid for the declared
-                // curve. Normalize: it is bad KEY MATERIAL, not a missing
-                // platform capability.
+                // curve. Normalize: this is invalid key material and not a
+                // missing platform capability.
                 throw new CryptographicException(
                     "Key material is not a valid P-256 public key.", ex);
             }
@@ -94,8 +93,8 @@ internal static class EcdhP256
             }
             catch (PlatformNotSupportedException ex)
             {
-                // See ImportPublicP256 — normalize the CNG invalid-material
-                // shape to the cryptographic failure it actually is.
+                // See ImportPublicP256. Convert the CNG invalid-material
+                // failure to a CryptographicException.
                 throw new CryptographicException(
                     "Key material is not a valid P-256 private key.", ex);
             }
@@ -116,11 +115,11 @@ internal static class EcdhP256
     }
 
     /// <summary>
-    /// Proves the key can complete a real P-256 ECDH agreement — a functional
-    /// check that catches same-size non-P-256 curves and invalid points that
-    /// survive structural import. Construction-time only (each probe costs a
-    /// throwaway keygen + one agreement); the per-message paths rely on the
-    /// real derivation as their probe.
+    /// Checks that the key can complete a real P-256 ECDH agreement. This
+    /// functional check catches non-P-256 curves of the same size and invalid
+    /// points that survive structural import. It runs at construction time only,
+    /// because each probe costs a throwaway keygen and one agreement; the
+    /// per-message paths use the real derivation as their probe.
     /// </summary>
     /// <param name="key">The imported key to probe.</param>
     internal static void ProbeP256Agreement(ECDiffieHellman key)

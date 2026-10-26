@@ -1,0 +1,261 @@
+#nullable enable
+DcsvIo.D2.Pagination.AllowedDirections
+DcsvIo.D2.Pagination.AllowedDirections.Ascending = 1 -> DcsvIo.D2.Pagination.AllowedDirections
+DcsvIo.D2.Pagination.AllowedDirections.Both = DcsvIo.D2.Pagination.AllowedDirections.Ascending | DcsvIo.D2.Pagination.AllowedDirections.Descending -> DcsvIo.D2.Pagination.AllowedDirections
+DcsvIo.D2.Pagination.AllowedDirections.Descending = 2 -> DcsvIo.D2.Pagination.AllowedDirections
+DcsvIo.D2.Pagination.AllowedDirections.None = 0 -> DcsvIo.D2.Pagination.AllowedDirections
+DcsvIo.D2.Pagination.Errors.PaginationErrorCodes
+DcsvIo.D2.Pagination.Errors.PaginationFailures
+DcsvIo.D2.Pagination.Errors.PaginationFailures<T>
+DcsvIo.D2.Pagination.IKeysetCursorCodec
+DcsvIo.D2.Pagination.IKeysetCursorCodec.Decode(string? wire) -> DcsvIo.D2.Result.D2Result<DcsvIo.D2.Pagination.KeysetCursor?>!
+DcsvIo.D2.Pagination.IKeysetCursorCodec.Encode(DcsvIo.D2.Pagination.KeysetCursor! cursor) -> DcsvIo.D2.Result.D2Result<string?>!
+DcsvIo.D2.Pagination.KeysetCursor
+DcsvIo.D2.Pagination.KeysetCursor.<Clone>$() -> DcsvIo.D2.Pagination.KeysetCursor!
+DcsvIo.D2.Pagination.KeysetCursor.Deconstruct(out int Version, out string! Sort, out string! PrimaryKey, out string! TieBreakerId, out string! Order, out string? QueryToken) -> void
+DcsvIo.D2.Pagination.KeysetCursor.Equals(DcsvIo.D2.Pagination.KeysetCursor? other) -> bool
+DcsvIo.D2.Pagination.KeysetCursor.KeysetCursor(int Version, string! Sort, string! PrimaryKey, string! TieBreakerId, string! Order = "desc", string? QueryToken = null) -> void
+DcsvIo.D2.Pagination.KeysetCursor.Order.get -> string!
+DcsvIo.D2.Pagination.KeysetCursor.Order.init -> void
+DcsvIo.D2.Pagination.KeysetCursor.PrimaryKey.get -> string!
+DcsvIo.D2.Pagination.KeysetCursor.PrimaryKey.init -> void
+DcsvIo.D2.Pagination.KeysetCursor.QueryToken.get -> string?
+DcsvIo.D2.Pagination.KeysetCursor.QueryToken.init -> void
+DcsvIo.D2.Pagination.KeysetCursor.Sort.get -> string!
+DcsvIo.D2.Pagination.KeysetCursor.Sort.init -> void
+DcsvIo.D2.Pagination.KeysetCursor.TieBreakerId.get -> string!
+DcsvIo.D2.Pagination.KeysetCursor.TieBreakerId.init -> void
+DcsvIo.D2.Pagination.KeysetCursor.ToSortSpec() -> DcsvIo.D2.Pagination.SortSpec!
+DcsvIo.D2.Pagination.KeysetCursor.Version.get -> int
+DcsvIo.D2.Pagination.KeysetCursor.Version.init -> void
+DcsvIo.D2.Pagination.ListPagingPolicy
+DcsvIo.D2.Pagination.ListPagingPolicy.<Clone>$() -> DcsvIo.D2.Pagination.ListPagingPolicy!
+DcsvIo.D2.Pagination.ListPagingPolicy.Deconstruct(out DcsvIo.D2.Pagination.SortSpec! DefaultSort, out int DefaultLimit, out int MaxLimit) -> void
+DcsvIo.D2.Pagination.ListPagingPolicy.DefaultLimit.get -> int
+DcsvIo.D2.Pagination.ListPagingPolicy.DefaultLimit.init -> void
+DcsvIo.D2.Pagination.ListPagingPolicy.DefaultSort.get -> DcsvIo.D2.Pagination.SortSpec!
+DcsvIo.D2.Pagination.ListPagingPolicy.DefaultSort.init -> void
+DcsvIo.D2.Pagination.ListPagingPolicy.Equals(DcsvIo.D2.Pagination.ListPagingPolicy? other) -> bool
+DcsvIo.D2.Pagination.ListPagingPolicy.ListPagingPolicy(DcsvIo.D2.Pagination.SortSpec! DefaultSort, int DefaultLimit = 50, int MaxLimit = 100) -> void
+DcsvIo.D2.Pagination.ListPagingPolicy.MaxLimit.get -> int
+DcsvIo.D2.Pagination.ListPagingPolicy.MaxLimit.init -> void
+DcsvIo.D2.Pagination.NormalizedPageRequest
+DcsvIo.D2.Pagination.NormalizedPageRequest.<Clone>$() -> DcsvIo.D2.Pagination.NormalizedPageRequest!
+DcsvIo.D2.Pagination.NormalizedPageRequest.AppliedSort.get -> DcsvIo.D2.Pagination.SortSpec!
+DcsvIo.D2.Pagination.NormalizedPageRequest.AppliedSort.init -> void
+DcsvIo.D2.Pagination.NormalizedPageRequest.Cursor.get -> DcsvIo.D2.Pagination.KeysetCursor?
+DcsvIo.D2.Pagination.NormalizedPageRequest.Cursor.init -> void
+DcsvIo.D2.Pagination.NormalizedPageRequest.Deconstruct(out int Limit, out DcsvIo.D2.Pagination.KeysetCursor? Cursor, out DcsvIo.D2.Pagination.SortSpec! AppliedSort, out DcsvIo.D2.Pagination.SearchQuery? Search) -> void
+DcsvIo.D2.Pagination.NormalizedPageRequest.Equals(DcsvIo.D2.Pagination.NormalizedPageRequest? other) -> bool
+DcsvIo.D2.Pagination.NormalizedPageRequest.Limit.get -> int
+DcsvIo.D2.Pagination.NormalizedPageRequest.Limit.init -> void
+DcsvIo.D2.Pagination.NormalizedPageRequest.NormalizedPageRequest(int Limit, DcsvIo.D2.Pagination.KeysetCursor? Cursor, DcsvIo.D2.Pagination.SortSpec! AppliedSort, DcsvIo.D2.Pagination.SearchQuery? Search = null) -> void
+DcsvIo.D2.Pagination.NormalizedPageRequest.Search.get -> DcsvIo.D2.Pagination.SearchQuery?
+DcsvIo.D2.Pagination.NormalizedPageRequest.Search.init -> void
+DcsvIo.D2.Pagination.OpaqueKeysetCursorCodec
+DcsvIo.D2.Pagination.OpaqueKeysetCursorCodec.Decode(string? wire) -> DcsvIo.D2.Result.D2Result<DcsvIo.D2.Pagination.KeysetCursor?>!
+DcsvIo.D2.Pagination.OpaqueKeysetCursorCodec.Encode(DcsvIo.D2.Pagination.KeysetCursor! cursor) -> DcsvIo.D2.Result.D2Result<string?>!
+DcsvIo.D2.Pagination.OpaqueKeysetCursorCodec.OpaqueKeysetCursorCodec() -> void
+DcsvIo.D2.Pagination.PageRequest
+DcsvIo.D2.Pagination.PageRequest.<Clone>$() -> DcsvIo.D2.Pagination.PageRequest!
+DcsvIo.D2.Pagination.PageRequest.Cursor.get -> string?
+DcsvIo.D2.Pagination.PageRequest.Cursor.init -> void
+DcsvIo.D2.Pagination.PageRequest.Deconstruct(out string? Cursor, out int? Limit, out string? Sort, out string? Order, out string? Query) -> void
+DcsvIo.D2.Pagination.PageRequest.Equals(DcsvIo.D2.Pagination.PageRequest? other) -> bool
+DcsvIo.D2.Pagination.PageRequest.Limit.get -> int?
+DcsvIo.D2.Pagination.PageRequest.Limit.init -> void
+DcsvIo.D2.Pagination.PageRequest.Order.get -> string?
+DcsvIo.D2.Pagination.PageRequest.Order.init -> void
+DcsvIo.D2.Pagination.PageRequest.PageRequest(string? Cursor, int? Limit, string? Sort = null, string? Order = null, string? Query = null) -> void
+DcsvIo.D2.Pagination.PageRequest.Query.get -> string?
+DcsvIo.D2.Pagination.PageRequest.Query.init -> void
+DcsvIo.D2.Pagination.PageRequest.Sort.get -> string?
+DcsvIo.D2.Pagination.PageRequest.Sort.init -> void
+DcsvIo.D2.Pagination.PageRequestNormalizer
+DcsvIo.D2.Pagination.PageResult<T>
+DcsvIo.D2.Pagination.PageResult<T>.<Clone>$() -> DcsvIo.D2.Pagination.PageResult<T>!
+DcsvIo.D2.Pagination.PageResult<T>.AppliedSort.get -> DcsvIo.D2.Pagination.SortSpec!
+DcsvIo.D2.Pagination.PageResult<T>.AppliedSort.init -> void
+DcsvIo.D2.Pagination.PageResult<T>.Deconstruct(out System.Collections.Generic.IReadOnlyList<T>! Items, out string? NextCursor, out DcsvIo.D2.Pagination.SortSpec! AppliedSort, out long TotalCount) -> void
+DcsvIo.D2.Pagination.PageResult<T>.Equals(DcsvIo.D2.Pagination.PageResult<T>? other) -> bool
+DcsvIo.D2.Pagination.PageResult<T>.Items.get -> System.Collections.Generic.IReadOnlyList<T>!
+DcsvIo.D2.Pagination.PageResult<T>.Items.init -> void
+DcsvIo.D2.Pagination.PageResult<T>.NextCursor.get -> string?
+DcsvIo.D2.Pagination.PageResult<T>.NextCursor.init -> void
+DcsvIo.D2.Pagination.PageResult<T>.PageResult(System.Collections.Generic.IReadOnlyList<T>! Items, string? NextCursor, DcsvIo.D2.Pagination.SortSpec! AppliedSort, long TotalCount) -> void
+DcsvIo.D2.Pagination.PageResult<T>.TotalCount.get -> long
+DcsvIo.D2.Pagination.PageResult<T>.TotalCount.init -> void
+DcsvIo.D2.Pagination.SearchPolicy
+DcsvIo.D2.Pagination.SearchPolicy.<Clone>$() -> DcsvIo.D2.Pagination.SearchPolicy!
+DcsvIo.D2.Pagination.SearchPolicy.Deconstruct(out int MinQueryLength, out int MaxQueryLength) -> void
+DcsvIo.D2.Pagination.SearchPolicy.Equals(DcsvIo.D2.Pagination.SearchPolicy? other) -> bool
+DcsvIo.D2.Pagination.SearchPolicy.MaxQueryLength.get -> int
+DcsvIo.D2.Pagination.SearchPolicy.MaxQueryLength.init -> void
+DcsvIo.D2.Pagination.SearchPolicy.MinQueryLength.get -> int
+DcsvIo.D2.Pagination.SearchPolicy.MinQueryLength.init -> void
+DcsvIo.D2.Pagination.SearchPolicy.SearchPolicy(int MinQueryLength = 3, int MaxQueryLength = 128) -> void
+DcsvIo.D2.Pagination.SearchQuery
+DcsvIo.D2.Pagination.SearchQuery.<Clone>$() -> DcsvIo.D2.Pagination.SearchQuery!
+DcsvIo.D2.Pagination.SearchQuery.Deconstruct(out string! Normalized, out string! QueryToken) -> void
+DcsvIo.D2.Pagination.SearchQuery.Equals(DcsvIo.D2.Pagination.SearchQuery? other) -> bool
+DcsvIo.D2.Pagination.SearchQuery.Normalized.get -> string!
+DcsvIo.D2.Pagination.SearchQuery.Normalized.init -> void
+DcsvIo.D2.Pagination.SearchQuery.QueryToken.get -> string!
+DcsvIo.D2.Pagination.SearchQuery.QueryToken.init -> void
+DcsvIo.D2.Pagination.SearchQuery.SearchQuery(string! Normalized, string! QueryToken) -> void
+DcsvIo.D2.Pagination.SortDirection
+DcsvIo.D2.Pagination.SortDirection.Asc = 0 -> DcsvIo.D2.Pagination.SortDirection
+DcsvIo.D2.Pagination.SortDirection.Desc = 1 -> DcsvIo.D2.Pagination.SortDirection
+DcsvIo.D2.Pagination.SortDirectionWire
+DcsvIo.D2.Pagination.SortFieldAllowSet
+DcsvIo.D2.Pagination.SortFieldAllowSet.Fields.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+DcsvIo.D2.Pagination.SortFieldAllowSet.IntersectWith(System.Collections.Generic.IReadOnlyCollection<string!>! catalogWireFields) -> DcsvIo.D2.Pagination.SortFieldAllowSet!
+DcsvIo.D2.Pagination.SortFieldAllowSet.TryGet(string? field, out DcsvIo.D2.Pagination.SortFieldSpec? spec) -> bool
+DcsvIo.D2.Pagination.SortFieldAllowSet.With(DcsvIo.D2.Pagination.SortFieldSpec! spec) -> DcsvIo.D2.Pagination.SortFieldAllowSet!
+DcsvIo.D2.Pagination.SortFieldNames
+DcsvIo.D2.Pagination.SortFieldSpec
+DcsvIo.D2.Pagination.SortFieldSpec.<Clone>$() -> DcsvIo.D2.Pagination.SortFieldSpec!
+DcsvIo.D2.Pagination.SortFieldSpec.Allowed.get -> DcsvIo.D2.Pagination.AllowedDirections
+DcsvIo.D2.Pagination.SortFieldSpec.Allowed.init -> void
+DcsvIo.D2.Pagination.SortFieldSpec.Deconstruct(out string! Field, out DcsvIo.D2.Pagination.AllowedDirections Allowed) -> void
+DcsvIo.D2.Pagination.SortFieldSpec.Equals(DcsvIo.D2.Pagination.SortFieldSpec? other) -> bool
+DcsvIo.D2.Pagination.SortFieldSpec.Field.get -> string!
+DcsvIo.D2.Pagination.SortFieldSpec.Field.init -> void
+DcsvIo.D2.Pagination.SortFieldSpec.SoleDirection.get -> DcsvIo.D2.Pagination.SortDirection?
+DcsvIo.D2.Pagination.SortFieldSpec.SortFieldSpec(string! Field, DcsvIo.D2.Pagination.AllowedDirections Allowed) -> void
+DcsvIo.D2.Pagination.SortSpec
+DcsvIo.D2.Pagination.SortSpec.<Clone>$() -> DcsvIo.D2.Pagination.SortSpec!
+DcsvIo.D2.Pagination.SortSpec.Deconstruct(out string! Field, out DcsvIo.D2.Pagination.SortDirection Direction) -> void
+DcsvIo.D2.Pagination.SortSpec.Direction.get -> DcsvIo.D2.Pagination.SortDirection
+DcsvIo.D2.Pagination.SortSpec.Direction.init -> void
+DcsvIo.D2.Pagination.SortSpec.DirectionWire.get -> string!
+DcsvIo.D2.Pagination.SortSpec.Equals(DcsvIo.D2.Pagination.SortSpec? other) -> bool
+DcsvIo.D2.Pagination.SortSpec.Field.get -> string!
+DcsvIo.D2.Pagination.SortSpec.Field.init -> void
+DcsvIo.D2.Pagination.SortSpec.SortSpec(string! Field, DcsvIo.D2.Pagination.SortDirection Direction) -> void
+DcsvIo.D2.Pagination.SortSpec.Token.get -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_CURSOR_INVALID = "LIB_PAGINATION_CURSOR_INVALID" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_CURSOR_KEY_UNDECODABLE = "LIB_PAGINATION_CURSOR_KEY_UNDECODABLE" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_CURSOR_NOT_ENCODABLE = "LIB_PAGINATION_CURSOR_NOT_ENCODABLE" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_CURSOR_ORDER_INVALID = "LIB_PAGINATION_CURSOR_ORDER_INVALID" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_CURSOR_ORDER_MISMATCH = "LIB_PAGINATION_CURSOR_ORDER_MISMATCH" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_CURSOR_QUERY_MISMATCH = "LIB_PAGINATION_CURSOR_QUERY_MISMATCH" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_CURSOR_SORT_MISMATCH = "LIB_PAGINATION_CURSOR_SORT_MISMATCH" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_CURSOR_SORT_NOT_ALLOWED = "LIB_PAGINATION_CURSOR_SORT_NOT_ALLOWED" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_CURSOR_VERSION_UNSUPPORTED = "LIB_PAGINATION_CURSOR_VERSION_UNSUPPORTED" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_LIMIT_INVALID = "LIB_PAGINATION_LIMIT_INVALID" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_ORDER_INVALID = "LIB_PAGINATION_ORDER_INVALID" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_PAGE_POLICY_INVALID = "LIB_PAGINATION_PAGE_POLICY_INVALID" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_RELEVANCE_REQUIRES_QUERY = "LIB_PAGINATION_RELEVANCE_REQUIRES_QUERY" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_REQUEST_REQUIRED = "LIB_PAGINATION_REQUEST_REQUIRED" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_SEARCH_NOT_SUPPORTED = "LIB_PAGINATION_SEARCH_NOT_SUPPORTED" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_SEARCH_QUERY_TOO_LONG = "LIB_PAGINATION_SEARCH_QUERY_TOO_LONG" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_SEARCH_QUERY_TOO_SHORT = "LIB_PAGINATION_SEARCH_QUERY_TOO_SHORT" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_SORT_CATALOG_EMPTY = "LIB_PAGINATION_SORT_CATALOG_EMPTY" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_SORT_DIRECTION_NOT_ALLOWED = "LIB_PAGINATION_SORT_DIRECTION_NOT_ALLOWED" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_SORT_FIELD_NOT_ALLOWED = "LIB_PAGINATION_SORT_FIELD_NOT_ALLOWED" -> string!
+const DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.LIB_PAGINATION_SORT_FIELD_NOT_REGISTERED = "LIB_PAGINATION_SORT_FIELD_NOT_REGISTERED" -> string!
+const DcsvIo.D2.Pagination.KeysetCursor.CURRENT_VERSION = 1 -> int
+const DcsvIo.D2.Pagination.ListPagingPolicy.DEFAULT_LIMIT = 50 -> int
+const DcsvIo.D2.Pagination.ListPagingPolicy.MAX_LIMIT = 100 -> int
+const DcsvIo.D2.Pagination.SearchPolicy.DEFAULT_MAX_QUERY_LENGTH = 128 -> int
+const DcsvIo.D2.Pagination.SearchPolicy.DEFAULT_MIN_QUERY_LENGTH = 3 -> int
+const DcsvIo.D2.Pagination.SortDirectionWire.ASC = "asc" -> string!
+const DcsvIo.D2.Pagination.SortDirectionWire.DESC = "desc" -> string!
+const DcsvIo.D2.Pagination.SortFieldNames.RELEVANCE = "relevance" -> string!
+override DcsvIo.D2.Pagination.KeysetCursor.Equals(object? obj) -> bool
+override DcsvIo.D2.Pagination.KeysetCursor.GetHashCode() -> int
+override DcsvIo.D2.Pagination.KeysetCursor.ToString() -> string!
+override DcsvIo.D2.Pagination.ListPagingPolicy.Equals(object? obj) -> bool
+override DcsvIo.D2.Pagination.ListPagingPolicy.GetHashCode() -> int
+override DcsvIo.D2.Pagination.ListPagingPolicy.ToString() -> string!
+override DcsvIo.D2.Pagination.NormalizedPageRequest.Equals(object? obj) -> bool
+override DcsvIo.D2.Pagination.NormalizedPageRequest.GetHashCode() -> int
+override DcsvIo.D2.Pagination.NormalizedPageRequest.ToString() -> string!
+override DcsvIo.D2.Pagination.PageRequest.Equals(object? obj) -> bool
+override DcsvIo.D2.Pagination.PageRequest.GetHashCode() -> int
+override DcsvIo.D2.Pagination.PageRequest.ToString() -> string!
+override DcsvIo.D2.Pagination.PageResult<T>.Equals(object? obj) -> bool
+override DcsvIo.D2.Pagination.PageResult<T>.GetHashCode() -> int
+override DcsvIo.D2.Pagination.PageResult<T>.ToString() -> string!
+override DcsvIo.D2.Pagination.SearchPolicy.Equals(object? obj) -> bool
+override DcsvIo.D2.Pagination.SearchPolicy.GetHashCode() -> int
+override DcsvIo.D2.Pagination.SearchPolicy.ToString() -> string!
+override DcsvIo.D2.Pagination.SearchQuery.Equals(object? obj) -> bool
+override DcsvIo.D2.Pagination.SearchQuery.GetHashCode() -> int
+override DcsvIo.D2.Pagination.SearchQuery.ToString() -> string!
+override DcsvIo.D2.Pagination.SortFieldSpec.Equals(object? obj) -> bool
+override DcsvIo.D2.Pagination.SortFieldSpec.GetHashCode() -> int
+override DcsvIo.D2.Pagination.SortFieldSpec.ToString() -> string!
+override DcsvIo.D2.Pagination.SortSpec.Equals(object? obj) -> bool
+override DcsvIo.D2.Pagination.SortSpec.GetHashCode() -> int
+override DcsvIo.D2.Pagination.SortSpec.ToString() -> string!
+static DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.AllCodes.get -> System.Collections.Generic.IReadOnlyList<string!>!
+static DcsvIo.D2.Pagination.Errors.PaginationErrorCodes.GetHttpStatus(string! errorCode) -> int
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.CursorInvalid(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.CursorKeyUndecodable(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.CursorNotEncodable(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.CursorOrderInvalid(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.CursorOrderMismatch(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.CursorQueryMismatch(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.CursorSortMismatch(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.CursorSortNotAllowed(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.CursorVersionUnsupported(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.LimitInvalid(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.OrderInvalid(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.PagePolicyInvalid(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.RelevanceRequiresQuery(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.RequestRequired(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.SearchNotSupported(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.SearchQueryTooLong(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.SearchQueryTooShort(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.SortCatalogEmpty(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.SortDirectionNotAllowed(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.SortFieldNotAllowed(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures.SortFieldNotRegistered(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.CursorInvalid(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.CursorKeyUndecodable(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.CursorNotEncodable(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.CursorOrderInvalid(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.CursorOrderMismatch(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.CursorQueryMismatch(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.CursorSortMismatch(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.CursorSortNotAllowed(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.CursorVersionUnsupported(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.LimitInvalid(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.OrderInvalid(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.PagePolicyInvalid(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.RelevanceRequiresQuery(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.RequestRequired(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.SearchNotSupported(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.SearchQueryTooLong(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.SearchQueryTooShort(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.SortCatalogEmpty(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.SortDirectionNotAllowed(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.SortFieldNotAllowed(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.Errors.PaginationFailures<T>.SortFieldNotRegistered(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Pagination.KeysetCursor.operator !=(DcsvIo.D2.Pagination.KeysetCursor? left, DcsvIo.D2.Pagination.KeysetCursor? right) -> bool
+static DcsvIo.D2.Pagination.KeysetCursor.operator ==(DcsvIo.D2.Pagination.KeysetCursor? left, DcsvIo.D2.Pagination.KeysetCursor? right) -> bool
+static DcsvIo.D2.Pagination.ListPagingPolicy.operator !=(DcsvIo.D2.Pagination.ListPagingPolicy? left, DcsvIo.D2.Pagination.ListPagingPolicy? right) -> bool
+static DcsvIo.D2.Pagination.ListPagingPolicy.operator ==(DcsvIo.D2.Pagination.ListPagingPolicy? left, DcsvIo.D2.Pagination.ListPagingPolicy? right) -> bool
+static DcsvIo.D2.Pagination.NormalizedPageRequest.operator !=(DcsvIo.D2.Pagination.NormalizedPageRequest? left, DcsvIo.D2.Pagination.NormalizedPageRequest? right) -> bool
+static DcsvIo.D2.Pagination.NormalizedPageRequest.operator ==(DcsvIo.D2.Pagination.NormalizedPageRequest? left, DcsvIo.D2.Pagination.NormalizedPageRequest? right) -> bool
+static DcsvIo.D2.Pagination.PageRequest.operator !=(DcsvIo.D2.Pagination.PageRequest? left, DcsvIo.D2.Pagination.PageRequest? right) -> bool
+static DcsvIo.D2.Pagination.PageRequest.operator ==(DcsvIo.D2.Pagination.PageRequest? left, DcsvIo.D2.Pagination.PageRequest? right) -> bool
+static DcsvIo.D2.Pagination.PageRequestNormalizer.Normalize(DcsvIo.D2.Pagination.PageRequest? request, DcsvIo.D2.Pagination.ListPagingPolicy! policy, DcsvIo.D2.Pagination.IKeysetCursorCodec! codec) -> DcsvIo.D2.Result.D2Result<DcsvIo.D2.Pagination.NormalizedPageRequest?>!
+static DcsvIo.D2.Pagination.PageRequestNormalizer.Normalize(DcsvIo.D2.Pagination.PageRequest? request, DcsvIo.D2.Pagination.ListPagingPolicy! policy, DcsvIo.D2.Pagination.SortFieldAllowSet! allowedSortFields, DcsvIo.D2.Pagination.IKeysetCursorCodec! codec, DcsvIo.D2.Pagination.SearchPolicy? searchPolicy = null, DcsvIo.D2.Pagination.SortDirection defaultDirectionWhenBothAllowed = DcsvIo.D2.Pagination.SortDirection.Desc) -> DcsvIo.D2.Result.D2Result<DcsvIo.D2.Pagination.NormalizedPageRequest?>!
+static DcsvIo.D2.Pagination.PageResult<T>.operator !=(DcsvIo.D2.Pagination.PageResult<T>? left, DcsvIo.D2.Pagination.PageResult<T>? right) -> bool
+static DcsvIo.D2.Pagination.PageResult<T>.operator ==(DcsvIo.D2.Pagination.PageResult<T>? left, DcsvIo.D2.Pagination.PageResult<T>? right) -> bool
+static DcsvIo.D2.Pagination.SearchPolicy.operator !=(DcsvIo.D2.Pagination.SearchPolicy? left, DcsvIo.D2.Pagination.SearchPolicy? right) -> bool
+static DcsvIo.D2.Pagination.SearchPolicy.operator ==(DcsvIo.D2.Pagination.SearchPolicy? left, DcsvIo.D2.Pagination.SearchPolicy? right) -> bool
+static DcsvIo.D2.Pagination.SearchQuery.Create(string? raw, DcsvIo.D2.Pagination.SearchPolicy! policy) -> DcsvIo.D2.Result.D2Result<DcsvIo.D2.Pagination.SearchQuery?>!
+static DcsvIo.D2.Pagination.SearchQuery.operator !=(DcsvIo.D2.Pagination.SearchQuery? left, DcsvIo.D2.Pagination.SearchQuery? right) -> bool
+static DcsvIo.D2.Pagination.SearchQuery.operator ==(DcsvIo.D2.Pagination.SearchQuery? left, DcsvIo.D2.Pagination.SearchQuery? right) -> bool
+static DcsvIo.D2.Pagination.SortDirectionWire.TryParse(string? wire, out DcsvIo.D2.Pagination.SortDirection direction) -> bool
+static DcsvIo.D2.Pagination.SortFieldAllowSet.BothDirections(params System.ReadOnlySpan<string!> fields) -> DcsvIo.D2.Pagination.SortFieldAllowSet!
+static DcsvIo.D2.Pagination.SortFieldAllowSet.From(params System.ReadOnlySpan<DcsvIo.D2.Pagination.SortFieldSpec!> specs) -> DcsvIo.D2.Pagination.SortFieldAllowSet!
+static DcsvIo.D2.Pagination.SortFieldSpec.operator !=(DcsvIo.D2.Pagination.SortFieldSpec? left, DcsvIo.D2.Pagination.SortFieldSpec? right) -> bool
+static DcsvIo.D2.Pagination.SortFieldSpec.operator ==(DcsvIo.D2.Pagination.SortFieldSpec? left, DcsvIo.D2.Pagination.SortFieldSpec? right) -> bool
+static DcsvIo.D2.Pagination.SortSpec.TryParse(string? token, out DcsvIo.D2.Pagination.SortSpec? spec) -> bool
+static DcsvIo.D2.Pagination.SortSpec.operator !=(DcsvIo.D2.Pagination.SortSpec? left, DcsvIo.D2.Pagination.SortSpec? right) -> bool
+static DcsvIo.D2.Pagination.SortSpec.operator ==(DcsvIo.D2.Pagination.SortSpec? left, DcsvIo.D2.Pagination.SortSpec? right) -> bool

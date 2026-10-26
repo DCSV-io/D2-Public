@@ -10,6 +10,7 @@ import type { IDistributedCache } from '@dcsv-io/d2-caching-abstractions';
 import type { ILocalCache } from '@dcsv-io/d2-caching-abstractions';
 import type { ILogger } from '@dcsv-io/d2-logging';
 import type { ITieredCache } from '@dcsv-io/d2-caching-abstractions';
+import type { TokenBucketDecision } from '@dcsv-io/d2-caching-abstractions';
 
 // @public
 export const BACKPLANE_NOT_REGISTERED_MESSAGE: string;
@@ -19,6 +20,7 @@ export class DefaultTieredCache implements ITieredCache, AsyncDisposable {
     [Symbol.asyncDispose](): Promise<void>;
     constructor(deps: DefaultTieredCacheDeps);
     acquireLock(key: string, lockId: string, expirationMs: number, signal?: AbortSignal): Promise<D2Result<boolean>>;
+    consumeToken(key: string, refillTokens: number, refillIntervalMs: number, burst: number, cost?: number, signal?: AbortSignal): Promise<D2Result<TokenBucketDecision>>;
     dispose(): Promise<void>;
     exists(key: string, signal?: AbortSignal): Promise<D2Result<boolean>>;
     get<T>(key: string, signal?: AbortSignal): Promise<D2Result<T>>;
@@ -28,10 +30,12 @@ export class DefaultTieredCache implements ITieredCache, AsyncDisposable {
     releaseLock(key: string, lockId: string, signal?: AbortSignal): Promise<D2Result>;
     remove(key: string, signal?: AbortSignal): Promise<D2Result>;
     removeAndBroadcast(key: string, signal?: AbortSignal): Promise<D2Result>;
+    removeIfEqual<T>(key: string, expected: T, signal?: AbortSignal): Promise<D2Result<boolean>>;
     removeMany(keys: readonly string[], signal?: AbortSignal): Promise<D2Result>;
     removeManyAndBroadcast(keys: readonly string[], signal?: AbortSignal): Promise<D2Result>;
     set<T>(key: string, value: T, expirationMs?: number, signal?: AbortSignal): Promise<D2Result>;
     setAndBroadcast<T>(key: string, value: T, expirationMs?: number, signal?: AbortSignal): Promise<D2Result>;
+    setIfEqual<T>(key: string, expected: T, value: T, expirationMs?: number, signal?: AbortSignal): Promise<D2Result<boolean>>;
     setMany<T>(entries: ReadonlyMap<string, T>, expirationMs?: number, signal?: AbortSignal): Promise<D2Result>;
     setManyAndBroadcast<T>(entries: ReadonlyMap<string, T>, expirationMs?: number, signal?: AbortSignal): Promise<D2Result>;
     setNx<T>(key: string, value: T, expirationMs?: number, signal?: AbortSignal): Promise<D2Result<boolean>>;
@@ -54,6 +58,8 @@ export const TieredCacheOp: {
     readonly SET_MANY: "setMany";
     readonly REMOVE: "remove";
     readonly REMOVE_MANY: "removeMany";
+    readonly SET_IF_EQUAL: "setIfEqual";
+    readonly REMOVE_IF_EQUAL: "removeIfEqual";
 };
 
 // @public

@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Routing;
 
 /// <summary>
-/// ASP.NET Core endpoint-routing extension that maps the canonical D²
+/// ASP.NET Core endpoint-routing extension that maps the canonical D2
 /// <c>/health</c> + <c>/alive</c> health-check endpoints.
 /// </summary>
 public static class HealthEndpointsRouteBuilderExtensions
@@ -20,21 +20,21 @@ public static class HealthEndpointsRouteBuilderExtensions
     extension(IEndpointRouteBuilder endpoints)
     {
         /// <summary>
-        /// Maps two health-check endpoints:
+        /// Maps the health-check endpoints:
         /// <see cref="D2AspNetCoreConstants.HEALTH_ENDPOINT_PATH"/>
         /// (<c>/health</c>) returns the full health-check status (every
         /// registered check, regardless of tag) and
         /// <see cref="D2AspNetCoreConstants.ALIVE_ENDPOINT_PATH"/>
         /// (<c>/alive</c>) returns only checks tagged
         /// <see cref="D2AspNetCoreConstants.LIVE_HEALTH_TAG"/>
-        /// (<c>"live"</c>) — the kubernetes-conventional liveness split.
+        /// (<c>"live"</c>) - the kubernetes-conventional liveness split.
         /// </summary>
         /// <remarks>
         /// <para>
-        /// Per-service infrastructure layers add their own checks via
+        /// Checks added via
         /// <c>services.AddHealthChecks().AddDbContextCheck&lt;...&gt;()</c>
-        /// / <c>.AddRedis(...)</c> / etc. — those auto-flow into the
-        /// <c>/health</c> endpoint. Checks tagged
+        /// / <c>.AddRedis(...)</c> / etc. are included in the
+        /// <c>/health</c> endpoint without further wiring. Checks tagged
         /// <see cref="D2AspNetCoreConstants.LIVE_HEALTH_TAG"/> additionally
         /// participate in the <c>/alive</c> endpoint.
         /// </para>

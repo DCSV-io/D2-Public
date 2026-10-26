@@ -43,8 +43,8 @@ public sealed class D2SecurityHeadersOptionsTests
     [Fact]
     public void DEFAULT_STRICT_TRANSPORT_SECURITY_DoesNotIncludePreload()
     {
-        // Preload submission is a one-way door — defaulting to non-preload
-        // keeps the choice in each service's hands.
+        // Submitting a domain to the HSTS preload list is hard to reverse, so
+        // the default omits preload and each service decides whether to add it.
         D2SecurityHeadersOptions.DEFAULT_STRICT_TRANSPORT_SECURITY
             .Should().NotContain("preload");
     }
@@ -79,9 +79,9 @@ public sealed class D2SecurityHeadersOptionsTests
     [Fact]
     public void EmptyOverride_IsAllowed_RepresentsHeaderSuppression()
     {
-        // Empty string semantically means "suppress this header"; record
-        // construction must accept the value (validation happens at the
-        // middleware path, not at record-construction time).
+        // An empty string means "suppress this header". Record construction
+        // must accept the value, because validation happens in the middleware
+        // path and not when the record is constructed.
         var opts = new D2SecurityHeadersOptions { XFrameOptions = string.Empty };
 
         opts.XFrameOptions.Should().Be(string.Empty);

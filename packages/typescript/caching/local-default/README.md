@@ -6,7 +6,10 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 .NET mirror: `DcsvIo.D2.Caching.Local.Default`
 
-Node/BFF authors who need a per-process `ILocalCache` inject this default in-process implementation — an LRU map store with TTL tracking, process-scope atomic primitives (set-if-absent, counters, locks), aggregate OTel counters, and `@dcsv-io/d2-result` shapes on every operation. This README covers usage, construction, per-operation semantics, TTL and eviction rules, telemetry, and disposal.
+Node services and backend-for-frontend (BFF) code that need a per-process `ILocalCache` inject this default in-process
+implementation. It provides an LRU map store with TTL tracking, process-scope atomic primitives (set-if-absent,
+counters, locks), aggregate OpenTelemetry (OTel) counters, and `@dcsv-io/d2-result` results on every operation. This
+README covers usage, construction, per-operation semantics, TTL and eviction rules, telemetry, and disposal.
 
 ## Install
 
@@ -50,9 +53,9 @@ new DefaultLocalCache(
 ```
 
 `Partial<LocalCacheOptions>` is merged over `LOCAL_CACHE_DEFAULTS` via
-`createLocalCacheOptions` (both owned by `@dcsv-io/d2-caching-abstractions`). The
+`createLocalCacheOptions` (both defined in `@dcsv-io/d2-caching-abstractions`). The
 optional `clock` parameter defaults to `Date.now` and is the sole time source
-for value TTL, lock expiry, and remaining-TTL arithmetic — inject a fake in
+for value TTL, lock expiry, and remaining-TTL arithmetic - inject a fake in
 tests.
 
 Construction throws `RangeError` on structurally broken numbers (negative /
@@ -65,65 +68,71 @@ Construct once at the composition root and share the instance
 
 ## Public surface
 
-- **`DefaultLocalCache`** — implements `ILocalCache` (`ICacheBasic` +
- `ICacheAtomic`) and `Disposable`.
-- **`LOCAL_CACHE_METER_NAME`**, **`LOCAL_CACHE_METER_VERSION`**,
- **`LOCAL_CACHE_INSTRUMENTS`** — OpenTelemetry meter identity + instrument
- metadata SoT (used by counters and dual-runtime parity).
+- `DefaultLocalCache` - implements `ILocalCache` (`ICacheBasic` +
+  `ICacheAtomic`) and `Disposable`.
+- `LOCAL_CACHE_METER_NAME`, `LOCAL_CACHE_METER_VERSION`,
+  `LOCAL_CACHE_INSTRUMENTS` - OpenTelemetry meter identity + instrument
+  metadata source of truth (used by counters and dual-runtime parity).
 
-**Basic:** `get`, `getMany`, `exists`, `getTtl`, `set`, `setMany`, `remove`,
+Basic: `get`, `getMany`, `exists`, `getTtl`, `set`, `setMany`, `remove`,
 `removeMany` (each accepts optional trailing `signal?: AbortSignal`; durations
 use `*Ms` number parameters).
 
-**Atomic:** `setNx`, `increment`, `acquireLock`, `releaseLock`.
+Atomic: `setNx`, `setIfEqual`, `removeIfEqual`, `increment`, `consumeToken`, `acquireLock`, `releaseLock`.
 
 ## Result mapping
 
-| Op | Success | Failure / special |
-| -- | ------- | ----------------- |
-| `get` | `ok(value)` | miss/expired → `notFound`; falsey key → VF(`key`) |
-| `getMany` | all hit → `ok(map)`; partial → `someFound` (206) | none → `notFound`; falsey keys → VF(`keys`) |
-| `exists` | `ok(true\|false)` — never `notFound` | falsey key → VF(`key`) |
-| `getTtl` | live+TTL → `ok(ms)`; live no TTL → `ok(undefined)` | absent/expired → `notFound` |
-| `set` / `setMany` | `ok()` | falsey / bad `expirationMs` → VF |
-| `remove` / `removeMany` | `ok()` (idempotent) | falsey → VF |
-| `setNx` | wrote → `ok(true)`; exists → `ok(false)` with `data === false` | VF on bad input |
-| `increment` | `ok(newValue)` | non-counter existing → `conflict` (409); VF on bad input / overflow |
-| `acquireLock` | acquired → `ok(true)`; held → `ok(false)` | VF on falsey key/lockId or non-positive finite `expirationMs` |
-| `releaseLock` | always `ok()` (idempotent) | VF on falsey key/lockId |
+| Op                      | Success                                                                                                                                                                                                                                                        | Failure / special                                                               |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `get`                   | `ok(value)`                                                                                                                                                                                                                                                    | miss/expired -> `notFound`; falsey key -> VF(`key`)                             |
+| `getMany`               | all hit -> `ok(map)`; partial -> `someFound` (206)                                                                                                                                                                                                             | none -> `notFound`; falsey keys -> VF(`keys`)                                   |
+| `exists`                | `ok(true\|false)` - never `notFound`                                                                                                                                                                                                                           | falsey key -> VF(`key`)                                                         |
+| `getTtl`                | live+TTL -> `ok(ms)`; live no TTL -> `ok(undefined)`                                                                                                                                                                                                           | absent/expired -> `notFound`                                                    |
+| `set` / `setMany`       | `ok()`                                                                                                                                                                                                                                                         | falsey / bad `expirationMs` -> VF                                               |
+| `remove` / `removeMany` | `ok()` (idempotent)                                                                                                                                                                                                                                            | falsey -> VF                                                                    |
+| `setNx`                 | wrote -> `ok(true)`; exists -> `ok(false)` with `data === false`                                                                                                                                                                                               | VF on bad input                                                                 |
+| `setIfEqual`            | stored value equalled `expected` and was replaced -> `ok(true)`; it differed, or the key was absent -> `ok(false)` with nothing written. The comparison is structural over the JSON form, because the backing `Map` holds values with no equality of their own | VF on bad input                                                                 |
+| `removeIfEqual`         | stored value equalled `expected` and the key was removed -> `ok(true)`; it differed, or the key was absent -> `ok(false)` with nothing removed. Same structural comparison as `setIfEqual`                                                                     | VF on bad input                                                                 |
+| `increment`             | `ok(newValue)`                                                                                                                                                                                                                                                 | non-counter existing -> `conflict` (409); VF on bad input / overflow            |
+| `consumeToken`          | bucket has the cost -> `ok(admitted, zero wait)`; short -> `ok(refused, the wait until it has the cost)`. The refill is by elapsed time on the injected clock                                                                                                  | key holds a value that is not bucket state -> `conflict` (409); VF on bad input |
+| `acquireLock`           | acquired -> `ok(true)`; held -> `ok(false)`                                                                                                                                                                                                                    | VF on falsey key/lockId or non-positive finite `expirationMs`                   |
+| `releaseLock`           | always `ok()` (idempotent)                                                                                                                                                                                                                                     | VF on falsey key/lockId                                                         |
 
-Validation failures name the TS parameter (`expirationMs`, `amount`, `key`,
+Token-bucket clock rollback preserves the last accrual timestamp and fractional remainder.
+Recovery to that timestamp does not refill the bucket again.
+
+Validation failures identify the TypeScript parameter (`expirationMs`, `amount`, `key`,
 `keys`, `entries`, `lockId`) per the `InputFailures` call-site-name contract.
 
 ## Validation (JS number guards)
 
 Construction (`RangeError`, not `D2Result`):
 
-- `maxEntries` — non-negative safe integer (`Number.isSafeInteger` and `>= 0`);
- rejects `NaN`, ±`Infinity`, non-integers, and values outside safe-integer range.
-- `defaultExpirationMs` — finite number (`Number.isFinite`); `Number.MAX_VALUE`
- is accepted; `<= 0` means “no default TTL” (not a construction error).
+- `maxEntries` - non-negative safe integer (`Number.isSafeInteger` and `>= 0`);
+  rejects `NaN`, +/-`Infinity`, non-integers, and values outside safe-integer range.
+- `defaultExpirationMs` - finite number (`Number.isFinite`); `Number.MAX_VALUE`
+  is accepted; `<= 0` means "no default TTL" (not a construction error).
 
 Per-call (validationFailed via `InputFailures`):
 
 - Falsey `key` / element of `keys` / map key in `entries` / `lockId`.
 - Optional `expirationMs` when present: must be finite and `> 0`
- (`NaN` / ±`Infinity` / `<= 0` → field `expirationMs`).
+  (`NaN` / +/-`Infinity` / `<= 0` -> field `expirationMs`).
 - `increment` `amount` when present: must be a safe integer
- (`NaN` / ±`Infinity` / non-integer / non-safe → field `amount`).
+  (`NaN` / +/-`Infinity` / non-integer / non-safe -> field `amount`).
 - `increment` after computing `next = current + amount`: if
- `!Number.isSafeInteger(next)` → field `amount` **before** write (store
- unchanged). Existing non-safe-integer / non-number values → `conflict`.
+  `!Number.isSafeInteger(next)` -> field `amount` before the write (store
+  unchanged). Existing non-safe-integer / non-number values -> `conflict`.
 - `acquireLock` `expirationMs`: finite and `> 0` (required).
 
 ## TTL semantics
 
-- Omitted `expirationMs` on write → `defaultExpirationMs`.
+- Omitted `expirationMs` on write -> `defaultExpirationMs`.
 - `defaultExpirationMs <= 0` means entries store without expiry.
 - Explicit `expirationMs` must be a positive finite number (zero / negative /
- non-finite are validation failures, never "no TTL").
+  non-finite are validation failures, never "no TTL").
 - `increment` / `setNx` apply TTL only on create; existing keys preserve TTL
- (`increment` ignores `expirationMs` on the existing path).
+  (`increment` ignores `expirationMs` on the existing path).
 - `getTtl` has three outcomes: `notFound` / `ok(ms)` / `ok(undefined)`.
 - Expiry is checked lazily on access with the injected clock (strict `<=`).
 
@@ -132,48 +141,48 @@ Per-call (validationFailed via `InputFailures`):
 `maxEntries` is a literal entry-count cap. Every access moves the touched entry
 to the most-recently-used position; when a write pushes the count past
 `maxEntries`, the least-recently-used entries are evicted synchronously in the
-same call, so the count never exceeds the cap. The .NET twin delegates to
+same call, so the count never exceeds the cap. The .NET equivalent delegates to
 IMemoryCache (SizeLimit + 5% async compaction), where eviction lags the
 overflowing write; this implementation evicts deterministically instead. The
 evictions counter counts capacity evictions and expired-entries-detected-on-access
 only - explicit removes and overwrites are not evictions.
 
-Values and expirations live in one record, so the .NET-documented transient
-no-TTL `getTtl` report after a capacity eviction cannot occur here.
+Values and expirations are stored in one record, so the transient no-TTL `getTtl`
+result after a capacity eviction that the .NET implementation documents cannot occur here.
 
 ## Atomicity model
 
-Atomic primitives are process-scope only (cluster coordination is
-`IDistributedCache` territory). Every operation body is synchronous (no
-internal awaits), which is what makes check-then-write windows atomic on the
-event loop. Locks live in a store separate from values; re-acquiring a held
+Atomic primitives are process-scope only (cluster coordination is the job of
+`IDistributedCache`). Every operation body is synchronous (no
+internal awaits), so check-then-write windows are atomic on the
+event loop. Locks are kept in a store separate from values; re-acquiring a held
 lock returns `ok(false)` even for the same `lockId`; release with a wrong id is
 a no-op.
 
 The lock store is not capped by `maxEntries` and has no sweeper: an expired lock
 entry lingers until it is reacquired, released by its holder, or the cache is
-disposed (the .NET twin behaves the same way).
+disposed (the .NET equivalent behaves the same way).
 
 ## Telemetry
 
-Meter `"DcsvIo.D2.Caching.Local"` v`1.0.0` with five aggregate counters (no tags,
-no spans, no logs — per-call instrumentation would dominate sub-microsecond
-work):
+Meter `"DcsvIo.D2.Caching.Local"` v`1.0.0` with these aggregate counters (no tags,
+no spans, no logs - per-call instrumentation would take longer than the sub-microsecond
+work it measures):
 
-| Name | Unit | Description | When |
-| ---- | ---- | ----------- | ---- |
-| `d2.cache.local.hits` | `{hit}` | Local cache hits. | `get` / `getMany` hits |
-| `d2.cache.local.misses` | `{miss}` | Local cache misses. | `get` / `getMany` misses |
-| `d2.cache.local.sets` | `{write}` | Local cache writes. | `set` / `setMany` / successful `setNx` / new-key `increment` |
-| `d2.cache.local.removes` | `{removal}` | Local cache removals (explicit). | every `remove` / `removeMany` key (incl. absent) |
-| `d2.cache.local.evictions` | `{eviction}` | Entries evicted by capacity / expiration. | capacity + expired-on-access only |
+| Name                       | Unit         | Description                               | When                                                         |
+| -------------------------- | ------------ | ----------------------------------------- | ------------------------------------------------------------ |
+| `d2.cache.local.hits`      | `{hit}`      | Local cache hits.                         | `get` / `getMany` hits                                       |
+| `d2.cache.local.misses`    | `{miss}`     | Local cache misses.                       | `get` / `getMany` misses                                     |
+| `d2.cache.local.sets`      | `{write}`    | Local cache writes.                       | `set` / `setMany` / successful `setNx` / new-key `increment` |
+| `d2.cache.local.removes`   | `{removal}`  | Local cache removals (explicit).          | every `remove` / `removeMany` key (incl. absent)             |
+| `d2.cache.local.evictions` | `{eviction}` | Entries evicted by capacity / expiration. | capacity + expired-on-access only                            |
 
-`increment` on an existing counter does **not** increment `sets`.
+`increment` on an existing counter does not increment `sets`.
 
 Counters bind to the global OpenTelemetry MeterProvider at construction time.
 Construct caches after telemetry setup (setupTelemetry from @dcsv-io/d2-telemetry) or
 the counters bind to the no-op meter for the life of the instance. With no
-MeterProvider registered every operation still works - metric adds are silent
+MeterProvider registered every operation still works - metric adds are
 no-ops.
 
 ## Disposal
@@ -188,35 +197,35 @@ D2Result. The disposal check runs before input validation.
 
 `signal` parameters are accepted for interface parity and ignored: every
 operation completes synchronously in process, so there is no cancellation window
-(the .NET twin ignores CancellationToken the same way).
+(the .NET equivalent ignores CancellationToken the same way).
 
 ## Divergences from the .NET implementation
 
 - Synchronous LRU vs async IMemoryCache compaction (see Capacity + eviction).
 - Single-record TTL (no transient no-TTL `getTtl` after capacity eviction).
-- Post-dispose exception type — every operation, including `acquireLock` /
- `releaseLock`, throws after `dispose()` (matching .NET fail-closed dispose on
- all public ops including locks). TS throws a plain `Error` with a pinned
- message; .NET throws `ObjectDisposedException`.
+- Post-dispose exception type - every operation, including `acquireLock` /
+  `releaseLock`, throws after `dispose()` (matching .NET fail-closed dispose on
+  all public operations including locks). TypeScript throws a plain `Error` with a pinned
+  message; .NET throws `ObjectDisposedException`.
 - Validation additionally rejects non-finite `expirationMs` / non-safe-integer
- `amount`, and refuses an `increment` whose computed next value is outside
- `Number.MAX_SAFE_INTEGER` (field `amount`; write skipped). The `number` type
- admits values `TimeSpan` / `long` structurally cannot.
+  `amount`, and rejects an `increment` whose computed next value is outside
+  `Number.MAX_SAFE_INTEGER` (field `amount`; write skipped). The `number` type
+  admits values `TimeSpan` / `long` structurally cannot.
 - Counter values are safe-integer JS numbers (port-documented bound); precision
- beyond that range is not supported.
+  beyond that range is not supported.
 - `get<T>` type parameters are caller-asserted and erased at runtime (the .NET
- generic cast throws on a wrong-type read; TS cannot).
+  generic cast throws on a wrong-type read; TypeScript cannot).
 
 ## Dependencies
 
-- `@dcsv-io/d2-caching-abstractions` — ports + options + `InputFailures`
-- `@dcsv-io/d2-result` — result factories
-- `@dcsv-io/d2-utilities` — `falsey`
-- `@opentelemetry/api` — counters
+- `@dcsv-io/d2-caching-abstractions` - ports + options + `InputFailures`
+- `@dcsv-io/d2-result` - result factories
+- `@dcsv-io/d2-utilities` - `falsey`
+- `@opentelemetry/api` - counters
 
 ## Sister packages
 
-- `@dcsv-io/d2-caching-abstractions` — ports + result mapping + key convention / PII guidance
-- `@dcsv-io/d2-caching-distributed-redis` — Redis + backplane
-- `@dcsv-io/d2-caching-tiered` — L1+L2 composition
-- .NET twin: `DcsvIo.D2.Caching.Local.Default`
+- `@dcsv-io/d2-caching-abstractions` - ports + result mapping + key convention / PII guidance
+- `@dcsv-io/d2-caching-distributed-redis` - Redis + backplane
+- `@dcsv-io/d2-caching-tiered` - L1+L2 composition
+- .NET equivalent: `DcsvIo.D2.Caching.Local.Default`

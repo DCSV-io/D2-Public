@@ -15,14 +15,12 @@ using System.Text;
 internal static class EncryptionFrame
 {
     /// <summary>
-    /// GCM nonce length in bytes. Used by <see cref="PayloadCrypto"/> when
-    /// allocating the nonce span.
+    /// GCM nonce length in bytes.
     /// </summary>
     internal const int NONCE_SIZE = 12;
 
     /// <summary>
-    /// GCM authentication-tag length in bytes. Used by <see cref="PayloadCrypto"/>
-    /// when sizing the ciphertext+tag buffer.
+    /// GCM authentication-tag length in bytes.
     /// </summary>
     internal const int TAG_SIZE = 16;
 
@@ -32,7 +30,7 @@ internal static class EncryptionFrame
 
     /// <summary>
     /// Smallest possible frame: 1-byte version + 1-byte kid_length (validated
-    /// to ≥ 1 separately) + 12-byte nonce + 16-byte tag + 0-byte plaintext.
+    /// to >= 1 separately) + 12-byte nonce + 16-byte tag + 0-byte plaintext.
     /// </summary>
     private const int _MIN_FRAME_SIZE =
         _VERSION_SIZE + _KID_LENGTH_PREFIX_SIZE + NONCE_SIZE + TAG_SIZE;
@@ -118,7 +116,7 @@ internal static class EncryptionFrame
         {
             throw new FrameMalformedException(
                 $"Frame too short for declared kid_length={kidLength}: " +
-                $"have {framed.Length}, need ≥ {headerSize + TAG_SIZE}.");
+                $"have {framed.Length}, need >= {headerSize + TAG_SIZE}.");
         }
 
         string kid;

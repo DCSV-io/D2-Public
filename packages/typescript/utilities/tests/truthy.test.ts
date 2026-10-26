@@ -16,7 +16,7 @@ describe("truthy", () => {
     ["non-empty array", [1], true],
     ["empty Set", new Set(), false],
     ["non-empty Map", new Map([["k", 1]]), true],
-  ])("%s → %s", (_label, input, expected) => {
+  ])("%s -> %s", (_label, input, expected) => {
     expect(truthy(input)).toBe(expected);
   });
 });

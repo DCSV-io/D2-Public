@@ -17,9 +17,9 @@ using Microsoft.Extensions.Configuration;
 using Xunit;
 
 /// <summary>
-/// Unit tests for <see cref="Translator"/>. Builds a per-test temp catalog
-/// directory (no shared state between tests, no reliance on the production
-/// contracts/messages output).
+/// Unit tests for <see cref="Translator"/>. Each test builds its own temp
+/// catalog directory, so tests share no state and do not read the production
+/// contracts/messages output.
 /// </summary>
 public sealed class TranslatorTests
 {
@@ -66,9 +66,9 @@ public sealed class TranslatorTests
     [Fact]
     public void Ctor_EmptyMessagesDirectory_Succeeds()
     {
-        // Adversarial: empty dir is valid (no catalogs loaded) — every T() call
-        // falls through to raw-key passthrough. Useful for tests that don't care
-        // about translation content.
+        // An empty directory is valid. No catalog is loaded, so every T()
+        // call returns the raw key. A test that does not care about
+        // translation content can use it.
         using var dir = new TempCatalog();
 
         var translator = new Translator(NewSupportedLocales(), dir.Path);
@@ -90,7 +90,7 @@ public sealed class TranslatorTests
     }
 
     // ----------------------------------------------------------------------
-    // T(locale, message) — basic lookup
+    // T(locale, message) - basic lookup
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -107,8 +107,9 @@ public sealed class TranslatorTests
     [Fact]
     public void T_UnknownKey_ReturnsRawKeyAsFallback()
     {
-        // Documented contract: T NEVER throws on missing key. Raw key string
-        // is dev-readable and serves as a useful debugging signal.
+        // Documented contract: T does not throw on a missing key. It returns
+        // the raw key string, which a developer can read and use as a
+        // debugging signal.
         using var dir = new TempCatalog();
         dir.Write("en-US.json", new() { ["common_errors_NOT_FOUND"] = "Not found." });
 
@@ -128,7 +129,7 @@ public sealed class TranslatorTests
         var sl = NewSupportedLocales("en-US", "fr-FR");
         var translator = new Translator(sl, dir.Path);
 
-        // fr-FR doesn't have NOT_FOUND → falls back to en-US.
+        // fr-FR has no NOT_FOUND entry, so the lookup falls back to en-US.
         translator.T("fr-FR", TK.Common.Errors.NOT_FOUND).Should().Be("Not found.");
     }
 
@@ -142,7 +143,7 @@ public sealed class TranslatorTests
         var sl = NewSupportedLocales("en-US", "fr-FR");
         var translator = new Translator(sl, dir.Path);
 
-        // "fr" → resolves to "fr-FR" via LanguageDefaults.
+        // "fr" resolves to "fr-FR" through LanguageDefaults.
         translator.T("fr", TK.Common.Errors.NOT_FOUND).Should().Be("FR: Pas trouvé.");
     }
 
@@ -154,7 +155,8 @@ public sealed class TranslatorTests
 
         var translator = new Translator(NewSupportedLocales(), dir.Path);
 
-        // zh-CN unknown → SupportedLocales.Resolve falls back to en-US.
+        // zh-CN is not a supported locale, so SupportedLocales.Resolve
+        // returns en-US.
         translator.T("zh-CN", TK.Common.Errors.NOT_FOUND).Should().Be("Not found.");
     }
 
@@ -244,8 +246,8 @@ public sealed class TranslatorTests
     [Fact]
     public void T_UnmatchedPlaceholder_LeftLiteral()
     {
-        // Adversarial: a template referencing {missing} when no such param is
-        // bound leaves the placeholder verbatim. Translator does NOT throw.
+        // A template that references {missing} when no such parameter is bound
+        // keeps the placeholder as written. Translator does not throw.
         using var dir = new TempCatalog();
         dir.Write(
             "en-US.json",
@@ -274,8 +276,8 @@ public sealed class TranslatorTests
     [Fact]
     public void T_ParamValueContainsBraces_NoRecursiveInterpolation()
     {
-        // Adversarial: substitution is single-pass. A param value that itself
-        // looks like a placeholder is inserted verbatim — no recursive expansion.
+        // Substitution is single-pass. A parameter value that looks like a
+        // placeholder is inserted as written and is not expanded again.
         using var dir = new TempCatalog();
         dir.Write("en-US.json", new() { ["common_errors_NOT_FOUND"] = "{x}" });
 
@@ -295,7 +297,8 @@ public sealed class TranslatorTests
 
         var translator = new Translator(NewSupportedLocales(), dir.Path);
 
-        // No With() — Parameters is null. Template returned with placeholder intact.
+        // No With() call, so Parameters is null and the template is returned
+        // with its placeholder unchanged.
         translator.T("en-US", TK.Common.Errors.NOT_FOUND).Should().Be("Not found: {x}");
     }
 
@@ -365,7 +368,7 @@ public sealed class TranslatorTests
     [Fact]
     public void HasKey_SchemaKey_NotConsideredAKey()
     {
-        // $schema is stripped from every loaded catalog at load time.
+        // The loader strips the $schema key from every catalog it loads.
         using var dir = new TempCatalog();
         dir.Write(
             "en-US.json",
@@ -382,15 +385,15 @@ public sealed class TranslatorTests
     }
 
     // ----------------------------------------------------------------------
-    // Concurrency — Translator is registered as a process-wide singleton
+    // Concurrency - Translator is registered as a process-wide singleton
     // ----------------------------------------------------------------------
 
     [Fact]
     public async Task T_ConcurrentCallers_ProduceConsistentResults()
     {
-        // Adversarial: 100 concurrent callers across 2 locales × 2 keys.
-        // Verifies the in-memory dictionaries are read-only after construction
-        // and the regex interpolator is thread-safe.
+        // 100 concurrent callers across 2 locales and 2 keys. The test checks
+        // that the in-memory dictionaries are read-only after construction
+        // and that the regex interpolator is thread-safe.
         using var dir = new TempCatalog();
         dir.Write(
             "en-US.json",
@@ -459,8 +462,8 @@ public sealed class TranslatorTests
     }
 
     /// <summary>
-    /// Disposable per-test catalog directory. Lives under the system temp dir,
-    /// auto-deleted on dispose.
+    /// Catalog directory for one test. It is created under the system temp
+    /// directory and deleted on dispose.
     /// </summary>
     [MustDisposeResource]
     private sealed class TempCatalog : IDisposable
@@ -493,7 +496,8 @@ public sealed class TranslatorTests
             }
             catch (IOException)
             {
-                // file lock during parallel test cleanup — best-effort cleanup
+                // A file lock during parallel test cleanup can block the delete.
+                // The cleanup is best-effort.
             }
         }
     }

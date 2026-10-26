@@ -11,10 +11,10 @@ using DcsvIo.D2.Encryption;
 using Xunit;
 
 /// <summary>
-/// Spec-runtime parity gate: asserts that the runtime
-/// <see cref="PayloadCryptoKeyring"/> constants agree with the spec-derived
+/// Spec-runtime parity gate: asserts that the minimum and maximum kid-length
+/// constants of <see cref="PayloadCryptoKeyring"/> agree with the spec-derived
 /// <see cref="EncryptionFrameLayout"/> constants, so the keyring's validation
-/// cannot silently diverge from the frame format the TS-side decoder enforces.
+/// cannot silently diverge from the frame format the spec defines.
 /// </summary>
 public sealed class EncryptionFrameLayoutParityTests
 {

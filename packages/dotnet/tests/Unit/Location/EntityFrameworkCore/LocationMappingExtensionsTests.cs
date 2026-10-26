@@ -19,9 +19,10 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Xunit;
 
 /// <summary>
-/// Unit tests for <see cref="LocationMappingExtensions"/>. Exercises every public helper
-/// (<c>MapStreetAddress</c>, <c>MapAdminLocation</c>, <c>MapCoordinates</c>) via
-/// <c>ModelBuilder</c> + built-<c>IModel</c> introspection (model-build-only; no live DB).
+/// Unit tests for <see cref="LocationMappingExtensions"/>. The tests exercise every public helper
+/// (<c>MapStreetAddress</c>, <c>MapAdminLocation</c>, <c>MapCoordinates</c>) through
+/// <c>ModelBuilder</c> and inspection of the built <c>IModel</c>. They build the model only and
+/// use no live database.
 /// </summary>
 [Trait("Category", "Unit")]
 public sealed class LocationMappingExtensionsTests
@@ -129,7 +130,7 @@ public sealed class LocationMappingExtensionsTests
             ctx.Model, "Location", nameof(AdminLocation.SubdivisionIso31662Code));
         prop.GetMaxLength().Should().Be(LocationVoDecorator.SubdivisionCodeMax);
         prop.GetValueConverter().Should().NotBeNull(
-            because: "SubdivisionCode should have a struct↔string converter");
+            because: "SubdivisionCode should have a struct<->string converter");
         AnonRule(prop)!.Kind.Should().Be(AnonymizeKind.SetNull);
     }
 
@@ -139,7 +140,7 @@ public sealed class LocationMappingExtensionsTests
         using var ctx = AdminContext.Build();
         var prop = ComplexProp<AdminEntity>(
             ctx.Model, "Location", nameof(AdminLocation.CountryIso31661Alpha2Code));
-        AnonRule(prop).Should().BeNull(because: "Country is kept on erasure — no annotation");
+        AnonRule(prop).Should().BeNull(because: "Country is kept on erasure - no annotation");
     }
 
     [Fact]
@@ -150,9 +151,10 @@ public sealed class LocationMappingExtensionsTests
             ctx.Model, "Location", nameof(AdminLocation.CountryIso31661Alpha2Code));
 
         // HasConversion<string>() on the CountryCode enum resolves the built-in
-        // EnumToStringConverter via the type mapping (so GetValueConverter() is null —
-        // that surface reports only CUSTOM converters). Assert the provider type instead:
-        // the column is a string, and the 2-char alpha-2 cap is applied.
+        // EnumToStringConverter through the type mapping, so GetValueConverter() is null,
+        // because that method reports only custom converters. The test asserts the
+        // provider type instead: the column is a string, and the 2-character alpha-2 cap
+        // is applied.
         prop.GetProviderClrType().Should().Be<string>(
             because: "CountryCode enum maps to an alpha-2 string column");
         prop.GetMaxLength().Should().Be(LocationVoDecorator.CountryCodeMax);
@@ -209,7 +211,7 @@ public sealed class LocationMappingExtensionsTests
         using var ctx = CoordinatesContext.Build();
         var prop = ComplexProp<CoordinatesEntity>(
             ctx.Model, "Coords", nameof(Coordinates.Latitude));
-        prop.GetMaxLength().Should().BeNull(because: "Latitude is a numeric column — no length");
+        prop.GetMaxLength().Should().BeNull(because: "Latitude is a numeric column - no length");
         var rule = AnonRule(prop);
         rule.Should().NotBeNull();
         rule.Kind.Should().Be(AnonymizeKind.Constant);
@@ -222,7 +224,7 @@ public sealed class LocationMappingExtensionsTests
         using var ctx = CoordinatesContext.Build();
         var prop = ComplexProp<CoordinatesEntity>(
             ctx.Model, "Coords", nameof(Coordinates.Longitude));
-        prop.GetMaxLength().Should().BeNull(because: "Longitude is a numeric column — no length");
+        prop.GetMaxLength().Should().BeNull(because: "Longitude is a numeric column - no length");
         var rule = AnonRule(prop);
         rule.Should().NotBeNull();
         rule.Kind.Should().Be(AnonymizeKind.Constant);
@@ -255,7 +257,7 @@ public sealed class LocationMappingExtensionsTests
         using var ctx = CoordinatesContext.Build();
         var prop = ComplexProp<CoordinatesEntity>(
             ctx.Model, "Coords", nameof(Coordinates.AccuracyMeters));
-        prop.GetMaxLength().Should().BeNull(because: "AccuracyMeters is numeric — no length");
+        prop.GetMaxLength().Should().BeNull(because: "AccuracyMeters is numeric - no length");
         AnonRule(prop)!.Kind.Should().Be(AnonymizeKind.SetNull);
     }
 
@@ -284,8 +286,9 @@ public sealed class LocationMappingExtensionsTests
     [Fact]
     public void MapCoordinates_GeohashMax_and_PlusCodeMax_match_VO_encoder_caps()
     {
-        // The decorator's named caps must match the Coordinates VO's encoder-intrinsic
-        // geohash-10 / plus-code-13 lengths (single-source-of-truth guard against drift).
+        // The decorator's named caps must equal the lengths that the Coordinates VO's
+        // encoders produce, 10 for the geohash and 13 for the plus code. The test
+        // fails if the caps and the encoders differ.
         var coords = Coordinates.Create(40.7128, -74.0060).Data!;
         LocationVoDecorator.GeohashMax.Should().Be(coords.Geohash.Length);
         LocationVoDecorator.PlusCodeMax.Should().Be(coords.PlusCode.Length);
@@ -372,7 +375,7 @@ public sealed class LocationMappingExtensionsTests
     }
 
     // =========================================================================
-    // DbContexts — model-build-only (connection never opened)
+    // DbContexts - model-build-only (connection never opened)
     // =========================================================================
 
     private sealed class StreetContext : DbContext

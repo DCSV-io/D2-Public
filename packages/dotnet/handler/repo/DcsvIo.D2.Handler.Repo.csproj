@@ -7,11 +7,11 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   </PropertyGroup>
 
   <!--
-    EF-flavored handler base. Sits on top of DcsvIo.D2.Handler's BaseHandler
-    and converts captured exceptions into typed D2Result failures via an
-    injected IDbExceptionClassifier. Provider-specific knowledge lives in
-    sibling packages (e.g. DcsvIo.D2.Handler.Repo.Postgres) — this csproj
-    intentionally has zero provider deps.
+    Handler base for Entity Framework Core. It builds on BaseHandler from
+    DcsvIo.D2.Handler and converts captured exceptions into typed D2Result
+    failures through an injected IDbExceptionClassifier. Provider-specific
+    knowledge is in sibling packages (e.g. DcsvIo.D2.Handler.Repo.Postgres),
+    and this csproj intentionally has no provider dependencies.
   -->
 
   <ItemGroup>
@@ -31,9 +31,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.2</Version>
+    <Version>0.2.0</Version>
     <PackageId>DcsvIo.D2.Handler.Repo</PackageId>
-    <Description>EF-flavored BaseRepoHandler for D2 — converts database exceptions captured during execution into typed D2Result failures.</Description>
+    <Description>EF-flavored BaseRepoHandler for D2 - converts database exceptions captured during execution into typed D2Result failures.</Description>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

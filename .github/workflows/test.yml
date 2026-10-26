@@ -3,7 +3,7 @@
 # -----------------------------------------------------------------------
 #
 # CI for this repository (D2 open libraries).
-# Paths are relative to the repository root (packages/…, contracts/…).
+# Paths are relative to the repository root (packages/..., contracts/...).
 
 name: Test
 
@@ -53,7 +53,7 @@ jobs:
           -- --filter-namespace "DcsvIo.D2.Tests.Integration*"
 
   contract-fixtures:
-    name: Contract fixture emission (.NET → fixtures)
+    name: Contract fixture emission (.NET -> fixtures)
     runs-on: ubuntu-latest
     needs: [public-build]
     steps:
@@ -70,7 +70,7 @@ jobs:
     name: TS Shared Unit Tests
     runs-on: ubuntu-latest
     env:
-      # Public-clone mode: skip optional product-home parity jobs when absent.
+      # Public-clone mode: skip the optional parity jobs whose inputs are absent.
       PUBLIC_ONLY: "1"
     steps:
       - uses: actions/checkout@v4
@@ -78,8 +78,9 @@ jobs:
         with:
           node-version: "24"
       - uses: pnpm/action-setup@v4
-      # Factory (ts-codegen) is monorepo-only — not exported. Packages skip prebuild
-      # regen when it is absent and build from committed *.g.ts.
+      # The code generator is not part of this repository. Packages skip the
+      # prebuild regeneration when it is absent and build from the committed
+      # *.g.ts files.
       - run: pnpm install --fail-if-no-match --filter "./packages/typescript/**..."
       - run: pnpm --fail-if-no-match --filter "./packages/typescript/**" -r build
       - run: pnpm --fail-if-no-match --filter "./packages/typescript/**" -r test
@@ -101,9 +102,10 @@ jobs:
         run: >
           dotnet pack packages/dotnet/result/core/DcsvIo.D2.Result.csproj
           --configuration Release --output /tmp/pack-smoke
-      # Mirror private pack-smoke: install subtree, build workspace deps first
-      # (`^...`), then the package itself. Building only @dcsv-io/d2-result leaves
-      # @dcsv-io/d2-error-category (and siblings) unbuilt → TS2307 on public CI.
+      # Install the subtree, build the workspace dependencies first (`^...`),
+      # then the package itself. Building only @dcsv-io/d2-result leaves
+      # @dcsv-io/d2-error-category and its siblings unbuilt, which fails with
+      # TS2307 on public CI.
       - name: pnpm install (@dcsv-io/d2-result subtree)
         run: pnpm install --fail-if-no-match --filter "@dcsv-io/d2-result..."
       - name: build @dcsv-io/d2-result workspace dependencies
@@ -118,12 +120,37 @@ jobs:
           ls /tmp/pack-smoke/DcsvIo.D2.Result.*.nupkg
           ls /tmp/pack-smoke/dcsv-io-d2-result-*.tgz
 
+  messaging-pack-smoke:
+    name: Messaging packed consumer (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+      - name: Install messaging package and dependencies
+        run: pnpm install --ignore-scripts --filter "@dcsv-io/d2-messaging-rabbitmq..."
+      - name: Build messaging package closure
+        run: pnpm --filter "@dcsv-io/d2-messaging-rabbitmq..." -r --no-bail build
+      - name: Verify actual D2 archive and clean consumer
+        run: pnpm --filter @dcsv-io/d2-messaging-rabbitmq test -- tests/pack-patched.test.ts
+
   proto-checks:
     name: Proto checks (buf lint + format)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: bufbuild/buf-setup-action@v1.50.0
+      - uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
+        with:
+          version: "1.65.0"
       - run: buf lint contracts/protos
         working-directory: .
       - run: buf format --diff --exit-code contracts/protos

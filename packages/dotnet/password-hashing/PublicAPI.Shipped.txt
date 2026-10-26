@@ -1,0 +1,40 @@
+#nullable enable
+DcsvIo.D2.PasswordHashing.Argon2idPhcPasswordHasher
+DcsvIo.D2.PasswordHashing.Argon2idPhcPasswordHasher.Argon2idPhcPasswordHasher() -> void
+DcsvIo.D2.PasswordHashing.Argon2idPhcPasswordHasher.Argon2idPhcPasswordHasher(DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions! options) -> void
+DcsvIo.D2.PasswordHashing.Argon2idPhcPasswordHasher.Hash(string? password) -> DcsvIo.D2.Result.D2Result<string!>!
+DcsvIo.D2.PasswordHashing.Argon2idPhcPasswordHasher.NeedsRehash(string? phcHash) -> bool
+DcsvIo.D2.PasswordHashing.Argon2idPhcPasswordHasher.Verify(string? password, string? phcHash) -> DcsvIo.D2.Result.D2Result<bool>!
+DcsvIo.D2.PasswordHashing.IPhcPasswordHasher
+DcsvIo.D2.PasswordHashing.IPhcPasswordHasher.Hash(string? password) -> DcsvIo.D2.Result.D2Result<string!>!
+DcsvIo.D2.PasswordHashing.IPhcPasswordHasher.NeedsRehash(string? phcHash) -> bool
+DcsvIo.D2.PasswordHashing.IPhcPasswordHasher.Verify(string? password, string? phcHash) -> DcsvIo.D2.Result.D2Result<bool>!
+DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions
+DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.HashLength.get -> int
+DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.HashLength.set -> void
+DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.Iterations.get -> int
+DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.Iterations.set -> void
+DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.MemoryKib.get -> int
+DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.MemoryKib.set -> void
+DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.Parallelism.get -> int
+DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.Parallelism.set -> void
+DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.PhcPasswordHasherOptions() -> void
+DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.SaltLength.get -> int
+DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.SaltLength.set -> void
+const DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.DEFAULT_HASH_LENGTH = 32 -> int
+const DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.DEFAULT_ITERATIONS = 3 -> int
+const DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.DEFAULT_MEMORY_KIB = 65536 -> int
+const DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.DEFAULT_PARALLELISM = 1 -> int
+const DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.DEFAULT_SALT_LENGTH = 16 -> int
+const DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.MAX_ACCEPTED_HASH_LENGTH = 64 -> int
+const DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.MAX_ACCEPTED_ITERATIONS = 16 -> int
+const DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.MAX_ACCEPTED_MEMORY_KIB = 1048576 -> int
+const DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.MAX_ACCEPTED_PARALLELISM = 16 -> int
+const DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.MAX_ACCEPTED_SALT_LENGTH = 64 -> int
+const DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.MAX_PASSWORD_LENGTH = 128 -> int
+const DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.MIN_ACCEPTED_HASH_LENGTH = 16 -> int
+const DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.MIN_ACCEPTED_ITERATIONS = 1 -> int
+const DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.MIN_ACCEPTED_MEMORY_KIB = 8 -> int
+const DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.MIN_ACCEPTED_MEMORY_KIB_PER_LANE = 8 -> int
+const DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.MIN_ACCEPTED_PARALLELISM = 1 -> int
+const DcsvIo.D2.PasswordHashing.PhcPasswordHasherOptions.MIN_ACCEPTED_SALT_LENGTH = 8 -> int

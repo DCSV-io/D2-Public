@@ -8,11 +8,10 @@ namespace DcsvIo.D2.Auth.Audiences.SourceGen;
 
 /// <summary>
 /// String identifiers for the diagnostics emitted by <see cref="AudiencesGenerator"/>.
-/// Kept in a separate class from <see cref="DiagnosticDescriptors"/> so
-/// non-Roslyn-host consumers (e.g. unit tests of the pure-logic
-/// <see cref="AudiencesEmitter"/> / <see cref="AudienceSpecLoader"/>) can reference
-/// the IDs without dragging in <c>Microsoft.CodeAnalysis</c> (which the
-/// SrcGen csproj marks <c>PrivateAssets="all"</c>).
+/// Kept in a separate class from <see cref="DiagnosticDescriptors"/> so code that
+/// does not run in the Roslyn host can reference the IDs without loading
+/// <c>Microsoft.CodeAnalysis</c> (which the SrcGen csproj marks
+/// <c>PrivateAssets="all"</c>).
 /// </summary>
 internal static class DiagnosticIds
 {
@@ -42,4 +41,22 @@ internal static class DiagnosticIds
 
     /// <summary>No audience spec file found among <c>AdditionalFiles</c>.</summary>
     public const string MissingSpecFile = "D2AUD006";
+
+    /// <summary>
+    /// The <c>D2AudiencesExtensionNamespace</c> property is not a dot-separated
+    /// sequence of C# identifiers.
+    /// </summary>
+    public const string InvalidExtensionNamespace = "D2AUD007";
+
+    /// <summary>
+    /// The <c>D2AudiencesExtensionNamespace</c> property is set and the
+    /// <c>D2AudiencesExtensionClassPrefix</c> property is absent or not a C# identifier.
+    /// </summary>
+    public const string InvalidExtensionClassPrefix = "D2AUD008";
+
+    /// <summary>
+    /// The <c>D2AudiencesExtensionClassPrefix</c> property is set and the
+    /// <c>D2AudiencesExtensionNamespace</c> property is not.
+    /// </summary>
+    public const string ExtensionClassPrefixWithoutNamespace = "D2AUD009";
 }

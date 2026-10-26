@@ -10,13 +10,15 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Kicks off the singleton <see cref="ID2Connection"/>'s background
-/// reconnect loop in <see cref="StartAsync"/>. Returns immediately so the
-/// host comes up regardless of broker availability — publishers degrade to
-/// <c>ServiceUnavailable</c> while disconnected; consumers idle until the
-/// connection establishes for the first time, then RabbitMQ.Client's
-/// automatic recovery handles subsequent in-flight reconnects.
+/// Starts the background reconnect loop of the singleton
+/// <see cref="ID2Connection"/> in <see cref="StartAsync"/>. It returns
+/// immediately, so the host starts whether or not the broker is available.
 /// </summary>
+/// <remarks>
+/// Until the connection opens for the first time, <see cref="ID2Connection.IsOpen"/>
+/// is false. After that, RabbitMQ.Client's automatic recovery handles
+/// in-flight reconnects.
+/// </remarks>
 internal sealed class ConnectionStartupHostedService : IHostedService
 {
     private readonly ID2Connection r_connection;

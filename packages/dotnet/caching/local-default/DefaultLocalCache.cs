@@ -22,42 +22,49 @@ using Microsoft.Extensions.Options;
 /// counters live in <see cref="IMemoryCache"/>; locks live in a dedicated
 /// <see cref="ConcurrentDictionary{TKey, TValue}"/>; expirations are
 /// mirrored in a parallel dictionary so <see cref="GetTtlAsync"/> can
-/// report remaining time. All ops use direct dispatch — no
-/// <c>BaseHandler</c> wrapping — because the work itself is tens of
-/// nanoseconds and a handler pipeline would be 100× overhead.
+/// report remaining time. All operations use direct dispatch - no
+/// <c>BaseHandler</c> wrapping - because the work itself takes tens of
+/// nanoseconds and a handler pipeline would be 100x overhead.
 /// </summary>
 /// <remarks>
 /// <para>
 /// Atomic primitives have process-local scope. <see cref="IncrementAsync"/>
-/// guarantees atomicity within this process via a <c>lock</c> on the
-/// IMemoryCache instance for the read-modify-write window; cluster-wide
+/// guarantees atomicity within this process via a <c>lock</c> on a dedicated
+/// private object for the read-modify-write window; cluster-wide
 /// coordination requires an <see cref="IDistributedCache"/>.
 /// </para>
 /// <para>
-/// <see cref="IncrementAsync"/> matches Redis WRONGTYPE semantics — the
+/// <see cref="IncrementAsync"/> matches Redis WRONGTYPE semantics - the
 /// counter shares the value cache namespace; if a key holds a
 /// non-<see cref="long"/> value, increment returns <c>Conflict</c>.
 /// </para>
 /// <para>
 /// Input validation (null/empty key, null collections, etc.) returns
 /// <see cref="D2Result.ValidationFailed"/> with an <see cref="InputError"/>
-/// for the offending parameter — never throws. Constructor still throws
+/// for the offending parameter - never throws. Constructor still throws
 /// because that's a DI / startup failure, not a per-call data flow.
 /// </para>
 /// </remarks>
 [MustDisposeResource(false)]
 public sealed class DefaultLocalCache : ILocalCache, IDisposable
 {
+    /// <summary>
+    /// The unit token-bucket state is held in - thousandths of a token, which is
+    /// what keeps the refill integer arithmetic. The Redis flavor's Lua script
+    /// uses the same scale.
+    /// </summary>
+    private const long _TOKEN_SCALE = 1000L;
+
     /// <summary>Backing IMemoryCache for value storage.</summary>
     private readonly IMemoryCache r_cache;
 
     /// <summary>
     /// Dedicated monitor for the cache-state write lock. Locking on a
     /// dedicated private object (instead of on <see cref="r_cache"/>)
-    /// avoids the CA2002-spirit anti-pattern of locking on a public-typed
+    /// avoids an anti-pattern in the spirit of CA2002: locking on a public-typed
     /// instance whose own internal locks could in principle deadlock with
     /// future BCL changes. Lock-free reads on <see cref="r_cache"/> are
-    /// safe (CD-backed by <see cref="MemoryCache"/>'s implementation);
+    /// safe (<see cref="MemoryCache"/> is backed by a ConcurrentDictionary);
     /// writes synchronize against <see cref="r_expirations"/> via this lock.
     /// </summary>
     private readonly object r_writeLock = new();
@@ -65,7 +72,7 @@ public sealed class DefaultLocalCache : ILocalCache, IDisposable
     private readonly LocalCacheOptions r_options;
 
     /// <summary>
-    /// The clock used for TTL accounting — matched to the IMemoryCache's
+    /// The clock used for TTL accounting - matched to the IMemoryCache's
     /// own clock so both see the same "now" (critical for test determinism).
     /// </summary>
     private readonly TimeProvider r_clock;
@@ -75,20 +82,20 @@ public sealed class DefaultLocalCache : ILocalCache, IDisposable
 
     /// <summary>
     /// Tracks absolute expiration per key so <see cref="GetTtlAsync"/> can
-    /// report remaining time AND <see cref="IncrementAsync"/> can preserve
+    /// report remaining time and <see cref="IncrementAsync"/> can preserve
     /// existing TTL across read-modify-write. Cheap parallel structure;
     /// pruned on remove and on eviction callbacks.
     /// </summary>
     /// <remarks>
     /// The eviction callback writes outside <see cref="r_writeLock"/> by
-    /// design — see <see cref="EvictionCallback"/>. The narrow window where
-    /// a concurrent capacity-eviction-then-re-Set could leave a stale
-    /// <c>TryRemove</c> firing after the new TTL is recorded is accepted:
-    /// <see cref="GetTtlAsync"/> may transiently report no-TTL for a TTL'd
-    /// key in the immediate aftermath of a Capacity eviction. Reads of the
+    /// design - see <see cref="EvictionCallback"/>. In a narrow window, a
+    /// concurrent capacity eviction followed by a re-Set can let a stale
+    /// <c>TryRemove</c> run after the new TTL is recorded. That window is
+    /// accepted: <see cref="GetTtlAsync"/> may transiently report no TTL for a key that
+    /// has one, right after a Capacity eviction. Reads of the
     /// cached value remain correct; the only observable degradation is the
-    /// TTL report. Workloads needing strict-LRU-with-coherent-TTL semantics
-    /// should compose a sibling impl rather than tighten the lock here
+    /// TTL report. Workloads that need strict LRU with coherent TTL semantics
+    /// should use a different implementation rather than tighten the lock here
     /// (which would block reads on every eviction callback).
     /// </remarks>
     private readonly ConcurrentDictionary<string, DateTimeOffset> r_expirations
@@ -104,7 +111,7 @@ public sealed class DefaultLocalCache : ILocalCache, IDisposable
     /// <param name="options">Cache options (max entries, default TTL, key prefix).</param>
     /// <param name="clock">
     /// Optional time provider. Defaults to <see cref="TimeProvider.System"/>.
-    /// Supplying a fake time provider makes TTL expiry deterministic in tests —
+    /// Supplying a fake time provider makes TTL expiry deterministic in tests -
     /// both this class's TTL accounting and <see cref="IMemoryCache"/>'s
     /// internal expiry scanner advance together, so tests drive clock-based
     /// expiry without real-time sleeps.
@@ -134,7 +141,7 @@ public sealed class DefaultLocalCache : ILocalCache, IDisposable
 
         var prefixed = Prefixed(key);
 
-        // ReSharper disable once InconsistentlySynchronizedField — see field
+        // ReSharper disable once InconsistentlySynchronizedField - see field
         // doc; reads are intentionally lock-free.
         if (r_cache.TryGetValue(prefixed, out var raw))
         {
@@ -167,7 +174,7 @@ public sealed class DefaultLocalCache : ILocalCache, IDisposable
         {
             var prefixed = Prefixed(key);
 
-            // ReSharper disable once InconsistentlySynchronizedField — see field
+            // ReSharper disable once InconsistentlySynchronizedField - see field
             // doc; reads are intentionally lock-free.
             if (r_cache.TryGetValue(prefixed, out var raw))
             {
@@ -196,7 +203,7 @@ public sealed class DefaultLocalCache : ILocalCache, IDisposable
         if (key.Falsey())
             return new(InputFailures.Required<bool>(nameof(key)));
 
-        // ReSharper disable once InconsistentlySynchronizedField — see field
+        // ReSharper disable once InconsistentlySynchronizedField - see field
         // doc; reads are intentionally lock-free.
         return new(D2Result<bool>.Ok(r_cache.TryGetValue(Prefixed(key), out _)));
     }
@@ -211,9 +218,9 @@ public sealed class DefaultLocalCache : ILocalCache, IDisposable
 
         var prefixed = Prefixed(key);
 
-        // IMemoryCache doesn't expose absolute expiration; we mirror it in
-        // r_expirations on every Set. Lock the read pair against SetCore so
-        // we can't observe a half-applied write.
+        // IMemoryCache doesn't expose absolute expiration, so it is mirrored in
+        // r_expirations on every Set. The read pair is locked against SetCore so
+        // a half-applied write cannot be observed.
         lock (r_writeLock)
         {
             if (!r_cache.TryGetValue(prefixed, out _))
@@ -225,7 +232,7 @@ public sealed class DefaultLocalCache : ILocalCache, IDisposable
                 return new(D2Result<TimeSpan?>.Ok(remaining > TimeSpan.Zero ? remaining : null));
             }
 
-            // Key present but no expiration was tracked → no TTL set.
+            // Key present but no expiration was tracked -> no TTL set.
             return new(D2Result<TimeSpan?>.Ok());
         }
     }
@@ -345,6 +352,77 @@ public sealed class DefaultLocalCache : ILocalCache, IDisposable
     }
 
     /// <inheritdoc />
+    public ValueTask<D2Result<bool>> SetIfEqualAsync<T>(
+        string key,
+        T expected,
+        T value,
+        TimeSpan? expiration = null,
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+
+        if (key.Falsey())
+            return new(InputFailures.Required<bool>(nameof(key)));
+
+        if (IsNonPositive(expiration))
+            return new(InputFailures.Invalid<bool>(nameof(expiration)));
+
+        var prefixed = Prefixed(key);
+
+        // Atomicity via the same per-cache lock SetNxAsync and IncrementAsync
+        // take, so the compare and the write cannot be split by another writer.
+        lock (r_writeLock)
+        {
+            // An absent key returns false: there is nothing to compare against,
+            // and the caller's copy must not be written over the value the next
+            // reader loads in its place.
+            if (!r_cache.TryGetValue(prefixed, out var raw))
+                return new(D2Result<bool>.Ok());
+
+            if (raw is null
+                ? expected is not null
+                : raw is not T stored || !EqualityComparer<T>.Default.Equals(stored, expected))
+                return new(D2Result<bool>.Ok());
+
+            SetCore(prefixed, value, expiration);
+            LocalCacheTelemetry.SR_Sets.Add(1);
+            return new(D2Result<bool>.Ok(true));
+        }
+    }
+
+    /// <inheritdoc />
+    public ValueTask<D2Result<bool>> RemoveIfEqualAsync<T>(
+        string key, T expected, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+
+        if (key.Falsey())
+            return new(InputFailures.Required<bool>(nameof(key)));
+
+        var prefixed = Prefixed(key);
+
+        // Atomicity via the same per-cache lock SetIfEqualAsync takes, so the
+        // compare and the removal cannot be split by another writer.
+        lock (r_writeLock)
+        {
+            // An absent key returns false: there is nothing to compare against
+            // and nothing left to remove.
+            if (!r_cache.TryGetValue(prefixed, out var raw))
+                return new(D2Result<bool>.Ok());
+
+            if (raw is null
+                ? expected is not null
+                : raw is not T stored || !EqualityComparer<T>.Default.Equals(stored, expected))
+                return new(D2Result<bool>.Ok());
+
+            r_cache.Remove(prefixed);
+            r_expirations.TryRemove(prefixed, out _);
+            LocalCacheTelemetry.SR_Removes.Add(1);
+            return new(D2Result<bool>.Ok(true));
+        }
+    }
+
+    /// <inheritdoc />
     public ValueTask<D2Result<long>> IncrementAsync(
         string key, long amount = 1, TimeSpan? expiration = null, CancellationToken ct = default)
     {
@@ -358,7 +436,7 @@ public sealed class DefaultLocalCache : ILocalCache, IDisposable
 
         var prefixed = Prefixed(key);
 
-        // Atomicity via a small per-key critical section.
+        // Atomicity via a short critical section on the per-cache write lock.
         lock (r_writeLock)
         {
             if (r_cache.TryGetValue(prefixed, out var raw))
@@ -368,13 +446,13 @@ public sealed class DefaultLocalCache : ILocalCache, IDisposable
 
                 var next = current + amount;
 
-                // Preserve existing TTL — Redis-parity. Read absolute
+                // Preserve the existing TTL, matching Redis. Read the absolute
                 // expiration from r_expirations under the same lock and
-                // pass it through verbatim. Absent r_expirations entry =
-                // existing entry has no TTL set; new entry stays no-TTL.
-                // Ignores the per-call `expiration` arg on the increment
-                // path (parity with Redis INCR-with-TTL: TTL set only on
-                // first call, not subsequent increments).
+                // pass it through unchanged. An absent r_expirations entry means
+                // the existing entry has no TTL set, and the new entry stays
+                // without one. The per-call `expiration` arg is ignored on the
+                // increment path (as in Redis INCR with a TTL: the TTL is set
+                // on the first call only, not on later increments).
                 var existingAbsolute = r_expirations.TryGetValue(prefixed, out var absolute)
                     ? absolute
                     : (DateTimeOffset?)null;
@@ -386,6 +464,119 @@ public sealed class DefaultLocalCache : ILocalCache, IDisposable
             LocalCacheTelemetry.SR_Sets.Add(1);
             return new(D2Result<long>.Ok(amount));
         }
+    }
+
+    /// <inheritdoc />
+    public ValueTask<D2Result<TokenBucketDecision>> ConsumeTokenAsync(
+        string key,
+        long refillTokens,
+        TimeSpan refillInterval,
+        long burst,
+        long cost = 1,
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+
+        if (InputFailures.TokenBucket(key, refillTokens, refillInterval, burst, cost)
+            is { } invalid)
+        {
+            return new(invalid);
+        }
+
+        var prefixed = Prefixed(key);
+        var interval = (long)refillInterval.TotalMilliseconds;
+        var capacity = burst * _TOKEN_SCALE;
+        var charge = cost * _TOKEN_SCALE;
+
+        var admitted = false;
+        var wrongType = false;
+        var wait = 0L;
+
+        // The state written back is allocated here rather than under the lock,
+        // so the critical section contains the read, the arithmetic and the
+        // write and allocates nothing. A fresh instance is stored each time, so a
+        // reader outside the lock never sees a half-updated bucket.
+        var next = new TokenBucketState();
+
+        // The same critical section the other read-modify-write members take, so
+        // the refill and the consume cannot be split by another caller.
+        lock (r_writeLock)
+        {
+            // The clock is read here rather than before the lock. Two callers
+            // reading outside it can enter in the other order, and the one
+            // holding the earlier instant then stores it after the one holding
+            // the later one; the next arrival measures its elapsed span from
+            // that earlier instant and accrues part of the run's time twice.
+            var at = r_clock.GetUtcNow().ToUnixTimeMilliseconds();
+            var tokens = capacity;
+            var remainder = 0L;
+
+            if (r_cache.TryGetValue(prefixed, out var raw))
+            {
+                // The bucket shares the value namespace, so a key holding
+                // something else returns Conflict, as IncrementAsync does.
+                if (raw is TokenBucketState state)
+                {
+                    at = Math.Max(at, state.AtMs);
+                    var elapsed = at - state.AtMs;
+                    var accrued =
+                        (elapsed * refillTokens * _TOKEN_SCALE) + state.AccrualRemainder;
+
+                    tokens = state.TokensMilli + (accrued / interval);
+                    remainder = accrued % interval;
+
+                    if (tokens >= capacity)
+                    {
+                        tokens = capacity;
+                        remainder = 0L;
+                    }
+                }
+                else
+                {
+                    wrongType = true;
+                }
+            }
+
+            if (!wrongType)
+            {
+                admitted = tokens >= charge;
+
+                if (admitted)
+                {
+                    tokens -= charge;
+                }
+                else
+                {
+                    wait = DivideRoundingUp(
+                        ((charge - tokens) * interval) - remainder,
+                        refillTokens * _TOKEN_SCALE);
+                }
+
+                next.TokensMilli = tokens;
+                next.AtMs = at;
+                next.AccrualRemainder = remainder;
+
+                // A refill from empty to full plus one interval, reset on every
+                // use: a bucket nobody touches again is dropped, and a caller
+                // returning after that lifetime finds the full bucket the refill
+                // would have given it anyway. The counter members leave an
+                // existing lifetime alone instead, because a fixed window must
+                // not be extended by traffic inside it; a bucket has no
+                // window to extend, and a key that expired under a busy caller
+                // would give it a free burst.
+                SetCore(
+                    prefixed,
+                    next,
+                    TimeSpan.FromMilliseconds(((burst * interval) / refillTokens) + interval));
+            }
+        }
+
+        if (wrongType)
+            return new(D2Result<TokenBucketDecision>.Conflict([TK.Common.Errors.CONFLICT]));
+
+        return new(
+            D2Result<TokenBucketDecision>.Ok(
+                new TokenBucketDecision(admitted, TimeSpan.FromMilliseconds(wait))));
     }
 
     /// <inheritdoc />
@@ -475,6 +666,17 @@ public sealed class DefaultLocalCache : ILocalCache, IDisposable
     private static bool IsNonPositive(TimeSpan? expiration)
         => expiration is { } e && e <= TimeSpan.Zero;
 
+    /// <summary>
+    /// Integer division that rounds up. A wait rounded down expires while the
+    /// bucket is still short of the cost, so a request retried after that wait
+    /// is refused again.
+    /// </summary>
+    /// <param name="numerator">A non-negative numerator.</param>
+    /// <param name="denominator">A positive denominator.</param>
+    /// <returns>The quotient, rounded up.</returns>
+    private static long DivideRoundingUp(long numerator, long denominator)
+        => (numerator + denominator - 1) / denominator;
+
     private void ThrowIfDisposed()
         => ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
 
@@ -500,8 +702,8 @@ public sealed class DefaultLocalCache : ILocalCache, IDisposable
             {
                 entry.Value = value;
 
-                // Every entry counts as 1 against MaxEntries — fixes the
-                // IMemoryCache SizeLimit footgun.
+                // Every entry counts as 1 against MaxEntries, so the
+                // IMemoryCache SizeLimit enforces an entry count.
                 entry.Size = 1;
                 if (absoluteExpiration is { } absolute)
                     entry.AbsoluteExpiration = absolute;
@@ -529,7 +731,7 @@ public sealed class DefaultLocalCache : ILocalCache, IDisposable
     /// Adapts a <see cref="TimeProvider"/> to the <see cref="ISystemClock"/>
     /// interface consumed by <see cref="MemoryCacheOptions.Clock"/>. When a
     /// fake time provider is supplied, <see cref="IMemoryCache"/> TTL expiry
-    /// advances with the fake clock rather than wall time — entry expiry
+    /// advances with the fake clock rather than wall time - entry expiry
     /// is then fully deterministic.
     /// </summary>
     private sealed class TimeProviderSystemClockAdapter : ISystemClock

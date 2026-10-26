@@ -15,15 +15,21 @@ The Tier 2 `*.spec.json` files at this directory's root are the codegen inputs:
 - **.NET** — [`packages/dotnet/geo/source-gen/`](../../packages/dotnet/geo/source-gen/README.md) (Roslyn source-gen → record shapes, branded code types, lookups, and catalog data in `DcsvIo.D2.Geo.Abstractions` / `DcsvIo.D2.Geo.Default`)
 - **TypeScript** — constants/types in `@dcsv-io/d2-geo-abstractions` / `@dcsv-io/d2-geo-default` (generated from this spec; sources committed)
 
-Both consume the same Tier 2 specs, so cross-language parity is structural. See [contracts catalog](../README.md) for the full contract index.
+Both read the same Tier 2 specs, so the .NET and TypeScript outputs come from one source.
+See [contracts catalog](../README.md) for the full contract index.
 
 ## Three-tier story
 
-The geo data flows through three tiers from upstream ingestion to consumed code:
+The geo data moves through the tiers below, from upstream ingestion to the code that consumers call:
 
-- **Tier 1** — `src-data/` — ingestion pipeline tooling output. Verbose; one JSON file per catalog with `_provenance` per entry + `sources[]` + `fieldCoverage` diagnostics. NOT consumed by codegen directly. Upstream sources: CLDR / IANA tzdb / libphonenumber / datasets/\* / Wikidata SPARQL / debian/iso-codes.
-- **Tier 2** — `*.spec.json` at this directory's root — denormalized + reorganized in the platform's preferred style. Match the canonical entity record shapes (`Country` / `Locale` / `Currency` / `Language` / `Subdivision` / `Timezone` / `GeopoliticalEntity`) 1:1. **THESE are the files codegen consumes**.
-- **Tier 3** — generated C# + TS code produced by codegen (`DcsvIo.D2.Geo.Default` / `@dcsv-io/d2-geo-default` packages) consuming Tier 2. Lives in the downstream geo libs, not in this directory.
+- **Tier 1** - `src-data/` - the output of the ingestion pipeline tooling. It is verbose: one JSON file per catalog,
+  with `_provenance` per entry, `sources[]` and `fieldCoverage` diagnostics. Codegen does not consume it directly.
+  Upstream sources: CLDR / IANA tzdb / libphonenumber / datasets/\* / Wikidata SPARQL / debian/iso-codes.
+- **Tier 2** - `*.spec.json` at this directory's root - the Tier 1 data denormalized and reorganized to match the
+  canonical entity record shapes (`Country` / `Locale` / `Currency` / `Language` / `Subdivision` / `Timezone` /
+  `GeopoliticalEntity`) 1:1. Codegen consumes these files.
+- **Tier 3** - the C# and TypeScript code that codegen generates from Tier 2 (`DcsvIo.D2.Geo.Default` /
+  `@dcsv-io/d2-geo-default` packages). It lives in the geo libraries, not in this directory.
 
 ## Layout
 
@@ -31,76 +37,121 @@ The geo data flows through three tiers from upstream ingestion to consumed code:
 contracts/geo/
 ├── src-data/                          ← TIER 1: ingestion pipeline output (verbose, per-catalog)
 │   ├── countries.spec.json
+│   ├── countries.schema.json
 │   ├── subdivisions.spec.json
+│   ├── subdivisions.schema.json
 │   ├── currencies.spec.json
+│   ├── currencies.schema.json
 │   ├── languages.spec.json
+│   ├── languages.schema.json
 │   ├── locales.spec.json
+│   ├── locales.schema.json
 │   ├── timezones.spec.json
+│   ├── timezones.schema.json
 │   └── README.md
 ├── overlays/                          ← Trackable manual patches applied at Tier 2 build time
 │   ├── countries.overlays.spec.json     (additions/overrides/removals with reason + addedAt)
+│   ├── countries.overlays.schema.json
+│   ├── locales.overlays.spec.json
+│   ├── locales.overlays.schema.json
+│   ├── subdivisions.overlays.spec.json
+│   ├── subdivisions.overlays.schema.json
 │   └── README.md
+├── fixtures/                          ← Name-resolver confusables parity fixture and its schema
+│   ├── confusables.fixture.json
+│   └── confusables.schema.json
 ├── countries.spec.json                ← TIER 2: codegen-ready (pipeline-derived + overlays applied: $generated: true)
+├── countries.schema.json
 ├── subdivisions.spec.json
+├── subdivisions.schema.json
 ├── currencies.spec.json
+├── currencies.schema.json
 ├── languages.spec.json
+├── languages.schema.json
 ├── locales.spec.json
+├── locales.schema.json
 ├── timezones.spec.json
+├── timezones.schema.json
 ├── geopolitical-entities.spec.json    ← TIER 2 peer: hand-rolled ($generated: false, $source: manual)
+├── geopolitical-entities.schema.json
+├── KNOWN_WARNINGS.md
 └── README.md (this file)
 ```
 
 **Subdirectories** with their own READMEs:
 
-- [`src-data/`](src-data/README.md) — Tier 1 pipeline-raw geo specs (verbose, per-catalog ingestion output; NOT consumed by codegen directly)
-- [`overlays/`](overlays/README.md) — Tier 2 manual patches applied at build time (additions / overrides / removals with `reason` + `addedAt`)
+- [`src-data/`](src-data/README.md) - Tier 1 pipeline-raw geo specs (verbose, per-catalog ingestion output; codegen does
+  not consume them directly)
+- [`overlays/`](overlays/README.md) - Tier 2 manual patches applied at build time (additions / overrides / removals with
+  `reason` + `addedAt`)
 
-See [KNOWN_WARNINGS.md](KNOWN_WARNINGS.md) for documented build-time warnings and design-rationale entries for the geo data pipeline (expected D2GEO010 / D2GEO011 warnings, allow-listed duplicates, and ambiguity-sentinel behavior).
+See [KNOWN_WARNINGS.md](KNOWN_WARNINGS.md) for the documented build-time warnings and design-rationale entries of the
+geo data pipeline (expected D2GEO010 / D2GEO011 warnings, allow-listed duplicates, and ambiguity-sentinel behavior).
 
-**Overlays** are the trackable extension point for entities upstream sources omit (e.g., Kosovo) or get wrong. Each overlay entry carries a `reason` + `addedAt` so policy decisions are audit-trail visible. See [`overlays/README.md`](./overlays/README.md) for when to overlay vs fix upstream vs hand-roll.
+**Overlays** are the extension point for entities that upstream sources omit (e.g., Kosovo) or get wrong. Each overlay
+entry has a `reason` + `addedAt`, so the file records each policy decision. See
+[`overlays/README.md`](./overlays/README.md) for when to overlay vs fix upstream vs hand-roll.
 
-Every file at this directory's root carries `"$generated": true | false` + `"$source"` so consumers + tooling can unambiguously identify pipeline-derived vs hand-rolled.
+Every file at this directory's root contains `"$generated": true | false` + `"$source"`, so consumers and tooling can
+tell pipeline-derived files from hand-rolled ones.
 
 ## Tier 2 details
 
-### Pipeline-derived (6 files)
+### Pipeline-derived files
 
-Produced by the geo data pipeline Tier-2 clean-pass from Tier 1 src-data + the hand-rolled GeopoliticalEntity catalog. Strip `_provenance` and pipeline diagnostics; apply cross-catalog M:M backfill + Locale denormalization + `IsSupported` / `IsSelectable` derivation. Carry `"$generated": true, "$source": "pipeline-derived"`.
+The Tier 2 clean pass of the geo data pipeline produces these files from the Tier 1 src-data and the hand-rolled
+GeopoliticalEntity catalog. It strips `_provenance` and the pipeline diagnostics, backfills cross-catalog many-to-many
+references, denormalizes Locale, and derives `IsSupported` and `IsSelectable`. Each file contains
+`"$generated": true, "$source": "pipeline-derived"`. Each entry count below is the length of the `entries` array of the
+file named in its row.
 
 | File                     | Entries                        | Shape             |
 | ------------------------ | ------------------------------ | ----------------- |
-| `countries.spec.json`    | 249                            | `CountrySpec`     |
+| `countries.spec.json`    | 250                            | `CountrySpec`     |
 | `subdivisions.spec.json` | 5,046                          | `SubdivisionSpec` |
 | `currencies.spec.json`   | 326 (178 active + 148 retired) | `CurrencySpec`    |
 | `languages.spec.json`    | 183                            | `LanguageSpec`    |
-| `locales.spec.json`      | 1,089                          | `LocaleSpec`      |
+| `locales.spec.json`      | 1,090                          | `LocaleSpec`      |
 | `timezones.spec.json`    | 312                            | `TimezoneSpec`    |
 
-**Do not hand-edit.** Re-run `pnpm geo:refresh` to regenerate from source.
+Do not hand-edit these files. Regenerate them from source with the geo data pipeline (see
+[How to refresh](#how-to-refresh)).
 
-### Hand-rolled peer (1 file)
+### Hand-rolled peer
 
-`geopolitical-entities.spec.json` — sibling of the pipeline-derived Tier 2 specs but **not derived from any upstream source** — CLDR / ISO / IANA don't ship supranational grouping data (continents, regions, trade blocs, military alliances). Hand-maintained catalog of 59 supranational groupings × 1,249 country-GE memberships across 11 type-enum values. Carries `"$generated": false, "$source": "manual"`.
+`geopolitical-entities.spec.json` is a sibling of the pipeline-derived Tier 2 specs, but no upstream source produces it:
+CLDR / ISO / IANA do not ship supranational grouping data (continents, regions, trade blocs, military alliances). It is
+a hand-maintained catalog of supranational groupings, their country memberships and a type value for each grouping. It
+contains `"$generated": false, "$source": "manual"`.
 
-Codegen treats this file identically to the pipeline-derived Tier 2 peers — same shape conventions, same downstream `GeopoliticalEntity` record type. The only difference is provenance.
+Codegen treats this file like the pipeline-derived Tier 2 peers: same shape conventions, same downstream
+`GeopoliticalEntity` record type. The only difference is provenance.
 
 ## Cross-tier integrity (parity tests)
 
-Pipeline parity tests enforce:
+The pipeline parity tests check:
 
-1. **Schema-shape sanity** — every pipeline-derived Tier 2 file has `$generated: true`, the hand-rolled GE peer has `$generated: false`
-2. **Cross-catalog FK integrity** — every referenced ID (subdivision → country, locale → country, etc.) resolves to a real entry
-3. **M:M inverse-nav symmetry** — `Country.subdivisionISO31662Codes` ↔ `Subdivision.countryISO31661Alpha2Code`, and similar for timezones, locales, GE, languages
-4. **Denormalization integrity** — `Locale.firstDayOfWeek` MUST equal `Country[locale.country].firstDayOfWeek` (the drift guard)
-5. **Derived-flag consistency** — `Currency.isSupported` / `Language.isSupported` derive correctly from `contracts/messages/*.json` file presence
-6. **Encoding integrity** — invisibles (NBSP, NNBSP, RLM) survive write/read round-trip without normalization
-7. **GE-Country references** — every country code in the hand-rolled catalog resolves (with known-orphan exemptions documented)
+1. **Schema shape** - every pipeline-derived Tier 2 file has `$generated: true`, and the hand-rolled GE peer has
+   `$generated: false`
+2. **Cross-catalog foreign-key integrity** - every referenced ID (subdivision -> country, locale -> country, etc.)
+   resolves to a real entry
+3. **Many-to-many inverse-navigation symmetry** - `Country.subdivisionISO31662Codes` <->
+   `Subdivision.countryISO31661Alpha2Code`, and the same for timezones, locales, GE, languages
+4. **Denormalization integrity** - `Locale.firstDayOfWeek` must equal `Country[locale.country].firstDayOfWeek` (the
+   drift guard)
+5. **Derived-flag consistency** - `Currency.isSupported` / `Language.isSupported` derive from which
+   `contracts/messages/*.json` files exist
+6. **Encoding integrity** - invisible characters (NBSP, NNBSP, RLM) survive a write/read round-trip without
+   normalization
+7. **GE-Country references** - every country code in the hand-rolled catalog resolves (except the documented known
+   orphans)
 
 Any drift between catalogs fails the pipeline build.
 
 ## How to refresh
 
-Tier 1/2 regeneration is performed by the geo data pipeline tooling (not required for consuming published packages — Tier 2 specs and generated package sources are committed).
+The geo data pipeline tooling regenerates Tier 1 and Tier 2. Consumers of the published packages do not run it, because
+the Tier 2 specs and the generated package sources are committed.
 
 ## License attribution
 
@@ -113,15 +164,17 @@ All sources are Apache-2.0-compatible (this open tree's license posture):
 - **Wikidata**: CC0
 - **debian/iso-codes**: LGPL-2.1+
 
-Composite Tier 2 output inherits derived-work licensing. Per-source license attribution is enumerated above.
+The composite Tier 2 output inherits derived-work licensing. The list above gives the license of each source.
 
 ---
 
 ## Navigation
 
 **Consumed by:**
-- `packages/dotnet/geo/source-gen/` — .NET Roslyn source-gen; emits geo record types, code wrapper structs, lookup tables, and enum constants into `DcsvIo.D2.Geo.Abstractions` and `DcsvIo.D2.Geo.Default`
-- `@dcsv-io/d2-geo-abstractions` / `@dcsv-io/d2-geo-default` — TypeScript record shapes, branded code types, Zod schemas, and catalog data (generated from this spec; sources committed)
+- `packages/dotnet/geo/source-gen/` - the .NET Roslyn source generator; it emits geo record types, code wrapper structs,
+  lookup tables, and enum constants into `DcsvIo.D2.Geo.Abstractions` and `DcsvIo.D2.Geo.Default`
+- `@dcsv-io/d2-geo-abstractions` / `@dcsv-io/d2-geo-default` - TypeScript record shapes, branded code types, Zod
+  schemas, and catalog data (generated from this spec; sources committed)
 
 **Generated output** is committed in the consuming packages.
 

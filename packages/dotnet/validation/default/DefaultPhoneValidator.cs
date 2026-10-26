@@ -14,18 +14,19 @@ using DcsvIo.D2.Validation.Abstractions;
 using PhoneNumbers;
 
 /// <summary>
-/// Default <see cref="IPhoneValidator"/> — delegates to
+/// Default <see cref="IPhoneValidator"/> that delegates to
 /// <see cref="PhoneNumberUtil"/> (libphonenumber-csharp, Apache-2.0) for
-/// parsing, validation, and E.164 normalization. Mirrors the TypeScript
-/// <c>@dcsv-io/d2-validation</c> <c>DefaultPhoneValidator</c> in contract and behavior.
+/// parsing, validation, and E.164 normalization. Its contract and behavior
+/// mirror the TypeScript <c>@dcsv-io/d2-validation</c> <c>DefaultPhoneValidator</c>.
 /// </summary>
 /// <remarks>
 /// <para>
 /// When <c>defaultRegion</c> is <see langword="null"/> and the input does not
 /// start with an explicit international dialing prefix (<c>+</c>),
 /// <see cref="PhoneNumberUtil.Parse(string, string)"/> throws
-/// <see cref="NumberParseException"/>
-/// — this is treated as a validation failure (not an exception escape).
+/// <see cref="NumberParseException"/>.
+/// The validator treats this as a validation failure and does not let the
+/// exception escape.
 /// </para>
 /// <para>
 /// The singleton <see cref="PhoneNumberUtil"/> instance is thread-safe; the
@@ -38,8 +39,8 @@ public sealed class DefaultPhoneValidator : IPhoneValidator
 
     static DefaultPhoneValidator()
     {
-        // JIT pre-warm — force the libphonenumber metadata to load at startup
-        // so the first real call does not incur the metadata-initialization cost.
+        // JIT pre-warm: load the libphonenumber metadata at startup so the
+        // first real call does not incur the metadata-initialization cost.
         try
         {
             _ = sr_PhoneUtil.Parse("+12125551234", null);

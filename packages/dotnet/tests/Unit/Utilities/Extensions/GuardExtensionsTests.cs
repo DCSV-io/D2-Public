@@ -65,7 +65,8 @@ public sealed class GuardExtensionsTests
 
         var act = () => value.ThrowIfFalsey();
 
-        // Must be exactly ArgumentException, NOT ArgumentNullException (derived).
+        // The type must be exactly ArgumentException and not ArgumentNullException,
+        // which derives from it.
         act.Should().ThrowExactly<ArgumentException>();
     }
 
@@ -79,7 +80,8 @@ public sealed class GuardExtensionsTests
 
         act.Should().NotThrow();
 
-        // Post-[NotNull]: compiler treats value as non-null; Length accessible without !.
+        // After the call the [NotNull] post-condition makes the compiler treat value
+        // as non-null, so Length is accessible without !.
         value.Length.Should().Be(expected_value.Length);
     }
 
@@ -119,11 +121,11 @@ public sealed class GuardExtensionsTests
     }
 
     /// <summary>
-    /// Overload-resolution pin: a NON-null empty <see cref="List{T}"/> (a concrete
-    /// collection type) MUST bind to the <see cref="IEnumerable{T}"/> block and throw
-    /// <see cref="ArgumentException"/>. Confirms that the C# 14 block-form correctly
-    /// routes a concrete collection through the collection guard now that the generic
-    /// <c>T : class</c> overload has been removed.
+    /// Overload-resolution pin: a non-null empty <see cref="List{T}"/> (a concrete
+    /// collection type) must bind to the <see cref="IEnumerable{T}"/> block and throw
+    /// <see cref="ArgumentException"/>. The C# 14 block form routes a concrete
+    /// collection through the collection guard because there is no generic
+    /// <c>T : class</c> overload.
     /// </summary>
     [Fact]
     public void EmptyList_BindsToEnumerableOverload_ThrowsArgumentException()
@@ -134,12 +136,12 @@ public sealed class GuardExtensionsTests
     }
 
     /// <summary>
-    /// Overload-resolution pin: a <see cref="string"/> variable MUST bind to the
-    /// <c>string?</c> block (identity conversion), NOT to the
+    /// Overload-resolution pin: a <see cref="string"/> variable must bind to the
+    /// <c>string?</c> block (identity conversion) and not to the
     /// <see cref="IEnumerable{T}"/> block (reference conversion via
     /// <c>IEnumerable&lt;char&gt;</c>). An empty string therefore throws
-    /// <see cref="ArgumentException"/> with empty/whitespace semantics, not silently
-    /// passes through collection semantics.
+    /// <see cref="ArgumentException"/> with empty/whitespace semantics and does not
+    /// take the collection semantics.
     /// </summary>
     [Fact]
     public void EmptyString_BindsToStringOverload_ThrowsArgumentException()
@@ -155,8 +157,8 @@ public sealed class GuardExtensionsTests
     public void Collection_Empty_ParamName_IsCallerExpression()
     {
         // Pins [CallerArgumentExpression] capture on the collection-empty path:
-        // the exception must name the LOCAL VARIABLE as written at the call site,
-        // not the internal parameter name of the extension method.
+        // the exception's parameter name must be the local variable as written at
+        // the call site, not the internal parameter name of the extension method.
         IEnumerable<int> myArg = Array.Empty<int>();
 
         var act = () => myArg.ThrowIfFalsey();
@@ -168,10 +170,10 @@ public sealed class GuardExtensionsTests
     [Fact]
     public void Collection_ExplicitParamName_Override_UsedInException()
     {
-        // Pins the explicit-paramName-override path used by swept indexed-loop
-        // call sites (e.g. additionalScopes[i].ThrowIfFalsey($"...[{i}]")).
-        // When a caller supplies a non-null paramName string, that string MUST
-        // appear in the exception — NOT the auto-captured caller expression.
+        // Pins the explicit paramName override, for example
+        // additionalScopes[i].ThrowIfFalsey($"...[{i}]") on an indexed element.
+        // When a non-null paramName string is passed, that string must appear in
+        // the exception and not the auto-captured caller expression.
         IEnumerable<int>? nullCollection = null;
 
         const string explicit_param = "additionalScopes[0]";

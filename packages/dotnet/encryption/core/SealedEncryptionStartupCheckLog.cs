@@ -10,8 +10,8 @@ using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// <c>LoggerMessage</c> delegates for <see cref="SealedEncryptionStartupCheck"/>.
-/// Emit only the recipient service id — never key material, and never an
-/// <see cref="System.Exception"/> parameter.
+/// The delegates emit only the recipient service id, never key material, and never
+/// take an <see cref="System.Exception"/> parameter.
 /// </summary>
 internal static partial class SealedEncryptionStartupCheckLog
 {
@@ -19,7 +19,7 @@ internal static partial class SealedEncryptionStartupCheckLog
         EventId = 1,
         Level = LogLevel.Information,
         Message = "SealedEncryptionStartupCheck registered but no sealed recipients were " +
-            "registered — nothing to verify. The sealed registration-by-service sources " +
+            "registered - nothing to verify. The sealed registration-by-service sources " +
             "populate the registry.")]
     public static partial void NoRecipientsRegistered(ILogger logger);
 
@@ -27,7 +27,7 @@ internal static partial class SealedEncryptionStartupCheckLog
         EventId = 2,
         Level = LogLevel.Information,
         Message = "Sealed encryption self-test passed for recipient {RecipientServiceId} " +
-            "(seal → open round-trip).")]
+            "(seal -> open round-trip).")]
     public static partial void SelfTestPassed(ILogger logger, string recipientServiceId);
 
     [LoggerMessage(
@@ -42,7 +42,7 @@ internal static partial class SealedEncryptionStartupCheckLog
         EventId = 4,
         Level = LogLevel.Information,
         Message = "Sealed encryption recipient {RecipientServiceId} registers only an " +
-            "opener — no sealer to synthesize a round-trip frame. Private key material " +
+            "opener - no sealer to synthesize a round-trip frame. Private key material " +
             "was validated at keyring construction (P-256 import + agreement probe).")]
     public static partial void OpenerOnlyRegistered(ILogger logger, string recipientServiceId);
 }

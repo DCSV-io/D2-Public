@@ -14,7 +14,7 @@ namespace DcsvIo.D2.DataGovernance.EntityFrameworkCore;
 /// <para>
 /// <see cref="AnonymizationTemplateResolver.Parse"/> produces an ordered list of these segments
 /// from a raw template string. Literal brace escapes (<c>{{</c> and <c>}}</c>) are decoded to
-/// literal <c>{</c> and <c>}</c> characters in the segment text during parsing — the resolved
+/// literal <c>{</c> and <c>}</c> characters in the segment text during parsing - the resolved
 /// form is the actual character, not the escape sequence.
 /// </para>
 /// </remarks>

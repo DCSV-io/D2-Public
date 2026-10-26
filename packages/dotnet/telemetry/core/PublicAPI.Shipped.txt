@@ -4,7 +4,7 @@ DcsvIo.D2.Telemetry.D2TelemetryOptions
 DcsvIo.D2.Telemetry.D2TelemetryOptions.<Clone>$() -> DcsvIo.D2.Telemetry.D2TelemetryOptions!
 DcsvIo.D2.Telemetry.D2TelemetryOptions.AdditionalActivitySources.get -> System.Collections.Generic.IReadOnlyList<string!>!
 DcsvIo.D2.Telemetry.D2TelemetryOptions.AdditionalActivitySources.init -> void
-DcsvIo.D2.Telemetry.D2TelemetryOptions.AdditionalMeters.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DcsvIo.D2.Telemetry.D2TelemetryOptions.AdditionalMeters.get -> System.Collections.Generic.ISet<string!>!
 DcsvIo.D2.Telemetry.D2TelemetryOptions.AdditionalMeters.init -> void
 DcsvIo.D2.Telemetry.D2TelemetryOptions.D2TelemetryOptions() -> void
 DcsvIo.D2.Telemetry.D2TelemetryOptions.EnableAspNetCoreInstrumentation.get -> bool
@@ -30,6 +30,9 @@ DcsvIo.D2.Telemetry.D2TelemetryOptions.OtlpTracesEndpoint.get -> string?
 DcsvIo.D2.Telemetry.D2TelemetryOptions.OtlpTracesEndpoint.set -> void
 DcsvIo.D2.Telemetry.D2TelemetryOptions.ServiceName.get -> string?
 DcsvIo.D2.Telemetry.D2TelemetryOptions.ServiceName.set -> void
+DcsvIo.D2.Telemetry.ProductMeterServiceCollectionExtensions
+DcsvIo.D2.Telemetry.ProductMeterServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+DcsvIo.D2.Telemetry.ProductMeterServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddD2Meter<TMetrics>(string! meterName) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 DcsvIo.D2.Telemetry.TelemetryServiceCollectionExtensions
 DcsvIo.D2.Telemetry.TelemetryServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 DcsvIo.D2.Telemetry.TelemetryServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddD2Telemetry(Microsoft.Extensions.Configuration.IConfiguration! configuration, System.Action<DcsvIo.D2.Telemetry.D2TelemetryOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
@@ -50,5 +53,6 @@ override DcsvIo.D2.Telemetry.D2TelemetryOptions.GetHashCode() -> int
 override DcsvIo.D2.Telemetry.D2TelemetryOptions.ToString() -> string!
 static DcsvIo.D2.Telemetry.D2TelemetryOptions.operator !=(DcsvIo.D2.Telemetry.D2TelemetryOptions? left, DcsvIo.D2.Telemetry.D2TelemetryOptions? right) -> bool
 static DcsvIo.D2.Telemetry.D2TelemetryOptions.operator ==(DcsvIo.D2.Telemetry.D2TelemetryOptions? left, DcsvIo.D2.Telemetry.D2TelemetryOptions? right) -> bool
+static DcsvIo.D2.Telemetry.ProductMeterServiceCollectionExtensions.AddD2Meter<TMetrics>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! meterName) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static DcsvIo.D2.Telemetry.TelemetryServiceCollectionExtensions.AddD2Telemetry(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration! configuration, System.Action<DcsvIo.D2.Telemetry.D2TelemetryOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static DcsvIo.D2.Telemetry.WebApplicationTelemetryExtensions.MapD2PrometheusEndpoint(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!

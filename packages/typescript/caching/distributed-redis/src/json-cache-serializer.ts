@@ -18,11 +18,11 @@ const TEXT_DECODER = new TextDecoder();
 /**
  * Default {@link ICacheSerializer} using `JSON.stringify` / `JSON.parse`.
  * Twin of .NET `JsonCacheSerializer` (STJ Web defaults): camelCase property
- * names, cycle graphs omit cyclic refs, no indent. Dev-friendly (Redis CLI
- * can inspect UTF-8 JSON values).
+ * names, cyclic references omitted from object graphs, no indent. Redis CLI
+ * can inspect the UTF-8 JSON values.
  */
 export class JsonCacheSerializer implements ICacheSerializer {
-  /** Stable format identifier for mixed-serializer archives. */
+  /** Stable format identifier for archives that mix serializers. */
   readonly contentType = "application/json";
 
   /**
@@ -30,7 +30,7 @@ export class JsonCacheSerializer implements ICacheSerializer {
    * and cycle-safe omission of cyclic references.
    *
    * @returns `ok(bytes)` on success; `fail` with
-   *   `ErrorCodes.COULD_NOT_BE_SERIALIZED` (HTTP 500) on encode failure.
+   *   `ErrorCodes.GEN_COULD_NOT_BE_SERIALIZED` (HTTP 500) on encode failure.
    */
   serialize<T>(value: T): D2Result<Uint8Array> {
     try {
@@ -63,7 +63,7 @@ export class JsonCacheSerializer implements ICacheSerializer {
     } catch {
       return fail<Uint8Array>({
         statusCode: HttpStatusCode.InternalServerError,
-        errorCode: ErrorCodes.COULD_NOT_BE_SERIALIZED,
+        errorCode: ErrorCodes.GEN_COULD_NOT_BE_SERIALIZED,
         messages: [TK.common.errors.COULD_NOT_BE_SERIALIZED],
       });
     }
@@ -73,14 +73,14 @@ export class JsonCacheSerializer implements ICacheSerializer {
    * Deserializes UTF-8 JSON bytes. JSON `null` is a legitimate value.
    *
    * @returns `ok(value)` on success; `fail` with
-   *   `ErrorCodes.COULD_NOT_BE_DESERIALIZED` (HTTP 500) on parse failure.
+   *   `ErrorCodes.GEN_COULD_NOT_BE_DESERIALIZED` (HTTP 500) on parse failure.
    */
   deserialize<T>(bytes: Uint8Array): D2Result<T> {
     try {
       if (bytes.byteLength === 0) {
         return fail<T>({
           statusCode: HttpStatusCode.InternalServerError,
-          errorCode: ErrorCodes.COULD_NOT_BE_DESERIALIZED,
+          errorCode: ErrorCodes.GEN_COULD_NOT_BE_DESERIALIZED,
           messages: [TK.common.errors.COULD_NOT_BE_DESERIALIZED],
         });
       }
@@ -92,7 +92,7 @@ export class JsonCacheSerializer implements ICacheSerializer {
     } catch {
       return fail<T>({
         statusCode: HttpStatusCode.InternalServerError,
-        errorCode: ErrorCodes.COULD_NOT_BE_DESERIALIZED,
+        errorCode: ErrorCodes.GEN_COULD_NOT_BE_DESERIALIZED,
         messages: [TK.common.errors.COULD_NOT_BE_DESERIALIZED],
       });
     }

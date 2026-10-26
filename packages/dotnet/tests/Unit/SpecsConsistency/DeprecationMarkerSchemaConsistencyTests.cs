@@ -16,13 +16,13 @@ using Xunit;
 
 /// <summary>
 /// Drift guard for the contract-side deprecate-not-delete marker. Every
-/// entry-bearing <c>contracts/**/schema.json</c> declares the same four
+/// entry-bearing <c>contracts/**/schema.json</c> declares the same
 /// OPTIONAL marker properties (<c>deprecated</c>, <c>deprecatedReason</c>,
 /// <c>replacedBy</c>, <c>sunset</c>) on every entry-object definition (the
 /// per-item shape referenced as an array <c>items</c> target), declared
 /// IDENTICALLY across all catalogs so no schema can silently diverge and
-/// reject a valid marker the codegen would honor. The marker is ALLOWED, never
-/// required — these tests also pin that none of the four is added to any
+/// reject a valid marker the codegen accepts. The marker is ALLOWED, never
+/// required - these tests also pin that none of these properties is added to any
 /// <c>required</c> list.
 /// </summary>
 public sealed class DeprecationMarkerSchemaConsistencyTests
@@ -166,7 +166,7 @@ public sealed class DeprecationMarkerSchemaConsistencyTests
     }
 
     /// <summary>
-    /// Serializes ONLY the four marker properties of an entry definition into a
+    /// Serializes ONLY the marker properties of an entry definition into a
     /// stable canonical string (key order fixed by <see cref="sr_markerKeys"/>)
     /// so two definitions compare equal iff their marker blocks are identical.
     /// </summary>

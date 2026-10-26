@@ -7,7 +7,7 @@ export type { IEmailValidator } from "./interfaces/i-email-validator.js";
 export type { IPhoneValidator } from "./interfaces/i-phone-validator.js";
 export type { IPostalCodeValidator } from "./interfaces/i-postal-code-validator.js";
 
-// Codegen-emitted shared field-constraint bounds (single spec source — mirrors
+// Codegen-emitted shared field-constraint bounds (single spec source; mirrors
 // .NET `DcsvIo.D2.Validation.Abstractions.FieldConstraints` byte-for-byte).
 export {
   FieldConstraints,

@@ -14,9 +14,9 @@ using DcsvIo.D2.Validation.Abstractions;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 /// <summary>
-/// Internal single-source per-VO decoration core consumed by the per-VO
-/// <c>MapXxx</c> complex-type helpers in <see cref="LocationMappingExtensions"/>.
-/// Changing a field rule here updates the helper for every host that uses it.
+/// Internal single-source per-VO decoration core that the per-VO
+/// <c>MapXxx</c> complex-type helpers in <see cref="LocationMappingExtensions"/>
+/// call. A field rule changed here changes every one of those helpers.
 /// </summary>
 /// <remarks>
 /// Anonymize defaults are written via the fluent <c>.Anonymize</c> /
@@ -28,7 +28,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 internal static class LocationVoDecorator
 {
     // =========================================================================
-    // Private constants — caps not in FieldConstraints
+    // Private constants - caps not in FieldConstraints
     // =========================================================================
 
     // "v1." (3 chars) + SHA-256 hex (SHA256.HashSizeInBytes * 2 = 64 chars) = 67.
@@ -40,17 +40,17 @@ internal static class LocationVoDecorator
     // ISO 3166-1 alpha-2 = exactly 2 chars.
     private const int _COUNTRY_CODE_MAX = 2;
 
-    // Geohash-10 cap — mirrors the encoder-intrinsic 10-char geohash the Coordinates VO
+    // Geohash-10 cap - mirrors the encoder-intrinsic 10-char geohash the Coordinates VO
     // normalizes to (no FieldConstraints catalog entry: this is an encoder invariant, not
     // a validation-policy cap).
     private const int _GEOHASH_MAX = 10;
 
-    // OLC plus-code cap — mirrors the encoder-intrinsic 13-char plus-code the Coordinates VO
+    // OLC plus-code cap - mirrors the encoder-intrinsic 13-char plus-code the Coordinates VO
     // produces at codeLength 12 (8 pair digits + '+' + 4 grid digits); encoder invariant,
     // not a policy cap.
     private const int _PLUSCODE_MAX = 13;
 
-    // Cleared HashId sentinel written on erasure: "v1." + 64 × '0'.
+    // Cleared HashId sentinel written on erasure: "v1." + 64 x '0'.
     private static readonly string sr_hashIdCleared =
         "v1." + new string('0', SHA256.HashSizeInBytes * 2);
 
@@ -113,7 +113,7 @@ internal static class LocationVoDecorator
     /// <summary>
     /// Decorates an <c>AdminLocation</c> VO mapped as a <c>ComplexProperty</c>.
     /// <c>SubdivisionCode</c> (struct) and <c>CountryCode</c> (ushort enum) get
-    /// string-form value converters. <c>CountryIso31661Alpha2Code</c> is kept — no
+    /// string-form value converters. <c>CountryIso31661Alpha2Code</c> is kept - no
     /// anonymize call (coarse-grained, retained on erasure).
     /// </summary>
     /// <param name="cp">The complex-property builder for <c>AdminLocation</c>.</param>
@@ -124,7 +124,7 @@ internal static class LocationVoDecorator
         cp.Property(a => a.PostalCode).HasMaxLength(FieldConstraints.POSTAL_CODE_MAX)
           .AnonymizeNull();
 
-        // SubdivisionCode read side: null/empty → no subdivision; a non-empty value
+        // SubdivisionCode read side: null/empty -> no subdivision; a non-empty value
         // (incl. whitespace) goes through FromString. The (v == null || v.Length == 0) form
         // is the precise null-or-empty test that is legal inside the converter expression
         // tree (an `is` pattern is not) and does NOT null a whitespace-only code.
@@ -135,8 +135,8 @@ internal static class LocationVoDecorator
               v => v == null || v.Length == 0 ? null : SubdivisionCode.FromString(v))
           .HasMaxLength(_SUBDIVISION_CODE_MAX);
 
-        // CountryCode: enum → alpha-2 string (human-readable, len 2).
-        // Country is kept on erasure — coarse-grained, not anonymized.
+        // CountryCode: enum -> alpha-2 string (human-readable, len 2).
+        // Country is kept on erasure - coarse-grained, not anonymized.
         cp.Property(a => a.CountryIso31661Alpha2Code)
           .HasConversion<string>()
           .HasMaxLength(_COUNTRY_CODE_MAX);

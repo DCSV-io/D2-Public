@@ -12,13 +12,13 @@ using Xunit;
 
 /// <summary>
 /// Tests for <see cref="AnonymizationRule"/>. Covers the <c>Create</c> factory for all
-/// valid combinations, the <c>Kind ↔ payload</c> invariant enforcement (adversarial), record
+/// valid combinations, the <c>Kind &lt;-> payload</c> invariant enforcement (adversarial), record
 /// equality semantics, immutability, and the <c>with</c>-expression behavior.
 /// </summary>
 [Trait("Category", "Unit")]
 public sealed class AnonymizationRuleTests
 {
-    // ---- Create — valid paths ------------------------------------------------
+    // ---- Create - valid paths ------------------------------------------------
 
     [Fact]
     public void Create_SetNull_returns_rule_with_no_payload()
@@ -71,7 +71,7 @@ public sealed class AnonymizationRuleTests
         rule.ConstantValue.Should().BeNull();
     }
 
-    // ---- Create — adversarial: Kind ↔ payload contradictions -----------------
+    // ---- Create - adversarial: Kind <-> payload contradictions -----------------
 
     [Fact]
     public void Create_SetNull_with_constantValue_throws_ArgumentException()
@@ -195,9 +195,9 @@ public sealed class AnonymizationRuleTests
     [Fact]
     public void Constant_empty_string_and_SetEmpty_are_NOT_equal()
     {
-        // Pins the deliberate non-equality: Kind differs even though the engine
-        // treats them identically at apply-time. The record equality contract
-        // depends on Kind to detect conflicting double-declarations.
+        // Pins the deliberate non-equality: Kind differs, although the engine
+        // treats both rules identically when it applies them. Record equality
+        // compares Kind so that conflicting double declarations are detected.
         var constantEmpty = AnonymizationRule.Create(
             AnonymizeKind.Constant,
             constantValue: string.Empty);
@@ -220,7 +220,7 @@ public sealed class AnonymizationRuleTests
     [Fact]
     public void Properties_have_no_public_setter()
     {
-        // private init — no public mutation path; Create is the only construction point.
+        // private init - no public mutation path; Create is the only construction point.
         foreach (var prop in typeof(AnonymizationRule).GetProperties())
         {
             prop.SetMethod?.IsPublic.Should().NotBe(
@@ -234,7 +234,7 @@ public sealed class AnonymizationRuleTests
     [Fact]
     public void Create_Template_with_whitespace_only_constantValue_throws_ArgumentException()
     {
-        // Template path must not accept a non-null ConstantValue — even whitespace.
+        // Template path must not accept a non-null ConstantValue - even whitespace.
         var act = () => AnonymizationRule.Create(
             AnonymizeKind.Template,
             constantValue: " ",

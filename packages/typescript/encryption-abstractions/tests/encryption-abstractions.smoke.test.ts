@@ -10,13 +10,13 @@ import {
   EncryptionFrame,
 } from "../src/index.js";
 
-// Public open-catalog domains — spec source of truth is
+// Public open-catalog domains - spec source of truth is
 // public/contracts/encryption-domains/encryption-domains.spec.json.
-// Product sealed domains (audit / notifications / courier) live under
-// host product domain catalogs and host Encryption extensions — not this package.
+// Sealed domains that a host application defines live in that host's domain
+// catalogs and Encryption extensions - not in this package.
 const EXPECTED_DOMAINS = ["plaintext", "payload-fixture-sealed"] as const;
 
-// The five logical frame fields declared in the spec (variable-length fields
+// The logical frame fields declared in the spec (variable-length fields
 // are represented by the field name only, without offset/length constants).
 const EXPECTED_FRAME_FIELDS = [
   "VERSION",
@@ -26,7 +26,7 @@ const EXPECTED_FRAME_FIELDS = [
   "CIPHERTEXT_WITH_TAG",
 ] as const;
 
-describe("@dcsv-io/d2-encryption-abstractions — EncryptionDomains", () => {
+describe("@dcsv-io/d2-encryption-abstractions - EncryptionDomains", () => {
   it("ALL_ENCRYPTION_DOMAINS contains exactly the public open-catalog identifiers", () => {
     expect([...ALL_ENCRYPTION_DOMAINS].sort()).toEqual(
       [...EXPECTED_DOMAINS].sort(),
@@ -48,14 +48,14 @@ describe("@dcsv-io/d2-encryption-abstractions — EncryptionDomains", () => {
     );
   });
 
-  // long test description — cannot wrap
+  // long test description - cannot wrap
   it("PLAINTEXT sentinel is present so callers can distinguish no-encryption from a real domain", () => {
     expect(EncryptionDomains.PLAINTEXT).toBe("plaintext");
     expect(ALL_ENCRYPTION_DOMAINS).toContain("plaintext");
   });
 });
 
-describe("@dcsv-io/d2-encryption-abstractions — EncryptionFrame", () => {
+describe("@dcsv-io/d2-encryption-abstractions - EncryptionFrame", () => {
   it("ALL_ENCRYPTION_FRAME_FIELDS contains exactly the five spec-declared field names", () => {
     expect([...ALL_ENCRYPTION_FRAME_FIELDS].sort()).toEqual(
       [...EXPECTED_FRAME_FIELDS].sort(),
@@ -73,10 +73,11 @@ describe("@dcsv-io/d2-encryption-abstractions — EncryptionFrame", () => {
   });
 
   it("CONSTRAINT_MIN_FRAME_SIZE pins the spec-declared minimum of 30 bytes", () => {
-    // Spec-declared: VERSION(1) + KID_LENGTH(1) + KID_min(1) + NONCE(12) + TAG(16) =
-    // 31 theoretical minimum with a 1-byte KID, but the spec uses 30 as the floor
-    // (0-byte KID edge, handled by the decoder's kid-length validation separately).
-    // This test pins the cross-runtime constant so a spec bump surfaces immediately.
+    // Spec-declared: the theoretical minimum with a 1-byte KID is
+    // VERSION(1) + KID_LENGTH(1) + KID_min(1) + NONCE(12) + TAG(16) = 31, but
+    // the spec uses 30 as the floor (0-byte KID edge, handled by the decoder's
+    // kid-length validation separately).
+    // This test pins the cross-runtime constant so a spec change fails here.
     expect(EncryptionFrame.CONSTRAINT_MIN_FRAME_SIZE).toBe(30);
     // Sanity: the floor is large enough to hold the fixed-size fields alone
     // (VERSION + KID_LENGTH + NONCE + TAG = 1 + 1 + 12 + 16 = 30).

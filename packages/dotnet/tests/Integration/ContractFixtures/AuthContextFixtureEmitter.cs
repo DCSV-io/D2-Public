@@ -14,14 +14,13 @@ using Xunit;
 
 /// <summary>
 /// Emits IAuthContext property-surface fixtures. Each fixture's
-/// <c>data.properties</c> field is the sorted list of property names
-/// (camelCased) on the .NET <see cref="IAuthContext"/> interface — the
-/// TS-side parity test asserts the matching <c>IAuthContext</c> typed
-/// shape covers identical property names. Each fixture's
-/// <c>data.scenario</c> annotates which conceptual auth state the
-/// fixture is meant to represent (unauthenticated / authenticated user
-/// / service identity / impersonation flavors) — informational only,
-/// the parity assertion is on the property-set membership.
+/// <c>data.properties</c> field is the sorted list of camelCased property
+/// names on the .NET <see cref="IAuthContext"/> interface and the interfaces
+/// it inherits; the TypeScript <c>IAuthContext</c> typed shape has the same
+/// property names. The fixture envelope's <c>scenario</c> field names the
+/// conceptual auth state the fixture represents (unauthenticated,
+/// authenticated user, service identity, or an impersonation flavor); it is
+/// informational, and every scenario carries the same <c>data.properties</c>.
 /// </summary>
 public sealed class AuthContextFixtureEmitter
 {
@@ -68,18 +67,17 @@ public sealed class AuthContextFixtureEmitter
     }
 
     /// <summary>
-    /// Build the canonical fixture payload — the camelCase-name set of
+    /// Build the canonical fixture payload - the camelCase-name set of
     /// IAuthContext properties. The envelope already carries the
-    /// scenario name; the TS-side parity test asserts the property-set
-    /// match (the typed shape is invariant; scenarios distinguish
-    /// conceptual usage, not the type surface).
+    /// scenario name. The property set is the same for every scenario:
+    /// scenarios distinguish conceptual usage, not the type surface.
     /// </summary>
-    /// <param name="scenario">Scenario annotation (currently unused — see comment).</param>
+    /// <param name="scenario">Scenario annotation (unused).</param>
     /// <returns>Fixture payload dictionary.</returns>
     private static SortedDictionary<string, object?> BuildScenario(string scenario)
     {
-        // Retained for symmetry with other emitter BuildScenario signatures
-        // and to leave a place for per-scenario differentiation later.
+        // The parameter is unused: every scenario emits the same property set.
+        // The signature matches the BuildScenario of the other emitters.
         _ = scenario;
 
         var allNames = new HashSet<string>(StringComparer.Ordinal);

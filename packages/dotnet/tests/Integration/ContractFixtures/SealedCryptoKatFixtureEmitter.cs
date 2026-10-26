@@ -14,21 +14,22 @@ using DcsvIo.D2.Encryption;
 using Xunit;
 
 /// <summary>
-/// Emits the SEALED (version-2) crypto known-answer fixture — the .NET → TS
-/// cross-runtime gate for the ECDH-ES → HKDF-SHA256 → AES-256-GCM hybrid. The
-/// pinned inputs are the SAME frozen vector as
+/// Emits the SEALED (version-2) crypto known-answer fixture for the
+/// ECDH-ES -> HKDF-SHA256 -> AES-256-GCM hybrid. The
+/// inputs are the SAME frozen vector as
 /// <c>SealedKeyDerivationFreezeTests</c> (synthetic, fixture-only P-256 key
-/// material); the emitted frame + intermediate pins (info / shared-secret / DEK
-/// hex) are computed through the REAL production derivation + codec, so the TS
-/// twin reproducing them proves byte-for-byte agreement and a drift localizes to
-/// the failing stage. The recipient private key is emitted so the TS opener can
-/// open the frame end-to-end.
+/// material); the emitted frame + intermediate values (info / shared-secret / DEK
+/// hex) are computed through the REAL production derivation + codec. A
+/// TypeScript implementation that reproduces them agrees byte for byte, and a
+/// difference shows at the stage where it first occurs. The recipient private
+/// key is in the fixture so that a TypeScript opener can open the frame
+/// end-to-end.
 /// </summary>
 public sealed class SealedCryptoKatFixtureEmitter
 {
     private const string CATALOG = "sealed-crypto-kat";
 
-    private const string _SERVICE_ID = "audit";
+    private const string _SERVICE_ID = "orders";
     private const string _KAT_KID = "seal-kat-kid";
     private const string _KAT_PLAINTEXT = "d2-seal-known-answer";
 

@@ -6,11 +6,19 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 > Parent: [`packages/dotnet/`](../../README.md)
 
-**Input contracts:** [`contracts/tk-message/`](../../../../contracts/tk-message/README.md) + [`contracts/input-error/`](../../../../contracts/input-error/README.md)
+**Input contracts:** [`contracts/tk-message/`](../../../../contracts/tk-message/README.md) +
+[`contracts/input-error/`](../../../../contracts/input-error/README.md)
 
-Roslyn `IIncrementalGenerator` (netstandard2.0) that emits per-wire-shape JSON property-name catalog static classes by reading `contracts/<wire-shape>/<wire-shape>.spec.json` files via `<AdditionalFiles>`. **Multi-target dispatch** — one analyzer, one shared scaffolding, multiple consuming catalog assemblies. Mirrors the per-transport dispatch pattern proven by `DcsvIo.D2.Headers.SourceGen`.
+A Roslyn `IIncrementalGenerator` (netstandard2.0) that emits a static class of JSON property names for each wire shape.
+It reads `contracts/<wire-shape>/<wire-shape>.spec.json` files through `<AdditionalFiles>`. It dispatches to several
+targets: one analyzer and one shared scaffolding serve several consuming catalog assemblies. It uses the per-transport
+dispatch pattern of `DcsvIo.D2.Headers.SourceGen`.
 
-This source-gen enforces the spec-driven wire-identifier contract — every cross-language wire-format identifier is spec-declared + parity-tested — on the `TKMessage` (`{key, params?}`) and `InputError` (`{field, errors}`) wire shapes. Both ship across the .NET ↔ TS boundary inside the `D2Result` envelope; spec-driving the property names means the .NET serializer and the TS parser share one source of truth for the JSON keys, so cross-language drift on the property names is structurally impossible.
+The generator enforces the spec-driven wire-identifier contract, in which every cross-language wire-format identifier is
+declared in a spec and covered by a parity test. It applies the contract to the `TKMessage` (`{key, params?}`) and
+`InputError` (`{field, errors}`) wire shapes. Both shapes travel across the .NET <-> TypeScript boundary inside the
+`D2Result` envelope. The property names come from a spec, so the .NET serializer and the TypeScript parser use the same
+source for the JSON keys, and the property names cannot drift between .NET and TypeScript.
 
 **Convention**: spec-driven Roslyn `IIncrementalGenerator` (netstandard2.0 analyzer; spec via `<AdditionalFiles>`).
 
@@ -22,9 +30,13 @@ This source-gen enforces the spec-driven wire-identifier contract — every cros
 | ----------------------------- | --------------------------------------------- | -------------------------- | -------------------------------------- |
 | `DcsvIo.D2.I18n.Abstractions` | `contracts/tk-message/tk-message.spec.json`   | `TkMessageWireShape.g.cs`  | `DcsvIo.D2.I18n.TkMessageWireShape`    |
 | `DcsvIo.D2.Result`            | `contracts/input-error/input-error.spec.json` | `InputErrorWireShape.g.cs` | `DcsvIo.D2.Result.InputErrorWireShape` |
-| anything else                 | —                                             | — (no-op)                  | —                                      |
+| anything else                 | -                                             | - (no-op)                  | -                                      |
 
-Adding a new wire-shape catalog: add a `DispatchEntry` to `sr_dispatch` in `WireShapesGenerator.cs`, author the spec + schema under `contracts/`, wire the consuming csproj's `<AdditionalFiles>` + `<ProjectReference OutputItemType="Analyzer">`, and ship.
+To add a wire-shape catalog:
+
+1. Add a `DispatchEntry` to `sr_dispatch` in `WireShapesGenerator.cs`.
+2. Author the spec and schema under `contracts/`.
+3. Wire the consuming csproj's `<AdditionalFiles>` and `<ProjectReference OutputItemType="Analyzer">`.
 
 ---
 
@@ -42,4 +54,6 @@ Adding a new wire-shape catalog: add a `DispatchEntry` to `sr_dispatch` in `Wire
 
 ## Cross-language parity
 
-The TS-side packages commit matching catalogs from the SAME `contracts/tk-message/tk-message.spec.json` + `contracts/input-error/input-error.spec.json` files, so the .NET-emitted constants and the TS-emitted constants share byte-equal wire values for every property name.
+The TypeScript packages commit matching catalogs that they generate from the same
+`contracts/tk-message/tk-message.spec.json` and `contracts/input-error/input-error.spec.json` files, so the
+.NET-emitted constants and the TypeScript-emitted constants have byte-equal wire values for every property name.

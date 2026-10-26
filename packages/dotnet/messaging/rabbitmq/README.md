@@ -4,19 +4,23 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Messaging.RabbitMq
 
-Default `RabbitMQ.Client 7.x` implementation of the
-`DcsvIo.D2.Messaging.Abstractions`
-contract. Owns connection lifecycle, channel pooling with idle-eviction,
-topology declaration (exchanges + DLX + DLQ + optional retry tiers),
-publishing with publisher-confirms + built-in transient retry, payload
-encryption via `DcsvIo.D2.Encryption`, full W3C trace-context propagation,
-DLQ republish-with-failure-header, and the cross-hop operational-context
-propagation (`x-d2-context`).
+Default implementation of the `DcsvIo.D2.Messaging.Abstractions` contract on `RabbitMQ.Client 7.x`. It manages the
+connection lifecycle and channel pooling with idle eviction. It declares the topology: exchanges, a dead-letter
+exchange (DLX), a dead-letter queue (DLQ) and optional retry tiers. It publishes with publisher confirms and built-in
+transient retry, encrypts payloads with `DcsvIo.D2.Encryption`, propagates the full W3C trace context, republishes
+failed messages to the DLQ with a failure header, and propagates the cross-hop operational context (`x-d2-context`).
 
-The wire body is just the serialized message — no envelope wrapper. The
+DLQ operations use `RabbitMqSubscriberOptions.DlqRepublishTimeout` (default 5 seconds)
+from admission through confirmation, with a separate `DlqCleanupTimeout` (default 1 second).
+Each subscription has its own lazily created dedicated DLQ connection. Timeout or shutdown terminates
+that connection's sockets without closing the shared consumer/publisher connection.
+Negative acknowledgment recovery can produce a duplicate when the broker already received
+the republished copy. `RabbitMqPublisherOptions.ConfirmTimeout` controls ordinary publishing only.
+
+The wire body is the serialized message, with no envelope wrapper. The
 descriptor (`MqMessageDescriptor`, codegen-emitted from
-`contracts/mq-messages/mq-messages.spec.json`) drives encryption,
-exchange, and default routing key.
+`contracts/mq-messages/mq-messages.spec.json`) determines the encryption,
+the exchange and the default routing key.
 
 ---
 
@@ -33,52 +37,41 @@ dotnet add package DcsvIo.D2.Messaging.RabbitMq
 - [End-to-end architecture](#end-to-end-architecture)
 - [Public surface](#public-surface)
 - [Wire format](#wire-format)
-- [AMQP header contract](#amqp-header-contract)
-- [Publisher path](#publisher-path)
-- [Consumer path](#consumer-path)
-- [DLX + DLQ convention](#dlx--dlq-convention)
-- [Optional retry tier topology](#optional-retry-tier-topology)
-- [Encryption posture](#encryption-posture)
-- [Defaults that apply automatically](#defaults-that-apply-automatically)
+- [Publisher and consumer paths](#publisher-and-consumer-paths)
 - [Architecture](#architecture)
 - [Operational anti-patterns](#operational-anti-patterns)
 - [Dependencies](#dependencies)
+- [TypeScript twin - producer and consumer](#typescript-twin---producer-and-consumer)
 - [References](#references)
 
 ---
 
 ## Cross-hop propagation
 
-- **Trace correlation** — full W3C `traceparent` (`00-{traceId}-{spanId}-{flags}`)
-  - optional `tracestate` AMQP headers. The consumer parses via
-    `ActivityContext.TryParse` and starts a `Consumer`-kind span whose parent
-    is the publish span — cross-hop trace assembly works in any OTel backend.
-- **Operational subset** — `RequestId` / `RequestPath` / fingerprints /
-  `WhoIsHashId` / the accumulated service **call-path** (`CallPath`) ride
-  in the `x-d2-context` header (base64url-of-JSON encoded
-  `PropagatedContext`; same shape on every transport — AMQP is not
-  special-cased). The call-path also rides every synchronous gRPC hop
-  via a dedicated outbound client interceptor + inbound establishment
-  interceptor on the host auth stack (outbound write + inbound establishment).
+- Trace correlation: the full W3C `traceparent` (`00-{traceId}-{spanId}-{flags}`) and the optional `tracestate`
+  travel as AMQP headers. The consumer parses them with `ActivityContext.TryParse` and starts a `Consumer`-kind
+  span whose parent is the publish span, so any OpenTelemetry (OTel) backend can assemble the trace across hops.
+- Operational subset: `RequestId`, `RequestPath`, the fingerprints, `WhoIsHashId` and the accumulated service call
+  path (`CallPath`) are carried in the `x-d2-context` header (the `PropagatedContext` encoded as base64url of
+  JSON; the shape is the same on every transport, and AMQP is not special-cased). The call path is also sent on
+  every synchronous gRPC hop: a dedicated outbound client interceptor writes it, and an inbound establishment
+  interceptor on the host auth stack establishes it.
   `PropagatedContextSerializer.TryDecode` enforces both a wire-level cap
-  (`MAX_HEADER_LENGTH = 2 KiB`) AND per-field length caps (RequestPath ≤
-  2048, RequestId ≤ 256, fingerprints ≤ 512, WhoIsHashId ≤ 128; `CallPath`
-  entry count ≤ its spec `maxLength`). A forged
-  header that fits under the wire cap but contains an oversized single
-  field is dropped wholesale — propagation is opportunistic, never
-  required, so a partial / sanitized context is wrong; a null context is
-  right.
-- **Identity (UserId / OrgId / Scopes / ActorChain)** — NOT propagated by
-  messaging. Each sync hop re-validates a JWT and rebuilds identity from
-  scratch; for async events the consumer-side handler doesn't have one and
-  shouldn't claim caller identity. Anything the consumer truly needs about
-  business identity goes in the typed message body itself.
+  (`MAX_HEADER_LENGTH = 2 KiB`) and per-field length caps (RequestPath <=
+  2048, RequestId <= 256, fingerprints <= 512, WhoIsHashId <= 128; `CallPath`
+  entry count <= its spec `maxLength`). A forged header that fits under the wire cap but contains one oversized
+  field is dropped wholesale. Propagation is optional, so `TryDecode` returns a null context for such a header
+  and never a partial or sanitized one.
+- Identity (UserId, OrgId, Scopes, ActorChain): messaging does not propagate it. Each synchronous hop
+  re-validates a JWT and rebuilds identity from it. For an asynchronous event the consumer-side handler has no
+  JWT and should not claim the caller's identity. Business identity that the consumer needs goes in the typed
+  message body.
 
-The lib's surface is intentionally small — almost everything is internal.
-Consumers register the stack with one DI call (`AddD2MessagingRabbitMq`),
-publish via `IMessageBus`, and register subscribers via
-`AddD2SubscribersFromAssembly` (in the abstractions package). This lib's
-hosted services pick those up and declare topology accordingly.
+The public surface is small, and almost every type is internal.
+A consumer registers the stack with one DI call (`AddD2MessagingRabbitMq`),
+publishes through `IMessageBus`, and registers subscribers with
+`AddD2SubscribersFromAssembly` (in the abstractions package). The hosted services in this package
+read those registrations and declare the topology.
 
 ---
 
@@ -107,7 +100,7 @@ public sealed class PublishWidgetCreated(IMessageBus bus)
 }
 ```
 
-The message type carries the spec link:
+The `[MqPub]` attribute links the message type to its spec entry:
 
 ```csharp
 [MqPub(MqMessages.WidgetCreated)]
@@ -115,10 +108,10 @@ public sealed class WidgetCreated { /* ... */ }
 ```
 
 A type without `[MqPub]` throws `InvalidOperationException` from the
-publisher's resolver — every publishable type must have a deliberate spec
+publisher's resolver, so every publishable type must have a spec
 entry under `contracts/mq-messages/`.
 
-Handlers carry `[MqSub]`:
+A handler is marked with `[MqSub]`:
 
 ```csharp
 [MqSub(MqSubscriptions.WidgetCreatedAuditing)]
@@ -133,674 +126,177 @@ public sealed class WidgetCreatedAuditingHandler
 
 ## End-to-end architecture
 
-```
-Producer service
-  [MqPub(MqMessages.X)] class FooEvent
-    → IMessageBus (RabbitMqMessageBus) → publish via channel pool → RabbitMQ broker
-
-RabbitMQ broker
-  exchange: descriptor.Exchange
-    → queue: descriptor.QueueName
-        → DLX → DLQ
-        → (optional) tier exchanges + queues
-
-Consumer service
-  RabbitMQ broker
-    → dedicated channel (BasicConsume) → SubscriberChannel → dispatch
-    → [MqSub(...)] class MyHandler : BaseHandler<...>
-```
-
-**Spec → codegen → registry → runtime.**
-
-- Two JSON spec files in `contracts/`:
-  - `mq-messages/mq-messages.spec.json` — every publishable message type
-  - `mq-subscriptions/mq-subscriptions.spec.json` — every subscription contract
-- The `DcsvIo.D2.Messaging.SourceGen` Roslyn analyzer reads both at build time
-  and emits constants + immutable runtime registries into the
-  `DcsvIo.D2.Messaging.Abstractions` assembly:
-  - `MqMessages.AuthKeyRotated` (string constant) +
-    `MqMessagesRegistry.ByConstant`
-    (`Dictionary<string, MqMessageDescriptor>`)
-  - `MqSubscriptions.KeyringRefresh` (string constant) +
-    `MqSubscriptionsRegistry.ByConstant`
-- The producer marks each message class `[MqPub(MqMessages.X)]`; the publisher
-  resolves `Type → MqMessageDescriptor` via the cached `MessageWireResolver`
-  and gets exchange / encryption / routing-key from the descriptor.
-- The consumer marks each handler class `[MqSub(MqSubscriptions.X)]`;
-  `AddD2SubscribersFromAssembly(Assembly)` scans, validates the handler's
-  `BaseHandler<TSelf, TIn, Unit>` generic argument matches the spec's
-  `messageType`, and registers an `ISubscriberRegistration`.
-
-Full spec format + diagnostic catalog for the source-gen lives in
-`DcsvIo.D2.Messaging.SourceGen`. The
-transport-agnostic public surface (`IMessageBus`, `[MqPub]`, `[MqSub]`,
-descriptor records) lives in
-`DcsvIo.D2.Messaging.Abstractions`.
-
----
+The path a message takes from the publishing handler to the consuming one, and the component that owns each hop,
+is in `architecture.md`, in this package's documentation folder in the repository.
 
 ## Public surface
 
-**`MessagingRabbitMqServiceCollectionExtensions.AddD2MessagingRabbitMq(...)`**
-— wires connection, channel pool, bus, topology declarer, idempotency
-startup check, and the four hosted services. Idempotent. Validates that
-`WaitForConfirm == true` implies `PublisherConfirmsEnabled == true` at
-composition time (`ValidateOnStart`). A mismatch is a startup failure, not a
-silent fire-and-forget surprise on what the operator believed was a confirmed
-publish.
+`MessagingRabbitMqServiceCollectionExtensions.AddD2MessagingRabbitMq(...)`
+registers the connection, the channel pool, the bus, the topology declarer, the idempotency
+startup check, and the hosted services that run them. It is idempotent. It validates at
+composition time (`ValidateOnStart`) that `WaitForConfirm == true` implies `PublisherConfirmsEnabled == true`.
+A mismatch is a startup failure, not a silent fire-and-forget publish that the operator
+believed was confirmed. It also validates the broker address at composition: an address whose
+scheme is not `amqps` is refused unless its host is loopback or
+`RabbitMqConnectionOptions.AllowUnencryptedTransport` is `true`. The address
+carries the broker credential and every message body crosses the connection,
+so a plain `amqp://` address to another host is a startup failure. The
+dead-letter transport copies the validated options, so the rule covers it too.
 
-**`RabbitMqConnectionOptions`** — `ConnectionUri` (`amqp://...` or
-`amqps://...`, embeds host / port / vhost / credentials / TLS) +
-`ClientProvidedName` + consumer-dispatch concurrency + reconnect backoff.
+`RabbitMqConnectionOptions` has `ConnectionUri` (`amqps://...`, which contains host,
+port, vhost and credentials), `AllowUnencryptedTransport` (default `false`;
+set it only where nothing can observe the network path to the broker, such as
+a local container network), `ClientProvidedName`, consumer-dispatch
+concurrency and reconnect backoff. `ConnectionUri` can be set but not read: the
+address is held in a private field, the type is marked
+`[RedactData(Reason = RedactReason.SecretInformation)]`, and
+`RevealConnectionUri()` is the only read of it.
 
-**`ChannelPoolOptions`** — publisher pool size (default 4), acquire
-timeout (default 30s), publisher confirms toggle (default on),
-**`IdleTtl`** (default 5 min — channels idle longer than this are
-disposed and replaced on the next acquire to avoid stale broker-side
-state under low-traffic services).
+`ChannelPoolOptions` has the publisher pool size (default 4), the acquire
+timeout (default 30s), the publisher confirms toggle (default on) and
+`IdleTtl` (default 5 min). A channel idle longer than `IdleTtl` is
+disposed and replaced on the next acquire, to avoid stale broker-side
+state under low-traffic services.
 
-**`RabbitMqPublisherOptions`** — confirm wait toggle, confirm timeout
-(default 5s), max attempts (default 5), retry backoff (200ms → 5s cap).
+`RabbitMqPublisherOptions` has the confirm wait toggle, the confirm timeout
+(default 5s), the maximum attempts (default 5) and the retry backoff (200ms -> 5s cap).
 
-`IMessageBus` itself is registered to `RabbitMqMessageBus` — that type is
-internal and not part of the public surface. The bus is a **singleton**
-(builds a transient DI scope per `PublishAsync` to resolve the keyed
-`IPayloadCrypto` and the calling scope's `IRequestContext` snapshot —
-hosted services + other singletons can publish without ceremony).
+`RabbitMqSubscriberOptions` has independent DLQ operation and cleanup bounds, configured
+through `AddD2MessagingRabbitMq(configureSubscriber: ...)`. Both are `NodaTime.Duration`
+values and must be positive whole milliseconds no greater than 2147483647. Configuration
+validation runs at startup; subscriptions capture the values before allocating transport.
+
+`MessagingErrorCodes` and `MessagingTransportFailures` are generated from
+`contracts/messaging-error-codes/messaging-error-codes.spec.json`. The catalog lists the codes a publish can fail with
+when the transport could not carry the message: `LIB_MESSAGING_PUBLISH_UNROUTABLE`, described under "Routing is not
+optional" in `publisher-and-consumer.md`, in this package's documentation folder in the repository.
+
+`IMessageBus` is registered to `RabbitMqMessageBus`, which is
+internal and not part of the public surface. The bus is a singleton.
+It builds a transient DI scope on each `PublishAsync` call to resolve the keyed
+`IPayloadCrypto` and the calling scope's `IRequestContext` snapshot, so
+hosted services and other singletons can publish.
 
 ---
 
 ## Wire format
 
-### Envelope
+The envelope, its fields and the AMQP header contract another runtime has to honor are in
+`wire-format.md`, in this package's documentation folder in the repository.
 
-There is no envelope wrapper. The wire body is one of:
+## Publisher and consumer paths
 
-- **Plaintext path** — raw `System.Text.Json` serialization of the message
-  value (UTF-8 bytes).
-- **Encrypted path** — a single AES-256-GCM frame produced by
-  `DcsvIo.D2.Encryption.IPayloadCrypto.Encrypt`:
-  ```
-  [version=1 byte][kid_len=1 byte][kid:UTF-8 bytes][nonce:12 bytes][ciphertext+tag]
-  ```
-  The kid is also duplicated into the `x-d2-encryption-kid` AMQP header so DLQ
-  ops triage can decide whether archive keys are needed without first
-  decrypting. The binary frame-layout byte offsets are themselves spec-driven
-  via
-  `DcsvIo.D2.Encryption.Frame.SourceGen`.
-
-`EncryptedBodyComposer` chooses the path from the descriptor's `Encryption`
-field. Plaintext on a domain that should be encrypted — or vice versa — is a
-spec edit, not a code edit; the resolver picks up the new descriptor on the
-next build.
-
-### Sealed (asymmetric) mode
-
-A domain declares its encryption **mode** in `contracts/encryption-domains`
-(`mode: symmetric | sealed`, default `symmetric`). `audit` / `notifications` /
-`courier` are **sealed**: every service seals a payload to the consumer
-service's public key (version-2 ECDH-ES frame), and only that one consumer
-opens it. The mode + consumer are single-source domain facts read from the
-generated catalog via `MqMessageDescriptor.IsSealed` + `.ConsumerService` — no
-second generated surface.
-
-`EncryptedBodyComposer` gains a sealed branch: on publish it resolves the keyed
-`IPayloadSealer` by **consumer service** and produces a v2 frame; on consume it
-resolves the keyed `IPayloadOpener` by the same key. A producer host that never
-registered a sealer, or a consumer host with no opener, lacks the keyed
-registration → `GetRequiredKeyedService` throws → publish fails loud / consume
-DLQs (never plaintext, never a silent drop). Two sealed domains that share a
-consumer share one sealer/opener.
-
-`SealedConsumerStartupCheck` (registered unconditionally by
-`AddD2MessagingRabbitMq`, never by the sealing call) crashes host startup — before
-any consumer channel opens — when a subscriber consumes a sealed domain but no
-matching `IPayloadOpener` is registered, so a forgotten sealed-opener registration
-fails loud rather than DLQ'ing every delivery. Sealed sealer/opener material is
-host-supplied via the public encryption seams (`IPayloadSealer` / `IPayloadOpener`
-keyed DI + provenance marks such as `EncryptionKeyringSource.KeyCustodian` for
-managed sources); this shared lib composes whatever keyed sealer/opener the host
-registered (shared → shared dependency only). The TypeScript twin
-(`@dcsv-io/d2-messaging-rabbitmq`) enforces the same fusion structurally.
-
-### Why JSON not binary protobuf
-
-- Cross-language consumer-friendliness: any language with a JSON parser can
-  read a decrypted body without `protoc`-generated code.
-- DLQ inspection lands a UTF-8 JSON document after decrypt — `grep`-able,
-  diff-able, replay-able.
-- The size + parse cost is comfortably bounded for the message rates this
-  system runs at.
-
----
-
-## AMQP header contract
-
-Every published message carries the headers below. Headers stay plaintext in
-the broker — they MUST NOT carry user identity, scopes, fingerprints, or any
-other sensitive context.
-
-| Header                | Direction           | Purpose                                                                                                                                                                                                                                        |
-| --------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `content-type`        | producer → consumer | Always `application/octet-stream`. Body is an opaque byte sequence (encrypted or JSON).                                                                                                                                                        |
-| `x-proto-type`        | producer → consumer | The CLR FQN of the message type — fail-fast inspection without body parsing.                                                                                                                                                                   |
-| `message-id`          | producer → consumer | UUIDv7 (sortable, includes timestamp). Stable across publish retries — the publisher generates ONCE per `PublishAsync` call so a retry of an already-broker-received-but-unconfirmed publish doesn't bypass the consumer's idempotency window. |
-| `timestamp`           | producer → consumer | ISO 8601 UTC at publish time.                                                                                                                                                                                                                  |
-| `traceparent`         | producer → consumer | Full W3C trace-context string `00-{traceId}-{spanId}-{flags}`. The consumer parses it via `ActivityContext.TryParse` and starts a `Consumer`-kind span whose parent is the publish span — cross-hop trace assembly works in any OTel backend.  |
-| `tracestate`          | producer → consumer | Optional W3C vendor-specific trace state, forwarded as-is.                                                                                                                                                                                     |
-| `x-d2-encryption-kid` | producer → consumer | Encryption key id. Set only on encrypted messages.                                                                                                                                                                                             |
-| `x-d2-context`        | producer → consumer | Base64url-of-JSON encoded `PropagatedContext` — request id, request path, fingerprints, WhoIs hash. NOT identity (UserId / OrgId / Scopes — those rebuild from the JWT at every hop).                                                          |
-| `x-d2-failure-reason` | DLQ-only            | JSON-encoded `DlqFailureMetadata` — all six fields: `cause`, `errorCode`, `detail`, `attemptCount`, `traceId`, `nackedBy`. Attached by the consumer when republishing to the queue's DLX — see the DLQ section below.                          |
-
-> The runtime header **direction + purpose** semantic catalog lives in this
-> doc (it's the operational reference). The **wire-value constants**
-> (e.g. `AmqpHeaders.MESSAGE_ID = "message-id"`) are codegen-emitted into
-> `DcsvIo.D2.Headers.Amqp` from
-> `contracts/headers/headers.spec.json`.
-
----
-
-## Publisher path
-
-### Registration
-
-```csharp
-services.AddD2MessagingRabbitMq(
-    configureConnection:  o => o.ConnectionUri = "amqp://...",
-    configureChannelPool: o => o.PublishPoolSize = 8,
-    configurePublisher:   o => { o.WaitForConfirm = true; o.MaxAttempts = 5; });
-
-// Encryption (only for encrypted-domain messages):
-services.AddD2EncryptionFor(EncryptionDomains.Audit, _ => new PayloadCryptoKeyring(...));
-```
-
-`AddD2MessagingRabbitMq`:
-
-- Registers `ID2Connection`, `IChannelPool`, `IMessageBus` as **singletons**.
-  The bus builds a transient DI scope per `PublishAsync` to resolve the keyed
-  `IPayloadCrypto` and the calling scope's `IRequestContext` snapshot —
-  background hosted services can publish without ceremony.
-- Validates that `RabbitMqPublisherOptions.WaitForConfirm == true` implies
-  `ChannelPoolOptions.PublisherConfirmsEnabled == true` at composition time
-  (`ValidateOnStart`). A mismatch is a startup failure, not a silent
-  fire-and-forget surprise.
-
-### Calling the bus
-
-```csharp
-public sealed class KeyRotatedAnnouncer(IMessageBus bus) : IHostedService
-{
-    public async Task StartAsync(CancellationToken ct)
-    {
-        await bus.WaitForReadyAsync(ct);     // see WaitForReadyAsync below
-        var result = await bus.PublishAsync(new KeyRotatedEvent { ... }, ct: ct);
-        if (result.Failed) { /* log + decide */ }
-    }
-}
-```
-
-### Resolution + composition pipeline
-
-For each `PublishAsync<TMessage>`:
-
-1. `MessageWireResolver.Resolve(typeof(TMessage))` looks up the descriptor via
-   the type's `[MqPub]` attribute → `MqMessagesRegistry.ByConstant`. Fails loud
-   on missing attribute, unknown constant, or FQN mismatch — these are
-   programmer errors, not runtime conditions.
-2. `EncryptedBodyComposer.Compose(message, descriptor, sp)` produces the body
-   bytes (plaintext JSON or encrypted frame) **once**. Body bytes are reused
-   across retry attempts so a retry doesn't re-encrypt with a freshly-generated
-   nonce.
-3. A stable per-publish `message-id` (UUIDv7) is generated **once**.
-4. `BuildPropagatedHeader` snapshots the calling scope's `IRequestContext`
-   into `x-d2-context` (or null if no context registered).
-5. `RetryHelper.RetryAsync` runs the publish with exponential backoff. Transient
-   classification (`TransientPublishClassifier`) treats broker-NACK /
-   `OperationInterrupted` / `BrokerUnreachable` / `BrokerUnavailable` /
-   `AlreadyClosed` / `TimeoutException` / `PublishException` (when not a
-   return) / standard transients as retryable; everything else surfaces as
-   `D2Result.ServiceUnavailable`.
-6. Each attempt acquires a channel from `BoundedChannelPool.AcquireAsync`. The
-   pool evicts channels idle longer than `IdleTtl` (default 5 min) to avoid
-   stale broker-side state under low-traffic services.
-7. With confirms enabled, `BasicPublishAsync` returns when the broker acks. A
-   bounded `ConfirmTimeout` linked-CTS surfaces a hung broker as a
-   `TimeoutException` (transient).
-
-### Telemetry
-
-| Metric                                         | Type           | Description                                                                                                                                  |
-| ---------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `d2.messaging.rabbitmq.publishes`              | Counter        | Total publish attempts (including retries).                                                                                                  |
-| `d2.messaging.rabbitmq.publish_failures`       | Counter        | Terminal publish failures (after retries exhausted).                                                                                         |
-| `d2.messaging.rabbitmq.publish_retries`        | Counter        | Publish retry attempts (transient → backoff → re-attempt).                                                                                   |
-| `d2.messaging.rabbitmq.publish_duration`       | Histogram (ms) | Wall-clock duration of a publish operation, end-to-end.                                                                                      |
-| `d2.messaging.rabbitmq.dlq_republish_failures` | Counter        | Consumer-side DLQ republish failures — falls back to `BasicNack-no-requeue` so the message still leaves the primary queue.                   |
-| `d2.messaging.rabbitmq.ack_failures`           | Counter        | Post-handler-success ack failures (narrow catch around `BasicAckAsync`) — the idempotency mark prevents duplicate work on broker redelivery. |
-
-A `publish {exchange}/{routingKey}` Producer-kind activity wraps the whole
-call. Its tags are spec-driven via
-`contracts/otel-messaging-tags/otel-messaging-tags.spec.json` — emitted by
-`DcsvIo.D2.OtelMessagingTags.SourceGen` into `MessagingActivityTags` consumed
-by the publisher AND consumer. The publisher emits:
-
-- `MessagingActivityTags.MESSAGING_SYSTEM` (`messaging.system` = `"rabbitmq"`)
-- `MessagingActivityTags.MESSAGING_DESTINATION_NAME`
-  (`messaging.destination.name` = exchange)
-- `MessagingActivityTags.MESSAGING_RABBITMQ_ROUTING_KEY`
-  (`messaging.rabbitmq.routing_key`)
-- `MessagingActivityTags.D2_MESSAGE_TYPE` (`d2.message_type` = CLR FullName)
-- `MessagingActivityTags.D2_ENCRYPTION_KID` (`d2.encryption_kid`; null/absent
-  for plaintext)
-- `MessagingActivityTags.MESSAGING_MESSAGE_ID` (`messaging.message.id` =
-  UUIDv7)
-- `MessagingActivityTags.MESSAGING_OPERATION_TYPE`
-  (`messaging.operation.type` = `"publish"`)
-
-The OTel sem-conv canonical attribute is `messaging.operation.type`, NOT
-`messaging.operation` — spec-driving the catalog prevents the
-publisher / consumer drift class.
-
-### `WaitForReadyAsync`
-
-`IMessageBus.WaitForReadyAsync(CancellationToken)` awaits
-`ID2Connection.ReadyTask` — the first connection landing. Use it from
-background hosted services that fire off a publish at startup so a
-startup-race-with-broker doesn't surface as a confusing `ServiceUnavailable`
-on the first call.
-
----
-
-## Consumer path
-
-### Registration
-
-```csharp
-services.AddD2Handler();
-services.AddD2MessagingRabbitMq(...);
-services.AddD2SubscribersFromAssembly(typeof(MyHandler).Assembly);
-```
-
-`AddD2SubscribersFromAssembly` reflects over the assembly looking for classes
-with `[MqSub]`; for each match, `SubscriberRegistrar.Register`:
-
-1. Looks up the descriptor in `MqSubscriptionsRegistry.ByConstant`. Missing
-   constant → loud throw.
-2. Walks the handler's inheritance chain looking for
-   `BaseHandler<TSelf, TInput, TOutput>` and validates
-   `TInput.FullName == descriptor.MessageTypeName`. Mismatch → loud throw.
-3. Calls `ResolveQueueName(descriptor)` which appends a per-process 8-char
-   Guid suffix when `descriptor.Pattern == FanoutExclusiveAutoDelete` — keeps
-   multi-replica services from racing on the broker's exclusive-queue lock.
-4. Registers the handler `Transient`, registers an `ISubscriberRegistration`
-   carrying `(HandlerType, MessageType, Descriptor, ResolvedQueueName)`.
-
-### Hosted-service ordering
-
-| Order | Hosted service                   | Responsibility                                                                                                                                                                                                                                                                                         |
-| ----- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1     | `ConnectionStartupHostedService` | Kicks off background reconnect loop.                                                                                                                                                                                                                                                                   |
-| 2     | `IdempotencyStartupCheck`        | Hard-fails startup when any subscription declares `idempotency=true` but no `IDistributedCache` is registered AND no operator-provided `IMessageIdempotencyStore` is registered.                                                                                                                       |
-| 3     | `TopologyHostedService`          | Background-declares the topology once `ID2Connection.ReadyTask` completes. A faulted declaration is logged via `TopologyLog.DeclarationFailed` (no more silent loss on `PRECONDITION_FAILED`).                                                                                                         |
-| 4     | `ConsumerHostedService`          | Awaits `ReadyTask`, **re-declares topology synchronously** (idempotent), then opens one `SubscriberChannel` per registration. For `FanoutExclusiveAutoDelete`, each `SubscriberChannel.StartAsync` **re-owns** the exclusive queue on the long-lived consumer channel (declare DLX + DLQ + primary queue via the same `DefaultTopologyDeclarer.QueueFlagsFor` flags, bind, then `BasicConsume`) so consume does not race a short-lived topology declare channel; exclusive queues are deleted when their declaring **connection** closes, not merely when a declare channel is disposed. Exposes `ReadyTask` (Task) that completes when every channel has finished `BasicConsume` — integration tests + ordered-startup callers can wait on it before publishing. |
-
-### Per-delivery pipeline
-
-For each delivery on a subscriber channel:
-
-1. **In-flight callback counter** — `Interlocked.Increment` so `DisposeAsync`
-   can drain in-flight handlers (bounded 30s) before closing the channel
-   mid-ack.
-2. **Trace context** — parse `traceparent` / `tracestate` headers via
-   `ActivityContext.TryParse`; start a `Consumer`-kind activity
-   `receive {queue}` with that as the parent context. Consumer-side activity
-   tags (all spec-driven via `MessagingActivityTags`):
-   - `MESSAGING_SYSTEM` (`messaging.system` = `"rabbitmq"`)
-   - `MESSAGING_DESTINATION_NAME` (`messaging.destination.name` = queue)
-   - `MESSAGING_OPERATION_TYPE` (`messaging.operation.type` = `"receive"`)
-   - `MESSAGING_MESSAGE_ID` (`messaging.message.id` = producer-assigned
-     UUIDv7)
-   - `MESSAGING_RABBITMQ_DELIVERY_TAG` (`messaging.rabbitmq.delivery_tag`)
-   - `MESSAGING_RABBITMQ_REDELIVERED` (`messaging.rabbitmq.redelivered`)
-3. **Per-message DI scope** — `IServiceScopeFactory.CreateAsyncScope`. The
-   scope owns the handler instance + a fresh `MutableRequestContext`.
-4. **Propagated context** — read `x-d2-context`, decode via
-   `PropagatedContextSerializer`, apply onto the scope's
-   `MutableRequestContext`. Identity (UserId / OrgId / Scopes) is NEVER in
-   this header — it would rebuild from a JWT in a sync hop; for async events
-   the consumer-side handler doesn't have one and shouldn't claim caller
-   identity.
-5. **Idempotency pre-check** (when `descriptor.Idempotency`) —
-   `IMessageIdempotencyStore.HasSeenAsync(messageId)`. Hit → `BasicAck`,
-   return without invoking the handler. ServiceUnavailable on the **read**
-   path → fail-open (process the message; better a duplicate than reject
-   during a Redis blip — handlers MUST be at-least-once-safe). The **write**
-   path (after handler success) is different: a failed `MarkSeenAsync` would
-   silently leave the dedup window unguarded for that message-id, so it
-   NACKs to DLQ (cause `RETRIES_EXHAUSTED` ≠ this — it's the same DLQ shape
-   as a handler failure) and emits the `IdempotencyMarkFailed` log +
-   `ack_failures` counter so the operator sees the store-degradation impact.
-6. **Tiered-retry attempt-count check** (when `descriptor.TieredRetry` is
-   non-null) — parse the `x-death` header, sum `count` across entries whose
-   `reason` is `expired` (retry-tier TTL expiry — our retry path) or
-   `rejected` (consumer NACK). Other reasons (`maxlen`, `delivery_limit`) are
-   broker-side flow control, not consumer-side retries; counting them would
-   trigger `RETRIES_EXHAUSTED` prematurely. If the filtered total ≥
-   `MaxAttempts`, route direct to DLQ with cause `RETRIES_EXHAUSTED` (no
-   handler invocation). Without this, a permanently-broken payload would
-   bounce through tier queues forever.
-7. **Dispatch** —
-   `HandlerDispatcherFactory.GetForQueue(queue).DispatchAsync(scope.ServiceProvider, ea.Body, ct)`.
-8. **Result branch**:
-   - `MessageBodyDecodeException` → DLQ with cause `DESERIALIZE_FAILURE` or
-     `DECRYPT_FAILURE`.
-   - Other handler exception → DLQ with cause `HANDLER_EXCEPTION`.
-     (BaseHandler's universal try/catch usually swallows this into
-     `D2Result.UnhandledException` → falls into the result-failure arm below.)
-   - `result.Failed` → DLQ with cause `HANDLER_RESULT_FAILURE`, errorCode =
-     `result.ErrorCode`.
-   - Success → idempotency mark (if enabled), then `BasicAck`. Ack failures
-     are caught **narrowly** around the `BasicAckAsync` call only — they emit
-     a structured log + `d2.messaging.rabbitmq.ack_failures` counter and rely
-     on broker redelivery (the idempotency mark prevents duplicate work).
-     Without the narrow catch, an ack-after-success failure would falsely
-     route the already-processed message to DLQ.
-
-### Idempotency contract (when `idempotency: true` in the spec)
-
-1. The consumer pre-checks
-   `IMessageIdempotencyStore.HasSeenAsync(messageId)` before invoking the
-   handler. Hit → ack-and-skip.
-2. After a successful handler run, the consumer writes the mark via
-   `MarkSeenAsync(messageId)` BEFORE `BasicAck`.
-3. **Read-path** failure (HasSeen returns ServiceUnavailable) → **fail-open**:
-   process the message anyway. Handlers MUST be at-least-once-safe; rejecting
-   messages during a transient store outage on the read path is the wrong
-   tradeoff.
-4. **Write-path** failure (MarkSeen returns ServiceUnavailable) → **NACK to
-   DLQ**. Acking without a written mark would silently leave the dedup window
-   unguarded; a redelivery of the already-processed message would re-run the
-   handler. The `ack_failures` counter + `IdempotencyMarkFailed` log surface
-   the store-degradation window so the operator can react.
-5. Startup-check: `IdempotencyStartupCheck` hard-fails host startup when any
-   subscription declares `idempotency: true` but neither `IDistributedCache`
-   nor an operator-provided `IMessageIdempotencyStore` is registered. Silent
-   no-op on a safety feature is the worst possible default.
-
-### Delivery semantics
-
-- **At-least-once** is the default and only contract. Handlers MUST be
-  idempotent. The opt-in `IMessageIdempotencyStore` (subscription-level
-  `idempotency: true`) provides a 24-hour dedup window backed by
-  `IDistributedCache`, but the handler's own state machine is the source of
-  truth.
-- **`message-id` is UUIDv7**, generated ONCE per `PublishAsync` call so a
-  publisher retry of an unconfirmed publish doesn't bypass the consumer's
-  dedup window.
-- **Manual ack only.** `autoAck: false` everywhere. Ack happens AFTER the
-  handler's work commits + the idempotency mark is written, not before.
-- **Crash between mark + ack** is safe: the next redelivery sees the mark and
-  skips the handler. The opposite ordering would let a
-  handler-completed-but-pre-mark crash cause a duplicate run, which the
-  redelivery couldn't detect.
-
-### Queue patterns
-
-| Pattern                     | When                                                                                            | Durability                                                                                                                                                                                  |
-| --------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CompetingConsumer`         | commands / requests delivered to one consumer in the fleet                                      | durable, non-exclusive, non-autodelete                                                                                                                                                      |
-| `DurableShared`             | persistent events (audit, file lifecycle) — survives restart, multiple consumers OK             | durable, non-exclusive, non-autodelete                                                                                                                                                      |
-| `FanoutExclusiveAutoDelete` | per-instance broadcast (cache invalidation, keyring refresh) — every replica gets every message | non-durable, exclusive, auto-delete; consumer host auto-suffixes the queue name with a per-process token to avoid the broker's exclusive-queue lock collision in a multi-replica deployment |
-
-### DLQ republish-with-failure-header
-
-`PublishFailureHeaderAsync` republishes the original body to `{queue}.dlx`
-with the failure-reason header attached, then `BasicAck`s the original
-delivery. A dedicated republish channel (lazy, one per `SubscriberChannel`)
-keeps publish state out of the consume channel's delivery queue. On republish
-failure: log + `d2.messaging.rabbitmq.dlq_republish_failures` counter + fall
-back to `BasicNack-no-requeue` (broker's `x-dead-letter-exchange` argument
-routes a header-less copy — better than losing the message).
-
-### `DlqFailureMetadata` (the `x-d2-failure-reason` payload)
-
-```jsonc
-{
-  "cause":        "HANDLER_EXCEPTION" | "HANDLER_RESULT_FAILURE" | "DECRYPT_FAILURE" | "DESERIALIZE_FAILURE" | "RETRIES_EXHAUSTED",
-  "errorCode":    "<exception type FullName | result.ErrorCode>",
-  "detail":       null | "<message-keys-joined>",     // see PII-safety below
-  "attemptCount": 0,                                  // observed redelivery count
-  "traceId":      "<W3C trace id, hex>",
-  "nackedBy":     "<service name, optional>"
-}
-```
-
-The wire shape is spec-driven via
-`contracts/dlq-failure-metadata/dlq-failure-metadata.spec.json`. The
-`DcsvIo.D2.Messaging.DlqMetadata.SourceGen` multi-target source-gen emits
-`DlqFailureMetadataFields` (property names) into
-`DcsvIo.D2.Messaging.Abstractions` and `DlqFailureCauses` (closed-enum cause
-strings) into `DcsvIo.D2.Messaging.RabbitMq`. The `DlqFailureMetadata` record
-applies `[JsonPropertyName(DlqFailureMetadataFields.*)]` attributes
-referencing the codegen-emitted constants — drift between the wire shape and
-the spec is structurally impossible. The TS sibling `@dcsv-io/d2-messaging-abstractions`
-emits identical constants, so any TS reader (DLQ ops tooling, RabbitMQ
-subscribers) shares byte-equal field-name and cause-string identifiers with
-the .NET producers.
-
-**PII-safety discipline**: `detail` is **never** built from
-`exception.Message` (handler code can interpolate user input). For
-result-failure cases it joins the result's `messages.Select(m => m.Key)` —
-translation-token strings, developer-controlled, safe. For exception cases it
-stays `null`. All log delegates that take an `Exception` log only
-`SanitizedExceptionRender.TypeName(ex)` + `FirstFrame(ex)` — no
-`ex.Message`, no full stack trace. Handlers MUST NOT include user input in
-exception messages, but the broker / log pipeline defends against accidents.
-
----
-
-## DLX + DLQ convention
-
-Every primary queue `{q}` gets:
-
-- **DLX** `{q}.dlx` — fanout exchange.
-- **DLQ** `{q}.dlq` — durable queue bound to the DLX.
-
-The primary queue is declared with
-`x-dead-letter-exchange = {q}.dlx` and `x-dead-letter-routing-key = ""`.
-
-On any handler / boundary failure, the consumer **republishes** the original
-body to `{q}.dlx` with the `x-d2-failure-reason` header attached, then
-`BasicAck`s the original delivery. A dedicated republish channel keeps
-publish state out of the consume channel's delivery queue. On republish
-failure: emits `d2.messaging.rabbitmq.dlq_republish_failures` counter and
-falls back to `BasicNack-no-requeue` (header-less copy lands in DLQ via
-`x-dead-letter-exchange`).
-
----
-
-## Optional retry tier topology
-
-When a subscription declares a `tieredRetry` block in its spec entry, the
-topology declarer stands up:
-
-```
-{queue}             → primary queue (binds to descriptor.Exchange)
-                      x-dead-letter-exchange = {queue}.dlx
-                      x-dead-letter-routing-key = ""
-
-{queue}.dlx         → fanout DLX
-{queue}.dlq         → bound to {queue}.dlx (the actual DLQ)
-
-{queue}.retry.return → fanout exchange bound BACK to {queue} (routes TTL'd messages back in)
-
-For each tier i in TieredRetry.Tiers:
-  {queue}.retry.{i}    → single name used for BOTH the fanout retry-tier exchange AND its bound queue.
-                         The exchange's binding routes to the same-name queue; the queue has
-                         x-message-ttl = tiers[i] and x-dead-letter-exchange = {queue}.retry.return.
-                         (Ops tooling that lists queues vs exchanges in the broker management
-                         UI sees the same name in both lists — broker resource type
-                         disambiguates which is which.)
-```
-
-In normal use, a transient handler failure NACKs to one of the retry-tier
-exchanges (the driver is responsible for routing; the framework declares the
-topology but the per-handler driver code wires the NACK explicitly — the
-framework does not auto-route on the consumer's behalf). The message
-TTL-expires onto the retry-return exchange, RabbitMQ re-routes it to the
-primary queue. The consumer's `x-death`-driven attempt counter caps the total
-cycles via `MaxAttempts`.
-
----
-
-## Encryption posture
-
-- One keyring per **encryption domain** — registered keyed-singleton via
-  `services.AddD2EncryptionFor(domain, factory)`. Domains live in
-  `DcsvIo.D2.Encryption.EncryptionDomains` (`Audit`, `Notifications`,
-  `Courier`, ...).
-- The descriptor's `encryption` field IS the domain string (or the literal
-  `"plaintext"`). The publisher resolves `IPayloadCrypto` keyed by that
-  string.
-- Plaintext entries MUST document `encryptionReason` in the spec. The build
-  doesn't enforce a non-empty string, but the field surfaces in code review
-  when "why isn't this encrypted?" comes up.
-- **AMQP headers stay plaintext at-rest.** Only the body is wrapped in the
-  encryption frame. Identity (`UserId` / `OrgId` / scopes) is NEVER in
-  headers — the broker stores headers plaintext, and routing semantics need
-  them readable.
-- The `EncryptionDomains` catalog is itself spec-driven via
-  `DcsvIo.D2.Encryption.Domains.SourceGen`;
-  the binary frame layout is spec-driven via
-  `DcsvIo.D2.Encryption.Frame.SourceGen`;
-  per-keyring rotation lifecycle lives in
-  `DcsvIo.D2.Encryption`.
-
----
-
-## Defaults that apply automatically
-
-- Publisher confirms: **on**. Disable per-call via
-  `PublisherOptions.WaitForConfirm = false` for fire-and-forget.
-- Confirm timeout: **5s**. Slow brokers exhibit timeouts as transient and
-  retry up to `MaxAttempts` (default 5).
-- Retry backoff: **200ms → 2× → cap at 5s**. Worst case before
-  `ServiceUnavailable`: 5 attempts × 5s confirm + ~7s of backoff ≈ 32s.
-- Persistent message delivery mode (`DeliveryModes.Persistent`).
-- AMQP body content-type: `application/octet-stream` — body is opaque
-  (encrypted bytes, or JSON bytes; never a structured AMQP type).
-- Channel pool idle TTL: **5 min** — bounded broker-side state under
-  low-traffic services.
-- Subscriber-disposal in-flight drain: **30s** — bounded hold on host
-  shutdown so well-behaved handlers ack cleanly.
-
----
+The publisher path and its routing obligation, the consumer path and its acknowledgment rules, the dead-letter
+convention, the optional retry tier, the encryption posture and the defaults that apply with no configuration are
+in `publisher-and-consumer.md`, in this package's documentation folder in the repository.
 
 ## Architecture
 
-| Concern                    | Owner                                                                                                                                                                                                                                                                                                               |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Connection lifecycle       | `Connection/RabbitMqConnection.cs` — singleton wrapper over `IConnection`; opens lazily; `RabbitMQ.Client` automatic recovery handles reconnects. Host stays up while broker is down (publishers return `ServiceUnavailable`; consumers idle).                                                                      |
-| Connection startup         | `Connection/ConnectionStartupHostedService.cs` — non-blocking; kicks off the connection's reconnect loop.                                                                                                                                                                                                           |
-| Channel pool               | `Channels/BoundedChannelPool.cs` — semaphore-bounded; recycles healthy channels on lease return; discards faulted channels; evicts channels idle longer than `IdleTtl`.                                                                                                                                             |
-| Body composition           | `Encryption/EncryptedBodyComposer.cs` — JSON-serializes the typed message; encrypts via `IPayloadCrypto[domain]` when the descriptor's `Encryption` is non-`plaintext`. Validates encryption-frame version byte on decrypt.                                                                                         |
-| Wire resolution            | `Encryption/MessageWireResolver.cs` — `Type → MqMessageDescriptor` lookup via `[MqPub]` + `MqMessagesRegistry.ByConstant`. Per-type cached. Hard-fails on missing attribute / unknown constant / FQN mismatch. Test seam (`RegisterForTesting`) lets integration fixtures bypass the FQN check for synthetic types. |
-| Publishing                 | `Publishing/RabbitMqMessageBus.cs` — IMessageBus impl; integrates body composer + channel pool + retry helper + transient classifier; OTel-instrumented; `WaitForReadyAsync` for startup-time publishers.                                                                                                           |
-| Transient classification   | `Publishing/TransientPublishClassifier.cs` — what's worth retrying. Includes `PublishException` (when not a return-publish), `BrokerUnavailable`, `BrokerUnreachable`, `OperationInterrupted`, `AlreadyClosed`, `TimeoutException`, plus the standard transients.                                                   |
-| Topology                   | `Topology/DefaultTopologyDeclarer.cs` — idempotent declaration of exchanges + queues + DLX + DLQ + optional retry tiers (driven by `SubscriberRegistry`).                                                                                                                                                           |
-| Topology startup           | `Topology/TopologyHostedService.cs` — non-blocking; awaits connection ready, then declares once. Logs `TopologyLog.DeclarationFailed` on background-task faults so a `PRECONDITION_FAILED` doesn't vanish into `TaskScheduler.UnobservedTaskException`.                                                             |
-| Consumer host              | `Subscribing/ConsumerHostedService.cs` — opens one `SubscriberChannel` per registration after declaring topology synchronously. Exposes `ReadyTask` (Task) that completes when every channel has finished `BasicConsume`.                                                                                           |
-| Subscriber channel         | `Subscribing/SubscriberChannel.cs` — owns one consume channel + one lazy republish channel per subscription; per-delivery DI scope; trace-context parsing; tiered-retry attempt-count enforcement; idempotency pre-check; narrow-catch around `BasicAck`; in-flight callback drain on disposal.                     |
-| Handler dispatch           | `Subscribing/HandlerDispatcherFactory.cs` — pre-builds typed dispatchers at startup from the registry; one dispatcher per registered queue.                                                                                                                                                                         |
-| DLQ failure header         | `Subscribing/DlqFailureHeaderBuilder.cs` — JSON-encodes `DlqFailureMetadata`; PII-safe (drops `exception.Message`).                                                                                                                                                                                                 |
-| Sanitized exception render | Consumes `DcsvIo.D2.Utilities.Diagnostics.SanitizedExceptionRender` (`TypeName` + `FirstFrame` only; never `ex.Message`). Used by every consumer-side log site that surfaces exception-derived strings (handler exceptions, ack failures, DLQ-republish failures, boundary failures).                               |
-| Idempotency                | `Idempotency/CacheIdempotencyStore.cs` — `IMessageIdempotencyStore` impl backed by `IDistributedCache` with 24h TTL.                                                                                                                                                                                                |
-| Idempotency startup check  | `Idempotency/IdempotencyStartupCheck.cs` — hard-fails host startup when any subscription has `idempotency: true` but no `IDistributedCache` AND no operator-provided `IMessageIdempotencyStore`.                                                                                                                    |
-| Telemetry                  | `Telemetry/MessagingTelemetry.cs` — static `ActivitySource` + `Meter` named `DcsvIo.D2.Messaging.RabbitMq`; six instruments (publishes, failures, retries, ack-failures, dlq-republish-failures counters; publish-duration histogram).                                                                              |
+| Concern                    | Owner                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Connection lifecycle       | `Connection/RabbitMqConnection.cs` - singleton wrapper over `IConnection`; opens lazily; `RabbitMQ.Client` automatic recovery handles reconnects. Host stays up while broker is down (publishers return `ServiceUnavailable`; consumers idle).                                                                                                                                                                                                    |
+| Connection startup         | `Connection/ConnectionStartupHostedService.cs` - non-blocking; starts the connection's reconnect loop.                                                                                                                                                                                                                                                                                                                                            |
+| Channel pool               | `Channels/BoundedChannelPool.cs` - semaphore-bounded; recycles healthy channels on lease return; discards faulted channels; evicts channels idle longer than `IdleTtl`.                                                                                                                                                                                                                                                                           |
+| Body composition           | `Encryption/EncryptedBodyComposer.cs` - JSON-serializes the typed message; encrypts via `IPayloadCrypto[domain]` when the descriptor's `Encryption` is non-`plaintext`. Validates encryption-frame version byte on decrypt.                                                                                                                                                                                                                       |
+| Wire resolution            | `Encryption/MessageWireResolver.cs` - delegates `Type -> MqMessageDescriptor` to `MessagingCatalog.RequireDescriptor`, which reads the type's `[MqPub]` constant and caches per type on the catalog instance. Throws on a missing attribute, a constant the catalog does not contain or a fully qualified name (FQN) mismatch. A test that needs a fixture descriptor builds its own `MessagingCatalog` and passes it through the ordinary seams. |
+| Publishing                 | `Publishing/RabbitMqMessageBus.cs` - `IMessageBus` implementation; uses the body composer, the channel pool, the retry helper and the transient classifier; emits OTel spans and metrics; `WaitForReadyAsync` for startup-time publishers.                                                                                                                                                                                                        |
+| Transient classification   | `Publishing/TransientPublishClassifier.cs` - decides which failures are retried. Includes `PublishException` (when not a return-publish), `BrokerUnavailable`, `BrokerUnreachable`, `OperationInterrupted`, `AlreadyClosed`, `TimeoutException`, plus the standard transients.                                                                                                                                                                    |
+| Topology                   | `Topology/DefaultTopologyDeclarer.cs` - idempotent declaration of exchanges + queues + DLX + DLQ + optional retry tiers (driven by `SubscriberRegistry`).                                                                                                                                                                                                                                                                                         |
+| Topology startup           | `Topology/TopologyHostedService.cs` - non-blocking; awaits connection ready, then declares once. Logs `TopologyLog.DeclarationFailed` on background-task faults, so a `PRECONDITION_FAILED` is logged and does not go to `TaskScheduler.UnobservedTaskException`.                                                                                                                                                                                 |
+| Consumer host              | `Subscribing/ConsumerHostedService.cs` - opens one `SubscriberChannel` per registration after awaiting the topology declaration; when `TopologyHostedService` started it first, this awaits that shared declaration instead of sending a second set of declare and bind commands. Exposes `ReadyTask` (Task) that completes when every channel has finished `BasicConsume`.                                                                       |
+| Subscriber channel         | `Subscribing/SubscriberChannel.cs` - owns one consume channel + one lazy republish channel per subscription; per-delivery DI scope; trace-context parsing; tiered-retry attempt-count enforcement; idempotency pre-check; narrow-catch around `BasicAck`; in-flight callback drain on disposal.                                                                                                                                                   |
+| Handler dispatch           | `Subscribing/HandlerDispatcherFactory.cs` - pre-builds typed dispatchers at startup from the registry; one dispatcher per registered queue.                                                                                                                                                                                                                                                                                                       |
+| DLQ failure header         | `Subscribing/DlqFailureHeaderBuilder.cs` - JSON-encodes `DlqFailureMetadata`; contains no personally identifiable information (PII) because it drops `exception.Message`.                                                                                                                                                                                                                                                                         |
+| Sanitized exception render | Consumes `DcsvIo.D2.Utilities.Diagnostics.SanitizedExceptionRender` (`TypeName` + `FirstFrame` only; never `ex.Message`). Used by every consumer-side log site that surfaces exception-derived strings (handler exceptions, ack failures, DLQ-republish failures, boundary failures).                                                                                                                                                             |
+| Idempotency                | `Idempotency/CacheIdempotencyStore.cs` - `IMessageIdempotencyStore` impl backed by `IDistributedCache` with 24h TTL.                                                                                                                                                                                                                                                                                                                              |
+| Idempotency startup check  | `Idempotency/IdempotencyStartupCheck.cs` - hard-fails host startup when any subscription has `idempotency: true` but no `IDistributedCache` and no operator-provided `IMessageIdempotencyStore`.                                                                                                                                                                                                                                                  |
+| Telemetry                  | `Telemetry/MessagingTelemetry.cs` - static `ActivitySource` + `Meter` named `DcsvIo.D2.Messaging.RabbitMq`; counters for publishes, publish failures, publish retries, publish returns (`d2.messaging.rabbitmq.publish_returns`), ack failures and DLQ-republish failures, plus a publish-duration histogram.                                                                                                                                     |
 
 ---
 
 ## Operational anti-patterns
 
-- **Auto-ack.** The pipeline always uses manual ack with `autoAck: false`. If
-  you find yourself wanting auto-ack, you actually want at-most-once
-  semantics, which is a different problem.
-- **Sharing the same queue name across competing consumers in a multi-process
-  layout when the spec pattern is `FanoutExclusiveAutoDelete`.** Trust the
-  per-process suffix — don't override it.
-- **Stuffing identity (`UserId` / `OrgId` / scopes) into `x-d2-context`.**
+- Auto-ack. The pipeline always uses manual ack with `autoAck: false`. A need for
+  auto-ack is a need for at-most-once delivery, which is a different problem.
+- Sharing the same queue name across competing consumers in a multi-process
+  layout when the spec pattern is `FanoutExclusiveAutoDelete`. Use the
+  per-process suffix and do not override it.
+- Putting identity (`UserId` / `OrgId` / scopes) into `x-d2-context`.
   That field carries propagation-only context (request id, fingerprints).
-  Identity rebuilds from the JWT at every hop; consumer-side handlers
+  Identity is rebuilt from the JWT at every hop; consumer-side handlers
   operate without one.
-- **Putting user input into exception messages.** The DLQ failure-reason
-  header drops `ex.Message` for safety; logs do too. Don't fight it — push
-  human-readable detail into result `messages` (translation keys) instead.
+- Putting user input into exception messages. The DLQ failure-reason
+  header drops `ex.Message` to keep user input out of it, and the logs drop it too. Do not work around this:
+  put human-readable detail in the result `messages` (translation keys) instead.
+- Publishing to an exchange nothing is bound to. That publish fails - see
+  "Routing is not optional" in `publisher-and-consumer.md`, in this package's
+  documentation folder. Bind a queue to it, even one nothing drains, or stop
+  publishing to it.
 
-> Contract-level anti-patterns (hand-registering `IMessageBus` outside the
-> blessed DI helpers, FQN mismatch between `[MqPub]` and the spec entry,
-> `[MqSub]` without matching handler type) live in
-> `DcsvIo.D2.Messaging.Abstractions`.
+> Contract-level anti-patterns are listed in `DcsvIo.D2.Messaging.Abstractions`: hand-registering `IMessageBus`
+> outside the supported DI helpers, an FQN mismatch between `[MqPub]` and the spec entry, and
+> `[MqSub]` without a matching handler type.
 
 ---
 
 ## Dependencies
 
-- `DcsvIo.D2.Messaging.Abstractions` — interfaces, descriptor records,
+- `DcsvIo.D2.Messaging.Abstractions` - interfaces, descriptor records,
   registry, failure helpers, attributes (`MqPub` / `MqSub`),
   `AmqpHeaders`, codegen-emitted `MqMessages.*` / `MqSubscriptions.*`.
-- `DcsvIo.D2.Encryption` — `IPayloadCrypto` keyed per encryption domain;
+- `DcsvIo.D2.Encryption` - `IPayloadCrypto` keyed per encryption domain;
   `EncryptionDomains` constants.
-- `DcsvIo.D2.Caching.Abstractions` — `IDistributedCache` consumed by
+- `DcsvIo.D2.Caching.Abstractions` - `IDistributedCache` consumed by
   `CacheIdempotencyStore`.
-- `DcsvIo.D2.Handler` — subscribers are `BaseHandler<TSub, TIn, Unit>`
+- `DcsvIo.D2.Handler` - subscribers are `BaseHandler<TSub, TIn, Unit>`
   instances; the consumer wrapper invokes them via the standard pipeline.
-- `DcsvIo.D2.Resilience` — `RetryHelper.RetryAsync` drives the publisher's
+- `DcsvIo.D2.Resilience` - `RetryHelper.RetryAsync` drives the publisher's
   built-in transient retry loop.
-- `DcsvIo.D2.Result`, `DcsvIo.D2.Utilities`, `DcsvIo.D2.I18n.Abstractions`
-  — standard cross-cutting deps.
-- `DcsvIo.D2.Context.Abstractions` + `.Abstractions` — for the consumer-side DI
+- `DcsvIo.D2.Result`, `DcsvIo.D2.Utilities` and `DcsvIo.D2.I18n.Abstractions`: the shared result types, utilities and
+  translation-key abstractions.
+- `DcsvIo.D2.Context.Abstractions` - for the consumer-side DI
   registration of `MutableRequestContext` / `IRequestContext` (handlers
   resolve `IRequestContext` through `HandlerContext`); the consumer
-  applies the `x-d2-context`-decoded `PropagatedContext` onto the per-
-  message scope's `MutableRequestContext`.
-- `RabbitMQ.Client 7.x` — only this package references it; abstractions
+  applies the `x-d2-context`-decoded `PropagatedContext` onto the
+  per-message scope's `MutableRequestContext`.
+- `RabbitMQ.Client 7.x` - only this package references it; abstractions
   stay transport-free.
 
 ---
 
-## TypeScript twin — producer and consumer
+## TypeScript twin - producer and consumer
 
-A service-agnostic Node runtime for both directions lives at
-`@dcsv-io/d2-messaging-rabbitmq`
-(`@dcsv-io/d2-messaging-rabbitmq`). On the **consume** side it declares the same topology
-(primary + `{q}.dlx` + `{q}.dlq` + retry tiers), consumes with manual acks,
-republishes failures with the same `DlqFailureMetadata`, deduplicates via the same
-5-point idempotency contract, and establishes the same per-delivery context
-(traceparent-parented consume span + `x-d2-context` → per-message operational
-context; identity and `RequestOrigin` never taken from the wire). On the
-**publish** side it ships the same structural publish/encrypt fusion this lib
-enforces: `createPublisher({ crypto })` binds a compile-time type witness so a
-message can only be published to a `plaintext` domain or one whose composer was
-wired in, a runtime default-deny (`composeBody`) second-locks the dynamic paths,
-and there is no raw-bytes publish overload — the composer for a domain is the only
-path to the socket for that domain. Its Testcontainer suite replays golden
-messages emitted by `DcsvIo.D2.Tests`
-`Integration/ContractFixtures/MqGoldenMessageFixtureEmitter` and round-trips its
+A service-agnostic Node runtime for both directions is published as the npm package
+`@dcsv-io/d2-messaging-rabbitmq`. On the consume side it declares the same topology
+(the primary queue, `{q}.dlx`, `{q}.dlq` and the retry tiers), consumes with manual acks,
+republishes failures with the same `DlqFailureMetadata`, deduplicates through the same
+5-point idempotency contract, and establishes the same per-delivery context: a consume span
+whose parent is the `traceparent`, and the per-message operational context from `x-d2-context`.
+It never takes identity or `RequestOrigin` from the wire. On the
+publish side it fuses publishing with encryption in the same way as this package:
+`createPublisher({ crypto, descriptors })` binds a compile-time type
+witness, so a message can be published only when the catalog bound through
+`descriptors` contains it and its domain is `plaintext` or one whose composer was
+wired in. A runtime default-deny (`composeBody`) also covers the dynamic paths,
+and there is no raw-bytes publish overload, so the composer for a domain is the only
+path to the socket for that domain. The framework catalog it defaults to is
+empty, so a host binds its own. Its Testcontainer suite replays golden
+messages emitted by the .NET contract-fixture emitters and round-trips its
 own published frames back through the consumer pipeline.
 
 ## References
 
-- `DcsvIo.D2.Messaging.Abstractions` — the
+- `DcsvIo.D2.Messaging.Abstractions` - the
   contract this package implements (transport-agnostic surface, attributes,
   descriptor records, registry, scanner, contract-level anti-patterns).
-- `DcsvIo.D2.Messaging.SourceGen` — codegen
+- `DcsvIo.D2.Messaging.SourceGen` - codegen
   emitting the `MqMessages` / `MqSubscriptions` registries; full spec
   format + diagnostic catalog + spec evolution rules.
-- `DcsvIo.D2.Headers.Amqp` — codegen-emitted wire-value
+- `DcsvIo.D2.Headers.Amqp` - codegen-emitted wire-value
   constants for the AMQP header catalog (`AmqpHeaders.MESSAGE_ID`, etc.).
-- `DcsvIo.D2.Encryption` — encryption primitive (keyring,
+- `DcsvIo.D2.Encryption` - encryption primitive (keyring,
   `IPayloadCrypto`, frame format, rotation lifecycle).
 - `DcsvIo.D2.Encryption.Domains.SourceGen`
-  — the `EncryptionDomains` catalog spec.
+  - the `EncryptionDomains` catalog spec.
 - `DcsvIo.D2.Encryption.Frame.SourceGen`
-  — the binary frame layout byte-offset spec.
+  - the binary frame layout byte-offset spec.

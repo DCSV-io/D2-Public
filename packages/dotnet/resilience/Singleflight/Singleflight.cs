@@ -12,8 +12,8 @@ using System.Collections.Concurrent;
 /// Deduplicates concurrent in-flight async operations by key. The first
 /// caller for a given key executes the operation; subsequent callers for
 /// the same key share the same <see cref="Task{TValue}"/>. Once the
-/// operation completes (success or failure), the key is removed — this is
-/// NOT a cache.
+/// operation completes (success or failure), the key is removed - this is
+/// not a cache.
 /// </summary>
 /// <typeparam name="TKey">The deduplication key type. Must be non-null.</typeparam>
 /// <typeparam name="TValue">The result value type produced by the operation.</typeparam>
@@ -25,7 +25,7 @@ using System.Collections.Concurrent;
 /// </para>
 /// <para>
 /// Per-caller cancellation only affects the wait, not the shared operation
-/// — one caller bailing must not affect siblings sharing the same task.
+/// - one caller's cancellation must not affect other callers sharing the same task.
 /// The shared operation always runs with
 /// <see cref="CancellationToken.None"/>.
 /// </para>
@@ -48,7 +48,7 @@ public sealed class Singleflight<TKey, TValue>
     /// <param name="key">The deduplication key.</param>
     /// <param name="operation">The async operation to execute.</param>
     /// <param name="ct">
-    /// Per-caller cancellation token. Only cancels this caller's wait — the
+    /// Per-caller cancellation token. Only cancels this caller's wait - the
     /// shared operation runs with <see cref="CancellationToken.None"/> so
     /// one caller's cancellation cannot affect other callers sharing it.
     /// </param>
@@ -78,8 +78,8 @@ public sealed class Singleflight<TKey, TValue>
     {
         try
         {
-            // Run with CancellationToken.None — no single caller's
-            // cancellation may affect siblings sharing this operation.
+            // Run with CancellationToken.None - no single caller's
+            // cancellation may affect other callers sharing this operation.
             return await operation(CancellationToken.None);
         }
         finally

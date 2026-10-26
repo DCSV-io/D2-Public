@@ -12,8 +12,8 @@ using AwesomeAssertions;
 using DcsvIo.D2.Headers.Amqp;
 using DcsvIo.D2.Messaging;
 using DcsvIo.D2.Messaging.RabbitMq.Topology;
+using DcsvIo.D2.Tests.Integration.Messaging.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
 using Xunit;
 
@@ -25,18 +25,13 @@ using Xunit;
 [Collection("RabbitMq")]
 public sealed class DlqTests
 {
-    // Genuine-stuck guard for the async-delivery waits below: a poll-ATTEMPT
-    // budget, never a wall-clock deadline. The prior flake was a DateTime.UtcNow
-    // deadline in the success path — xUnit runs the RabbitMq collection in parallel
-    // with the Unit-test collections, and under that thread-pool saturation the wall
-    // clock elapsed while the starved pool deferred the handler-dispatch continuation
-    // and the broker's async dead-lettering, tripping the deadline mid-progress. An
-    // attempt budget caps the number of polls, not elapsed time: each iteration
-    // awaits pollInterval, so under load the effective wait GROWS with the slowdown
-    // instead of expiring. At 50 ms/attempt this floor is ~2 min of real progress —
-    // far above any healthy delivery (which resolves in well under a second, <20
-    // attempts), so it is never load-reachable, yet a permanently-stuck test still
-    // terminates (this project ships no xunit.runner.json / framework test timeout).
+    // Stuck-guard for the async-delivery waits below: a poll-ATTEMPT budget, not
+    // a wall-clock deadline. Each iteration awaits pollInterval, so a slow machine
+    // lengthens the wait instead of expiring it mid-progress. A healthy delivery
+    // resolves in well under a second; exhausting this budget means the message is
+    // not arriving at all, so raise the budget only after establishing that the
+    // delivery is slow rather than absent. The budget is also what terminates a
+    // permanently stuck test - this project ships no framework test timeout.
     private const int _POLL_ATTEMPT_BUDGET = 2400;
 
     private readonly RabbitMqFixture r_fixture;
@@ -54,18 +49,17 @@ public sealed class DlqTests
         var queue = "dlq.thr." + Guid.NewGuid().ToString("N")[..8];
         var marker = "boom-" + Guid.NewGuid().ToString("N")[..8];
 
-        using var host = await StartHostAsync(services =>
+        await using var host = await StartHostAsync(services =>
         {
             services.AddTransient<AlwaysThrowsHandler>();
             services.AddD2Subscriber<AlwaysThrowsHandler, IntegrationAuditEvent>(
                 IntegrationSubscriptionFactory.ForAuditEvent(queue, prefetch: 5));
         });
 
-        // Re-seed after host start so a parallel unit ClearCache cannot leave
-        // fixture descriptors missing for this publish.
-        IntegrationMessageFixtures.EnsureRegistered();
+        // The host registers the fixture catalog, so the fixture descriptors
+        // resolve for this publish.
 
-        // Publish — handler throws — message gets nack'd to DLQ.
+        // Publish - handler throws - message gets nack'd to DLQ.
         await using (var scope = host.Services.CreateAsyncScope())
         {
             var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
@@ -102,17 +96,15 @@ public sealed class DlqTests
         var queue = "dlq.fail." + Guid.NewGuid().ToString("N")[..8];
         var marker = "fail-result-" + Guid.NewGuid().ToString("N")[..8];
 
-        using var host = await StartHostAsync(services =>
+        await using var host = await StartHostAsync(services =>
         {
             services.AddTransient<AlwaysFailsHandler>();
             services.AddD2Subscriber<AlwaysFailsHandler, IntegrationAuditEvent>(
                 IntegrationSubscriptionFactory.ForAuditEvent(queue, prefetch: 5));
         });
 
-        // Re-seed after host start so a parallel unit ClearCache cannot leave
-        // fixture descriptors missing for this publish (same race class as
-        // IntegrationMessageFixtures / PublishConsumeRoundTripTests).
-        IntegrationMessageFixtures.EnsureRegistered();
+        // The host registers the fixture catalog, so the fixture descriptors
+        // resolve for this publish.
 
         await using (var scope = host.Services.CreateAsyncScope())
         {
@@ -147,19 +139,17 @@ public sealed class DlqTests
         // DLX republish verification: the nacked message is republished to
         // the DLX with an x-d2-failure-reason header attached. Without this
         // behavior the DLQ message would arrive header-less (BasicNack-no-requeue
-        // → broker x-dead-letter-exchange routes a copy without our diagnostic header).
+        // -> broker x-dead-letter-exchange routes a copy without our diagnostic header).
         TestCollector.Reset<AlwaysThrowsHandler>();
         var queue = "dlq.hdr." + Guid.NewGuid().ToString("N")[..8];
         var marker = "header-test-" + Guid.NewGuid().ToString("N")[..8];
 
-        using var host = await StartHostAsync(services =>
+        await using var host = await StartHostAsync(services =>
         {
             services.AddTransient<AlwaysThrowsHandler>();
             services.AddD2Subscriber<AlwaysThrowsHandler, IntegrationAuditEvent>(
                 IntegrationSubscriptionFactory.ForAuditEvent(queue, prefetch: 5));
         });
-
-        IntegrationMessageFixtures.EnsureRegistered();
 
         await using (var scope = host.Services.CreateAsyncScope())
         {
@@ -203,7 +193,7 @@ public sealed class DlqTests
         doc.RootElement.GetProperty("cause").GetString()
             .Should().Be("HANDLER_RESULT_FAILURE");
         doc.RootElement.GetProperty("errorCode").GetString()
-            .Should().Be("UNHANDLED_EXCEPTION");
+            .Should().Be("GEN_UNHANDLED_EXCEPTION");
     }
 
     [Fact]
@@ -212,24 +202,40 @@ public sealed class DlqTests
     {
         var queue = "dlq.idem." + Guid.NewGuid().ToString("N")[..8];
 
-        // First host declares the topology.
-        using (var host1 = await StartHostAsync(services =>
+        // First host declares the topology, then goes away leaving it behind.
+        // deleteQueuesOnDispose is false ON PURPOSE; the assertion below depends on it: teardown
+        // normally deletes the queues a host declared, and if it deleted this one the
+        // second host below would declare a FRESH queue rather than re-declare an
+        // existing one. That also succeeds, so the case would still pass while no
+        // longer testing idempotency at all. Do not remove it as redundant.
+        await using (var host1 = await StartHostAsync(
+            services =>
+            {
+                services.AddTransient<AuditCapturingHandler>();
+                services.AddD2Subscriber<AuditCapturingHandler, IntegrationAuditEvent>(
+                    IntegrationSubscriptionFactory.ForAuditEvent(queue));
+            },
+            deleteQueuesOnDispose: false))
         {
-            services.AddTransient<AuditCapturingHandler>();
-            services.AddD2Subscriber<AuditCapturingHandler, IntegrationAuditEvent>(
-                IntegrationSubscriptionFactory.ForAuditEvent(queue));
-        }))
-        {
-            // Topology is declared during host start. Already verified by the
-            // host coming up successfully.
+            // Nothing to do in the block - the declaration happened during host start,
+            // and the host coming up is what proves it. The block exists so the host is
+            // disposed here, before the second one starts.
             _ = host1;
         }
 
-        // Second host re-declares against the same broker — must NOT throw
+        // The precondition this case rests on, asserted rather than assumed: the queue
+        // must still EXIST between the publisher host and the consumer host.
+        // QueueDeclarePassiveAsync throws if it
+        // does not. Without this check, anything that deleted the queue at host1 teardown
+        // would leave host2 declaring a fresh entity - which also succeeds - and the case
+        // would keep passing while testing nothing.
+        await AssertQueueExistsAsync(queue);
+
+        // Second host re-declares against the same broker - must NOT throw
         // (RabbitMQ's *DeclareAsync calls are no-ops on identical pre-existing
         // entities). If we incorrectly tried to declare with different
         // arguments, the broker would reject with PRECONDITION_FAILED.
-        using var host2 = await StartHostAsync(services =>
+        await using var host2 = await StartHostAsync(services =>
         {
             services.AddTransient<AuditCapturingHandler>();
             services.AddD2Subscriber<AuditCapturingHandler, IntegrationAuditEvent>(
@@ -239,7 +245,7 @@ public sealed class DlqTests
         // Reaching here without exception is the assertion.
     }
 
-    // Attempt-budgeted stuck-guard — see _POLL_ATTEMPT_BUDGET; no wall-clock deadline.
+    // Attempt-budgeted stuck-guard - see _POLL_ATTEMPT_BUDGET; no wall-clock deadline.
     private static async Task WaitFor(
         Func<bool> predicate,
         TimeSpan? pollInterval = null,
@@ -258,8 +264,25 @@ public sealed class DlqTests
             + suffix);
     }
 
-    private async Task<IHost> StartHostAsync(Action<IServiceCollection> configure)
-        => await MessagingHostBuilder.BuildAndStartAsync(r_fixture, configure);
+    /// <summary>Fails unless the queue already exists on the broker.</summary>
+    /// <param name="queueName">The queue that must pre-exist.</param>
+    private async Task AssertQueueExistsAsync(string queueName)
+    {
+        var factory = new ConnectionFactory { Uri = new Uri(r_fixture.ConnectionString) };
+        await using var connection = await factory.CreateConnectionAsync();
+        await using var channel = await connection.CreateChannelAsync();
+
+        var declareOk = await channel.QueueDeclarePassiveAsync(queueName);
+        declareOk.QueueName.Should().Be(
+            queueName,
+            "the second host must re-declare an EXISTING queue for this case to be "
+            + "testing idempotency at all");
+    }
+
+    private async Task<MessagingTestHost> StartHostAsync(
+        Action<IServiceCollection> configure, bool deleteQueuesOnDispose = true)
+        => await MessagingHostBuilder.BuildAndStartAsync(
+            r_fixture, configure, deleteQueuesOnDispose: deleteQueuesOnDispose);
 
     private async Task WaitForQueueCount(string queueName, int expected)
     {
@@ -271,7 +294,7 @@ public sealed class DlqTests
         await using var conn = await factory.CreateConnectionAsync();
         await using var channel = await conn.CreateChannelAsync();
 
-        // Attempt-budgeted stuck-guard (see _POLL_ATTEMPT_BUDGET) — dead-lettering
+        // Attempt-budgeted stuck-guard (see _POLL_ATTEMPT_BUDGET) - dead-lettering
         // is async broker-side, so poll a bounded number of times rather than
         // against a wall-clock deadline a loaded broker can outrun.
         for (var attempt = 0; attempt < _POLL_ATTEMPT_BUDGET; attempt++)

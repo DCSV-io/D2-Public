@@ -20,7 +20,7 @@ public sealed class InfrastructureBypassMiddlewareTests
     public async Task InfrastructurePath_TagsHttpContextItems()
     {
         // Tag-only mode (TagOnly=true) keeps the marker middleware running
-        // so we can verify the flag.
+        // to verify the flag.
         bool? capturedFlag = null;
         using var host = await AspNetCoreTestHostBuilder.BuildAsync(
             extraConfigure: app =>
@@ -72,7 +72,7 @@ public sealed class InfrastructureBypassMiddlewareTests
     public async Task ShortCircuitMode_InfrastructurePath_DoesNotRunDownstreamMiddleware()
     {
         // Default short-circuit: bypass middleware invokes the matched
-        // endpoint directly, so the downstream marker NEVER runs.
+        // endpoint directly, so the downstream marker never runs.
         var downstreamRan = false;
         using var host = await AspNetCoreTestHostBuilder.BuildAsync(
             extraConfigure: app =>

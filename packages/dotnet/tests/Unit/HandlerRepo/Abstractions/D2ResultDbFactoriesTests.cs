@@ -25,7 +25,7 @@ using Xunit;
 public sealed class D2ResultDbFactoriesTests
 {
     // ----------------------------------------------------------------------
-    // ConcurrencyConflict — 409, no inputErrors param
+    // ConcurrencyConflict - 409, no inputErrors param
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -61,7 +61,7 @@ public sealed class D2ResultDbFactoriesTests
     }
 
     // ----------------------------------------------------------------------
-    // UniqueViolation — 409, supports inputErrors
+    // UniqueViolation - 409, supports inputErrors
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -110,7 +110,7 @@ public sealed class D2ResultDbFactoriesTests
     }
 
     // ----------------------------------------------------------------------
-    // ForeignKeyViolation — 409, supports inputErrors
+    // ForeignKeyViolation - 409, supports inputErrors
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -139,14 +139,14 @@ public sealed class D2ResultDbFactoriesTests
     }
 
     // ----------------------------------------------------------------------
-    // NotNullViolation — 400, supports inputErrors
+    // NotNullViolation - 400, supports inputErrors
     // ----------------------------------------------------------------------
 
     [Fact]
     public void NotNullViolation_DefaultMessages_Are400_AndUseTkFallback()
     {
         // Adversarial: NotNull / Check are NOT 409 (server-side rejection of
-        // bad payload, not a state-conflict). Keep status mapping audited.
+        // bad payload, not a state-conflict). This pins the status mapping.
         var result = D2Result.NotNullViolation();
 
         result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -170,7 +170,7 @@ public sealed class D2ResultDbFactoriesTests
     }
 
     // ----------------------------------------------------------------------
-    // CheckViolation — 400, supports inputErrors
+    // CheckViolation - 400, supports inputErrors
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -199,7 +199,7 @@ public sealed class D2ResultDbFactoriesTests
     }
 
     // ----------------------------------------------------------------------
-    // DbTimeout — 503, no inputErrors
+    // DbTimeout - 503, no inputErrors
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -223,15 +223,15 @@ public sealed class D2ResultDbFactoriesTests
     }
 
     // ----------------------------------------------------------------------
-    // DbDeadlock — 409, no inputErrors
+    // DbDeadlock - 409, no inputErrors
     // ----------------------------------------------------------------------
 
     [Fact]
     public void DbDeadlock_DefaultMessages_Are409_AndUseTkFallback()
     {
-        // Adversarial: deadlock is 409 (caller can retry the whole txn) —
-        // NOT 503 like timeout/connection failure. Surfaces the
-        // retry-policy semantics distinction.
+        // Adversarial: deadlock is 409 (caller can retry the whole txn) -
+        // NOT 503 like timeout/connection failure. The status codes 409 and
+        // 503 reflect that difference in retry policy.
         var result = D2Result.DbDeadlock();
 
         result.StatusCode.Should().Be(HttpStatusCode.Conflict);
@@ -249,7 +249,7 @@ public sealed class D2ResultDbFactoriesTests
     }
 
     // ----------------------------------------------------------------------
-    // DbConnectionFailure — 503, no inputErrors
+    // DbConnectionFailure - 503, no inputErrors
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -272,7 +272,7 @@ public sealed class D2ResultDbFactoriesTests
     }
 
     // ----------------------------------------------------------------------
-    // Adversarial — empty / large messages list
+    // Adversarial - empty / large messages list
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -280,7 +280,7 @@ public sealed class D2ResultDbFactoriesTests
     {
         // Adversarial: caller passing an EMPTY (non-null) list signals
         // "I want zero messages." The factory uses `?? [default]` which
-        // distinguishes null from empty. An empty list MUST be honored —
+        // distinguishes null from empty. An empty list MUST be honored -
         // otherwise callers can't suppress the default.
         IReadOnlyList<TKMessage> empty = [];
 

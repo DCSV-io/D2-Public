@@ -35,7 +35,7 @@ public readonly partial struct LocaleCode : IEquatable<LocaleCode>
 
     /// <summary>
     /// Constructs a <see cref="LocaleCode"/> without catalog validation.
-    /// Use at codegen time or with caller-known-good inputs only — boundary
+    /// Use at codegen time or with caller-known-good inputs only - boundary
     /// code SHOULD prefer <see cref="TryParse(string?, out LocaleCode)"/>.
     /// </summary>
     /// <param name="value">Raw IETF BCP 47 tag.</param>

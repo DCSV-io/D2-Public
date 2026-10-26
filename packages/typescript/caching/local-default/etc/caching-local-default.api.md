@@ -7,6 +7,7 @@
 import { D2Result } from '@dcsv-io/d2-result';
 import { ILocalCache } from '@dcsv-io/d2-caching-abstractions';
 import { LocalCacheOptions } from '@dcsv-io/d2-caching-abstractions';
+import { TokenBucketDecision } from '@dcsv-io/d2-caching-abstractions';
 
 // @public
 export interface CacheInstrumentMeta {
@@ -24,6 +25,8 @@ export class DefaultLocalCache implements ILocalCache, Disposable {
     constructor(options?: Partial<LocalCacheOptions>, clock?: () => number);
     // (undocumented)
     acquireLock(key: string, lockId: string, expirationMs: number, signal?: AbortSignal): Promise<D2Result<boolean>>;
+    // (undocumented)
+    consumeToken(key: string, refillTokens: number, refillIntervalMs: number, burst: number, cost?: number, signal?: AbortSignal): Promise<D2Result<TokenBucketDecision>>;
     dispose(): void;
     // (undocumented)
     exists(key: string, signal?: AbortSignal): Promise<D2Result<boolean>>;
@@ -40,9 +43,13 @@ export class DefaultLocalCache implements ILocalCache, Disposable {
     // (undocumented)
     remove(key: string, signal?: AbortSignal): Promise<D2Result>;
     // (undocumented)
+    removeIfEqual<T>(key: string, expected: T, signal?: AbortSignal): Promise<D2Result<boolean>>;
+    // (undocumented)
     removeMany(keys: readonly string[], signal?: AbortSignal): Promise<D2Result>;
     // (undocumented)
     set<T>(key: string, value: T, expirationMs?: number, signal?: AbortSignal): Promise<D2Result>;
+    // (undocumented)
+    setIfEqual<T>(key: string, expected: T, value: T, expirationMs?: number, signal?: AbortSignal): Promise<D2Result<boolean>>;
     // (undocumented)
     setMany<T>(entries: ReadonlyMap<string, T>, expirationMs?: number, signal?: AbortSignal): Promise<D2Result>;
     // (undocumented)

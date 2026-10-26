@@ -10,7 +10,7 @@ import {
   subdivisionFor,
 } from "../../src/extensions/i-request-context-geo-extensions.js";
 
-// Minimal IRequestContext stub — only the geo fields are exercised here.
+// Minimal IRequestContext stub - only the geo fields are exercised here.
 // Other members default to undefined because nothing in countryFor /
 // subdivisionFor reads them. The `as IRequestContext` cast narrows from
 // the partial stub to the full interface.
@@ -25,14 +25,14 @@ function ctx(overrides: {
 }
 
 describe("Default-layer IRequestContext geo extensions", () => {
-  // §1.2 category: Domain-specific — happy path.
+  // Category: Domain-specific - happy path.
   it("countryFor returns the Country record for a valid raw alpha-2", () => {
     const country = countryFor(ctx({ countryIso31661Alpha2Code: "US" }));
     expect(country).toBeDefined();
     expect(country?.iso31661Alpha2Code).toBe("US");
   });
 
-  // §1.2 category: Input validation — boundary contract.
+  // Category: Input validation - boundary contract.
   it("countryFor returns undefined for undefined raw", () => {
     expect(
       countryFor(ctx({ countryIso31661Alpha2Code: undefined })),
@@ -80,7 +80,7 @@ describe("Default-layer IRequestContext geo extensions", () => {
     expect(aq?.iso31661Alpha2Code).toBe("AQ");
   });
 
-  // §1.2 category: Domain-specific — subdivision happy path.
+  // Category: Domain-specific - subdivision happy path.
   it("subdivisionFor returns the Subdivision record for a valid raw ISO-3166-2", () => {
     const sub = subdivisionFor(ctx({ subdivisionIso31662Code: "US-NY" }));
     expect(sub).toBeDefined();

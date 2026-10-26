@@ -15,15 +15,12 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <!-- Mark this as a Roslyn analyzer/generator component for tooling. -->
     <IsRoslynComponent>true</IsRoslynComponent>
 
-    <!-- Opt into the modern analyzer rule set. -->
+    <!-- Enable RS1035, which bans APIs an analyzer must not call, such as file and environment access. -->
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 
-    <!-- Don't ship this as a library to consumers — it's only an analyzer. -->
+    <!-- Don't ship this as a library to consumers - it's only an analyzer. -->
     <IncludeBuildOutput>false</IncludeBuildOutput>
 
-    <!-- Internal helpers don't need XML docs; analyzer-release-tracking
-         (RS2008) only matters for shipped NuGet analyzer packages. -->
-    <NoWarn>$(NoWarn);CS1591;RS2008</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

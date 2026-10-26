@@ -21,7 +21,7 @@ public sealed class PayloadCryptoTests
     [Fact]
     public void Encrypt_Decrypt_RoundTrips_NonEmpty()
     {
-        using var ring = TestKeyrings.AuditSingleKey();
+        using var ring = TestKeyrings.OrdersSingleKey();
         var crypto = new PayloadCrypto(ring);
         var plaintext = "hello world"u8.ToArray();
 
@@ -34,7 +34,7 @@ public sealed class PayloadCryptoTests
     [Fact]
     public void Encrypt_Decrypt_RoundTrips_Empty()
     {
-        using var ring = TestKeyrings.AuditSingleKey();
+        using var ring = TestKeyrings.OrdersSingleKey();
         var crypto = new PayloadCrypto(ring);
 
         var framed = crypto.Encrypt(ReadOnlySpan<byte>.Empty);
@@ -46,7 +46,7 @@ public sealed class PayloadCryptoTests
     [Fact]
     public void Encrypt_Twice_ProducesDifferentCiphertexts()
     {
-        using var ring = TestKeyrings.AuditSingleKey();
+        using var ring = TestKeyrings.OrdersSingleKey();
         var crypto = new PayloadCrypto(ring);
         var plaintext = "same input"u8.ToArray();
 
@@ -57,27 +57,27 @@ public sealed class PayloadCryptoTests
         crypto.Decrypt(first).Should().BeEquivalentTo(plaintext);
         crypto.Decrypt(second).Should().BeEquivalentTo(plaintext);
 
-        // But the frames must differ — fresh nonce per encrypt.
+        // But the frames must differ - fresh nonce per encrypt.
         first.Should().NotBeEquivalentTo(second);
     }
 
     [Fact]
     public void Encrypt_FrameContainsCorrectVersionAndKid()
     {
-        using var ring = TestKeyrings.AuditSingleKey();
+        using var ring = TestKeyrings.OrdersSingleKey();
         var crypto = new PayloadCrypto(ring);
         var framed = crypto.Encrypt("hi"u8);
 
         framed[0].Should().Be(1, "version byte must be 1");
-        framed[1].Should().Be((byte)"audit-2026q2".Length, "kid_length byte must equal kid length");
-        System.Text.Encoding.UTF8.GetString(framed.AsSpan(2, "audit-2026q2".Length))
-            .Should().Be("audit-2026q2");
+        framed[1].Should().Be((byte)"orders-2026q2".Length, "kid_length byte must equal kid length");
+        System.Text.Encoding.UTF8.GetString(framed.AsSpan(2, "orders-2026q2".Length))
+            .Should().Be("orders-2026q2");
     }
 
     [Fact]
     public void Decrypt_TamperedCiphertextByte_FailsTagCheck()
     {
-        using var ring = TestKeyrings.AuditSingleKey();
+        using var ring = TestKeyrings.OrdersSingleKey();
         var crypto = new PayloadCrypto(ring);
         var framed = crypto.Encrypt("payload"u8);
 
@@ -91,12 +91,12 @@ public sealed class PayloadCryptoTests
     [Fact]
     public void Decrypt_TamperedNonceByte_FailsTagCheck()
     {
-        using var ring = TestKeyrings.AuditSingleKey();
+        using var ring = TestKeyrings.OrdersSingleKey();
         var crypto = new PayloadCrypto(ring);
         var framed = crypto.Encrypt("payload"u8);
 
         // Nonce starts after [version=1][kid_len=1][kid:N].
-        var nonceStart = 2 + "audit-2026q2".Length;
+        var nonceStart = 2 + "orders-2026q2".Length;
         framed[nonceStart] ^= 0x01;
 
         var act = () => crypto.Decrypt(framed);
@@ -106,34 +106,34 @@ public sealed class PayloadCryptoTests
     [Fact]
     public void Decrypt_FrameWithKidNotInKeyring_ThrowsKidNotInKeyring()
     {
-        using var encryptingRing = TestKeyrings.SingleKey("audit-2026q1", "audit");
+        using var encryptingRing = TestKeyrings.SingleKey("orders-2026q1", "orders");
         var encryptingCrypto = new PayloadCrypto(encryptingRing);
         var framed = encryptingCrypto.Encrypt("payload"u8);
 
         // Decrypting keyring has a different kid set.
-        using var decryptingRing = TestKeyrings.AuditSingleKey();
+        using var decryptingRing = TestKeyrings.OrdersSingleKey();
         var decryptingCrypto = new PayloadCrypto(decryptingRing);
 
         var act = () => decryptingCrypto.Decrypt(framed);
-        act.Should().Throw<KidNotInKeyringException>().Which.Kid.Should().Be("audit-2026q1");
+        act.Should().Throw<KidNotInKeyringException>().Which.Kid.Should().Be("orders-2026q1");
     }
 
     [Fact]
     public void Decrypt_DifferentAad_FailsTagCheck()
     {
-        // Same active kid + same key bytes, different AAD context — tag must fail.
+        // Same active kid + same key bytes, different AAD context - tag must fail.
         var sharedKey = TestKeyrings.RandomKey();
         using var encryptingRing = new PayloadCryptoKeyring(
-            "audit-2026q2",
-            new Dictionary<string, byte[]> { ["audit-2026q2"] = sharedKey },
-            TestKeyrings.AadFor("audit"));
+            "orders-2026q2",
+            new Dictionary<string, byte[]> { ["orders-2026q2"] = sharedKey },
+            TestKeyrings.AadFor("orders"));
         var encryptingCrypto = new PayloadCrypto(encryptingRing);
         var framed = encryptingCrypto.Encrypt("cross-domain attempt"u8);
 
         using var decryptingRing = new PayloadCryptoKeyring(
-            "audit-2026q2",
-            new Dictionary<string, byte[]> { ["audit-2026q2"] = sharedKey },
-            TestKeyrings.AadFor("courier"));
+            "orders-2026q2",
+            new Dictionary<string, byte[]> { ["orders-2026q2"] = sharedKey },
+            TestKeyrings.AadFor("inventory"));
         var decryptingCrypto = new PayloadCrypto(decryptingRing);
 
         var act = () => decryptingCrypto.Decrypt(framed);
@@ -143,7 +143,7 @@ public sealed class PayloadCryptoTests
     [Fact]
     public void Decrypt_FrameVersionNonOne_ThrowsFrameVersionMismatch()
     {
-        using var ring = TestKeyrings.AuditSingleKey();
+        using var ring = TestKeyrings.OrdersSingleKey();
         var crypto = new PayloadCrypto(ring);
         var framed = crypto.Encrypt("payload"u8);
         framed[0] = 99;
@@ -155,7 +155,7 @@ public sealed class PayloadCryptoTests
     [Fact]
     public void Decrypt_FrameTooShort_ThrowsFrameMalformed()
     {
-        using var ring = TestKeyrings.AuditSingleKey();
+        using var ring = TestKeyrings.OrdersSingleKey();
         var crypto = new PayloadCrypto(ring);
         var act = () => crypto.Decrypt(new byte[5]);
         act.Should().Throw<FrameMalformedException>();
@@ -164,7 +164,7 @@ public sealed class PayloadCryptoTests
     [Fact]
     public void Decrypt_KidLengthLies_ThrowsFrameMalformed()
     {
-        using var ring = TestKeyrings.AuditSingleKey();
+        using var ring = TestKeyrings.OrdersSingleKey();
         var crypto = new PayloadCrypto(ring);
         var framed = crypto.Encrypt("payload"u8);
 
@@ -178,7 +178,7 @@ public sealed class PayloadCryptoTests
     [Fact]
     public void Decrypt_ZeroKidLength_ThrowsFrameMalformed()
     {
-        using var ring = TestKeyrings.AuditSingleKey();
+        using var ring = TestKeyrings.OrdersSingleKey();
         var crypto = new PayloadCrypto(ring);
         var framed = crypto.Encrypt("payload"u8);
 
@@ -191,23 +191,23 @@ public sealed class PayloadCryptoTests
     [Fact]
     public void Decrypt_RetiringKid_StillWorks()
     {
-        // Audit-2026q1 was active when the frame was made; now it's retiring.
+        // orders-2026q1 was active when the frame was made; now it's retiring.
         var oldKey = TestKeyrings.RandomKey();
         using var encryptingRing = new PayloadCryptoKeyring(
-            "audit-2026q1",
-            new Dictionary<string, byte[]> { ["audit-2026q1"] = oldKey },
-            TestKeyrings.AadFor("audit"));
+            "orders-2026q1",
+            new Dictionary<string, byte[]> { ["orders-2026q1"] = oldKey },
+            TestKeyrings.AadFor("orders"));
         var framed = new PayloadCrypto(encryptingRing).Encrypt("in flight when rotated"u8);
 
         // New keyring has the new active kid + the old kid still as retiring.
         using var decryptingRing = new PayloadCryptoKeyring(
-            "audit-2026q2",
+            "orders-2026q2",
             new Dictionary<string, byte[]>
             {
-                ["audit-2026q2"] = TestKeyrings.RandomKey(),
-                ["audit-2026q1"] = oldKey,
+                ["orders-2026q2"] = TestKeyrings.RandomKey(),
+                ["orders-2026q1"] = oldKey,
             },
-            TestKeyrings.AadFor("audit"));
+            TestKeyrings.AadFor("orders"));
 
         var roundTripped = new PayloadCrypto(decryptingRing).Decrypt(framed);
         roundTripped.Should().BeEquivalentTo("in flight when rotated"u8.ToArray());
@@ -216,7 +216,7 @@ public sealed class PayloadCryptoTests
     [Fact]
     public void Encrypt_AfterKeyringDisposed_Throws()
     {
-        var ring = TestKeyrings.AuditSingleKey();
+        var ring = TestKeyrings.OrdersSingleKey();
         var crypto = new PayloadCrypto(ring);
         ring.Dispose();
 
@@ -227,7 +227,7 @@ public sealed class PayloadCryptoTests
     [Fact]
     public void Decrypt_AfterKeyringDisposed_Throws()
     {
-        var ring = TestKeyrings.AuditSingleKey();
+        var ring = TestKeyrings.OrdersSingleKey();
         var crypto = new PayloadCrypto(ring);
         var framed = crypto.Encrypt("payload"u8);
         ring.Dispose();
@@ -246,7 +246,7 @@ public sealed class PayloadCryptoTests
     [Fact]
     public void Encrypt_LargePayload_RoundTrips()
     {
-        using var ring = TestKeyrings.AuditSingleKey();
+        using var ring = TestKeyrings.OrdersSingleKey();
         var crypto = new PayloadCrypto(ring);
         var plaintext = RandomNumberGenerator.GetBytes(1024 * 1024); // 1 MiB
 
@@ -262,7 +262,7 @@ public sealed class PayloadCryptoTests
         // Per-call AesGcm instantiation means parallel calls on a single
         // PayloadCrypto are safe. Verify by stress-encrypting from many
         // threads and ensuring every round-trip succeeds.
-        using var ring = TestKeyrings.AuditSingleKey();
+        using var ring = TestKeyrings.OrdersSingleKey();
         var crypto = new PayloadCrypto(ring);
         var plaintexts = Enumerable.Range(0, 200)
             .Select(i => System.Text.Encoding.UTF8.GetBytes($"msg-{i}"))
@@ -280,7 +280,7 @@ public sealed class PayloadCryptoTests
     [Fact]
     public void ToString_DoesNotLeakState()
     {
-        using var ring = TestKeyrings.AuditSingleKey();
+        using var ring = TestKeyrings.OrdersSingleKey();
         var crypto = new PayloadCrypto(ring);
         crypto.ToString().Should().Be("PayloadCrypto");
     }

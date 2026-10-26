@@ -17,13 +17,13 @@ import { encodeSealedFrame } from "./sealed-frame.js";
 import { aesGcmEncrypt, randomBytes } from "./subtle.js";
 
 /**
- * Default {@link IPayloadSealer} implementation: the P-256 ECDH-ES →
- * HKDF-SHA256 → AES-256-GCM hybrid seal over a {@link RecipientPublicKeyring}.
+ * Default {@link IPayloadSealer} implementation: the P-256 ECDH-ES ->
+ * HKDF-SHA256 -> AES-256-GCM hybrid seal over a {@link RecipientPublicKeyring}.
  * The twin of .NET `DcsvIo.D2.Encryption.PayloadSealer`.
  *
- * Per seal: a fresh ephemeral P-256 keypair → ECDH against the recipient's
- * active public key → HKDF-SHA256 (under the frozen derivation conventions) →
- * a per-message AES-256-GCM content-encryption key → a fresh 12-byte nonce →
+ * Per seal: a fresh ephemeral P-256 keypair -> ECDH against the recipient's
+ * active public key -> HKDF-SHA256 (under the frozen derivation conventions) ->
+ * a per-message AES-256-GCM content-encryption key -> a fresh 12-byte nonce ->
  * the version-2 sealed frame. The shared secret and the derived key are zeroized
  * on every path. Thread-safe: no shared mutable state.
  */
@@ -35,7 +35,8 @@ export class PayloadSealer implements IPayloadSealer {
   constructor(keyring: RecipientPublicKeyring) {
     this.#keyring = keyring;
 
-    // Salt + AAD bytes are fixed per recipient — non-secret, computed once.
+    // Salt and AAD bytes are fixed per recipient and not secret, so they are
+    // computed once.
     this.#serviceIdBytes = serviceIdBytes(keyring.recipientServiceId);
   }
 
@@ -44,7 +45,7 @@ export class PayloadSealer implements IPayloadSealer {
     const activeKid = this.#keyring.activeKid;
     const recipientSpki = this.#keyring.tryGetPublicKey(activeKid);
 
-    /* v8 ignore start — defensive invariant guard: the keyring ctor guarantees
+    /* v8 ignore start - defensive invariant guard: the keyring ctor guarantees
        activeKid is present, so this is unreachable via the public API */
     if (recipientSpki === undefined) {
       throw new KidNotInKeyringError(activeKid);
@@ -87,7 +88,7 @@ export class PayloadSealer implements IPayloadSealer {
     }
   }
 
-  /** Returns the type name only — never includes keyring contents. */
+  /** Returns the type name only; it never includes keyring contents. */
   toString(): string {
     return "PayloadSealer";
   }

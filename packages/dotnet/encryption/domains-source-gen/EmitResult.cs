@@ -11,7 +11,7 @@ using DcsvIo.D2.SourceGen;
 
 /// <summary>Pure-data result of an Emit call.</summary>
 /// <param name="GeneratedSource">The generated C# source.</param>
-/// <param name="Diagnostics">Diagnostics emitted during validation + emission.</param>
+/// <param name="Diagnostics">Diagnostics emitted during validation and emission.</param>
 internal sealed record EmitResult(
     string GeneratedSource,
     ImmutableArray<EmitDiagnostic> Diagnostics);

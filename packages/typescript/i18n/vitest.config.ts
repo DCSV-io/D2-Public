@@ -6,12 +6,16 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
+    // D2_VITEST_WORKERS workers per package, 4 when it is unset, each a child
+    // process that exits with the run.
+    pool: "forks",
+    maxWorkers: Number(process.env.D2_VITEST_WORKERS) || 4,
     include: ["tests/**/*.test.ts"],
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts"],
-      // i-translator.ts is interface-only (no runtime); see tests/i-translator.test.ts
-      // for shape verification.
+      // i-translator.ts is interface-only and has no runtime code;
+      // tests/i-translator.test.ts verifies its shape.
       exclude: ["src/index.ts", "src/i-translator.ts"],
       thresholds: {
         lines: 100,

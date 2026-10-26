@@ -18,14 +18,14 @@ using DcsvIo.D2.ErrorCodes.Category;
 using DcsvIo.D2.I18n;
 
 /// <summary>
-/// Full metadata record for one error code. All 9 fields are populated
+/// Full metadata record for one error code. All fields are populated
 /// from the source spec; the registry exposes them via
 /// <see cref="ErrorCodeRegistry.TryResolve"/> /
 /// <see cref="ErrorCodeRegistry.Resolve"/> /
 /// <see cref="ErrorCodeRegistry.All"/>.
 /// </summary>
 /// <param name="Code">
-/// Wire-format error code (SCREAMING_SNAKE, e.g. <c>AUTH_BEARER_MISSING</c>).
+/// Wire-format error code (SCREAMING_SNAKE, e.g. <c>LIB_AUTH_BEARER_MISSING</c>).
 /// </param>
 /// <param name="HttpStatus">HTTP status mapping for transport (e.g. 401, 404).</param>
 /// <param name="Category">
@@ -44,14 +44,16 @@ using DcsvIo.D2.I18n;
 /// </param>
 /// <param name="Doc">XML summary / JSDoc documentation text for this code.</param>
 /// <param name="Domain">
-/// Domain token derived from the spec filename (<c>common</c> for the generic
-/// catalog; e.g. <c>auth</c> for auth-error-codes.spec.json).
+/// Business domain token (<c>common</c> / <c>auth</c> / <c>billing</c>).
+/// </param>
+/// <param name="Owner">
+/// Closed owner token: <c>gen</c> | <c>lib</c> | <c>dom</c> (positional 9th).
 /// </param>
 /// <param name="IsDeprecated">
 /// <see langword="true"/> when the spec entry carries the deprecation marker
 /// (<c>"deprecated": true</c>); the generated constant + factories also carry
 /// <c>[Obsolete]</c>. Lets runtime / telemetry consumers observe deprecation
-/// state. <see langword="false"/> for an active code.
+/// state. <see langword="false"/> for an active code. Positional 10th.
 /// </param>
 public readonly record struct ErrorCodeInfo(
     string Code,
@@ -62,6 +64,7 @@ public readonly record struct ErrorCodeInfo(
     string FactoryShape,
     string Doc,
     string Domain,
+    string Owner,
     bool IsDeprecated);
 
 /// <summary>
@@ -76,9 +79,9 @@ public readonly record struct ErrorCodeInfo(
 /// spec files and is immutable at runtime.
 /// </para>
 /// <para>
-/// Unknown codes return <see langword="false"/> / <see langword="null"/> —
+/// Unknown codes return <see langword="false"/> / <see langword="null"/> -
 /// a hard not-found that signals deploy-skew to the caller. The caller
-/// decides any fallback (e.g. treat as <c>UNHANDLED_EXCEPTION</c>).
+/// decides any fallback (e.g. treat as <c>GEN_UNHANDLED_EXCEPTION</c>).
 /// </para>
 /// </remarks>
 public static class ErrorCodeRegistry
@@ -86,8 +89,8 @@ public static class ErrorCodeRegistry
     private static readonly FrozenDictionary<string, ErrorCodeInfo> sr_lookup =
         new Dictionary<string, ErrorCodeInfo>(StringComparer.Ordinal)
         {
-            ["AUTH_BEARER_MISSING"] = new ErrorCodeInfo(
-                Code: "AUTH_BEARER_MISSING",
+            ["LIB_AUTH_BEARER_MISSING"] = new ErrorCodeInfo(
+                Code: "LIB_AUTH_BEARER_MISSING",
                 HttpStatus: 401,
                 Category: ErrorCategory.ValidationFailure,
                 UserMessageKey: TK.Auth.Errors.UNAUTHORIZED,
@@ -95,9 +98,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "The Authorization header was missing on a protected endpoint.",
                 Domain: "auth",
+                Owner: "lib",
                 IsDeprecated: false),
-            ["AUTH_BEARER_MALFORMED"] = new ErrorCodeInfo(
-                Code: "AUTH_BEARER_MALFORMED",
+            ["LIB_AUTH_BEARER_MALFORMED"] = new ErrorCodeInfo(
+                Code: "LIB_AUTH_BEARER_MALFORMED",
                 HttpStatus: 401,
                 Category: ErrorCategory.ValidationFailure,
                 UserMessageKey: TK.Auth.Errors.UNAUTHORIZED,
@@ -105,9 +109,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "The Authorization header was present but not a parseable Bearer JWT.",
                 Domain: "auth",
+                Owner: "lib",
                 IsDeprecated: false),
-            ["AUTH_JWT_SIGNATURE_INVALID"] = new ErrorCodeInfo(
-                Code: "AUTH_JWT_SIGNATURE_INVALID",
+            ["LIB_AUTH_JWT_SIGNATURE_INVALID"] = new ErrorCodeInfo(
+                Code: "LIB_AUTH_JWT_SIGNATURE_INVALID",
                 HttpStatus: 401,
                 Category: ErrorCategory.ValidationFailure,
                 UserMessageKey: TK.Auth.Errors.UNAUTHORIZED,
@@ -115,9 +120,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "JWT signature verification failed against the JWKS.",
                 Domain: "auth",
+                Owner: "lib",
                 IsDeprecated: false),
-            ["AUTH_JWT_EXPIRED"] = new ErrorCodeInfo(
-                Code: "AUTH_JWT_EXPIRED",
+            ["LIB_AUTH_JWT_EXPIRED"] = new ErrorCodeInfo(
+                Code: "LIB_AUTH_JWT_EXPIRED",
                 HttpStatus: 401,
                 Category: ErrorCategory.ValidationFailure,
                 UserMessageKey: TK.Auth.Errors.UNAUTHORIZED,
@@ -125,9 +131,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "JWT is expired (exp in the past, beyond clock skew).",
                 Domain: "auth",
+                Owner: "lib",
                 IsDeprecated: false),
-            ["AUTH_JWT_NOT_YET_VALID"] = new ErrorCodeInfo(
-                Code: "AUTH_JWT_NOT_YET_VALID",
+            ["LIB_AUTH_JWT_NOT_YET_VALID"] = new ErrorCodeInfo(
+                Code: "LIB_AUTH_JWT_NOT_YET_VALID",
                 HttpStatus: 401,
                 Category: ErrorCategory.ValidationFailure,
                 UserMessageKey: TK.Auth.Errors.UNAUTHORIZED,
@@ -135,9 +142,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "JWT not yet valid (nbf in the future, beyond clock skew).",
                 Domain: "auth",
+                Owner: "lib",
                 IsDeprecated: false),
-            ["AUTH_JWT_ISSUER_MISMATCH"] = new ErrorCodeInfo(
-                Code: "AUTH_JWT_ISSUER_MISMATCH",
+            ["LIB_AUTH_JWT_ISSUER_MISMATCH"] = new ErrorCodeInfo(
+                Code: "LIB_AUTH_JWT_ISSUER_MISMATCH",
                 HttpStatus: 401,
                 Category: ErrorCategory.ValidationFailure,
                 UserMessageKey: TK.Auth.Errors.UNAUTHORIZED,
@@ -145,9 +153,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "JWT iss claim does not match the configured issuer.",
                 Domain: "auth",
+                Owner: "lib",
                 IsDeprecated: false),
-            ["AUTH_JWT_AUDIENCE_MISMATCH"] = new ErrorCodeInfo(
-                Code: "AUTH_JWT_AUDIENCE_MISMATCH",
+            ["LIB_AUTH_JWT_AUDIENCE_MISMATCH"] = new ErrorCodeInfo(
+                Code: "LIB_AUTH_JWT_AUDIENCE_MISMATCH",
                 HttpStatus: 401,
                 Category: ErrorCategory.ValidationFailure,
                 UserMessageKey: TK.Auth.Errors.UNAUTHORIZED,
@@ -155,9 +164,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "JWT aud claim does not match this service's configured audience.",
                 Domain: "auth",
+                Owner: "lib",
                 IsDeprecated: false),
-            ["AUTH_JWT_CLAIM_MISSING"] = new ErrorCodeInfo(
-                Code: "AUTH_JWT_CLAIM_MISSING",
+            ["LIB_AUTH_JWT_CLAIM_MISSING"] = new ErrorCodeInfo(
+                Code: "LIB_AUTH_JWT_CLAIM_MISSING",
                 HttpStatus: 401,
                 Category: ErrorCategory.ValidationFailure,
                 UserMessageKey: TK.Auth.Errors.UNAUTHORIZED,
@@ -165,9 +175,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "JWT is missing a required claim that this service depends on.",
                 Domain: "auth",
+                Owner: "lib",
                 IsDeprecated: false),
-            ["AUTH_JWT_ACT_CHAIN_MALFORMED"] = new ErrorCodeInfo(
-                Code: "AUTH_JWT_ACT_CHAIN_MALFORMED",
+            ["LIB_AUTH_JWT_ACT_CHAIN_MALFORMED"] = new ErrorCodeInfo(
+                Code: "LIB_AUTH_JWT_ACT_CHAIN_MALFORMED",
                 HttpStatus: 401,
                 Category: ErrorCategory.ValidationFailure,
                 UserMessageKey: TK.Auth.Errors.UNAUTHORIZED,
@@ -175,9 +186,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "JWT act chain is malformed (RFC 8693 section 2.1 violation).",
                 Domain: "auth",
+                Owner: "lib",
                 IsDeprecated: false),
-            ["AUTH_JWT_KID_NOT_FOUND"] = new ErrorCodeInfo(
-                Code: "AUTH_JWT_KID_NOT_FOUND",
+            ["LIB_AUTH_JWT_KID_NOT_FOUND"] = new ErrorCodeInfo(
+                Code: "LIB_AUTH_JWT_KID_NOT_FOUND",
                 HttpStatus: 401,
                 Category: ErrorCategory.ValidationFailure,
                 UserMessageKey: TK.Auth.Errors.UNAUTHORIZED,
@@ -185,9 +197,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "JWT signed by an unknown kid; reactive JWKS refresh did not surface it.",
                 Domain: "auth",
+                Owner: "lib",
                 IsDeprecated: false),
-            ["AUTH_JWKS_UNAVAILABLE"] = new ErrorCodeInfo(
-                Code: "AUTH_JWKS_UNAVAILABLE",
+            ["LIB_AUTH_JWKS_UNAVAILABLE"] = new ErrorCodeInfo(
+                Code: "LIB_AUTH_JWKS_UNAVAILABLE",
                 HttpStatus: 503,
                 Category: ErrorCategory.InfrastructureUnavailable,
                 UserMessageKey: TK.Auth.Errors.TEMPORARILY_UNAVAILABLE,
@@ -195,9 +208,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "JWKS upstream is unavailable; no cached snapshot to fall back on.",
                 Domain: "auth",
+                Owner: "lib",
                 IsDeprecated: false),
-            ["AUTH_SESSION_REVOKED"] = new ErrorCodeInfo(
-                Code: "AUTH_SESSION_REVOKED",
+            ["LIB_AUTH_SESSION_REVOKED"] = new ErrorCodeInfo(
+                Code: "LIB_AUTH_SESSION_REVOKED",
                 HttpStatus: 401,
                 Category: ErrorCategory.PolicyDenied,
                 UserMessageKey: TK.Auth.Errors.UNAUTHORIZED,
@@ -205,19 +219,21 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "The bearer's d2_session_id is no longer alive (revoked).",
                 Domain: "auth",
+                Owner: "lib",
                 IsDeprecated: false),
-            ["AUTH_SESSION_LIVENESS_UNAVAILABLE"] = new ErrorCodeInfo(
-                Code: "AUTH_SESSION_LIVENESS_UNAVAILABLE",
+            ["LIB_AUTH_SESSION_LIVENESS_UNAVAILABLE"] = new ErrorCodeInfo(
+                Code: "LIB_AUTH_SESSION_LIVENESS_UNAVAILABLE",
                 HttpStatus: 503,
                 Category: ErrorCategory.InfrastructureUnavailable,
                 UserMessageKey: TK.Auth.Errors.TEMPORARILY_UNAVAILABLE,
                 FactoryName: "SessionLivenessUnavailable",
                 FactoryShape: "standard",
-                Doc: "Session liveness store unreachable. Caller fails closed: receives a 503-equivalent and may retry; the attempt is NOT treated as authenticated. Treating an unknown liveness state as alive would let revoked sessions ride through outages.",
+                Doc: "Session liveness store unreachable. Caller fails closed: receives a 503-equivalent and may retry; the attempt is NOT treated as authenticated. Treating an unknown liveness state as alive would let revoked sessions pass during outages.",
                 Domain: "auth",
+                Owner: "lib",
                 IsDeprecated: false),
-            ["AUTH_SCOPE_INSUFFICIENT"] = new ErrorCodeInfo(
-                Code: "AUTH_SCOPE_INSUFFICIENT",
+            ["LIB_AUTH_SCOPE_INSUFFICIENT"] = new ErrorCodeInfo(
+                Code: "LIB_AUTH_SCOPE_INSUFFICIENT",
                 HttpStatus: 401,
                 Category: ErrorCategory.PolicyDenied,
                 UserMessageKey: TK.Auth.Errors.UNAUTHORIZED,
@@ -225,19 +241,21 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "Caller is authenticated but the per-endpoint scope requirement is not satisfied. Surfaces as 401 (not 403) - the auth boundary keeps a uniform shape regardless of whether the JWT was bad or scopes were insufficient, so attackers cannot deduce which check failed.",
                 Domain: "auth",
+                Owner: "lib",
                 IsDeprecated: false),
-            ["AUTH_REQUEST_ORIGIN_UNESTABLISHED"] = new ErrorCodeInfo(
-                Code: "AUTH_REQUEST_ORIGIN_UNESTABLISHED",
+            ["LIB_AUTH_REQUEST_ORIGIN_UNESTABLISHED"] = new ErrorCodeInfo(
+                Code: "LIB_AUTH_REQUEST_ORIGIN_UNESTABLISHED",
                 HttpStatus: 401,
                 Category: ErrorCategory.PolicyDenied,
                 UserMessageKey: TK.Auth.Errors.UNAUTHORIZED,
                 FactoryName: "RequestOriginUnestablished",
                 FactoryShape: "standard",
-                Doc: "gRPC product call reached a host with RequestOrigin still Unestablished after the cross-process establishment interceptor (no validated mTLS peer identity). Platform fail-closed deny — not a per-handler check. Surfaces as 401 (not 403) so the auth boundary keeps a uniform shape with other policy-denied auth failures.",
+                Doc: "gRPC product call reached a host with RequestOrigin still Unestablished after the cross-process establishment interceptor (no validated mTLS peer identity). Platform fail-closed deny - not a per-handler check. Surfaces as 401 (not 403) so the auth boundary keeps a uniform shape with other policy-denied auth failures.",
                 Domain: "auth",
+                Owner: "lib",
                 IsDeprecated: false),
-            ["NOT_FOUND"] = new ErrorCodeInfo(
-                Code: "NOT_FOUND",
+            ["GEN_NOT_FOUND"] = new ErrorCodeInfo(
+                Code: "GEN_NOT_FOUND",
                 HttpStatus: 404,
                 Category: ErrorCategory.NotFound,
                 UserMessageKey: TK.Common.Errors.NOT_FOUND,
@@ -245,9 +263,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "Indicates that the requested resource was not found.",
                 Domain: "common",
+                Owner: "gen",
                 IsDeprecated: false),
-            ["FORBIDDEN"] = new ErrorCodeInfo(
-                Code: "FORBIDDEN",
+            ["GEN_FORBIDDEN"] = new ErrorCodeInfo(
+                Code: "GEN_FORBIDDEN",
                 HttpStatus: 403,
                 Category: ErrorCategory.PolicyDenied,
                 UserMessageKey: TK.Common.Errors.FORBIDDEN,
@@ -255,9 +274,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "Indicates that the action is forbidden due to insufficient permissions.",
                 Domain: "common",
+                Owner: "gen",
                 IsDeprecated: false),
-            ["UNAUTHORIZED"] = new ErrorCodeInfo(
-                Code: "UNAUTHORIZED",
+            ["GEN_UNAUTHORIZED"] = new ErrorCodeInfo(
+                Code: "GEN_UNAUTHORIZED",
                 HttpStatus: 401,
                 Category: ErrorCategory.PolicyDenied,
                 UserMessageKey: TK.Common.Errors.UNAUTHORIZED,
@@ -265,9 +285,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "Indicates that the user is unauthorized to perform the action (e.g., not authenticated).",
                 Domain: "common",
+                Owner: "gen",
                 IsDeprecated: false),
-            ["VALIDATION_FAILED"] = new ErrorCodeInfo(
-                Code: "VALIDATION_FAILED",
+            ["GEN_VALIDATION_FAILED"] = new ErrorCodeInfo(
+                Code: "GEN_VALIDATION_FAILED",
                 HttpStatus: 400,
                 Category: ErrorCategory.ValidationFailure,
                 UserMessageKey: TK.Common.Errors.VALIDATION_FAILED,
@@ -275,9 +296,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "Indicates that the input validation has failed.",
                 Domain: "common",
+                Owner: "gen",
                 IsDeprecated: false),
-            ["CONFLICT"] = new ErrorCodeInfo(
-                Code: "CONFLICT",
+            ["GEN_CONFLICT"] = new ErrorCodeInfo(
+                Code: "GEN_CONFLICT",
                 HttpStatus: 409,
                 Category: ErrorCategory.Conflict,
                 UserMessageKey: TK.Common.Errors.CONFLICT,
@@ -285,9 +307,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "Indicates that a conflict occurred, such as a resource already existing.",
                 Domain: "common",
+                Owner: "gen",
                 IsDeprecated: false),
-            ["UNHANDLED_EXCEPTION"] = new ErrorCodeInfo(
-                Code: "UNHANDLED_EXCEPTION",
+            ["GEN_UNHANDLED_EXCEPTION"] = new ErrorCodeInfo(
+                Code: "GEN_UNHANDLED_EXCEPTION",
                 HttpStatus: 500,
                 Category: ErrorCategory.InternalError,
                 UserMessageKey: TK.Common.Errors.UNKNOWN,
@@ -295,9 +318,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "Indicates that an unhandled exception has occurred.",
                 Domain: "common",
+                Owner: "gen",
                 IsDeprecated: false),
-            ["COULD_NOT_BE_SERIALIZED"] = new ErrorCodeInfo(
-                Code: "COULD_NOT_BE_SERIALIZED",
+            ["GEN_COULD_NOT_BE_SERIALIZED"] = new ErrorCodeInfo(
+                Code: "GEN_COULD_NOT_BE_SERIALIZED",
                 HttpStatus: 500,
                 Category: ErrorCategory.InternalError,
                 UserMessageKey: TK.Common.Errors.COULD_NOT_BE_SERIALIZED,
@@ -305,9 +329,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "none",
                 Doc: "Indicates that the data could not be serialized.",
                 Domain: "common",
+                Owner: "gen",
                 IsDeprecated: false),
-            ["COULD_NOT_BE_DESERIALIZED"] = new ErrorCodeInfo(
-                Code: "COULD_NOT_BE_DESERIALIZED",
+            ["GEN_COULD_NOT_BE_DESERIALIZED"] = new ErrorCodeInfo(
+                Code: "GEN_COULD_NOT_BE_DESERIALIZED",
                 HttpStatus: 500,
                 Category: ErrorCategory.InternalError,
                 UserMessageKey: TK.Common.Errors.COULD_NOT_BE_DESERIALIZED,
@@ -315,9 +340,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "none",
                 Doc: "Indicates that the data could not be deserialized.",
                 Domain: "common",
+                Owner: "gen",
                 IsDeprecated: false),
-            ["SERVICE_UNAVAILABLE"] = new ErrorCodeInfo(
-                Code: "SERVICE_UNAVAILABLE",
+            ["GEN_SERVICE_UNAVAILABLE"] = new ErrorCodeInfo(
+                Code: "GEN_SERVICE_UNAVAILABLE",
                 HttpStatus: 503,
                 Category: ErrorCategory.InfrastructureUnavailable,
                 UserMessageKey: TK.Common.Errors.SERVICE_UNAVAILABLE,
@@ -325,9 +351,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "Indicates that the service is currently unavailable.",
                 Domain: "common",
+                Owner: "gen",
                 IsDeprecated: false),
-            ["SOME_FOUND"] = new ErrorCodeInfo(
-                Code: "SOME_FOUND",
+            ["GEN_SOME_FOUND"] = new ErrorCodeInfo(
+                Code: "GEN_SOME_FOUND",
                 HttpStatus: 206,
                 Category: ErrorCategory.PartialSuccess,
                 UserMessageKey: TK.Common.Errors.SOME_FOUND,
@@ -335,19 +362,21 @@ public static class ErrorCodeRegistry
                 FactoryShape: "none",
                 Doc: "Indicates that some items were found in a query operation but not all.",
                 Domain: "common",
+                Owner: "gen",
                 IsDeprecated: false),
-            ["PARTIAL_SUCCESS"] = new ErrorCodeInfo(
-                Code: "PARTIAL_SUCCESS",
-                HttpStatus: 207,
+            ["GEN_PARTIAL_SUCCESS"] = new ErrorCodeInfo(
+                Code: "GEN_PARTIAL_SUCCESS",
+                HttpStatus: 503,
                 Category: ErrorCategory.PartialSuccess,
                 UserMessageKey: TK.Common.Errors.PARTIAL_SUCCESS,
                 FactoryName: "PartialSuccess",
                 FactoryShape: "none",
-                Doc: "Indicates that a multi-target write operation succeeded against some targets but not all (e.g. tiered cache wrote L1 but not L2). D2Result.Success stays true - the operation did succeed in part. Callers inspect IsPartialSuccess + the result data to decide what to do about the failed target(s).",
+                Doc: "Indicates that a multi-target write operation applied to some targets and not others (e.g. a tiered cache wrote L1 but not L2). D2Result.Success is false: anything short of every target is returned as a failure, so a caller that only asks Failed treats the operation as not done. A caller that may accept a partial outcome tests IsPartialSuccess and reads the result data to see which targets were left. The status is 503 rather than a 2xx because the operation is not done and the caller should retry. The error code distinguishes it from GEN_SERVICE_UNAVAILABLE, where no target was written at all.",
                 Domain: "common",
+                Owner: "gen",
                 IsDeprecated: false),
-            ["RATE_LIMITED"] = new ErrorCodeInfo(
-                Code: "RATE_LIMITED",
+            ["GEN_RATE_LIMITED"] = new ErrorCodeInfo(
+                Code: "GEN_RATE_LIMITED",
                 HttpStatus: 429,
                 Category: ErrorCategory.RateLimited,
                 UserMessageKey: TK.Common.Errors.TOO_MANY_REQUESTS,
@@ -355,9 +384,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "Indicates that the request has been rate limited.",
                 Domain: "common",
+                Owner: "gen",
                 IsDeprecated: false),
-            ["IDEMPOTENCY_IN_FLIGHT"] = new ErrorCodeInfo(
-                Code: "IDEMPOTENCY_IN_FLIGHT",
+            ["GEN_IDEMPOTENCY_IN_FLIGHT"] = new ErrorCodeInfo(
+                Code: "GEN_IDEMPOTENCY_IN_FLIGHT",
                 HttpStatus: 409,
                 Category: ErrorCategory.Conflict,
                 UserMessageKey: TK.Common.Errors.IDEMPOTENCY_IN_FLIGHT,
@@ -365,9 +395,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "none",
                 Doc: "Indicates that an idempotent request is already being processed (in-flight).",
                 Domain: "common",
+                Owner: "gen",
                 IsDeprecated: false),
-            ["PAYLOAD_TOO_LARGE"] = new ErrorCodeInfo(
-                Code: "PAYLOAD_TOO_LARGE",
+            ["GEN_PAYLOAD_TOO_LARGE"] = new ErrorCodeInfo(
+                Code: "GEN_PAYLOAD_TOO_LARGE",
                 HttpStatus: 413,
                 Category: ErrorCategory.PayloadTooLarge,
                 UserMessageKey: TK.Common.Errors.PAYLOAD_TOO_LARGE,
@@ -375,9 +406,10 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "Indicates that the request payload exceeds the maximum allowed size.",
                 Domain: "common",
+                Owner: "gen",
                 IsDeprecated: false),
-            ["CANCELED"] = new ErrorCodeInfo(
-                Code: "CANCELED",
+            ["GEN_CANCELED"] = new ErrorCodeInfo(
+                Code: "GEN_CANCELED",
                 HttpStatus: 400,
                 Category: ErrorCategory.ValidationFailure,
                 UserMessageKey: TK.Common.Errors.CANCELED,
@@ -385,6 +417,260 @@ public static class ErrorCodeRegistry
                 FactoryShape: "standard",
                 Doc: "Indicates that the operation was canceled (client or server cancellation).",
                 Domain: "common",
+                Owner: "gen",
+                IsDeprecated: false),
+            ["GEN_FORGERY_REFUSED"] = new ErrorCodeInfo(
+                Code: "GEN_FORGERY_REFUSED",
+                HttpStatus: 403,
+                Category: ErrorCategory.PolicyDenied,
+                UserMessageKey: TK.Common.Errors.FORBIDDEN,
+                FactoryName: "ForgeryRefused",
+                FactoryShape: "standard",
+                Doc: "A cookie-borne request that did not prove it came from this origin: the fetch-metadata headers identified another site or were absent with no matching Origin, or the forgery token was absent, stale or forged. One code covers every arm, so the rejection does not reveal which check failed. The response re-issues the token cookie when a session resolved, and a same-origin client retries once.",
+                Domain: "common",
+                Owner: "gen",
+                IsDeprecated: false),
+            ["LIB_MESSAGING_PUBLISH_UNROUTABLE"] = new ErrorCodeInfo(
+                Code: "LIB_MESSAGING_PUBLISH_UNROUTABLE",
+                HttpStatus: 503,
+                Category: ErrorCategory.InfrastructureUnavailable,
+                UserMessageKey: TK.Common.Errors.SERVICE_UNAVAILABLE,
+                FactoryName: "PublishUnroutable",
+                FactoryShape: "standard",
+                Doc: "The broker accepted the message and returned it because it matched no queue, and it was still matching no queue when the publisher's retries ran out. The exchange exists; nothing is bound to it for this routing key.",
+                Domain: "messaging",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_REQUEST_REQUIRED"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_REQUEST_REQUIRED",
+                HttpStatus: 400,
+                Category: ErrorCategory.ValidationFailure,
+                UserMessageKey: TK.Common.Pagination.REQUEST_REQUIRED,
+                FactoryName: "RequestRequired",
+                FactoryShape: "standard",
+                Doc: "No page request was supplied.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_LIMIT_INVALID"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_LIMIT_INVALID",
+                HttpStatus: 400,
+                Category: ErrorCategory.ValidationFailure,
+                UserMessageKey: TK.Common.Pagination.LIMIT_INVALID,
+                FactoryName: "LimitInvalid",
+                FactoryShape: "standard",
+                Doc: "The caller's page limit is not a positive whole number.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_PAGE_POLICY_INVALID"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_PAGE_POLICY_INVALID",
+                HttpStatus: 500,
+                Category: ErrorCategory.InternalError,
+                UserMessageKey: TK.Common.Pagination.PAGE_POLICY_INVALID,
+                FactoryName: "PagePolicyInvalid",
+                FactoryShape: "standard",
+                Doc: "The host's configured paging policy yields no usable limit.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_CURSOR_INVALID"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_CURSOR_INVALID",
+                HttpStatus: 400,
+                Category: ErrorCategory.ValidationFailure,
+                UserMessageKey: TK.Common.Pagination.CURSOR_INVALID,
+                FactoryName: "CursorInvalid",
+                FactoryShape: "standard",
+                Doc: "The cursor is absent, not decodable, or structurally incomplete.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_CURSOR_VERSION_UNSUPPORTED"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_CURSOR_VERSION_UNSUPPORTED",
+                HttpStatus: 400,
+                Category: ErrorCategory.ValidationFailure,
+                UserMessageKey: TK.Common.Pagination.CURSOR_VERSION_UNSUPPORTED,
+                FactoryName: "CursorVersionUnsupported",
+                FactoryShape: "standard",
+                Doc: "The cursor was minted under a cursor format this build does not read.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_CURSOR_SORT_NOT_ALLOWED"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_CURSOR_SORT_NOT_ALLOWED",
+                HttpStatus: 400,
+                Category: ErrorCategory.ValidationFailure,
+                UserMessageKey: TK.Common.Pagination.CURSOR_SORT_NOT_ALLOWED,
+                FactoryName: "CursorSortNotAllowed",
+                FactoryShape: "standard",
+                Doc: "The cursor's sort field is not in this operation's allow-set.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_CURSOR_ORDER_INVALID"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_CURSOR_ORDER_INVALID",
+                HttpStatus: 400,
+                Category: ErrorCategory.ValidationFailure,
+                UserMessageKey: TK.Common.Pagination.CURSOR_ORDER_INVALID,
+                FactoryName: "CursorOrderInvalid",
+                FactoryShape: "standard",
+                Doc: "The cursor's direction is not a recognized direction.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_CURSOR_SORT_MISMATCH"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_CURSOR_SORT_MISMATCH",
+                HttpStatus: 400,
+                Category: ErrorCategory.ValidationFailure,
+                UserMessageKey: TK.Common.Pagination.CURSOR_SORT_MISMATCH,
+                FactoryName: "CursorSortMismatch",
+                FactoryShape: "standard",
+                Doc: "The request asks for a different sort field than the cursor was minted under.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_CURSOR_ORDER_MISMATCH"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_CURSOR_ORDER_MISMATCH",
+                HttpStatus: 400,
+                Category: ErrorCategory.ValidationFailure,
+                UserMessageKey: TK.Common.Pagination.CURSOR_ORDER_MISMATCH,
+                FactoryName: "CursorOrderMismatch",
+                FactoryShape: "standard",
+                Doc: "The request asks for a different direction than the cursor was minted under.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_SORT_FIELD_NOT_ALLOWED"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_SORT_FIELD_NOT_ALLOWED",
+                HttpStatus: 400,
+                Category: ErrorCategory.ValidationFailure,
+                UserMessageKey: TK.Common.Pagination.SORT_FIELD_NOT_ALLOWED,
+                FactoryName: "SortFieldNotAllowed",
+                FactoryShape: "standard",
+                Doc: "The requested sort field is not in this operation's allow-set.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_ORDER_INVALID"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_ORDER_INVALID",
+                HttpStatus: 400,
+                Category: ErrorCategory.ValidationFailure,
+                UserMessageKey: TK.Common.Pagination.ORDER_INVALID,
+                FactoryName: "OrderInvalid",
+                FactoryShape: "standard",
+                Doc: "The requested direction is not a recognized direction.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_CURSOR_NOT_ENCODABLE"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_CURSOR_NOT_ENCODABLE",
+                HttpStatus: 500,
+                Category: ErrorCategory.InternalError,
+                UserMessageKey: TK.Common.Pagination.CURSOR_NOT_ENCODABLE,
+                FactoryName: "CursorNotEncodable",
+                FactoryShape: "standard",
+                Doc: "A next-page cursor could not be produced from the current page.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_SORT_CATALOG_EMPTY"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_SORT_CATALOG_EMPTY",
+                HttpStatus: 500,
+                Category: ErrorCategory.InternalError,
+                UserMessageKey: TK.Common.Pagination.SORT_CATALOG_EMPTY,
+                FactoryName: "SortCatalogEmpty",
+                FactoryShape: "standard",
+                Doc: "No field in the allow-set is registered in the catalog, so nothing can be ordered.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_SORT_FIELD_NOT_REGISTERED"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_SORT_FIELD_NOT_REGISTERED",
+                HttpStatus: 500,
+                Category: ErrorCategory.InternalError,
+                UserMessageKey: TK.Common.Pagination.SORT_FIELD_NOT_REGISTERED,
+                FactoryName: "SortFieldNotRegistered",
+                FactoryShape: "standard",
+                Doc: "The resolved sort field has no catalog entry.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_CURSOR_KEY_UNDECODABLE"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_CURSOR_KEY_UNDECODABLE",
+                HttpStatus: 400,
+                Category: ErrorCategory.ValidationFailure,
+                UserMessageKey: TK.Common.Pagination.CURSOR_KEY_UNDECODABLE,
+                FactoryName: "CursorKeyUndecodable",
+                FactoryShape: "standard",
+                Doc: "The cursor's primary key could not be decoded into the field's type.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_SORT_DIRECTION_NOT_ALLOWED"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_SORT_DIRECTION_NOT_ALLOWED",
+                HttpStatus: 400,
+                Category: ErrorCategory.ValidationFailure,
+                UserMessageKey: TK.Common.Pagination.SORT_DIRECTION_NOT_ALLOWED,
+                FactoryName: "SortDirectionNotAllowed",
+                FactoryShape: "standard",
+                Doc: "The requested direction is not permitted on this field.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_SEARCH_QUERY_TOO_SHORT"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_SEARCH_QUERY_TOO_SHORT",
+                HttpStatus: 400,
+                Category: ErrorCategory.ValidationFailure,
+                UserMessageKey: TK.Common.Pagination.SEARCH_QUERY_TOO_SHORT,
+                FactoryName: "SearchQueryTooShort",
+                FactoryShape: "standard",
+                Doc: "The search query is shorter than the configured minimum.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_SEARCH_QUERY_TOO_LONG"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_SEARCH_QUERY_TOO_LONG",
+                HttpStatus: 400,
+                Category: ErrorCategory.ValidationFailure,
+                UserMessageKey: TK.Common.Pagination.SEARCH_QUERY_TOO_LONG,
+                FactoryName: "SearchQueryTooLong",
+                FactoryShape: "standard",
+                Doc: "The search query is longer than the configured maximum.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_RELEVANCE_REQUIRES_QUERY"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_RELEVANCE_REQUIRES_QUERY",
+                HttpStatus: 400,
+                Category: ErrorCategory.ValidationFailure,
+                UserMessageKey: TK.Common.Pagination.RELEVANCE_REQUIRES_QUERY,
+                FactoryName: "RelevanceRequiresQuery",
+                FactoryShape: "standard",
+                Doc: "Relevance was requested with no query, and relevance resolves only against one.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_CURSOR_QUERY_MISMATCH"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_CURSOR_QUERY_MISMATCH",
+                HttpStatus: 400,
+                Category: ErrorCategory.ValidationFailure,
+                UserMessageKey: TK.Common.Pagination.CURSOR_QUERY_MISMATCH,
+                FactoryName: "CursorQueryMismatch",
+                FactoryShape: "standard",
+                Doc: "The cursor was minted under a different search query than the request carries.",
+                Domain: "pagination",
+                Owner: "lib",
+                IsDeprecated: false),
+            ["LIB_PAGINATION_SEARCH_NOT_SUPPORTED"] = new ErrorCodeInfo(
+                Code: "LIB_PAGINATION_SEARCH_NOT_SUPPORTED",
+                HttpStatus: 400,
+                Category: ErrorCategory.ValidationFailure,
+                UserMessageKey: TK.Common.Pagination.SEARCH_NOT_SUPPORTED,
+                FactoryName: "SearchNotSupported",
+                FactoryShape: "standard",
+                Doc: "The request carried a search query and the surface declared no search policy.",
+                Domain: "pagination",
+                Owner: "lib",
                 IsDeprecated: false),
         }.ToFrozenDictionary(StringComparer.Ordinal);
 
@@ -395,36 +681,59 @@ public static class ErrorCodeRegistry
     public static IReadOnlyCollection<ErrorCodeInfo> All { get; } =
         new ReadOnlyCollection<ErrorCodeInfo>(
             [
-                sr_lookup["AUTH_BEARER_MISSING"],
-                sr_lookup["AUTH_BEARER_MALFORMED"],
-                sr_lookup["AUTH_JWT_SIGNATURE_INVALID"],
-                sr_lookup["AUTH_JWT_EXPIRED"],
-                sr_lookup["AUTH_JWT_NOT_YET_VALID"],
-                sr_lookup["AUTH_JWT_ISSUER_MISMATCH"],
-                sr_lookup["AUTH_JWT_AUDIENCE_MISMATCH"],
-                sr_lookup["AUTH_JWT_CLAIM_MISSING"],
-                sr_lookup["AUTH_JWT_ACT_CHAIN_MALFORMED"],
-                sr_lookup["AUTH_JWT_KID_NOT_FOUND"],
-                sr_lookup["AUTH_JWKS_UNAVAILABLE"],
-                sr_lookup["AUTH_SESSION_REVOKED"],
-                sr_lookup["AUTH_SESSION_LIVENESS_UNAVAILABLE"],
-                sr_lookup["AUTH_SCOPE_INSUFFICIENT"],
-                sr_lookup["AUTH_REQUEST_ORIGIN_UNESTABLISHED"],
-                sr_lookup["NOT_FOUND"],
-                sr_lookup["FORBIDDEN"],
-                sr_lookup["UNAUTHORIZED"],
-                sr_lookup["VALIDATION_FAILED"],
-                sr_lookup["CONFLICT"],
-                sr_lookup["UNHANDLED_EXCEPTION"],
-                sr_lookup["COULD_NOT_BE_SERIALIZED"],
-                sr_lookup["COULD_NOT_BE_DESERIALIZED"],
-                sr_lookup["SERVICE_UNAVAILABLE"],
-                sr_lookup["SOME_FOUND"],
-                sr_lookup["PARTIAL_SUCCESS"],
-                sr_lookup["RATE_LIMITED"],
-                sr_lookup["IDEMPOTENCY_IN_FLIGHT"],
-                sr_lookup["PAYLOAD_TOO_LARGE"],
-                sr_lookup["CANCELED"],
+                sr_lookup["LIB_AUTH_BEARER_MISSING"],
+                sr_lookup["LIB_AUTH_BEARER_MALFORMED"],
+                sr_lookup["LIB_AUTH_JWT_SIGNATURE_INVALID"],
+                sr_lookup["LIB_AUTH_JWT_EXPIRED"],
+                sr_lookup["LIB_AUTH_JWT_NOT_YET_VALID"],
+                sr_lookup["LIB_AUTH_JWT_ISSUER_MISMATCH"],
+                sr_lookup["LIB_AUTH_JWT_AUDIENCE_MISMATCH"],
+                sr_lookup["LIB_AUTH_JWT_CLAIM_MISSING"],
+                sr_lookup["LIB_AUTH_JWT_ACT_CHAIN_MALFORMED"],
+                sr_lookup["LIB_AUTH_JWT_KID_NOT_FOUND"],
+                sr_lookup["LIB_AUTH_JWKS_UNAVAILABLE"],
+                sr_lookup["LIB_AUTH_SESSION_REVOKED"],
+                sr_lookup["LIB_AUTH_SESSION_LIVENESS_UNAVAILABLE"],
+                sr_lookup["LIB_AUTH_SCOPE_INSUFFICIENT"],
+                sr_lookup["LIB_AUTH_REQUEST_ORIGIN_UNESTABLISHED"],
+                sr_lookup["GEN_NOT_FOUND"],
+                sr_lookup["GEN_FORBIDDEN"],
+                sr_lookup["GEN_UNAUTHORIZED"],
+                sr_lookup["GEN_VALIDATION_FAILED"],
+                sr_lookup["GEN_CONFLICT"],
+                sr_lookup["GEN_UNHANDLED_EXCEPTION"],
+                sr_lookup["GEN_COULD_NOT_BE_SERIALIZED"],
+                sr_lookup["GEN_COULD_NOT_BE_DESERIALIZED"],
+                sr_lookup["GEN_SERVICE_UNAVAILABLE"],
+                sr_lookup["GEN_SOME_FOUND"],
+                sr_lookup["GEN_PARTIAL_SUCCESS"],
+                sr_lookup["GEN_RATE_LIMITED"],
+                sr_lookup["GEN_IDEMPOTENCY_IN_FLIGHT"],
+                sr_lookup["GEN_PAYLOAD_TOO_LARGE"],
+                sr_lookup["GEN_CANCELED"],
+                sr_lookup["GEN_FORGERY_REFUSED"],
+                sr_lookup["LIB_MESSAGING_PUBLISH_UNROUTABLE"],
+                sr_lookup["LIB_PAGINATION_REQUEST_REQUIRED"],
+                sr_lookup["LIB_PAGINATION_LIMIT_INVALID"],
+                sr_lookup["LIB_PAGINATION_PAGE_POLICY_INVALID"],
+                sr_lookup["LIB_PAGINATION_CURSOR_INVALID"],
+                sr_lookup["LIB_PAGINATION_CURSOR_VERSION_UNSUPPORTED"],
+                sr_lookup["LIB_PAGINATION_CURSOR_SORT_NOT_ALLOWED"],
+                sr_lookup["LIB_PAGINATION_CURSOR_ORDER_INVALID"],
+                sr_lookup["LIB_PAGINATION_CURSOR_SORT_MISMATCH"],
+                sr_lookup["LIB_PAGINATION_CURSOR_ORDER_MISMATCH"],
+                sr_lookup["LIB_PAGINATION_SORT_FIELD_NOT_ALLOWED"],
+                sr_lookup["LIB_PAGINATION_ORDER_INVALID"],
+                sr_lookup["LIB_PAGINATION_CURSOR_NOT_ENCODABLE"],
+                sr_lookup["LIB_PAGINATION_SORT_CATALOG_EMPTY"],
+                sr_lookup["LIB_PAGINATION_SORT_FIELD_NOT_REGISTERED"],
+                sr_lookup["LIB_PAGINATION_CURSOR_KEY_UNDECODABLE"],
+                sr_lookup["LIB_PAGINATION_SORT_DIRECTION_NOT_ALLOWED"],
+                sr_lookup["LIB_PAGINATION_SEARCH_QUERY_TOO_SHORT"],
+                sr_lookup["LIB_PAGINATION_SEARCH_QUERY_TOO_LONG"],
+                sr_lookup["LIB_PAGINATION_RELEVANCE_REQUIRES_QUERY"],
+                sr_lookup["LIB_PAGINATION_CURSOR_QUERY_MISMATCH"],
+                sr_lookup["LIB_PAGINATION_SEARCH_NOT_SUPPORTED"],
             ]);
 
     /// <summary>
@@ -434,7 +743,7 @@ public static class ErrorCodeRegistry
     /// </summary>
     /// <param name="code">
     /// The SCREAMING_SNAKE wire code to look up
-    /// (e.g. <c>"AUTH_BEARER_MISSING"</c>).
+    /// (e.g. <c>"LIB_AUTH_BEARER_MISSING"</c>).
     /// </param>
     /// <param name="info">
     /// When the method returns <see langword="true"/>, contains the full

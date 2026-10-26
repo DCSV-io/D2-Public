@@ -10,22 +10,22 @@ import { ErrorCodes } from "./error-codes.g.js";
 import type { ErrorOpts } from "./factories.g.js";
 import { HttpStatusCode } from "./http-status-codes.js";
 
-// The 10 spec-derived semantic FAILURE factories (notFound / unauthorized /
+// The spec-derived semantic FAILURE factories (notFound / unauthorized /
 // forbidden / validationFailed / conflict / serviceUnavailable /
 // unhandledException / payloadTooLarge / tooManyRequests / canceled) are
 // codegen-generated into `./factories.g.ts` from
-// `contracts/error-codes/error-codes.spec.json` — the same spec drives the
+// `contracts/error-codes/error-codes.spec.json`. The same spec drives the
 // .NET `D2Result` base factories, so the cross-language wire stays
 // byte-identical. The factories below are NOT spec-derived: `ok` / `created`
 // (success/status), `fail` (arbitrary status + code), `someFound` (206,
-// data-carrying) — they stay hand-rolled and re-exported alongside the
+// data-carrying). They are hand-written and re-exported alongside the
 // generated set from `./index.ts`.
 
 interface FailOpts extends ErrorOpts {
   statusCode?: HttpStatusCode;
 }
 
-/** Create a successful result carrying an optional typed payload. */
+/** Create a successful result holding an optional typed payload. */
 export function ok<T = void>(data?: T, traceId?: string): D2Result<T> {
   return new D2Result<T>({
     success: true,
@@ -44,6 +44,15 @@ export function created(opts: ErrorOpts = {}): D2Result<void> {
   });
 }
 
+/** HTTP 204. Use when the operation succeeded and the response carries no body. */
+export function noContent(traceId?: string): D2Result<void> {
+  return new D2Result<void>({
+    success: true,
+    statusCode: HttpStatusCode.NoContent,
+    traceId,
+  });
+}
+
 /**
  * Raw fail. Use only when no semantic factory matches. Defaults to HTTP 400.
  */
@@ -59,8 +68,8 @@ export function fail<T = void>(opts: FailOpts = {}): D2Result<T> {
 }
 
 /**
- * HTTP 206 / `SOME_FOUND`. Partial-success on the
- * NOT_FOUND → SOME_FOUND → OK ladder; `success` is `false` because the
+ * HTTP 206 / `SOME_FOUND`. Partial success in the
+ * NOT_FOUND -> SOME_FOUND -> OK sequence; `success` is `false` because the
  * query did not return all requested items.
  */
 export function someFound<T = void>(
@@ -71,7 +80,7 @@ export function someFound<T = void>(
     data: opts.data,
     messages: opts.messages ?? [TK.common.errors.SOME_FOUND],
     statusCode: HttpStatusCode.PartialContent,
-    errorCode: ErrorCodes.SOME_FOUND,
+    errorCode: ErrorCodes.GEN_SOME_FOUND,
     traceId: opts.traceId,
     category: ErrorCategoryWire.PartialSuccess,
   });

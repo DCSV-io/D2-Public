@@ -17,7 +17,7 @@ using Xunit;
 /// Emits the SEALED encryption-frame binary-layout catalog fixture. Each
 /// entry is the integer value of a public const int/byte field on
 /// <see cref="SealedFrameLayout"/>. Sibling of
-/// <see cref="EncryptionFrameFixtureEmitter"/> — a separate fixture file so
+/// <see cref="EncryptionFrameFixtureEmitter"/> - a separate fixture file so
 /// the version-1 fixture stays byte-identical.
 /// </summary>
 public sealed class EncryptionFrameSealedFixtureEmitter
@@ -34,7 +34,7 @@ public sealed class EncryptionFrameSealedFixtureEmitter
 
     private static SortedDictionary<string, object?> EnumerateConstants(Type type)
     {
-        // Sealed-frame catalog uses int + byte constants — collect both.
+        // Sealed-frame catalog uses int + byte constants - collect both.
         var fields = type
             .GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)
             .Where(f => f.IsLiteral && (f.FieldType == typeof(int) || f.FieldType == typeof(byte)))

@@ -40,7 +40,7 @@ public partial class D2Result
             messages,
             inputErrors,
             statusCode: HttpStatusCode.NotFound,
-            errorCode: errorCode ?? ErrorCodes.NOT_FOUND,
+            errorCode: errorCode ?? ErrorCodes.GEN_NOT_FOUND,
             traceId: traceId,
             category: category ?? ErrorCategory.NotFound);
     }
@@ -60,7 +60,7 @@ public partial class D2Result
             messages,
             inputErrors,
             statusCode: HttpStatusCode.Forbidden,
-            errorCode: errorCode ?? ErrorCodes.FORBIDDEN,
+            errorCode: errorCode ?? ErrorCodes.GEN_FORBIDDEN,
             traceId: traceId,
             category: category ?? ErrorCategory.PolicyDenied);
     }
@@ -80,7 +80,7 @@ public partial class D2Result
             messages,
             inputErrors,
             statusCode: HttpStatusCode.Unauthorized,
-            errorCode: errorCode ?? ErrorCodes.UNAUTHORIZED,
+            errorCode: errorCode ?? ErrorCodes.GEN_UNAUTHORIZED,
             traceId: traceId,
             category: category ?? ErrorCategory.PolicyDenied);
     }
@@ -100,7 +100,7 @@ public partial class D2Result
             messages,
             inputErrors,
             statusCode: HttpStatusCode.BadRequest,
-            errorCode: errorCode ?? ErrorCodes.VALIDATION_FAILED,
+            errorCode: errorCode ?? ErrorCodes.GEN_VALIDATION_FAILED,
             traceId: traceId,
             category: category ?? ErrorCategory.ValidationFailure);
     }
@@ -120,7 +120,7 @@ public partial class D2Result
             messages,
             inputErrors,
             statusCode: HttpStatusCode.Conflict,
-            errorCode: errorCode ?? ErrorCodes.CONFLICT,
+            errorCode: errorCode ?? ErrorCodes.GEN_CONFLICT,
             traceId: traceId,
             category: category ?? ErrorCategory.Conflict);
     }
@@ -140,7 +140,7 @@ public partial class D2Result
             messages,
             inputErrors,
             statusCode: HttpStatusCode.InternalServerError,
-            errorCode: errorCode ?? ErrorCodes.UNHANDLED_EXCEPTION,
+            errorCode: errorCode ?? ErrorCodes.GEN_UNHANDLED_EXCEPTION,
             traceId: traceId,
             category: category ?? ErrorCategory.InternalError);
     }
@@ -160,7 +160,7 @@ public partial class D2Result
             messages,
             inputErrors,
             statusCode: HttpStatusCode.ServiceUnavailable,
-            errorCode: errorCode ?? ErrorCodes.SERVICE_UNAVAILABLE,
+            errorCode: errorCode ?? ErrorCodes.GEN_SERVICE_UNAVAILABLE,
             traceId: traceId,
             category: category ?? ErrorCategory.InfrastructureUnavailable);
     }
@@ -180,7 +180,7 @@ public partial class D2Result
             messages,
             inputErrors,
             statusCode: HttpStatusCode.TooManyRequests,
-            errorCode: errorCode ?? ErrorCodes.RATE_LIMITED,
+            errorCode: errorCode ?? ErrorCodes.GEN_RATE_LIMITED,
             traceId: traceId,
             category: category ?? ErrorCategory.RateLimited);
     }
@@ -200,7 +200,7 @@ public partial class D2Result
             messages,
             inputErrors,
             statusCode: HttpStatusCode.RequestEntityTooLarge,
-            errorCode: errorCode ?? ErrorCodes.PAYLOAD_TOO_LARGE,
+            errorCode: errorCode ?? ErrorCodes.GEN_PAYLOAD_TOO_LARGE,
             traceId: traceId,
             category: category ?? ErrorCategory.PayloadTooLarge);
     }
@@ -220,8 +220,28 @@ public partial class D2Result
             messages,
             inputErrors,
             statusCode: HttpStatusCode.BadRequest,
-            errorCode: errorCode ?? ErrorCodes.CANCELED,
+            errorCode: errorCode ?? ErrorCodes.GEN_CANCELED,
             traceId: traceId,
             category: category ?? ErrorCategory.ValidationFailure);
+    }
+
+    /// <summary>A cookie-borne request that did not prove it came from this origin: the fetch-metadata headers identified another site or were absent with no matching Origin, or the forgery token was absent, stale or forged. One code covers every arm, so the rejection does not reveal which check failed. The response re-issues the token cookie when a session resolved, and a same-origin client retries once.</summary>
+    /// <param name="messages">Optional translation messages; defaults to <c>[TK.Common.Errors.FORBIDDEN]</c>.</param>
+    /// <param name="inputErrors">Optional per-field input errors.</param>
+    /// <param name="errorCode">Optional override for the default error code so callers can attach a more specific code.</param>
+    /// <param name="category">Optional override for the default error category so a delegating factory can stamp its own code's category.</param>
+    /// <param name="traceId">Optional trace identifier.</param>
+    /// <returns>A pre-built <see cref="D2Result"/> failure.</returns>
+    public static D2Result ForgeryRefused(IReadOnlyList<TKMessage>? messages = null, IReadOnlyList<InputError>? inputErrors = null, string? errorCode = null, ErrorCategory? category = null, string? traceId = null)
+    {
+        messages ??= [TK.Common.Errors.FORBIDDEN];
+        return new(
+            false,
+            messages,
+            inputErrors,
+            statusCode: HttpStatusCode.Forbidden,
+            errorCode: errorCode ?? ErrorCodes.GEN_FORGERY_REFUSED,
+            traceId: traceId,
+            category: category ?? ErrorCategory.PolicyDenied);
     }
 }

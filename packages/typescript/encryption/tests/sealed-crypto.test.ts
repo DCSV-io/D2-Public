@@ -45,20 +45,20 @@ describe("RecipientPublicKeyring.create", () => {
       RecipientPublicKeyring.create("a".repeat(65), "seal-1", keys),
     ).rejects.toThrow(/at most 64/);
     await expect(
-      RecipientPublicKeyring.create("Audit", "seal-1", keys),
+      RecipientPublicKeyring.create("Orders", "seal-1", keys),
     ).rejects.toThrow(/grammar/);
     await expect(
-      RecipientPublicKeyring.create("audit", "", keys),
+      RecipientPublicKeyring.create("orders", "", keys),
     ).rejects.toThrow(/UTF-8 byte length/);
     await expect(
       RecipientPublicKeyring.create(
-        "audit",
+        "orders",
         "k".repeat(65),
         new Map([["k".repeat(65), kp.publicSpki]]),
       ),
     ).rejects.toThrow(/UTF-8 byte length/);
     await expect(
-      RecipientPublicKeyring.create("audit", "missing", keys),
+      RecipientPublicKeyring.create("orders", "missing", keys),
     ).rejects.toThrow(/not present/);
   });
 
@@ -68,7 +68,7 @@ describe("RecipientPublicKeyring.create", () => {
 
     await expect(
       RecipientPublicKeyring.create(
-        "audit",
+        "orders",
         "seal-1",
         new Map([
           ["seal-1", kp.publicSpki],
@@ -79,7 +79,7 @@ describe("RecipientPublicKeyring.create", () => {
 
     await expect(
       RecipientPublicKeyring.create(
-        "audit",
+        "orders",
         "seal-1",
         new Map([
           ["seal-1", kp.publicSpki],
@@ -91,7 +91,7 @@ describe("RecipientPublicKeyring.create", () => {
     // Wrong curve (P-384 SPKI) fails the P-256 import.
     await expect(
       RecipientPublicKeyring.create(
-        "audit",
+        "orders",
         "seal-1",
         new Map([["seal-1", p384.publicSpki]]),
       ),
@@ -100,7 +100,7 @@ describe("RecipientPublicKeyring.create", () => {
     // Structural garbage of a plausible length also fails.
     await expect(
       RecipientPublicKeyring.create(
-        "audit",
+        "orders",
         "seal-1",
         new Map([["seal-1", new Uint8Array(91).fill(0x04)]]),
       ),
@@ -109,14 +109,14 @@ describe("RecipientPublicKeyring.create", () => {
 
   it("builds a validated keyring and resolves keys", async () => {
     const kp = await generateFixtureP256Keypair();
-    const ring = await fixturePublicKeyring("audit", "seal-1", kp);
+    const ring = await fixturePublicKeyring("orders", "seal-1", kp);
 
-    expect(ring.recipientServiceId).toBe("audit");
+    expect(ring.recipientServiceId).toBe("orders");
     expect(ring.activeKid).toBe("seal-1");
     expect(ring.tryGetPublicKey("seal-1")).toBeDefined();
     expect(ring.tryGetPublicKey("nope")).toBeUndefined();
     expect(ring.tryGetPublicKey(undefined)).toBeUndefined();
-    expect(ring.toString()).toContain("recipientServiceId=audit");
+    expect(ring.toString()).toContain("recipientServiceId=orders");
   });
 });
 
@@ -126,23 +126,26 @@ describe("RecipientPrivateKeyring.create", () => {
 
     await expect(
       RecipientPrivateKeyring.create(
-        "Audit",
+        "Orders",
         new Map([["seal-1", kp.privatePkcs8]]),
       ),
     ).rejects.toThrow(/grammar/);
 
     await expect(
-      RecipientPrivateKeyring.create("audit", new Map()),
+      RecipientPrivateKeyring.create("orders", new Map()),
     ).rejects.toThrow(/at least one key/);
 
     await expect(
-      RecipientPrivateKeyring.create("audit", new Map([["", kp.privatePkcs8]])),
+      RecipientPrivateKeyring.create(
+        "orders",
+        new Map([["", kp.privatePkcs8]]),
+      ),
     ).rejects.toThrow(/UTF-8 byte length/);
 
     // A public-only SPKI is rejected by the PKCS#8 import.
     await expect(
       RecipientPrivateKeyring.create(
-        "audit",
+        "orders",
         new Map([["seal-1", kp.publicSpki]]),
       ),
     ).rejects.toThrow(/not a valid P-256/);
@@ -150,13 +153,13 @@ describe("RecipientPrivateKeyring.create", () => {
 
   it("builds a keyring, resolves keys, and disposes fail-loud + idempotent", async () => {
     const kp = await generateFixtureP256Keypair();
-    const ring = await fixturePrivateKeyring("audit", "seal-1", kp);
+    const ring = await fixturePrivateKeyring("orders", "seal-1", kp);
 
-    expect(ring.recipientServiceId).toBe("audit");
+    expect(ring.recipientServiceId).toBe("orders");
     expect(ring.tryGetPrivateKey("seal-1")).toBeDefined();
     expect(ring.tryGetPrivateKey("nope")).toBeUndefined();
     expect(ring.tryGetPrivateKey(undefined)).toBeUndefined();
-    expect(ring.toString()).toContain("recipientServiceId=audit");
+    expect(ring.toString()).toContain("recipientServiceId=orders");
 
     ring.dispose();
     ring.dispose();
@@ -166,13 +169,13 @@ describe("RecipientPrivateKeyring.create", () => {
 });
 
 describe("PayloadSealer + PayloadOpener", () => {
-  it("round-trips a plaintext seal → open", async () => {
+  it("round-trips a plaintext seal -> open", async () => {
     const kp = await generateFixtureP256Keypair();
     const sealer = new PayloadSealer(
-      await fixturePublicKeyring("audit", "seal-1", kp),
+      await fixturePublicKeyring("orders", "seal-1", kp),
     );
     const opener = new PayloadOpener(
-      await fixturePrivateKeyring("audit", "seal-1", kp),
+      await fixturePrivateKeyring("orders", "seal-1", kp),
     );
     const plaintext = utf8.encode("sealed round-trip payload");
 
@@ -188,7 +191,7 @@ describe("PayloadSealer + PayloadOpener", () => {
   it("uses a fresh ephemeral per seal (frames differ)", async () => {
     const kp = await generateFixtureP256Keypair();
     const sealer = new PayloadSealer(
-      await fixturePublicKeyring("audit", "seal-1", kp),
+      await fixturePublicKeyring("orders", "seal-1", kp),
     );
     const a = await sealer.seal(utf8.encode("same"));
     const b = await sealer.seal(utf8.encode("same"));
@@ -200,7 +203,7 @@ describe("PayloadSealer + PayloadOpener", () => {
     const active = await generateFixtureP256Keypair();
     const retiring = await generateFixtureP256Keypair();
     const privateRing = await RecipientPrivateKeyring.create(
-      "audit",
+      "orders",
       new Map([
         ["seal-active", active.privatePkcs8],
         ["seal-retiring", retiring.privatePkcs8],
@@ -209,10 +212,10 @@ describe("PayloadSealer + PayloadOpener", () => {
     const opener = new PayloadOpener(privateRing);
 
     const sealActive = new PayloadSealer(
-      await fixturePublicKeyring("audit", "seal-active", active),
+      await fixturePublicKeyring("orders", "seal-active", active),
     );
     const sealRetiring = new PayloadSealer(
-      await fixturePublicKeyring("audit", "seal-retiring", retiring),
+      await fixturePublicKeyring("orders", "seal-retiring", retiring),
     );
 
     expect(
@@ -230,10 +233,10 @@ describe("PayloadSealer + PayloadOpener", () => {
   it("fails a tampered ciphertext, nonce, or eph_pub with a tag mismatch", async () => {
     const kp = await generateFixtureP256Keypair();
     const sealer = new PayloadSealer(
-      await fixturePublicKeyring("audit", "seal-1", kp),
+      await fixturePublicKeyring("orders", "seal-1", kp),
     );
     const opener = new PayloadOpener(
-      await fixturePrivateKeyring("audit", "seal-1", kp),
+      await fixturePrivateKeyring("orders", "seal-1", kp),
     );
 
     const framed = await sealer.seal(utf8.encode("tamper"));
@@ -249,12 +252,12 @@ describe("PayloadSealer + PayloadOpener", () => {
   it("fails a wrong-recipient frame (AAD mismatch)", async () => {
     const kp = await generateFixtureP256Keypair();
     const sealer = new PayloadSealer(
-      await fixturePublicKeyring("audit", "seal-1", kp),
+      await fixturePublicKeyring("orders", "seal-1", kp),
     );
-    // Same key material, but the opener claims a different service id — the
+    // Same key material, but the opener uses a different service id - the
     // service-bound salt/info/AAD no longer authenticate.
     const opener = new PayloadOpener(
-      await fixturePrivateKeyring("courier", "seal-1", kp),
+      await fixturePrivateKeyring("inventory", "seal-1", kp),
     );
 
     await expect(
@@ -265,7 +268,7 @@ describe("PayloadSealer + PayloadOpener", () => {
   it("rejects a frame whose recipient kid is unknown", async () => {
     const kp = await generateFixtureP256Keypair();
     const opener = new PayloadOpener(
-      await fixturePrivateKeyring("audit", "seal-1", kp),
+      await fixturePrivateKeyring("orders", "seal-1", kp),
     );
     const frame = encodeSealedFrame(
       "unknown-kid",
@@ -282,7 +285,7 @@ describe("PayloadSealer + PayloadOpener", () => {
   it("rejects a frame carrying a non-P-256 ephemeral public key", async () => {
     const kp = await generateFixtureP256Keypair();
     const opener = new PayloadOpener(
-      await fixturePrivateKeyring("audit", "seal-1", kp),
+      await fixturePrivateKeyring("orders", "seal-1", kp),
     );
     const frame = encodeSealedFrame(
       "seal-1",
@@ -299,7 +302,7 @@ describe("PayloadSealer + PayloadOpener", () => {
   it("rejects a version-1 frame passed to the opener", async () => {
     const kp = await generateFixtureP256Keypair();
     const opener = new PayloadOpener(
-      await fixturePrivateKeyring("audit", "seal-1", kp),
+      await fixturePrivateKeyring("orders", "seal-1", kp),
     );
     const v1 = encodeFrame("k1", nonce12, new Uint8Array(24));
 
@@ -316,12 +319,12 @@ describe("sealed key derivation", () => {
   });
 
   it("encodes serviceId bytes as UTF-8", () => {
-    expect([...serviceIdBytes("audit")]).toEqual([...utf8.encode("audit")]);
+    expect([...serviceIdBytes("orders")]).toEqual([...utf8.encode("orders")]);
   });
 
   it("builds the length-delimited info exactly", async () => {
     const kp = await generateFixtureP256Keypair();
-    const sid = utf8.encode("audit");
+    const sid = utf8.encode("orders");
     const info = buildInfo(sid, kp.publicSpki);
 
     const expected = [

@@ -8,7 +8,7 @@ namespace DcsvIo.D2.DataGovernance.Abstractions;
 
 /// <summary>
 /// Marks an entity as owned by a user subject. The anonymization engine reads
-/// <see cref="UserId"/> to scope an erasure sweep — only rows where
+/// <see cref="UserId"/> to scope an erasure sweep - only rows where
 /// <c>UserId == subjectId</c> are processed.
 /// </summary>
 /// <remarks>
@@ -20,7 +20,7 @@ namespace DcsvIo.D2.DataGovernance.Abstractions;
 /// (e.g. draft entities). The engine builds its filter against the nullable column
 /// and skips rows where <c>UserId</c> is <see langword="null"/>.
 ///
-/// Reuses the entity's existing identity column — no duplicate ownership column is added.
+/// Reuses the entity's existing identity column - no duplicate ownership column is added.
 /// </remarks>
 public interface IUserOwned
 {

@@ -22,8 +22,8 @@ using Xunit;
 /// <summary>
 /// Adversarial coverage of <see cref="BaseRepoHandler{TSelf,TInput,TOutput}"/>.
 /// This is the security-critical seam between EF / provider exceptions and
-/// typed <see cref="D2Result"/> outcomes — bugs here cause silent retries on
-/// programmer errors (Unhandled → looks like a transient failure to a generic
+/// typed <see cref="D2Result"/> outcomes - bugs here cause silent retries on
+/// programmer errors (Unhandled -> looks like a transient failure to a generic
 /// retry policy) or pass-through of unhandled exceptions that should have been
 /// classified.
 /// </summary>
@@ -50,7 +50,7 @@ public sealed class BaseRepoHandlerTests
     }
 
     // ----------------------------------------------------------------------
-    // BCL-typed concurrency: DbUpdateConcurrencyException → direct dispatch
+    // BCL-typed concurrency: DbUpdateConcurrencyException -> direct dispatch
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -66,7 +66,7 @@ public sealed class BaseRepoHandlerTests
         result.IsConcurrencyConflict.Should().BeTrue();
         result.TraceId.Should().Be(_TRACE_ID);
         classifier.LastSeen.Should().BeNull(
-            "BCL-typed DbUpdateConcurrencyException is dispatched directly — "
+            "BCL-typed DbUpdateConcurrencyException is dispatched directly - "
             + "classifier is NOT consulted");
     }
 
@@ -116,7 +116,7 @@ public sealed class BaseRepoHandlerTests
     }
 
     // ----------------------------------------------------------------------
-    // Generic exception → classifier returns null → unhandled preserved
+    // Generic exception -> classifier returns null -> unhandled preserved
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -135,7 +135,7 @@ public sealed class BaseRepoHandlerTests
     }
 
     // ----------------------------------------------------------------------
-    // Classifier dispatch — every DbFailureKind value
+    // Classifier dispatch - every DbFailureKind value
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -206,7 +206,7 @@ public sealed class BaseRepoHandlerTests
     {
         // Adversarial: even though the BCL-typed path catches concurrency
         // conflicts directly, a CUSTOM classifier might return
-        // ConcurrencyConflict for a non-DbUpdateConcurrencyException — the
+        // ConcurrencyConflict for a non-DbUpdateConcurrencyException - the
         // dispatch table must still cover that arm correctly.
         var result = await DispatchAsync(DbFailureKind.ConcurrencyConflict);
 
@@ -254,17 +254,17 @@ public sealed class BaseRepoHandlerTests
     }
 
     // ----------------------------------------------------------------------
-    // Adversarial — invalid enum value crashes loudly
+    // Adversarial - invalid enum value throws
     // ----------------------------------------------------------------------
 
     [Fact]
     public async Task HandleAsync_ClassifierReturnsInvalidEnum_ThrowsArgumentOutOfRange()
     {
         // Adversarial: the wildcard arm in DispatchDefault throws rather
-        // than returning a degraded result. A future DbFailureKind value
-        // added without a corresponding case here MUST crash loudly the
-        // first time the new kind is dispatched, not silently degrade
-        // into UnhandledException. This test pins that safety net.
+        // than returning a degraded result. A DbFailureKind value added
+        // without a corresponding case here must throw the first time that
+        // kind is dispatched, and must not degrade into UnhandledException.
+        // This test pins that behavior.
         var classifier = new StubClassifier(returnValue: (DbFailureKind)999);
         var handler = TestRepoHandler.Throwing(new InvalidOperationException("x"))
             .WithClassifier(classifier);
@@ -275,7 +275,7 @@ public sealed class BaseRepoHandlerTests
     }
 
     // ----------------------------------------------------------------------
-    // Constructor — null classifier behavior
+    // Constructor - null classifier behavior
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -283,7 +283,7 @@ public sealed class BaseRepoHandlerTests
     {
         // Adversarial: BaseRepoHandler stores the classifier without a
         // null-guard. A null classifier from misconfigured DI doesn't
-        // crash at construction — it crashes on first use that needs
+        // crash at construction - it crashes on first use that needs
         // classification. Documents actual behavior.
         var ctx = MakeContext();
         var ex = new InvalidOperationException("boom");
@@ -369,8 +369,8 @@ public sealed class BaseRepoHandlerTests
     }
 
     /// <summary>
-    /// Test BaseRepoHandler subclass — runs an injected delegate as
-    /// ExecuteAsync, plumbed for both "return result" and "throw exception"
+    /// Test BaseRepoHandler subclass - runs an injected delegate as
+    /// ExecuteAsync, for both "return result" and "throw exception"
     /// scenarios.
     /// </summary>
     private sealed class TestRepoHandler : BaseRepoHandler<TestRepoHandler, string, string>
@@ -423,7 +423,7 @@ public sealed class BaseRepoHandlerTests
     /// <summary>
     /// TestRepoHandler variant that overrides MapDbException to return a
     /// configured result, AND records what kind / exception it was called
-    /// with — for verifying the override hook is wired correctly.
+    /// with - for verifying the override hook is wired correctly.
     /// </summary>
     private sealed class MapOverrideHandler : BaseRepoHandler<MapOverrideHandler, string, string>
     {

@@ -14,7 +14,7 @@ namespace DcsvIo.D2.EncryptionFrame.SourceGen;
 /// <param name="MaxKidLength">Maximum allowed recipient-kid length in UTF-8 bytes.</param>
 /// <param name="EphPubLengthPrefixSize">
 /// Byte width of the big-endian length prefix in front of the ephemeral
-/// public key (always 2 — uint16).
+/// public key (always 2, a uint16).
 /// </param>
 /// <param name="MaxEphPubLength">
 /// Upper cap on the declared ephemeral-public-key length (allocation guard).

@@ -13,7 +13,8 @@ namespace DcsvIo.D2.Geo.SourceGen.Spec;
 /// <param name="Iso4217AlphaCode">ISO 4217 alpha code (e.g. <c>"USD"</c>).</param>
 /// <param name="Level">
 /// One of <c>"LegalTender"</c> / <c>"WidelyAccepted"</c> /
-/// <c>"Tourist"</c>; emitters map to the matching enum value.
+/// <c>"Tourist"</c>, the wire forms of the <c>CurrencyAcceptanceLevel</c>
+/// enum.
 /// </param>
 internal sealed record CountryCurrencyAcceptance(
     string Iso4217AlphaCode,

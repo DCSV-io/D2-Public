@@ -8,7 +8,7 @@ namespace DcsvIo.D2.Encryption;
 
 /// <summary>
 /// Decoded view over a sealed (version-2) frame buffer. All spans alias the
-/// source — the caller must not mutate the source while the view is in use.
+/// source - the caller must not mutate the source while the view is in use.
 /// Sibling of <see cref="FrameView"/> for the sealed frame family.
 /// </summary>
 internal readonly ref struct SealedFrameView

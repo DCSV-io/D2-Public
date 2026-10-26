@@ -15,7 +15,7 @@ using Xunit;
 public sealed class SupportedLocalesTests
 {
     // ----------------------------------------------------------------------
-    // ToBcp47 — pure normalizer
+    // ToBcp47 - normalizer with no side effects
     // ----------------------------------------------------------------------
 
     [Theory]
@@ -41,8 +41,8 @@ public sealed class SupportedLocalesTests
     [Fact]
     public void ToBcp47_LeadingHyphen_LowercasesEmptyLanguageAndUppercasesRegion()
     {
-        // Adversarial: degenerate input "-CA" — pin behavior even though no
-        // real BCP 47 tag looks like this.
+        // The input "-CA" is not a valid BCP 47 tag. The test pins the
+        // behavior for it anyway.
         SupportedLocales.ToBcp47("-CA").Should().Be("-CA");
     }
 
@@ -54,7 +54,7 @@ public sealed class SupportedLocalesTests
     }
 
     // ----------------------------------------------------------------------
-    // Construction — defaults when env vars absent
+    // Construction - defaults when the configuration keys are absent
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -82,7 +82,7 @@ public sealed class SupportedLocalesTests
     }
 
     // ----------------------------------------------------------------------
-    // Construction — PUBLIC_DEFAULT_LOCALE
+    // Construction - PUBLIC_DEFAULT_LOCALE
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -118,7 +118,7 @@ public sealed class SupportedLocalesTests
     }
 
     // ----------------------------------------------------------------------
-    // Construction — PUBLIC_ENABLED_LOCALES indexed section
+    // Construction - PUBLIC_ENABLED_LOCALES indexed section
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -157,9 +157,9 @@ public sealed class SupportedLocalesTests
     [Fact]
     public void Ctor_DuplicateLocalesAfterNormalization_KeepsBoth()
     {
-        // Pin behavior: two entries that normalize to the same canonical
-        // string are NOT deduped at config time. Callers / ops are expected
-        // to keep PUBLIC_ENABLED_LOCALES clean.
+        // Two entries that normalize to the same canonical string are not
+        // deduplicated when the configuration is read. Callers and operators
+        // keep PUBLIC_ENABLED_LOCALES free of duplicates.
         var sl = new SupportedLocales(ConfigWith(
             ("PUBLIC_ENABLED_LOCALES:0", "EN-us"),
             ("PUBLIC_ENABLED_LOCALES:1", "en-US")));
@@ -168,7 +168,7 @@ public sealed class SupportedLocalesTests
     }
 
     // ----------------------------------------------------------------------
-    // LanguageDefaults — first-locale-per-language wins
+    // LanguageDefaults - first-locale-per-language wins
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -280,7 +280,8 @@ public sealed class SupportedLocalesTests
             ("PUBLIC_ENABLED_LOCALES:0", "fr-FR"),
             ("PUBLIC_ENABLED_LOCALES:1", "fr-CA")));
 
-        // fr-CH is not enabled, but fr-* fallback finds fr-FR (first fr-*).
+        // fr-CH is not enabled, so the fr-* fallback returns fr-FR, the first
+        // fr-* locale.
         sl.Resolve("fr-CH").Should().Be("fr-FR");
     }
 
@@ -312,16 +313,15 @@ public sealed class SupportedLocalesTests
     }
 
     // ----------------------------------------------------------------------
-    // No xUnit collection annotation needed — instance state means parallel
-    // tests do NOT share state. (v1 had this whole class as static and required
-    // [Collection("I18n")] on every test class touching it.)
+    // No xUnit collection annotation is needed. SupportedLocales keeps its
+    // state per instance, so parallel tests do not share state.
     // ----------------------------------------------------------------------
 
     [Fact]
     public void Instances_AreIndependent_NotSharedAcrossTests()
     {
-        // Adversarial: two SupportedLocales constructed with different configs
-        // must NOT share state. Pins the v2 instance-class shape.
+        // Two SupportedLocales instances constructed with different
+        // configurations do not share state.
         var a = new SupportedLocales(ConfigWith(("PUBLIC_DEFAULT_LOCALE", "fr-FR")));
         var b = new SupportedLocales(ConfigWith(("PUBLIC_DEFAULT_LOCALE", "de-DE")));
 

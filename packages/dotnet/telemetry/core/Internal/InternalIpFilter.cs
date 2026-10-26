@@ -10,18 +10,19 @@ using System.Net;
 
 /// <summary>
 /// Internal helper that decides whether a connection-remote
-/// <see cref="IPAddress"/> is "internal" — loopback or RFC 1918 private
-/// address — for the
+/// <see cref="IPAddress"/> is "internal" - loopback or RFC 1918 private
+/// address - for the
 /// <see cref="WebApplicationTelemetryExtensions.MapD2PrometheusEndpoint"/>
 /// IP allow-list filter. Hosts behind reverse proxies are expected to
 /// surface the proxy's own IP at the connection layer; the proxy IS the
 /// loopback / RFC 1918 source, the original client IP is not (and is not
-/// a metrics consumer anyway).
+/// a metrics consumer anyway). It admits any directly connected loopback or
+/// private-range peer, whoever that peer is.
 /// </summary>
 /// <remarks>
-/// Hard-coded byte-prefix checks (no <c>IPNetwork</c> dep) per v1
-/// baseline. Covers Docker bridge, Kubernetes pod networks, and VPS
-/// private VLANs.
+/// Hard-coded byte-prefix checks, with no <c>IPNetwork</c> dependency. The
+/// ranges cover Docker bridge, Kubernetes pod networks, and VPS private
+/// VLANs.
 /// </remarks>
 internal static class InternalIpFilter
 {
@@ -53,7 +54,7 @@ internal static class InternalIpFilter
         if (bytes[0] == 10)
             return true;
 
-        // 172.16.0.0/12 — covers 172.16.x.x through 172.31.x.x
+        // 172.16.0.0/12 - covers 172.16.x.x through 172.31.x.x
         if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31)
             return true;
 

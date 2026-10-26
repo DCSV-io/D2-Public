@@ -16,21 +16,19 @@ using Xunit;
 /// Pins the no-Exception-parameter contract on <c>ProtoExtensions</c>'s
 /// <c>[LoggerMessage]</c> delegates. Exception messages can embed gRPC
 /// <c>Status.Detail</c>, broker URIs, JWT contents, and user-input-derived
-/// strings — none of which must reach the log pipeline. Callers pass
+/// strings - none of which must reach the log pipeline. The delegates take
 /// <c>SanitizedExceptionRender.TypeName(ex)</c> + <c>FirstFrame(ex)</c>
 /// as separate strings instead.
 /// </summary>
 /// <remarks>
-/// Mirrors <c>AuthLogDelegateContractTests</c> and
-/// <c>LoggerMessageDelegateContractTests</c>. Same enforcement pattern
-/// across every log surface in the codebase.
+/// Follows the same contract test pattern as <c>LoggerMessageDelegateContractTests</c>.
 /// </remarks>
 public sealed class ProtoExtensionsLogDelegateContractTests
 {
     [Fact]
     public void ProtoExtensions_NoDelegateAcceptsExceptionParameter()
     {
-        // Only [LoggerMessage]-attributed methods are in scope — the contract
+        // Only [LoggerMessage]-attributed methods are in scope - the contract
         // that no sink parameter accepts a raw Exception. Public non-LoggerMessage
         // methods (e.g. IsTransientGrpcException) are explicitly excluded.
         var leakProneMethods = typeof(ProtoExtensions)

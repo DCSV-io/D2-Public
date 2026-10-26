@@ -8,8 +8,7 @@ namespace DcsvIo.D2.Geo.SourceGen.Spec;
 
 /// <summary>
 /// One entry parsed from <c>currencies.spec.json</c>. Matches the JSON
-/// shape one-to-one — emitters consume this directly to produce the
-/// generated <c>Currency</c> record + per-instance static data.
+/// shape one-to-one.
 /// </summary>
 /// <param name="Iso4217AlphaCode">ISO 4217 alpha code (e.g. <c>"USD"</c>).</param>
 /// <param name="Iso4217NumericCode">
@@ -23,7 +22,7 @@ namespace DcsvIo.D2.Geo.SourceGen.Spec;
 /// True for currently-circulating currencies; false for historical ones.
 /// </param>
 /// <param name="IsSupported">
-/// Derived flag — true when this currency is referenced by a selectable
+/// Derived flag - true when this currency is referenced by a selectable
 /// locale's primary country's primary currency.
 /// </param>
 internal sealed record CurrencySpec(

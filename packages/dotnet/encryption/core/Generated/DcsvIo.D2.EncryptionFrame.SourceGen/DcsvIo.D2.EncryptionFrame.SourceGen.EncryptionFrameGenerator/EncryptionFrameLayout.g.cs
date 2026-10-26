@@ -45,11 +45,11 @@ public static class EncryptionFrameLayout
     /// <remarks>Kind: <c>variable_utf8</c>. Length value <c>-1</c> (-1 = variable).</remarks>
     public const int KID_LENGTH = -1;
 
-    /// <summary>NONCE byte offset from frame start. AES-GCM nonce. Fixed 12 bytes (GCM-spec). Offset is variable — comes immediately after KID. Generated fresh per encrypt; no nonce reuse with the same key (GCM safety requirement).</summary>
+    /// <summary>NONCE byte offset from frame start. AES-GCM nonce. Fixed 12 bytes (GCM-spec). Offset is variable - comes immediately after KID. Generated fresh per encrypt; no nonce reuse with the same key (GCM safety requirement).</summary>
     /// <remarks>Kind: <c>byte_fixed</c>. Offset value <c>-1</c> (-1 = variable).</remarks>
     public const int NONCE_OFFSET = -1;
 
-    /// <summary>NONCE byte length. AES-GCM nonce. Fixed 12 bytes (GCM-spec). Offset is variable — comes immediately after KID. Generated fresh per encrypt; no nonce reuse with the same key (GCM safety requirement).</summary>
+    /// <summary>NONCE byte length. AES-GCM nonce. Fixed 12 bytes (GCM-spec). Offset is variable - comes immediately after KID. Generated fresh per encrypt; no nonce reuse with the same key (GCM safety requirement).</summary>
     /// <remarks>Kind: <c>byte_fixed</c>. Length value <c>12</c> (-1 = variable).</remarks>
     public const int NONCE_LENGTH = 12;
 
@@ -69,6 +69,6 @@ public static class EncryptionFrameLayout
     public const int CONSTRAINT_NONCE_LENGTH = 12;
     /// <summary>AES-GCM authentication tag length in bytes (trailing bytes of CIPHERTEXT_WITH_TAG).</summary>
     public const int CONSTRAINT_TAG_LENGTH = 16;
-    /// <summary>Smallest valid frame size in bytes.</summary>
+    /// <summary>Fixed-field floor in bytes: VERSION, KID_LENGTH, NONCE and the tag. The KID is excluded; its length is checked separately.</summary>
     public const int CONSTRAINT_MIN_FRAME_SIZE = 30;
 }

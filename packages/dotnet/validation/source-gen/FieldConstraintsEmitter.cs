@@ -18,9 +18,8 @@ using DcsvIo.D2.SourceGen.Polyfills;
 /// Pure logic for emitting the <c>FieldConstraints</c> const-int class
 /// (<c>FieldConstraints.g.cs</c>) and the closed-list taxonomy enums
 /// (<c>Taxonomy.g.cs</c>) from a parsed <see cref="FieldConstraintsSpec"/>.
-/// Stateless and unit-testable in isolation. The Roslyn-host integration
-/// (<see cref="FieldConstraintsGenerator"/>) calls this and translates
-/// emit-side <see cref="EmitDiagnostic"/> records into Roslyn
+/// Stateless and unit-testable in isolation. It reports problems as emit-side
+/// <see cref="EmitDiagnostic"/> records, separate from Roslyn
 /// <c>Diagnostic</c> instances.
 /// </summary>
 internal static class FieldConstraintsEmitter
@@ -47,10 +46,9 @@ internal static class FieldConstraintsEmitter
         new("^[A-Za-z_][A-Za-z0-9_]*$", RegexOptions.CultureInvariant);
 
     /// <summary>
-    /// Emits the <c>FieldConstraints.g.cs</c> + <c>Taxonomy.g.cs</c> sources plus
+    /// Emits the <c>FieldConstraints.g.cs</c> and <c>Taxonomy.g.cs</c> sources plus
     /// diagnostics for the supplied spec. Returns one <see cref="EmitResult"/>
-    /// per hint name so the dispatcher can write each into its own
-    /// <c>AddSource</c> call.
+    /// per hint name, each holding the source for its own <c>AddSource</c> call.
     /// </summary>
     /// <param name="spec">Parsed field-constraints spec.</param>
     /// <returns>The per-source emit results.</returns>
@@ -179,8 +177,7 @@ internal static class FieldConstraintsEmitter
         sb.AppendLine(
             "/// constants and the TS-side @dcsv-io/d2-validation-abstractions catalog is");
         sb.AppendLine(
-            "/// structurally impossible (the TS emitter consumes the same spec via");
-        sb.AppendLine("/// tools/ts-codegen).");
+            "/// structurally impossible (the TS emitter consumes the same spec).");
         sb.AppendLine("/// </remarks>");
         sb.AppendLine($"public static class {FIELD_CONSTRAINTS_CLASS_NAME}");
         sb.AppendLine("{");

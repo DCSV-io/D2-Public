@@ -12,31 +12,32 @@ using DcsvIo.D2.Geo.SourceGen.Spec;
 using DcsvIo.D2.SourceGen;
 
 /// <summary>
-/// Emits the three wrapper <c>readonly struct</c> types used for
-/// open-coded catalogs where the identifier carries punctuation (hyphen,
-/// slash) that C# enum members cannot:
+/// Emits the wrapper <c>readonly struct</c> types used for open-coded
+/// catalogs whose identifiers contain punctuation (hyphen, slash) that C#
+/// enum members cannot contain:
 /// <list type="bullet">
-///   <item><c>SubdivisionCode</c> — ISO 3166-2 code (<c>"US-CA"</c>).</item>
-///   <item><c>LocaleCode</c> — IETF BCP 47 tag (<c>"en-US"</c>).</item>
-///   <item><c>TimezoneCode</c> — IANA identifier (<c>"America/New_York"</c>).</item>
+///   <item><c>SubdivisionCode</c> - ISO 3166-2 code (<c>"US-CA"</c>).</item>
+///   <item><c>LocaleCode</c> - IETF BCP 47 tag (<c>"en-US"</c>).</item>
+///   <item><c>TimezoneCode</c> - IANA identifier (<c>"America/New_York"</c>).</item>
 /// </list>
-/// Each struct carries a <c>Value</c> property + <c>FromString</c> /
-/// <c>TryParse</c> factories + structural equality + <c>ToString</c>.
-/// Validation against the closed catalog set lives on the matching
-/// <c>JsonConverter</c> + the <c>TryParse</c> path; <c>FromString</c> trusts
-/// the caller (used at codegen-time + for known-good inputs).
+/// Each struct has a <c>Value</c> property, <c>FromString</c> and
+/// <c>TryParse</c> factories, structural equality and <c>ToString</c>.
+/// The matching <c>JsonConverter</c> and the <c>TryParse</c> path validate
+/// against the closed catalog set. <c>FromString</c> does not validate; it is
+/// used at generation time and for known-good inputs.
 /// </summary>
 internal static class WrapperStructEmitter
 {
     private const string _NAMESPACE = EmitterHelpers.AbstractionsNamespace;
 
     /// <summary>
-    /// Emits all three wrapper structs. The parent-country lookup for
-    /// <c>SubdivisionCode.ParentCountry</c> ships in a separate emitter
-    /// (<see cref="ParentCountryTableEmitter"/>) because it is data-shaped
-    /// (lookup table) rather than type-shaped.
+    /// Emits all wrapper structs (<c>SubdivisionCode</c>, <c>LocaleCode</c>
+    /// and <c>TimezoneCode</c>). The parent-country lookup for
+    /// <c>SubdivisionCode.ParentCountry</c> is emitted by
+    /// <see cref="ParentCountryTableEmitter"/>, because it is a data lookup
+    /// table and not a type.
     /// </summary>
-    /// <param name="context">The aggregate spec context (unused — wrapper
+    /// <param name="context">The aggregate spec context (unused - wrapper
     /// shapes do not depend on entry data).</param>
     /// <returns>The per-struct emit results.</returns>
     public static ImmutableArray<EmitResult> EmitAll(GeoSpecContext context)
@@ -95,7 +96,7 @@ internal static class WrapperStructEmitter
         sb.AppendLine(
             "    /// Constructs a <see cref=\"SubdivisionCode\"/> without catalog validation.");
         sb.AppendLine(
-            "    /// Use at codegen time or with caller-known-good inputs only — boundary");
+            "    /// Use at codegen time or with caller-known-good inputs only - boundary");
         sb.AppendLine(
             "    /// code SHOULD prefer <see cref=\"TryParse(string?, out SubdivisionCode)\"/>");
         sb.AppendLine("    /// (which consults the emitted closed-set validation table).");
@@ -230,7 +231,7 @@ internal static class WrapperStructEmitter
         sb.AppendLine(
             "    /// Constructs a <see cref=\"LocaleCode\"/> without catalog validation.");
         sb.AppendLine(
-            "    /// Use at codegen time or with caller-known-good inputs only — boundary");
+            "    /// Use at codegen time or with caller-known-good inputs only - boundary");
         sb.AppendLine(
             "    /// code SHOULD prefer <see cref=\"TryParse(string?, out LocaleCode)\"/>.");
         sb.AppendLine("    /// </summary>");

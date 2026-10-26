@@ -12,8 +12,11 @@ export function createLocalCacheOptions(partial?: Partial<LocalCacheOptions>): L
 // @public
 export interface ICacheAtomic {
     acquireLock(key: string, lockId: string, expirationMs: number, signal?: AbortSignal): Promise<D2Result<boolean>>;
+    consumeToken(key: string, refillTokens: number, refillIntervalMs: number, burst: number, cost?: number, signal?: AbortSignal): Promise<D2Result<TokenBucketDecision>>;
     increment(key: string, amount?: number, expirationMs?: number, signal?: AbortSignal): Promise<D2Result<number>>;
     releaseLock(key: string, lockId: string, signal?: AbortSignal): Promise<D2Result>;
+    removeIfEqual<T>(key: string, expected: T, signal?: AbortSignal): Promise<D2Result<boolean>>;
+    setIfEqual<T>(key: string, expected: T, value: T, expirationMs?: number, signal?: AbortSignal): Promise<D2Result<boolean>>;
     setNx<T>(key: string, value: T, expirationMs?: number, signal?: AbortSignal): Promise<D2Result<boolean>>;
 }
 
@@ -77,6 +80,7 @@ export const InputFailures: {
         (paramName: string): D2Result;
         <T>(paramName: string): D2Result<T>;
     };
+    tokenBucket(key: string, refillTokens: number, refillIntervalMs: number, burst: number, cost: number): D2Result<TokenBucketDecision> | undefined;
 };
 
 // @public
@@ -91,6 +95,12 @@ export interface LocalCacheOptions {
     defaultExpirationMs: number;
     keyPrefix: string;
     maxEntries: number;
+}
+
+// @public
+export interface TokenBucketDecision {
+    readonly admitted: boolean;
+    readonly retryAfterMs: number;
 }
 
 // (No @packageDocumentation comment for this package)

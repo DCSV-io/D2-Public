@@ -16,7 +16,7 @@ namespace DcsvIo.D2.Geo.Abstractions;
 /// Identifier for a supranational geopolitical grouping (continents,
 /// trade blocs, political unions, military alliances, etc.). Members
 /// named with the well-known abbreviation (<c>EU</c>, <c>NATO</c>,
-/// <c>USMCA</c>, <c>BRICS</c>) — the short code from the catalog. Backing
+/// <c>USMCA</c>, <c>BRICS</c>) - the short code from the catalog. Backing
 /// field assigned sequentially. Unknown wire codes throw
 /// <see cref="System.Text.Json.JsonException"/>.
 /// </summary>

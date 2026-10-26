@@ -1,0 +1,53 @@
+<!--
+Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>DcsvIo.D2.Outbox</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    DcsvIo.D2.Outbox - the database-agnostic half of the transactional outbox:
+    the staged message and its states, the retry and abandon policy inputs, the
+    ports for staging and sending messages, and the dispatcher registry. Anything that touches a
+    DbContext - port or implementation - lives in the entity-framework package
+    instead, because the staged row has to live in the same database as the
+    change it is staged with.
+  -->
+
+  <ItemGroup>
+    <!-- DcsvIo.D2.Result - every port here returns D2Result. -->
+    <ProjectReference Include="..\..\result\core\DcsvIo.D2.Result.csproj" />
+    <!-- DcsvIo.D2.Time - NodaTime Instant / Duration on the message states. -->
+    <ProjectReference Include="..\..\time\DcsvIo.D2.Time.csproj" />
+    <!-- DcsvIo.D2.Utilities - the [RedactData] / RedactReason annotations and
+         the TimeSpanRangeBounds constants on OutboxOptions. -->
+    <ProjectReference Include="..\..\utilities\DcsvIo.D2.Utilities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- NodaTime - Instant and Duration on the message states. -->
+    <PackageReference Include="NodaTime" />
+    <!-- Microsoft.Extensions.DependencyInjection.Abstractions - AddD2Outbox. -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <!-- Microsoft.Extensions.Options - AddOptions<OutboxOptionsFor<TDb>>. -->
+    <PackageReference Include="Microsoft.Extensions.Options" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DcsvIo.D2.Tests" />
+  </ItemGroup>
+
+  <!-- Publish metadata (per-package semver + NuGet identity). -->
+  <PropertyGroup>
+    <Version>0.5.11</Version>
+    <PackageId>DcsvIo.D2.Outbox</PackageId>
+    <Description>Transactional outbox message states, ports and dispatcher registry for D2.</Description>
+    <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>

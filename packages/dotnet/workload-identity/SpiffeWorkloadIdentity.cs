@@ -10,32 +10,30 @@ using System.Text.RegularExpressions;
 using DcsvIo.D2.ErrorCodes.Category;
 
 /// <summary>
-/// Strong-typed value object representing a single workload's SPIFFE identity —
-/// the subject-alternative-name a leaf certificate carries and a peer validator
-/// checks: <c>spiffe://d2.internal/workload/&lt;service&gt;</c>.
+/// Strongly typed value object for a single workload's SPIFFE identity: the
+/// subject-alternative-name that a leaf certificate contains and a peer validator
+/// checks, written <c>spiffe://d2.internal/workload/&lt;service&gt;</c>.
 /// </summary>
 /// <remarks>
 /// <b>The single SPIFFE grammar.</b> This is the one place the SPIFFE
-/// workload-identity format lives. Two consumers share it: KeyCustodian's
-/// issuance value object delegates to this grammar (re-mapping the failure to its
-/// own <c>KEYCUSTODIAN_INVALID_WORKLOAD_IDENTITY</c> code), and the shared mTLS
-/// peer validator feeds a presented certificate's URI SAN to <see cref="Parse"/>.
-/// One grammar, two consumers — never two parsers for one format.
+/// workload-identity format lives. <see cref="Create"/> validates a bare service
+/// identifier, and <see cref="Parse"/> validates the URI SAN of a presented
+/// certificate. There is one parser for the format, never two.
 ///
-/// <b>Not PII.</b> A workload identity is a service label such as <c>edge</c> or
-/// <c>files</c> — not personally identifying. Do NOT apply <c>[RedactData]</c>
-/// to this type.
+/// <b>Not PII.</b> A workload identity is a service label such as <c>inventory</c>
+/// or <c>reports</c>, which is not personally identifying. Do not apply
+/// <c>[RedactData]</c> to this type.
 ///
 /// <b>Wire-format constants.</b> The trust-domain, scheme, and path-prefix
-/// literals are wire/spec-anchored constants — the literal value IS the SPIFFE
-/// format. Use these constants instead of raw strings.
+/// literals are anchored to the wire format and the SPIFFE spec: the literal
+/// value is the SPIFFE format. Use these constants instead of raw strings.
 ///
 /// <b>Two construction paths.</b> <see cref="Create"/> validates a bare service
 /// identifier (the issuance side); <see cref="Parse"/> validates a full SPIFFE
 /// URI extracted from a presented certificate's SAN (the peer-validation side).
 /// Both reject anything that is not a well-formed lowercase workload identity
 /// inside the <c>d2.internal</c> trust domain with the same generic
-/// <c>ValidationFailed</c> failure — a default-deny posture that does not leak
+/// <c>ValidationFailed</c> failure. This default-deny posture does not leak
 /// which check failed.
 ///
 /// Validation enforces on the service identifier:
@@ -50,25 +48,27 @@ public sealed partial record SpiffeWorkloadIdentity
     /// <summary>The SPIFFE URI scheme.</summary>
     public const string SCHEME = "spiffe";
 
-    /// <summary>The internal SPIFFE trust domain — equals the internal token audience.</summary>
+    /// <summary>
+    /// The internal SPIFFE trust domain, which equals the internal token audience.
+    /// </summary>
     public const string TRUST_DOMAIN = "d2.internal";
 
-    /// <summary>The SPIFFE path prefix every D2 workload identity carries.</summary>
+    /// <summary>The SPIFFE path prefix that every D2 workload identity starts with.</summary>
     public const string WORKLOAD_PATH_PREFIX = "/workload/";
 
     private const int _SERVICE_ID_MAX = 64;
 
-    // Bucket 1 — no-backtracking pattern: single anchored character class with no
+    // No-backtracking pattern: a single anchored character class with no
     // alternation or repetition that could backtrack. Input is length-capped to
-    // _SERVICE_ID_MAX before the match so no timeout is required.
+    // _SERVICE_ID_MAX before the match, so no timeout is required.
     private static readonly Regex sr_serviceIdCharset = ServiceIdCharsetRegex();
 
-    /// <summary>Gets the normalized lowercase service identifier (e.g. <c>edge</c>).</summary>
+    /// <summary>Gets the normalized lowercase service identifier (e.g. <c>inventory</c>).</summary>
     public required string ServiceId { get; init; }
 
     /// <summary>
     /// Gets the full SPIFFE subject-alternative-name URI emitted onto a leaf
-    /// certificate (e.g. <c>spiffe://d2.internal/workload/edge</c>).
+    /// certificate (e.g. <c>spiffe://d2.internal/workload/inventory</c>).
     /// </summary>
     public string Uri =>
         string.Create(
@@ -104,8 +104,8 @@ public sealed partial record SpiffeWorkloadIdentity
     /// <summary>
     /// Validates and constructs a <see cref="SpiffeWorkloadIdentity"/> from a full
     /// SPIFFE URI extracted from a presented certificate's subject-alternative-name
-    /// (the peer-validation side). Asserts the scheme is <c>spiffe</c>, the host is
-    /// the <c>d2.internal</c> trust domain, the path begins with <c>/workload/</c>,
+    /// (the peer-validation side). Checks that the scheme is <c>spiffe</c>, the host
+    /// is the <c>d2.internal</c> trust domain, the path begins with <c>/workload/</c>,
     /// and the remaining service identifier passes <see cref="Create"/>.
     /// </summary>
     /// <param name="uri">The raw SAN URI (may be null, malformed, or foreign).</param>
@@ -140,8 +140,8 @@ public sealed partial record SpiffeWorkloadIdentity
 
     /// <summary>
     /// Reconstructs a <see cref="SpiffeWorkloadIdentity"/> from a trusted,
-    /// previously-validated service identifier WITHOUT re-running validation. For
-    /// store-side rehydration only — use <see cref="Create"/> / <see cref="Parse"/>
+    /// previously-validated service identifier without re-running validation. Use it
+    /// for store-side rehydration only; use <see cref="Create"/> or <see cref="Parse"/>
     /// for all untrusted input.
     /// </summary>
     /// <param name="serviceId">The stored service identifier.</param>
@@ -161,9 +161,8 @@ public sealed partial record SpiffeWorkloadIdentity
 
     /// <summary>
     /// Builds the generic default-deny failure shared by every rejection path.
-    /// The shared grammar owns NO domain-specific error code — a malformed
-    /// identity is a generic <c>ValidationFailed</c>; a consuming domain (e.g.
-    /// KeyCustodian's issuance path) re-maps it to its own code.
+    /// The shared grammar defines no domain-specific error code: a malformed
+    /// identity is a generic <c>ValidationFailed</c>.
     /// </summary>
     private static D2Result<SpiffeWorkloadIdentity> Invalid() =>
         D2Result<SpiffeWorkloadIdentity>.ValidationFailed(
@@ -171,8 +170,8 @@ public sealed partial record SpiffeWorkloadIdentity
 
     /// <summary>
     /// Lowercase DNS-label-safe charset: lowercase letters, digits, hyphens only.
-    /// Bucket 1 — no-backtracking: single anchored character class, no
-    /// alternation/repetition that could backtrack; no timeout required.
+    /// No backtracking: a single anchored character class with no
+    /// alternation or repetition that could backtrack, so no timeout is required.
     /// </summary>
     [GeneratedRegex(@"^[a-z0-9-]+$", RegexOptions.None)]
     private static partial Regex ServiceIdCharsetRegex();

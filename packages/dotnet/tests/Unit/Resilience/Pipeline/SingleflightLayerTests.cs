@@ -16,9 +16,9 @@ public sealed class SingleflightLayerTests
     [Fact]
     public async Task WrapAsync_DelegatesToUnderlyingSingleflight()
     {
-        // Concurrent identical calls funnel through the underlying SF, so
-        // the inner operation runs exactly ONCE — proves the layer wires
-        // the per-call key into Singleflight.ExecuteAsync correctly.
+        // Concurrent calls with the same key go through the underlying SF, so
+        // the inner operation runs exactly ONCE. This shows the layer passes
+        // the per-call key to Singleflight.ExecuteAsync.
         var sf = new Singleflight<string, int>();
         var layer = new SingleflightLayer<string, int>(sf);
         var invocations = 0;
@@ -46,8 +46,8 @@ public sealed class SingleflightLayerTests
     [Fact]
     public async Task WrapAsync_DifferentKeys_RunIndependently()
     {
-        // Layer must pass the key through to SF — different keys = different
-        // dedup buckets = both operations execute.
+        // The layer must pass the key to SF. Different keys have separate
+        // deduplication entries, so both operations execute.
         var sf = new Singleflight<string, int>();
         var layer = new SingleflightLayer<string, int>(sf);
         var invocations = 0;

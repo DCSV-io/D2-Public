@@ -9,7 +9,7 @@ namespace DcsvIo.D2.Tests.Integration.Messaging;
 using DcsvIo.D2.Handler;
 using DcsvIo.D2.Result;
 
-/// <summary>Handler that always throws — drives DLQ-on-exception scenarios.</summary>
+/// <summary>Handler that always throws - drives DLQ-on-exception scenarios.</summary>
 public sealed class AlwaysThrowsHandler
     : BaseHandler<AlwaysThrowsHandler, IntegrationAuditEvent, Unit>
 {

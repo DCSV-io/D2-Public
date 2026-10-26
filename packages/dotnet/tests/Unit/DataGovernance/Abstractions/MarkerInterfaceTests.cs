@@ -11,7 +11,7 @@ using DcsvIo.D2.DataGovernance.Abstractions;
 using Xunit;
 
 /// <summary>
-/// Tests for the four marker interfaces: <see cref="IUserOwned"/>, <see cref="IOrgOwned"/>,
+/// Tests for the marker interfaces: <see cref="IUserOwned"/>, <see cref="IOrgOwned"/>,
 /// <see cref="IExemptFromAnonymization"/>, and <see cref="IAnonymizationTrackable"/>.
 /// Covers: contract compiles, properties return expected values, read-only constraint on
 /// IAnonymizationTrackable, and IsAssignableTo assertions that pin the interface hierarchy.
@@ -76,7 +76,7 @@ public sealed class MarkerInterfaceTests
     [Fact]
     public void IExemptFromAnonymization_has_zero_members()
     {
-        // Pins the empty-marker contract — any member addition breaks this test intentionally.
+        // Pins the empty-marker contract: adding a member fails this test on purpose.
         typeof(IExemptFromAnonymization).GetMembers().Should().BeEmpty();
     }
 
@@ -99,7 +99,8 @@ public sealed class MarkerInterfaceTests
     [Fact]
     public void IAnonymizationTrackable_IsAnonymized_has_no_setter_on_interface()
     {
-        // Pins the read-only contract — the engine writes via EF, not via this setter.
+        // Pins the read-only contract: the engine writes the value through EF,
+        // not through a setter on this interface.
         var property = typeof(IAnonymizationTrackable).GetProperty(
             nameof(IAnonymizationTrackable.IsAnonymized));
         property.Should().NotBeNull();

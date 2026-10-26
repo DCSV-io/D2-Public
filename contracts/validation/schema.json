@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "D2 field-constraints spec",
-  "description": "Schema for contracts/validation/field-constraints.spec.json — the source-of-truth catalog that DcsvIo.D2.Validation.SourceGen reads to emit FieldConstraints.g.cs + Taxonomy.g.cs into DcsvIo.D2.Validation.Abstractions, and that the TypeScript codegen pipeline reads to emit field-constraints.g.ts + taxonomy.g.ts into @dcsv-io/d2-validation-abstractions. One spec carries both the shared field-constraint integer bounds (char-length caps and phone digit-count bounds) and the closed-list taxonomy enums consumed by the domain value objects (contacts + Location), the FE/BFF Zod schemas, and arbitrary backend modules.",
+  "description": "Schema for contracts/validation/field-constraints.spec.json - the source-of-truth catalog that DcsvIo.D2.Validation.SourceGen reads to emit FieldConstraints.g.cs + Taxonomy.g.cs into DcsvIo.D2.Validation.Abstractions, and that the TypeScript codegen pipeline reads to emit field-constraints.g.ts + taxonomy.g.ts into @dcsv-io/d2-validation-abstractions. One spec carries both the shared field-constraint integer bounds (char-length caps and phone digit-count bounds) and the closed-list taxonomy enums consumed by the domain value objects (contacts + Location), the FE/BFF Zod schemas, and arbitrary backend modules.",
   "type": "object",
   "required": ["constraints", "enums"],
   "additionalProperties": false,
@@ -40,7 +40,7 @@
         },
         "deprecated": {
           "type": "boolean",
-          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive — the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
+          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive - the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
         },
         "deprecatedReason": {
           "type": "string",
@@ -54,7 +54,7 @@
         "sunset": {
           "type": "string",
           "format": "date",
-          "description": "ISO-8601 date for the future RFC 8594 Sunset response header. Edge-runtime-deferred: carried on the contract now, consumed by the Edge response middleware when it exists. Inert until then."
+          "description": "ISO-8601 date for the RFC 8594 Sunset response header. A host whose response pipeline emits that header reads the date from here; a host that does not ignores it."
         }
       }
     },
@@ -84,7 +84,7 @@
         },
         "deprecated": {
           "type": "boolean",
-          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive — the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
+          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive - the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
         },
         "deprecatedReason": {
           "type": "string",
@@ -98,7 +98,7 @@
         "sunset": {
           "type": "string",
           "format": "date",
-          "description": "ISO-8601 date for the future RFC 8594 Sunset response header. Edge-runtime-deferred: carried on the contract now, consumed by the Edge response middleware when it exists. Inert until then."
+          "description": "ISO-8601 date for the RFC 8594 Sunset response header. A host whose response pipeline emits that header reads the date from here; a host that does not ignores it."
         }
       }
     },
@@ -118,7 +118,7 @@
         },
         "deprecated": {
           "type": "boolean",
-          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive — the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
+          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive - the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
         },
         "deprecatedReason": {
           "type": "string",
@@ -132,7 +132,7 @@
         "sunset": {
           "type": "string",
           "format": "date",
-          "description": "ISO-8601 date for the future RFC 8594 Sunset response header. Edge-runtime-deferred: carried on the contract now, consumed by the Edge response middleware when it exists. Inert until then."
+          "description": "ISO-8601 date for the RFC 8594 Sunset response header. A host whose response pipeline emits that header reads the date from here; a host that does not ignores it."
         }
       }
     }

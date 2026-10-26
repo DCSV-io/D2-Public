@@ -15,10 +15,11 @@ using Serilog.Events;
 using Xunit;
 
 /// <summary>
-/// Verifies that the three location value objects self-redact correctly
-/// through <see cref="RedactDataDestructuringPolicy"/>: each redacted property
-/// renders as <c>[REDACTED: PersonalInformation]</c>, and each intentionally
-/// visible property renders its real value.
+/// Verifies that the location value objects Coordinates, StreetAddress and
+/// AdminLocation redact themselves through
+/// <see cref="RedactDataDestructuringPolicy"/>: each redacted property
+/// renders as <c>[REDACTED: PersonalInformation]</c>, and each property that
+/// is meant to be visible renders its real value.
 /// </summary>
 public sealed class LocationVoRedactionTests
 {
@@ -32,7 +33,7 @@ public sealed class LocationVoRedactionTests
         var policy = new RedactDataDestructuringPolicy();
         var coords = Coordinates.Create(40.7128, -74.006).Data!;
 
-        policy.TryDestructure(coords, new PassthroughFactory(), out var result);
+        policy.TryDestructure(coords, new RecordingPassthroughFactory(), out var result);
 
         var structure = result.Should().BeOfType<StructureValue>().Subject;
         structure.Properties.Should().Contain(p =>
@@ -46,7 +47,7 @@ public sealed class LocationVoRedactionTests
         var policy = new RedactDataDestructuringPolicy();
         var coords = Coordinates.Create(40.7128, -74.006).Data!;
 
-        policy.TryDestructure(coords, new PassthroughFactory(), out var result);
+        policy.TryDestructure(coords, new RecordingPassthroughFactory(), out var result);
 
         var structure = result.Should().BeOfType<StructureValue>().Subject;
         structure.Properties.Should().Contain(p =>
@@ -60,7 +61,7 @@ public sealed class LocationVoRedactionTests
         var policy = new RedactDataDestructuringPolicy();
         var coords = Coordinates.Create(40.7128, -74.006).Data!;
 
-        policy.TryDestructure(coords, new PassthroughFactory(), out var result);
+        policy.TryDestructure(coords, new RecordingPassthroughFactory(), out var result);
 
         var structure = result.Should().BeOfType<StructureValue>().Subject;
         structure.Properties.Should().Contain(p =>
@@ -73,11 +74,11 @@ public sealed class LocationVoRedactionTests
     {
         var policy = new RedactDataDestructuringPolicy();
         var coords = Coordinates.Create(40.7128, -74.006).Data!;
-        var factory = new PassthroughFactory();
+        var factory = new RecordingPassthroughFactory();
 
         policy.TryDestructure(coords, factory, out _);
 
-        // HashId is a one-way SHA-256 digest — opaque, non-reversible, safe to log.
+        // HashId is a one-way SHA-256 digest - opaque, non-reversible, safe to log.
         factory.Recorded.Should().Contain(coords.HashId);
     }
 
@@ -87,9 +88,10 @@ public sealed class LocationVoRedactionTests
         var policy = new RedactDataDestructuringPolicy();
         var coords = Coordinates.Create(40.7128, -74.006).Data!;
 
-        policy.TryDestructure(coords, new PassthroughFactory(), out var result);
+        policy.TryDestructure(coords, new RecordingPassthroughFactory(), out var result);
 
-        // Geohash is a reversible spatial encoding — decoding recovers lat/lon to ~1 m.
+        // Geohash is a reversible spatial encoding: decoding it recovers the
+        // latitude and longitude to about 1 m.
         var structure = result.Should().BeOfType<StructureValue>().Subject;
         structure.Properties.Should().Contain(p =>
             p.Name == "Geohash"
@@ -102,9 +104,10 @@ public sealed class LocationVoRedactionTests
         var policy = new RedactDataDestructuringPolicy();
         var coords = Coordinates.Create(40.7128, -74.006, accuracyMeters: 15.5).Data!;
 
-        policy.TryDestructure(coords, new PassthroughFactory(), out var result);
+        policy.TryDestructure(coords, new RecordingPassthroughFactory(), out var result);
 
-        // AccuracyMeters combined with other context can narrow position to re-identify.
+        // AccuracyMeters combined with other context can narrow the position
+        // enough to re-identify a person.
         var structure = result.Should().BeOfType<StructureValue>().Subject;
         structure.Properties.Should().Contain(p =>
             p.Name == "AccuracyMeters"
@@ -121,7 +124,7 @@ public sealed class LocationVoRedactionTests
         var policy = new RedactDataDestructuringPolicy();
         var addr = StreetAddress.Create("123 Main St").Data!;
 
-        policy.TryDestructure(addr, new PassthroughFactory(), out var result);
+        policy.TryDestructure(addr, new RecordingPassthroughFactory(), out var result);
 
         var structure = result.Should().BeOfType<StructureValue>().Subject;
         structure.Properties.Should().Contain(p =>
@@ -135,7 +138,7 @@ public sealed class LocationVoRedactionTests
         var policy = new RedactDataDestructuringPolicy();
         var addr = StreetAddress.Create("123 Main St", line2: "Apt 4B").Data!;
 
-        policy.TryDestructure(addr, new PassthroughFactory(), out var result);
+        policy.TryDestructure(addr, new RecordingPassthroughFactory(), out var result);
 
         var structure = result.Should().BeOfType<StructureValue>().Subject;
         structure.Properties.Should().Contain(p =>
@@ -148,11 +151,11 @@ public sealed class LocationVoRedactionTests
     {
         var policy = new RedactDataDestructuringPolicy();
         var addr = StreetAddress.Create("123 Main St").Data!;
-        var factory = new PassthroughFactory();
+        var factory = new RecordingPassthroughFactory();
 
         policy.TryDestructure(addr, factory, out _);
 
-        // HashId is a one-way SHA-256 digest — opaque, non-reversible, safe to log.
+        // HashId is a one-way SHA-256 digest - opaque, non-reversible, safe to log.
         factory.Recorded.Should().Contain(addr.HashId);
     }
 
@@ -163,7 +166,7 @@ public sealed class LocationVoRedactionTests
         var addr = StreetAddress.Create(
             "123 Main St", "Apt 4B", "Floor 2", "Building C", "District 7").Data!;
 
-        policy.TryDestructure(addr, new PassthroughFactory(), out var result);
+        policy.TryDestructure(addr, new RecordingPassthroughFactory(), out var result);
 
         var structure = result.Should().BeOfType<StructureValue>().Subject;
         var redactedPropNames = structure.Properties
@@ -184,7 +187,7 @@ public sealed class LocationVoRedactionTests
         var policy = new RedactDataDestructuringPolicy();
         var admin = AdminLocation.Create(CountryCode.US, city: "New York").Data!;
 
-        policy.TryDestructure(admin, new PassthroughFactory(), out var result);
+        policy.TryDestructure(admin, new RecordingPassthroughFactory(), out var result);
 
         var structure = result.Should().BeOfType<StructureValue>().Subject;
         structure.Properties.Should().Contain(p =>
@@ -198,7 +201,7 @@ public sealed class LocationVoRedactionTests
         var policy = new RedactDataDestructuringPolicy();
         var admin = AdminLocation.Create(CountryCode.US, postalCode: "10001").Data!;
 
-        policy.TryDestructure(admin, new PassthroughFactory(), out var result);
+        policy.TryDestructure(admin, new RecordingPassthroughFactory(), out var result);
 
         var structure = result.Should().BeOfType<StructureValue>().Subject;
         structure.Properties.Should().Contain(p =>
@@ -213,7 +216,7 @@ public sealed class LocationVoRedactionTests
         var sub = SubdivisionCode.FromString("US-NY");
         var admin = AdminLocation.Create(CountryCode.US, sub).Data!;
 
-        policy.TryDestructure(admin, new PassthroughFactory(), out var result);
+        policy.TryDestructure(admin, new RecordingPassthroughFactory(), out var result);
 
         var structure = result.Should().BeOfType<StructureValue>().Subject;
         structure.Properties.Should().Contain(p =>
@@ -226,11 +229,11 @@ public sealed class LocationVoRedactionTests
     {
         var policy = new RedactDataDestructuringPolicy();
         var admin = AdminLocation.Create(CountryCode.US, city: "New York").Data!;
-        var factory = new PassthroughFactory();
+        var factory = new RecordingPassthroughFactory();
 
         policy.TryDestructure(admin, factory, out _);
 
-        // HashId is a one-way SHA-256 digest — opaque, non-reversible, safe to log.
+        // HashId is a one-way SHA-256 digest - opaque, non-reversible, safe to log.
         factory.Recorded.Should().Contain(admin.HashId);
     }
 
@@ -239,11 +242,12 @@ public sealed class LocationVoRedactionTests
     {
         var policy = new RedactDataDestructuringPolicy();
         var admin = AdminLocation.Create(CountryCode.US, city: "New York").Data!;
-        var factory = new PassthroughFactory();
+        var factory = new RecordingPassthroughFactory();
 
         policy.TryDestructure(admin, factory, out _);
 
-        // CountryIso31661Alpha2Code is not redacted — forwarded to factory.
+        // CountryIso31661Alpha2Code is not redacted. The policy forwards it to
+        // the factory.
         factory.Recorded.Should().Contain(CountryCode.US);
     }
 
@@ -252,11 +256,11 @@ public sealed class LocationVoRedactionTests
     // -----------------------------------------------------------------------
 
     /// <summary>
-    /// Stub <see cref="ILogEventPropertyValueFactory"/> that records all
-    /// non-redacted values forwarded by the policy, enabling assertions that
-    /// visible properties reached the factory with their real values.
+    /// Stub <see cref="ILogEventPropertyValueFactory"/> that records every
+    /// non-redacted value the policy forwards, so that assertions can check
+    /// that visible properties reached the factory with their real values.
     /// </summary>
-    private sealed class PassthroughFactory : ILogEventPropertyValueFactory
+    private sealed class RecordingPassthroughFactory : ILogEventPropertyValueFactory
     {
         public List<object?> Recorded { get; } = [];
 

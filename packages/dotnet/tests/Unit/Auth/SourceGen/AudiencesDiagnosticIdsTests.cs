@@ -16,8 +16,8 @@ using Xunit;
 /// <summary>
 /// Pins every <c>DcsvIo.D2.Auth.Audiences.SourceGen.DiagnosticIds</c> constant
 /// to its documented identifier shape and confirms there are no duplicates.
-/// Diagnostic IDs ship as part of the lib's contract — accidental renames break
-/// operator tooling that greps build logs for these IDs.
+/// Diagnostic IDs are part of the library's contract: a renamed ID breaks
+/// anything that searches build logs for it.
 /// </summary>
 public sealed class AudiencesDiagnosticIdsTests
 {
@@ -36,8 +36,9 @@ public sealed class AudiencesDiagnosticIdsTests
     [Fact]
     public void IdConstants_AreUnique()
     {
-        // Adversarial: two constants pointing at the same string is a copy-paste
-        // bug that would silently merge two distinct diagnostics into one.
+        // Adversarial: two constants with the same string value are a
+        // copy-paste error that would silently merge two distinct diagnostics
+        // into one.
         var ids = CollectIds();
 
         ids.Should().OnlyHaveUniqueItems();
@@ -53,8 +54,8 @@ public sealed class AudiencesDiagnosticIdsTests
     public void IdConstants_HaveStableValues(string expectedId, string constantName)
     {
         // Stability gate: changing any of these IDs is a breaking change to the
-        // build-warning surface. Force any future renumbering to update the
-        // test inline data, surfacing the change to PR review.
+        // build-warning surface. A renumbering must update the inline test
+        // data, which puts the change in front of PR review.
         var actual = typeof(DiagnosticIds)
             .GetField(constantName, BindingFlags.Public | BindingFlags.Static)
             !.GetRawConstantValue();

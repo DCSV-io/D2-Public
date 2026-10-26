@@ -7936,7 +7936,7 @@ export const Timezones: {
         readonly Panama: TimezoneCode;
         readonly Paramaribo: TimezoneCode;
         readonly Phoenix: TimezoneCode;
-        readonly "Port-au-Prince": TimezoneCode;
+        readonly Port_au_Prince: TimezoneCode;
         readonly Porto_Velho: TimezoneCode;
         readonly Puerto_Rico: TimezoneCode;
         readonly Punta_Arenas: TimezoneCode;
@@ -8041,7 +8041,7 @@ export const Timezones: {
         readonly Tomsk: TimezoneCode;
         readonly Ulaanbaatar: TimezoneCode;
         readonly Urumqi: TimezoneCode;
-        readonly "Ust-Nera": TimezoneCode;
+        readonly Ust_Nera: TimezoneCode;
         readonly Vladivostok: TimezoneCode;
         readonly Yakutsk: TimezoneCode;
         readonly Yangon: TimezoneCode;

@@ -16,27 +16,30 @@ using Microsoft.CodeAnalysis.Text;
 
 /// <summary>
 /// Roslyn incremental source generator that emits encryption-domain catalogs.
-/// Dual-target: public assembly <c>DcsvIo.D2.Encryption</c> → <c>EncryptionDomains</c>
-/// (public values only); private Extensions assembly
-/// <c>DcsvIo.D2.Private.Encryption.Extensions</c> → <c>ProductEncryptionDomains</c>
-/// (public∪private values, distinct FQN under <c>DcsvIo.D2.Private.Encryption</c>).
+/// In the public assembly <c>DcsvIo.D2.Encryption</c> it emits
+/// <c>EncryptionDomains</c> over the values of the one spec file it is given. In
+/// another assembly that sets the MSBuild properties
+/// <c>D2EncryptionDomainsExtensionNamespace</c> and
+/// <c>D2EncryptionDomainsExtensionClassPrefix</c>, it emits the same classes with
+/// the prefix before each class name, under that namespace, over the union of
+/// every encryption-domain spec file the assembly lists.
 /// </summary>
 [Generator]
 public sealed class EncryptionDomainsGenerator : IIncrementalGenerator
 {
-    private const string _SOURCE_NAME = "EncryptionDomains.g.cs";
-    private const string _PRIVATE_SOURCE_NAME = "ProductEncryptionDomains.g.cs";
     private const string _SPEC_FILE_NAME = "encryption-domains.spec.json";
     private const string _TARGET_ASSEMBLY_NAME = "DcsvIo.D2.Encryption";
-    private const string _PRIVATE_TARGET_ASSEMBLY_NAME = "DcsvIo.D2.Private.Encryption.Extensions";
     private const string _PUBLIC_ROOT_NAMESPACE = "DcsvIo.D2.Encryption";
-    private const string _PRIVATE_ROOT_NAMESPACE = "DcsvIo.D2.Private.Encryption";
     private const string _PUBLIC_CLASS_NAME = "EncryptionDomains";
-    private const string _PRIVATE_CLASS_NAME = "ProductEncryptionDomains";
     private const string _PUBLIC_MODE_ENUM = "EncryptionDomainMode";
-    private const string _PRIVATE_MODE_ENUM = "ProductEncryptionDomainMode";
     private const string _PUBLIC_MODES_CLASS = "EncryptionDomainModes";
-    private const string _PRIVATE_MODES_CLASS = "ProductEncryptionDomainModes";
+
+    private static readonly ExtensionTargetSettings sr_extensionTarget = new(
+        NamespaceProperty: "D2EncryptionDomainsExtensionNamespace",
+        ClassPrefixProperty: "D2EncryptionDomainsExtensionClassPrefix",
+        InvalidNamespace: DiagnosticDescriptors.SR_InvalidExtensionNamespace,
+        InvalidClassPrefix: DiagnosticDescriptors.SR_InvalidExtensionClassPrefix,
+        ClassPrefixWithoutNamespace: DiagnosticDescriptors.SR_ExtensionClassPrefixWithoutNamespace);
 
     /// <inheritdoc/>
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -48,32 +51,33 @@ public sealed class EncryptionDomainsGenerator : IIncrementalGenerator
                 Content: file.GetText(ct)?.ToString() ?? string.Empty))
             .Collect();
 
-        var combined = specs.Combine(context.CompilationProvider);
+        var targetOptions = context.AnalyzerConfigOptionsProvider
+            .Select(static (provider, _) =>
+                ExtensionTargetSelector.Read(provider.GlobalOptions, sr_extensionTarget));
+
+        var combined = specs.Combine(context.CompilationProvider).Combine(targetOptions);
 
         context.RegisterSourceOutput(combined, static (spc, tuple) =>
         {
-            var (specFiles, compilation) = tuple;
+            var ((specFiles, compilation), options) = tuple;
 
-            var isPublic = string.Equals(
-                compilation.AssemblyName,
-                _TARGET_ASSEMBLY_NAME,
-                StringComparison.Ordinal);
-            var isPrivate = string.Equals(
-                compilation.AssemblyName,
-                _PRIVATE_TARGET_ASSEMBLY_NAME,
-                StringComparison.Ordinal);
+            var target = ExtensionTargetSelector.Select(
+                compilation.AssemblyName, _TARGET_ASSEMBLY_NAME, options);
+            ExtensionTargetSelector.Report(spc, target, sr_extensionTarget);
 
-            if (!isPublic && !isPrivate)
+            if (target.Kind is not (ExtensionTargetKind.Public or ExtensionTargetKind.Extension))
                 return;
 
             if (specFiles.IsDefaultOrEmpty)
                 return;
 
-            var rootNamespace = isPrivate ? _PRIVATE_ROOT_NAMESPACE : _PUBLIC_ROOT_NAMESPACE;
-            var className = isPrivate ? _PRIVATE_CLASS_NAME : _PUBLIC_CLASS_NAME;
-            var modeEnum = isPrivate ? _PRIVATE_MODE_ENUM : _PUBLIC_MODE_ENUM;
-            var modesClass = isPrivate ? _PRIVATE_MODES_CLASS : _PUBLIC_MODES_CLASS;
-            var sourceName = isPrivate ? _PRIVATE_SOURCE_NAME : _SOURCE_NAME;
+            var isExtension = target.Kind == ExtensionTargetKind.Extension;
+            var prefix = isExtension ? target.ClassPrefix : string.Empty;
+            var rootNamespace = isExtension ? target.Namespace : _PUBLIC_ROOT_NAMESPACE;
+            var className = prefix + _PUBLIC_CLASS_NAME;
+            var modeEnum = prefix + _PUBLIC_MODE_ENUM;
+            var modesClass = prefix + _PUBLIC_MODES_CLASS;
+            var sourceName = className + ".g.cs";
 
             var ordered = specFiles.OrderBy(s => s.Path, StringComparer.Ordinal).ToList();
             var loadResult = EncryptionDomainsSpecLoader.Load(ordered[0].Path, ordered[0].Content);

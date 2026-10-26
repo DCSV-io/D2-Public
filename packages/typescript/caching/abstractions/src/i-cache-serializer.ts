@@ -9,17 +9,18 @@ import type { D2Result } from "@dcsv-io/d2-result";
  * store objects directly and do not need this. This package owns the
  * port only; a default JSON implementation is part of the
  * `@dcsv-io/d2-caching-distributed-redis` package surface. Provider-specific
- * impls may swap in MessagePack, Protobuf, etc., for size or perf wins.
+ * implementations may substitute MessagePack, Protobuf and similar formats
+ * for smaller size or better performance.
  *
- * Impl failure codes (not defined here — reuse existing catalogs when
- * implementing): `COULD_NOT_BE_SERIALIZED` /
- * `COULD_NOT_BE_DESERIALIZED`.
+ * Implementation failure codes: `COULD_NOT_BE_SERIALIZED` and
+ * `COULD_NOT_BE_DESERIALIZED`. This package does not define them;
+ * implementations reuse the existing catalogs.
  */
 export interface ICacheSerializer {
   /**
    * Stable identifier for the serialization format (free string, e.g.
-   * `"application/json"`). Allows mixed-serializer DLQs / archive
-   * blobs to round-trip safely.
+   * `"application/json"`). Lets DLQs and archive blobs that mix
+   * serializers round-trip safely.
    */
   readonly contentType: string;
 

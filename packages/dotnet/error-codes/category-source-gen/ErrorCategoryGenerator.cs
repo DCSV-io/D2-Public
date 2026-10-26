@@ -17,7 +17,8 @@ using Microsoft.CodeAnalysis.Text;
 /// Roslyn incremental source generator that emits the <c>ErrorCategory</c>
 /// enum, the <c>ErrorCategoryWire</c> mapping, and the
 /// <c>ErrorCategoryJsonConverter</c> into <c>DcsvIo.D2.ErrorCodes.Category</c>.
-/// Single-target.
+/// It emits only when the assembly being compiled is
+/// <c>DcsvIo.D2.ErrorCodes.Category</c>.
 /// </summary>
 [Generator]
 public sealed class ErrorCategoryGenerator : IIncrementalGenerator

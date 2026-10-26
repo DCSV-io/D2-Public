@@ -17,12 +17,12 @@ using DcsvIo.D2.SourceGen;
 /// Pure logic for emitting a static-class source carrying a wire-shape
 /// catalog (e.g. <c>TkMessageWireShape</c> with <c>KEY</c>/<c>PARAMS</c>
 /// constants, <c>InputErrorWireShape</c> with <c>FIELD</c>/<c>ERRORS</c>
-/// constants) from a parsed <see cref="WireShapeSpec"/>. Stateless and
-/// unit-testable in isolation. Parameterized by namespace + class name so
-/// the same emitter serves every wire-shape catalog. The Roslyn-host
-/// integration (<see cref="WireShapesGenerator"/>) calls this and
-/// translates emit-side <see cref="EmitDiagnostic"/> records into Roslyn
-/// <c>Diagnostic</c> instances.
+/// constants) from a parsed <see cref="WireShapeSpec"/>. Stateless, and
+/// testable in isolation because it reports problems as
+/// <see cref="EmitDiagnostic"/> records and never creates Roslyn
+/// <c>Diagnostic</c> instances; <see cref="WireShapesGenerator"/> converts
+/// them. Parameterized by namespace + class name so the same emitter serves
+/// every wire-shape catalog.
 /// </summary>
 internal static class WireShapeEmitter
 {
@@ -110,11 +110,12 @@ internal static class WireShapeEmitter
             $"/// <summary>Spec-derived JSON property-name catalog for the "
                 + $"{EscapeXmlDoc(catalogDescription)} wire shape. Every JSON serializer / "
                 + $"deserializer in .NET references these constants for property names instead "
-                + $"of inline string literals — drift between the wire and the code is "
+                + $"of inline string literals - drift between the wire and the code is "
                 + $"structurally impossible.</summary>");
         sb.AppendLine(
             "/// <remarks>Cross-language parity: the SAME spec drives the TS-side "
-                + "<c>@dcsv-io/d2-result</c> catalog via <c>tools/ts-codegen</c>. Both sides emit the "
+                + "<c>@dcsv-io/d2-result</c> catalog through the TypeScript emitter. "
+                + "Both sides emit the "
                 + "same property names byte-for-byte; cross-language wire drift is "
                 + "impossible.</remarks>");
         sb.AppendLine($"public static class {className}");

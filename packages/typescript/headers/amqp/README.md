@@ -4,9 +4,15 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-headers-amqp
 
-> **Duplicated from `contracts/headers/headers.spec.json` — update both in lockstep.** This catalog mirrors its .NET sibling `DcsvIo.D2.Headers.Amqp` at byte-equal wire values. Both sides emit from the same spec; physical dedup across TS ↔ .NET is not feasible. Parity is asserted by `contract-tests/headers.parity.test.ts` (TS) and `HeaderCatalogConsistencyTests` (.NET).
+> **Duplicated from `contracts/headers/headers.spec.json` - update both in lockstep.** This catalog mirrors its .NET
+> sibling `DcsvIo.D2.Headers.Amqp` at byte-equal wire values. Both sides emit from the same spec; physical dedup
+> across TS <-> .NET is not feasible. Parity is asserted by a TypeScript contract test and by
+> `HeaderCatalogConsistencyTests` (.NET).
 
-D2 wire-protocol headers applicable to the AMQP transport. Includes the AMQP-specific entries (`content-type`, `x-proto-type`, `message-id`, `timestamp`, `x-d2-encryption-kid`, `x-d2-failure-reason`) AND the cross-transport entries that ride alongside AMQP messages (`x-d2-context`, `traceparent`, `tracestate`) at identical wire values per `headers.spec.json`. Mirrors .NET `DcsvIo.D2.Headers.Amqp.AmqpHeaders`.
+D2 wire-protocol headers applicable to the AMQP transport. Includes the AMQP-specific entries (`content-type`,
+`x-proto-type`, `message-id`, `timestamp`, `x-d2-encryption-kid`, `x-d2-failure-reason`) and the cross-transport
+entries that are also sent with AMQP messages (`x-d2-context`, `traceparent`, `tracestate`) at identical wire values
+per `headers.spec.json`. Mirrors .NET `DcsvIo.D2.Headers.Amqp.AmqpHeaders`.
 
 ## Install
 
@@ -28,11 +34,16 @@ pnpm add @dcsv-io/d2-headers-amqp
 
 ## When to reach for this catalog
 
-Use `@dcsv-io/d2-headers-amqp` from any AMQP-context consumer — RabbitMQ publishers, subscribers, DLQ inspection tools. The catalog includes BOTH the AMQP-only entries (e.g. `MESSAGE_ID`) AND the cross-transport entries (e.g. `TRACEPARENT`) that an AMQP pipeline can encounter; one `import` covers everything that transport's pipeline can encounter.
+Use `@dcsv-io/d2-headers-amqp` from any AMQP-context consumer - RabbitMQ publishers, subscribers, DLQ inspection
+tools. The catalog includes both the AMQP-only entries (e.g. `MESSAGE_ID`) and the cross-transport entries (e.g.
+`TRACEPARENT`) that an AMQP pipeline can encounter, so one `import` covers everything that pipeline can encounter.
 
 ## Spec contract
 
-`contracts/headers/headers.spec.json` is the single source of truth. Every entry whose `applicability` array contains `"amqp"` lives in this catalog (cross-transport entries also live in `@dcsv-io/d2-headers-common` AND every other transport catalog they apply to, all at identical wire values; codegen-guaranteed and verified by `HeaderCatalogConsistencyTests` on the .NET side).
+`contracts/headers/headers.spec.json` is the single source of truth. Every entry whose `applicability` array contains
+`"amqp"` lives in this catalog (cross-transport entries also live in `@dcsv-io/d2-headers-common` and every other
+transport catalog they apply to, all at identical wire values; guaranteed by codegen and verified by
+`HeaderCatalogConsistencyTests` on the .NET side).
 
 ## Header categories
 
@@ -40,15 +51,16 @@ Use `@dcsv-io/d2-headers-amqp` from any AMQP-context consumer — RabbitMQ publi
 - **Cross-hop tracing**: `TRACEPARENT`, `TRACESTATE`, `PROPAGATED_CONTEXT`
 - **Encryption + DLQ ops**: `ENCRYPTION_KID`, `FAILURE_REASON`
 
-Headers MUST NOT carry user identity, scopes, fingerprints, or any other sensitive context — the broker stores headers as plaintext at rest.
+Headers MUST NOT carry user identity, scopes, fingerprints, or any other sensitive context - the broker stores headers
+as plaintext at rest.
 
 ## Dependencies
 
-None at runtime — pure constants. DevDeps: `vitest` + `@vitest/coverage-v8` + `typescript`.
+None at runtime - pure constants. DevDeps: `vitest` + `@vitest/coverage-v8` + `typescript`.
 
 ## Reference
 
-- `contracts/headers/headers.spec.json` — source spec
-- `@dcsv-io/d2-headers-common` — cross-transport subset
-- `@dcsv-io/d2-headers-http` — HTTP-applicable subset
-- `@dcsv-io/d2-headers-grpc` — gRPC-applicable subset
+- `contracts/headers/headers.spec.json` - source spec
+- `@dcsv-io/d2-headers-common` - cross-transport subset
+- `@dcsv-io/d2-headers-http` - HTTP-applicable subset
+- `@dcsv-io/d2-headers-grpc` - gRPC-applicable subset

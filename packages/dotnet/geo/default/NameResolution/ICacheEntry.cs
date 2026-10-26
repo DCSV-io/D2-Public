@@ -7,10 +7,10 @@
 namespace DcsvIo.D2.Geo.Default.NameResolution;
 
 /// <summary>
-/// Cache-entry contract — both record-presence and ambiguity-flag fields
-/// publish atomically because they live in one dictionary value type.
-/// Internal so test code can introspect via the existing
-/// <c>InternalsVisibleTo</c> declaration on this assembly.
+/// Cache-entry contract - the record-presence field and the ambiguity-flag
+/// field are published together, because they live in one dictionary value
+/// type. The type is internal; the existing <c>InternalsVisibleTo</c>
+/// declaration on this assembly makes it visible to test code.
 /// </summary>
 internal interface ICacheEntry
 {

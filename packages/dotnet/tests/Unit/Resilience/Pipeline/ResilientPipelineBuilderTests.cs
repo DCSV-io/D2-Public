@@ -97,12 +97,12 @@ public sealed class ResilientPipelineBuilderTests
     public async Task UseSingleflight_ServiceKey_ResolvesKeyedFromServiceProvider()
     {
         var services = new ServiceCollection();
-        services.AddKeyedSingleton<Singleflight<string, int>>("audit");
-        services.AddKeyedSingleton<Singleflight<string, int>>("notifications");
+        services.AddKeyedSingleton<Singleflight<string, int>>("orders");
+        services.AddKeyedSingleton<Singleflight<string, int>>("shipping");
         var sp = services.BuildServiceProvider();
 
         var pipeline = new ResilientPipelineBuilder<string, int>(sp)
-            .UseSingleflight(serviceKey: "audit")
+            .UseSingleflight(serviceKey: "orders")
             .Build();
 
         var invocations = 0;
@@ -132,15 +132,15 @@ public sealed class ResilientPipelineBuilderTests
     {
         var services = new ServiceCollection();
         services.AddKeyedSingleton<CircuitBreaker<int>>(
-            "audit",
+            "orders",
             (_, _) => new CircuitBreaker<int>(_ => false, options: new(failureThreshold: 1)));
         services.AddKeyedSingleton<CircuitBreaker<int>>(
-            "notifications",
+            "shipping",
             (_, _) => new CircuitBreaker<int>(_ => false, options: new(failureThreshold: 1)));
         var sp = services.BuildServiceProvider();
 
         var pipeline = new ResilientPipelineBuilder<string, int>(sp)
-            .UseCircuitBreaker(serviceKey: "audit")
+            .UseCircuitBreaker(serviceKey: "orders")
             .Build();
 
         await pipeline.ExecuteAsync("k", _ => throw new InvalidOperationException());
@@ -152,37 +152,37 @@ public sealed class ResilientPipelineBuilderTests
     [Fact]
     public async Task KeyedCircuitBreakers_AreIndependent_AcrossPipelines()
     {
-        // The defining property: two pipelines wired to keyed CBs with
-        // DIFFERENT keys must NOT share state. Tripping one's breaker leaves
-        // the other unaffected — this is what the keyed-services discipline
-        // is for in this lib (multi-exchange RMQ, multi-endpoint outbound).
+        // Two pipelines wired to keyed CBs with DIFFERENT keys must NOT share
+        // state: opening one pipeline's breaker leaves the other unaffected.
+        // The library uses keyed services so that a host can run several
+        // pipelines with separate state (multi-exchange RMQ, multi-endpoint outbound).
         var services = new ServiceCollection();
         services.AddKeyedSingleton<CircuitBreaker<int>>(
-            "audit",
+            "orders",
             (_, _) => new CircuitBreaker<int>(_ => false, options: new(failureThreshold: 1)));
         services.AddKeyedSingleton<CircuitBreaker<int>>(
-            "notifications",
+            "shipping",
             (_, _) => new CircuitBreaker<int>(_ => false, options: new(failureThreshold: 1)));
         var sp = services.BuildServiceProvider();
 
-        var auditPipeline = new ResilientPipelineBuilder<string, int>(sp)
-            .UseCircuitBreaker(serviceKey: "audit")
+        var ordersPipeline = new ResilientPipelineBuilder<string, int>(sp)
+            .UseCircuitBreaker(serviceKey: "orders")
             .Build();
 
-        var notificationsPipeline = new ResilientPipelineBuilder<string, int>(sp)
-            .UseCircuitBreaker(serviceKey: "notifications")
+        var shippingPipeline = new ResilientPipelineBuilder<string, int>(sp)
+            .UseCircuitBreaker(serviceKey: "shipping")
             .Build();
 
-        // Trip the audit breaker only.
-        await auditPipeline.ExecuteAsync("k", _ => throw new InvalidOperationException());
+        // Open the orders breaker only.
+        await ordersPipeline.ExecuteAsync("k", _ => throw new InvalidOperationException());
 
-        var auditAfter = await auditPipeline.ExecuteAsync("k", _ => ValueTask.FromResult(1));
-        var notificationsAfter = await notificationsPipeline
+        var ordersAfter = await ordersPipeline.ExecuteAsync("k", _ => ValueTask.FromResult(1));
+        var shippingAfter = await shippingPipeline
             .ExecuteAsync("k", _ => ValueTask.FromResult(2));
 
-        auditAfter.IsServiceUnavailable.Should().BeTrue();   // audit breaker is open
-        notificationsAfter.Success.Should().BeTrue();        // notifications breaker is unaffected
-        notificationsAfter.Data.Should().Be(2);
+        ordersAfter.IsServiceUnavailable.Should().BeTrue();   // orders breaker is open
+        shippingAfter.Success.Should().BeTrue();        // shipping breaker is unaffected
+        shippingAfter.Data.Should().Be(2);
     }
 
     // ----------------------------------------------------------------------
@@ -194,7 +194,7 @@ public sealed class ResilientPipelineBuilderTests
     {
         var pipeline = NewBuilder<string, int>().UseTimeout().Build();
 
-        // Defaults = 10s; op completes immediately → no timeout fires.
+        // The default timeout is 10s; the op completes immediately, so no timeout fires.
         var result = await pipeline.ExecuteAsync("k", _ => ValueTask.FromResult(7));
 
         result.Success.Should().BeTrue();
@@ -204,7 +204,8 @@ public sealed class ResilientPipelineBuilderTests
     [Fact]
     public async Task UseTimeout_ExplicitOptions_AddsLayer()
     {
-        // Very short timeout + a hanging op → ServiceUnavailable at boundary.
+        // A very short timeout and an op that never completes -> the pipeline
+        // boundary returns ServiceUnavailable.
         var pipeline = NewBuilder<string, int>()
             .UseTimeout(new TimeoutOptions(TimeSpan.FromMilliseconds(30)))
             .Build();
@@ -221,9 +222,10 @@ public sealed class ResilientPipelineBuilderTests
     [Fact]
     public async Task UseTimeout_CalledTwice_ProducesTwoDistinctInstances_AtTwoPositions()
     {
-        // Both a total-request timeout and a per-attempt timeout can be added
-        // via two UseTimeout calls. Verify by making the per-attempt one very short
-        // and an outer retry catch the timeout then succeed on a fast second attempt.
+        // Two UseTimeout calls add a total-request timeout and a per-attempt timeout.
+        // The per-attempt timeout is very short, so the first attempt times out;
+        // the retry layer between the total and per-attempt timeouts retries,
+        // and the fast second attempt succeeds.
         var attempts = 0;
         var pipeline = NewBuilder<string, int>()
             .UseTimeout(new TimeoutOptions(TimeSpan.FromSeconds(5))) // total
@@ -253,7 +255,7 @@ public sealed class ResilientPipelineBuilderTests
     {
         var pipeline = NewBuilder<string, int>().UseRateLimiter().Build();
 
-        // Defaults = MaxConcurrency 100; single call succeeds.
+        // The default MaxConcurrency is 100; a single call succeeds.
         var result = await pipeline.ExecuteAsync("k", _ => ValueTask.FromResult(7));
 
         result.Success.Should().BeTrue();
@@ -262,7 +264,8 @@ public sealed class ResilientPipelineBuilderTests
     [Fact]
     public async Task UseRateLimiter_ExplicitOptions_AddsLayer()
     {
-        // MaxConcurrency=1 + zero acquisition timeout → second concurrent call rejected.
+        // MaxConcurrency=1 and a zero acquisition timeout -> the second concurrent call
+        // is rejected.
         var pipeline = NewBuilder<string, int>()
             .UseRateLimiter(new RateLimiterOptions(maxConcurrency: 1, acquisitionTimeout: TimeSpan.Zero))
             .Build();
@@ -308,11 +311,13 @@ public sealed class ResilientPipelineBuilderTests
     [Fact]
     public async Task FluentChain_PreservesRegistrationOrder_AsLayerOrder()
     {
-        // Adversarial: order in which Use* methods are called must equal the
-        // outer-first layer order in the resulting pipeline. Two retry layers
-        // with different MaxAttempts make the ordering observable: the outer
-        // retry's MaxAttempts dominates the total attempt count when both
-        // count the same exception as transient.
+        // Adversarial: the order in which the Use* methods are called must equal
+        // the outer-first layer order of the resulting pipeline. Two retry layers
+        // with different MaxAttempts both treat the same exception as transient,
+        // so each outer attempt runs every inner attempt and the total is the
+        // product of the MaxAttempts values. The product is the same in either
+        // order, so the assertion shows that both layers are applied, not their
+        // order.
         var pipeline = NewBuilder<string, int>()
             .UseRetries(NoDelayOptions(maxAttempts: 2)) // outer retry: 2 attempts
             .UseRetries(NoDelayOptions(maxAttempts: 3)) // inner retry: 3 attempts each call
@@ -325,7 +330,7 @@ public sealed class ResilientPipelineBuilderTests
             throw new TimeoutException();
         });
 
-        // Outer (2) × inner (3) = 6 total operation calls.
+        // Outer (2) x inner (3) = 6 total operation calls.
         attempts.Should().Be(6);
     }
 
@@ -344,10 +349,10 @@ public sealed class ResilientPipelineBuilderTests
     public async Task Build_CalledTwice_ProducesIndependentPipelinesSharingLayerInstances()
     {
         // Adversarial: calling Build() twice on the same builder yields two
-        // DIFFERENT pipeline instances, but they share the underlying layer
-        // instances (and therefore primitive state). Tripping the CB through
-        // pipeline #1 must be observable through pipeline #2 — they are two
-        // facades over the same configured stack.
+        // DIFFERENT pipeline instances that share the underlying layer
+        // instances (and therefore primitive state). Opening the CB through
+        // pipeline #1 must be observable through pipeline #2, because both
+        // pipelines wrap the same configured layers.
         var cb = new CircuitBreaker<int>(_ => false, options: new(failureThreshold: 1));
         var builder = NewBuilder<string, int>().UseCircuitBreaker(cb);
 
@@ -356,10 +361,10 @@ public sealed class ResilientPipelineBuilderTests
 
         pipelineA.Should().NotBeSameAs(pipelineB);
 
-        // Trip via A.
+        // Open the breaker through A.
         await pipelineA.ExecuteAsync("k", _ => throw new InvalidOperationException());
 
-        // B sees the open breaker because they share the CB instance.
+        // B returns ServiceUnavailable because both pipelines share the CB instance.
         var bResult = await pipelineB.ExecuteAsync("k", _ => ValueTask.FromResult(1));
         bResult.IsServiceUnavailable.Should().BeTrue();
     }
@@ -369,8 +374,8 @@ public sealed class ResilientPipelineBuilderTests
     // ----------------------------------------------------------------------
 
     /// <summary>
-    /// Builder bound to an empty service provider — used by tests that
-    /// exercise only the explicit-instance overloads (which never touch DI).
+    /// Builder bound to an empty service provider. The explicit-instance
+    /// overloads never touch DI, so they work with it.
     /// </summary>
     private static ResilientPipelineBuilder<TKey, TValue> NewBuilder<TKey, TValue>()
         where TKey : notnull

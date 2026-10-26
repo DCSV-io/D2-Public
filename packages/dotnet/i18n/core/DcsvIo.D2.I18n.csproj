@@ -33,9 +33,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.1</Version>
+    <Version>0.1.18</Version>
     <PackageId>DcsvIo.D2.I18n</PackageId>
-    <Description>Runtime translation library for D2 — Translator, the env-driven SupportedLocales registry, and the AddD2I18n DI extension.</Description>
+    <Description>Runtime translation library for D2 - Translator, the env-driven SupportedLocales registry, and the AddD2I18n DI extension.</Description>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

@@ -14,12 +14,12 @@ using Xunit;
 
 /// <summary>
 /// Coverage for the Default-layer record-returning
-/// <see cref="IRequestContextGeoExtensions"/> — the namespace-shadowed
+/// <see cref="IRequestContextGeoExtensions"/> - the namespace-shadowed
 /// extension that returns the typed record instead of the typed code.
 /// </summary>
 public sealed class DefaultLayerIRequestContextGeoExtensionsTests
 {
-    // §1.2 category: Domain-specific — happy path.
+    // Category: Domain-specific - happy path.
     [Fact]
     public void Country_ValidUSRaw_ReturnsCountryRecord()
     {
@@ -39,7 +39,7 @@ public sealed class DefaultLayerIRequestContextGeoExtensionsTests
         ctx.Country()!.Iso31661Alpha2Code.Should().Be(CountryCode.JP);
     }
 
-    // §1.2 category: Input validation — boundary contract.
+    // Category: Input validation - boundary contract.
     [Fact]
     public void Country_NullRaw_ReturnsNull()
     {
@@ -96,7 +96,7 @@ public sealed class DefaultLayerIRequestContextGeoExtensionsTests
         country.Iso31661Alpha2Code.Should().Be(CountryCode.US);
     }
 
-    // §1.2 category: Domain-specific — AQ has null primaries.
+    // Category: Domain-specific - AQ has null primaries.
     [Fact]
     public void Country_AQRaw_ReturnsAntarcticaWithNullPrimaries()
     {
@@ -110,7 +110,7 @@ public sealed class DefaultLayerIRequestContextGeoExtensionsTests
         aq.PrimaryLocale.Should().BeNull();
     }
 
-    // §1.2 category: Domain-specific — Subdivision happy path.
+    // Category: Domain-specific - Subdivision happy path.
     [Fact]
     public void Subdivision_ValidUSNYRaw_ReturnsSubdivisionRecord()
     {
@@ -176,7 +176,7 @@ public sealed class DefaultLayerIRequestContextGeoExtensionsTests
         sub.Iso31662Code.Value.Should().Be("US-NY");
     }
 
-    // §1.2 category: Domain-specific — nested data access pattern.
+    // Category: Domain-specific - nested data access pattern.
     [Fact]
     public void Country_NestedDataAccess_PrimaryLanguageDisplayName_NoSecondLookupNeeded()
     {

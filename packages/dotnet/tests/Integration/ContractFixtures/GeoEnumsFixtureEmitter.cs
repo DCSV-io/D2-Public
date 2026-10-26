@@ -18,21 +18,22 @@ using Xunit;
 /// <summary>
 /// Emits the parity fixture for the codegen-emitted geo enums reflected
 /// off the <c>DcsvIo.D2.Geo.Abstractions</c> assembly. Each enum gets one
-/// sub-map keyed by enum-member-name; the value is the enum's wire form
-/// (the integer backing for value-typed enums such as
-/// <see cref="GeopoliticalEntityType"/> whose TS counterpart uses the
-/// integer-valued const-object form, OR the member name itself for the
+/// sub-map, keyed by the wire-form string for the string-wire enums and by
+/// member name for the integer-wire enum; the value is the enum's wire
+/// form (the integer backing for value-typed enums such as
+/// <see cref="GeopoliticalEntityType"/>, whose TypeScript counterpart is an
+/// integer-valued const object, or the member name for the
 /// string-wire enums such as <see cref="WritingDirection"/>,
 /// <see cref="DateFormatPattern"/>, <see cref="MeasurementSystem"/>,
 /// <see cref="CurrencyAcceptanceLevel"/>, <see cref="GeoDayOfWeek"/>,
 /// <see cref="Country"/>, <see cref="Currency"/>, <see cref="Language"/>,
-/// <see cref="GeopoliticalEntity"/> — all serialize via
-/// <c>JsonStringEnumConverter</c> so the wire form is the member name).
-/// The TS-side parity test loads <c>fixtures/geo/enums.json</c> and asserts
-/// per-VALUE byte-equivalence against the TS const-object shapes.
+/// <see cref="GeopoliticalEntity"/> - all serialize via
+/// <c>JsonStringEnumConverter</c>, so the wire form is the member name unless
+/// <c>[JsonStringEnumMemberName]</c> declares another value).
+/// The emitter writes the fixture to <c>fixtures/geo/enums.json</c>.
 /// </summary>
 /// <remarks>
-/// Only enums BOTH sides expose are covered — same symmetry rule as the
+/// Only enums BOTH sides expose are covered - same symmetry rule as the
 /// auth-scopes / auth-error-codes parity emitters. Helper methods on the
 /// .NET enum side (e.g. extension methods, lookup tables) that have no TS
 /// counterpart are NOT fixtured.
@@ -59,9 +60,9 @@ public sealed class GeoEnumsFixtureEmitter
             ["Language"] = EnumerateStringWireEnum(typeof(LanguageCode)),
             ["GeopoliticalEntity"] = EnumerateStringWireEnum(typeof(GeopoliticalEntityCode)),
 
-            // Fixed-vocabulary enum with integer-valued TS const-object
-            // counterpart — the integer backing IS the wire form on the
-            // TS side, so we pin the per-member integer.
+            // Fixed-vocabulary enum with an integer-valued TypeScript const-object
+            // counterpart - the integer backing is the wire form on the
+            // TypeScript side, so the fixture holds the per-member integer.
             ["GeopoliticalEntityType"] = EnumerateIntegerWireEnum(
                 typeof(GeopoliticalEntityType)),
 
@@ -80,7 +81,7 @@ public sealed class GeoEnumsFixtureEmitter
 
     /// <summary>
     /// Reflect every member of a string-wire enum (the wire form is the
-    /// member name via <c>JsonStringEnumConverter</c> — OR the value
+    /// member name via <c>JsonStringEnumConverter</c> - OR the value
     /// declared on <see cref="JsonStringEnumMemberNameAttribute"/> when
     /// present) into a sorted <c>{ wireValue: wireValue }</c> map keyed by
     /// the on-the-wire string (the canonical identity used cross-runtime).
@@ -88,9 +89,8 @@ public sealed class GeoEnumsFixtureEmitter
     /// (<c>{ AD: "AD", AE: "AE" }</c>); for <see cref="Language"/> the
     /// wire form is the lowercase ISO 639-1 code declared on
     /// <c>[JsonStringEnumMemberName]</c> (<c>{ en: "en", fr: "fr" }</c>).
-    /// Keying by the wire form matches the TS-side const-object shape
-    /// (TS object keys ARE the wire-form strings) — the parity test
-    /// compares fixture keys vs TS keys directly.
+    /// Keying by the wire form matches the shape of the TypeScript const
+    /// object, whose keys are the wire-form strings.
     /// </summary>
     private static SortedDictionary<string, object?> EnumerateStringWireEnum(Type enumType)
     {
@@ -126,7 +126,7 @@ public sealed class GeoEnumsFixtureEmitter
 
     /// <summary>
     /// Reflect every member of an integer-wire enum (the wire form is the
-    /// integer backing — the TS-side counterpart is an integer-valued const-
+    /// integer backing - the TS-side counterpart is an integer-valued const-
     /// object) into a sorted <c>{ memberName: integerValue }</c> map.
     /// </summary>
     private static SortedDictionary<string, object?> EnumerateIntegerWireEnum(Type enumType)

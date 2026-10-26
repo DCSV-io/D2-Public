@@ -16,9 +16,9 @@ using System.Collections.Generic;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The anonymization engine can parse a template once during startup (alongside the tier
-/// classification) and cache the plan for the lifetime of the process. The resolver itself
-/// is stateless — it carries no cache.
+/// A template can be parsed once during startup, alongside the tier classification, and
+/// the plan cached for the lifetime of the process.
+/// The resolver itself is stateless and keeps no cache.
 /// </para>
 /// </remarks>
 public sealed record AnonymizationTemplatePlan
@@ -36,8 +36,8 @@ public sealed record AnonymizationTemplatePlan
     public required IReadOnlyList<AnonymizationTemplateSegment> Segments { get; init; }
 
     /// <summary>
-    /// Gets the distinct set of token field names referenced in this template. Used by
-    /// <see cref="AnonymizationTemplateResolver.ValidateTokens"/> to check that every
+    /// Gets the distinct set of token field names referenced in this template.
+    /// <see cref="AnonymizationTemplateResolver.ValidateTokens"/> checks that every
     /// referenced field exists as a supported scalar property on the target entity type.
     /// </summary>
     public required IReadOnlyList<string> TokenNames { get; init; }

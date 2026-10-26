@@ -11,9 +11,9 @@ using Microsoft.CodeAnalysis;
 /// <summary>
 /// Roslyn <see cref="DiagnosticDescriptor"/> instances for the catalog-neutral
 /// engine diagnostics declared in <see cref="EngineDiagnosticIds"/>. Only
-/// loaded inside the Roslyn host (the generator shell's <c>Initialize</c> call
-/// site); pure-logic callers use <see cref="EngineDiagnosticIds"/> string
-/// constants directly to avoid pulling <c>Microsoft.CodeAnalysis</c>.
+/// loaded inside the Roslyn host. Pure-logic code uses the
+/// <see cref="EngineDiagnosticIds"/> string constants directly, which need no
+/// reference to <c>Microsoft.CodeAnalysis</c>.
 /// </summary>
 internal static class EngineDiagnosticDescriptors
 {

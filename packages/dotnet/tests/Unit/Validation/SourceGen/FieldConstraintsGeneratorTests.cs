@@ -18,7 +18,7 @@ using Xunit;
 
 /// <summary>
 /// IIncrementalGenerator integration tests for the field-constraints SrcGen
-/// — drive <see cref="FieldConstraintsGenerator"/> via a synthetic
+/// - drive <see cref="FieldConstraintsGenerator"/> via a synthetic
 /// <see cref="CSharpGeneratorDriver"/> rather than the build pipeline.
 /// </summary>
 public sealed class FieldConstraintsGeneratorTests
@@ -104,7 +104,7 @@ public sealed class FieldConstraintsGeneratorTests
     {
         // The generator applies specFiles.OrderBy(s => s.Path, StringComparer.Ordinal).First()
         // when more than one spec AdditionalFile is registered (FieldConstraintsGenerator.cs:61).
-        // "aaa/field-constraints.spec.json" < "zzz/field-constraints.spec.json" by Ordinal →
+        // "aaa/field-constraints.spec.json" < "zzz/field-constraints.spec.json" by Ordinal ->
         // the winner is the spec containing EMAIL_MAX=254 (the 'aaa' path).
         const string winning_spec = """
         {
@@ -134,7 +134,7 @@ public sealed class FieldConstraintsGeneratorTests
 
         var generator = new FieldConstraintsGenerator().AsSourceGenerator();
 
-        // Two spec files — Ordinal sort gives 'aaa/...' < 'zzz/...' → winner first.
+        // Two spec files - Ordinal sort gives 'aaa/...' < 'zzz/...' -> winner first.
         var additionalTexts = ImmutableArray.Create<AdditionalText>(
             new InMemoryAdditionalText("zzz/field-constraints.spec.json", losing_spec),
             new InMemoryAdditionalText("aaa/field-constraints.spec.json", winning_spec));
@@ -145,7 +145,7 @@ public sealed class FieldConstraintsGeneratorTests
 
         var result = driver.GetRunResult();
 
-        // Exactly two output trees (FieldConstraints.g.cs + Taxonomy.g.cs) —
+        // Exactly two output trees (FieldConstraints.g.cs and Taxonomy.g.cs) -
         // proves the generator ran with one spec, not zero or two.
         result.GeneratedTrees.Should().HaveCount(2);
 

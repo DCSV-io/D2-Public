@@ -26,10 +26,10 @@ namespace DcsvIo.D2.AspNetCore;
 /// (rate limiting, idempotency-check, request-context enrichment, auth
 /// middleware that runs full JWT validation) does NOT execute on cheap
 /// infrastructure endpoints (<c>/health</c>, <c>/alive</c>, <c>/metrics</c>,
-/// <c>/.well-known/*</c>). Services that need custom middleware to run on
-/// infrastructure paths (a custom rate-limit policy on <c>/metrics</c>, for
-/// example) opt in to <see cref="TagOnly"/>=<c>true</c> and inspect the
-/// HttpContext.Items flag in their middleware.
+/// <c>/.well-known/*</c>). <see cref="TagOnly"/>=<c>true</c> lets custom
+/// middleware run on infrastructure paths (a custom rate-limit policy on
+/// <c>/metrics</c>, for example); that middleware inspects the
+/// HttpContext.Items flag.
 /// </para>
 /// </remarks>
 public sealed record D2InfrastructureBypassOptions
@@ -47,7 +47,7 @@ public sealed record D2InfrastructureBypassOptions
 
     /// <summary>
     /// Gets or sets a value indicating whether the middleware ONLY tags the
-    /// request — <c>true</c> sets
+    /// request - <c>true</c> sets
     /// <see cref="D2AspNetCoreConstants.INFRASTRUCTURE_HTTP_CONTEXT_ITEM_KEY"/>
     /// and continues the pipeline (downstream business middleware still
     /// runs but can opt-out by reading the flag). Default <c>false</c> =

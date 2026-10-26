@@ -35,7 +35,7 @@ describe("SubdivisionLookup", () => {
     ).toBeGreaterThanOrEqual(10);
   });
 
-  // §1.2 category: Domain-specific — per-VALUE pins.
+  // Category: Domain-specific - per-VALUE pins.
   it("US-NY fields pinned", () => {
     const ny = SubdivisionLookup.byCode["US-NY" as SubdivisionCode];
     expect(ny).toBeDefined();
@@ -76,7 +76,7 @@ describe("SubdivisionLookup", () => {
     expect(idf!.displayName).toBeDefined();
   });
 
-  // §1.2 category: Cross-field — Country backref symmetry.
+  // Category: Cross-field - Country backref symmetry.
   it("every subdivision: country nav matches countryIso31661Alpha2Code", () => {
     for (const sub of SubdivisionLookup.all) {
       expect(sub.country).toBeDefined();

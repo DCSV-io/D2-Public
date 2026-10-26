@@ -9,8 +9,7 @@ namespace DcsvIo.D2.Auth.Abstractions.Jwks;
 using DcsvIo.D2.Result;
 
 /// <summary>
-/// Reads-side contract for JWKS verify keys — every consumer-side service
-/// (DcsvIo.D2.Auth runtime, Edge's own validators) calls this to look up
+/// Read-side contract for JWKS verify keys. JWT validation calls it to look up
 /// signing keys by <c>kid</c> when validating inbound JWTs.
 /// </summary>
 /// <remarks>
@@ -24,8 +23,8 @@ using DcsvIo.D2.Result;
 /// <para>
 /// All operations return <c>D2Result&lt;T&gt;</c>: success with the snapshot
 /// on a hit / fresh fetch; <c>ServiceUnavailable</c> when neither cache nor
-/// upstream is reachable. Implementations must NEVER throw — every failure
-/// surface comes back as a typed result.
+/// upstream is reachable. Implementations must never throw - every failure
+/// comes back as a typed result.
 /// </para>
 /// </remarks>
 public interface IJwksProvider
@@ -37,9 +36,9 @@ public interface IJwksProvider
     /// <param name="ct">Cancellation token honored by the underlying transport.</param>
     /// <returns>
     /// <list type="bullet">
-    ///   <item><see cref="D2Result{TData}"/>.Ok(snapshot) — current snapshot.</item>
+    ///   <item><see cref="D2Result{TData}"/>.Ok(snapshot) - current snapshot.</item>
     ///   <item>
-    ///     <see cref="D2Result{TData}"/>.ServiceUnavailable —
+    ///     <see cref="D2Result{TData}"/>.ServiceUnavailable -
     ///     neither cache nor upstream available.
     ///   </item>
     /// </list>
@@ -48,23 +47,23 @@ public interface IJwksProvider
 
     /// <summary>
     /// Forces a refresh from the upstream JWKS endpoint, bypassing any cached
-    /// snapshot. Used by the rotation-event subscriber and by the reactive
+    /// snapshot. It serves the rotation-event refresh and the reactive
     /// refresh-on-unknown-kid path during JWT validation.
     /// </summary>
     /// <param name="ct">Cancellation token honored by the underlying transport.</param>
     /// <returns>
     /// <list type="bullet">
     ///   <item>
-    ///     <see cref="D2Result"/>.Ok — refresh completed
+    ///     <see cref="D2Result"/>.Ok - refresh completed
     ///     (the new snapshot is now cached).
     ///   </item>
-    ///   <item><see cref="D2Result"/>.ServiceUnavailable — upstream unreachable.</item>
+    ///   <item><see cref="D2Result"/>.ServiceUnavailable - upstream unreachable.</item>
     /// </list>
     /// </returns>
     /// <remarks>
-    /// Implementations MUST gate concurrent calls (Singleflight pattern): N
+    /// Implementations must gate concurrent calls (Singleflight pattern): N
     /// callers triggering refresh at once result in 1 outbound HTTP call, with
-    /// all callers awaiting the same in-flight task. They MUST also enforce
+    /// all callers awaiting the same in-flight task. They must also enforce
     /// a minimum interval (e.g. 30s) between refresh attempts to prevent
     /// reactive-refresh stampedes during sustained validation failures.
     /// Idempotent.

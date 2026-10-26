@@ -4,12 +4,12 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-error-codes-registry
 
-Merged cross-catalog error-code registry for D2. Aggregates every
-`*-error-codes.spec.json` catalog under `contracts/` into a single frozen
-`code → ErrorCodeInfo` lookup table — so any consuming service can resolve
+Merged **public** cross-catalog error-code registry for D2. Aggregates every
+public `*-error-codes.spec.json` catalog (GEN + public LIB) into a single frozen
+`code -> ErrorCodeInfo` lookup table - so any consuming service can resolve
 a wire error code to its full metadata (httpStatus, semantic category,
-user-message TK key, factory name/shape, doc, domain) without importing the
-producer's catalog.
+user-message TK key, factory name/shape, doc, domain, owner, isDeprecated)
+without importing the producer's catalog.
 
 ## Install
 
@@ -20,15 +20,17 @@ pnpm add @dcsv-io/d2-error-codes-registry
 ## Key facts
 
 - **Generated**: `src/generated/error-code-registry.g.ts` is auto-generated
- from the error-codes specs (sources committed) — do not hand-edit.
- Re-generate with `pnpm --filter ts-codegen run codegen --force`.
-- **Leaf package**: depends only on `@dcsv-io/d2-i18n-abstractions` + `@dcsv-io/d2-i18n-keys`;
- nothing depends up into it except boundary consumers (Edge/BFF).
+  from the public error-codes specs and ships committed - do not hand-edit.
+  The producing repository's codegen regenerates it from those specs whenever
+  a catalog changes, and the regenerated file arrives here as a release.
+- **Leaf package**: depends only on `@dcsv-io/d2-error-category`, `@dcsv-io/d2-i18n-abstractions` and
+  `@dcsv-io/d2-i18n-keys`; application-boundary hosts depend on this package to resolve foreign wire codes.
 - **Collision-safe**: the emitter hard-fails at codegen time on any
- cross-catalog code collision (`D2ERC004`) or reserved-namespace violation
- (`D2ERC005`). No registry is emitted until violations are resolved.
+  cross-catalog code collision (`D2ERC004`) or reserved-namespace violation
+  (`D2ERC005`). No registry is emitted until violations are resolved.
 - **Cross-runtime parity**: mirrors `DcsvIo.D2.ErrorCodes.Registry` (.NET)
- — same 8 fields, same domain tokens, same category wire-strings.
+  - same fields in the same order, same domain tokens, same owner tokens, same
+  category wire-strings. This registry merges the public catalogs only.
 
 ## API
 
@@ -38,11 +40,11 @@ import {
   type ErrorCodeInfo,
 } from "@dcsv-io/d2-error-codes-registry";
 
-// Resolve a wire code → full metadata (undefined on unknown code).
+// Resolve a wire code -> full metadata (undefined on unknown code).
 const info: ErrorCodeInfo | undefined =
-  errorCodeRegistry.resolve("AUTH_JWT_EXPIRED");
+  errorCodeRegistry.resolve("LIB_AUTH_JWT_EXPIRED");
 if (info !== undefined) {
-  info.code; // "AUTH_JWT_EXPIRED"
+  info.code; // "LIB_AUTH_JWT_EXPIRED"
   info.httpStatus; // 401
   info.category; // "validation_failure"
   info.userMessageKey; // TK.auth.errors.UNAUTHORIZED (TKMessage)
@@ -50,10 +52,12 @@ if (info !== undefined) {
   info.factoryShape; // "standard"
   info.doc; // "JWT is expired..."
   info.domain; // "auth"
+  info.owner; // "lib"
+  info.isDeprecated; // false
 }
 
 // Membership check.
-errorCodeRegistry.has("NOT_FOUND"); // true
+errorCodeRegistry.has("GEN_NOT_FOUND"); // true
 
 // Iterate all registered codes.
 for (const entry of errorCodeRegistry.all) {
@@ -63,24 +67,30 @@ for (const entry of errorCodeRegistry.all) {
 
 ## ErrorCodeInfo fields
 
-| Field            | Type                    | Source                                       |
-| ---------------- | ----------------------- | -------------------------------------------- |
-| `code`           | `string`                | SCREAMING_SNAKE wire code                    |
-| `httpStatus`     | `number`                | HTTP status integer                          |
-| `category`       | `ErrorCategory`         | 9-value string-union (schema `category`)     |
-| `userMessageKey` | `TKMessage`             | Typed TK constant from `@dcsv-io/d2-i18n-keys`       |
-| `factoryName`    | `string`                | PascalCase factory symbol                    |
-| `factoryShape`   | `ErrorCodeFactoryShape` | 2-value string-union (`standard` / `none`)   |
-| `doc`            | `string`                | Developer documentation text                 |
-| `domain`         | `string`                | Derived from spec filename (`common`/`auth`) |
+The rows below are in the order the .NET `ErrorCodeInfo` record declares them,
+which is the order the cross-runtime parity test compares.
 
-## Domain tokens
+| Field            | Type                    | Source                                         |
+| ---------------- | ----------------------- | ---------------------------------------------- |
+| `code`           | `string`                | SCREAMING_SNAKE owner-prefixed wire code       |
+| `httpStatus`     | `number`                | HTTP status integer                            |
+| `category`       | `ErrorCategory`         | Closed string-union (schema `category`)        |
+| `userMessageKey` | `TKMessage`             | Typed TK constant from `@dcsv-io/d2-i18n-keys` |
+| `factoryName`    | `string`                | PascalCase factory symbol                      |
+| `factoryShape`   | `ErrorCodeFactoryShape` | `standard` / `none`                            |
+| `doc`            | `string`                | Developer documentation text                   |
+| `domain`         | `string`                | Business domain token (see below)              |
+| `owner`          | `string`                | Owner token: `gen` / `lib` in this registry    |
+| `isDeprecated`   | `boolean`               | Spec deprecation flag                          |
 
-The `domain` field is derived from the spec filename:
+## Domain tokens (public catalogs)
 
-- `contracts/error-codes/error-codes.spec.json` → `"common"`
-- `contracts/auth-error-codes/auth-error-codes.spec.json` → `"auth"`
-- Future: `contracts/geo-error-codes/geo-error-codes.spec.json` → `"geo"`
+The `domain` / `owner` fields come from catalog identity (filename map):
+
+- `contracts/error-codes/error-codes.spec.json` -> domain `"common"`, owner `"gen"`, prefix `GEN_`
+- `contracts/auth-error-codes/auth-error-codes.spec.json` -> domain `"auth"`, owner `"lib"`, prefix `LIB_AUTH_`
+- `contracts/messaging-error-codes/messaging-error-codes.spec.json` -> domain `"messaging"`, owner `"lib"`, prefix `LIB_MESSAGING_`
+- `contracts/pagination-error-codes/pagination-error-codes.spec.json` -> domain `"pagination"`, owner `"lib"`, prefix `LIB_PAGINATION_`
 
 ## Build
 

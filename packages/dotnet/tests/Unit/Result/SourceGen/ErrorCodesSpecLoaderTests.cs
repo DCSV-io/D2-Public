@@ -33,7 +33,7 @@ public sealed class ErrorCodesSpecLoaderTests
         {
           "errorCodes": [
             {
-              "code": "NOT_FOUND",
+              "code": "GEN_NOT_FOUND",
               "httpStatus": 404,
               "doc": "Indicates that the requested resource was not found."
             }
@@ -47,7 +47,7 @@ public sealed class ErrorCodesSpecLoaderTests
         result.Spec.Should().NotBeNull();
         result.Spec.ErrorCodes.Should().HaveCount(1);
         var entry = result.Spec.ErrorCodes[0];
-        entry.Code.Should().Be("NOT_FOUND");
+        entry.Code.Should().Be("GEN_NOT_FOUND");
         entry.HttpStatus.Should().Be(404);
         entry.Doc.Should().Be("Indicates that the requested resource was not found.");
 
@@ -111,7 +111,7 @@ public sealed class ErrorCodesSpecLoaderTests
         {
           "errorCodes": [
             {
-              "code": "NOT_FOUND",
+              "code": "GEN_NOT_FOUND",
               "httpStatus": "404",
               "doc": "X"
             }
@@ -132,7 +132,7 @@ public sealed class ErrorCodesSpecLoaderTests
         {
           "errorCodes": [
             {
-              "code": "NOT_FOUND",
+              "code": "GEN_NOT_FOUND",
               "httpStatus": 404
             }
           ]

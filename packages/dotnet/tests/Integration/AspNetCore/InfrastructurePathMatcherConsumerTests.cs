@@ -12,21 +12,19 @@ using Microsoft.AspNetCore.Http;
 using Xunit;
 
 /// <summary>
-/// Regression tests pinning the consumer-swap behavior of
-/// <see cref="InfrastructurePathMatcher"/>: per-lib internal duplicates
-/// collapsed into the canonical public matcher;
-/// <c>DcsvIo.D2.Logging</c> + <c>DcsvIo.D2.Telemetry</c> consume the
-/// same matcher.
+/// Regression tests pinning the shared use of
+/// <see cref="InfrastructurePathMatcher"/>: the libraries have no per-lib
+/// internal duplicates of the matcher, and <c>DcsvIo.D2.Logging</c> +
+/// <c>DcsvIo.D2.Telemetry</c> use the same public matcher.
 /// </summary>
 /// <remarks>
 /// These tests pin the wire contract that the path set
 /// (<see cref="D2AspNetCoreConstants.DEFAULT_INFRASTRUCTURE_PATHS"/>)
-/// stays aligned across the three consumers — the bypass middleware
-/// (this lib), the Logging request-logging level callback, and the
-/// Telemetry AspNetCore-instrumentation Filter callback. A divergence
-/// would surface as one consumer treating <c>/health</c> as
-/// infrastructure while another doesn't — exactly the cross-lib drift the
-/// consolidation eliminates.
+/// stays aligned across the bypass middleware (this lib), the Logging
+/// request-logging level callback, and the Telemetry
+/// AspNetCore-instrumentation Filter callback. A divergence would surface
+/// as one of them treating <c>/health</c> as infrastructure while another
+/// does not.
 /// </remarks>
 public sealed class InfrastructurePathMatcherConsumerTests
 {
@@ -34,9 +32,8 @@ public sealed class InfrastructurePathMatcherConsumerTests
     public void DefaultPathSet_AlignedAcrossConsumers()
     {
         // The default infrastructure-path list lives in
-        // D2AspNetCoreConstants and is what every consumer's default
-        // points at. Confirms the centralization didn't accidentally
-        // diverge a per-lib literal.
+        // D2AspNetCoreConstants and is what every default points at.
+        // Confirms that no per-lib literal diverges from it.
         D2AspNetCoreConstants.DEFAULT_INFRASTRUCTURE_PATHS
             .Should().Equal("/health", "/alive", "/metrics", "/.well-known");
     }
@@ -62,9 +59,8 @@ public sealed class InfrastructurePathMatcherConsumerTests
     [Fact]
     public void PostConsolidation_HealthPathStillMatches()
     {
-        // Direct pin of the public matcher's behavior — fail-fast if a
-        // consumer-swap somehow regresses the matcher's segment-boundary
-        // semantics.
+        // Direct pin of the public matcher's behavior - fails if the matcher's
+        // segment-boundary semantics regress.
         InfrastructurePathMatcher.IsInfrastructurePath(
             new PathString("/health"),
             D2AspNetCoreConstants.DEFAULT_INFRASTRUCTURE_PATHS)

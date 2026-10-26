@@ -8,9 +8,9 @@ namespace DcsvIo.D2.Utilities.Extensions;
 
 /// <summary>
 /// Extension methods for <see cref="IEnumerable{T}"/> that mirror the
-/// <c>Truthy</c> / <c>Falsey</c> semantics used elsewhere, and a
+/// <c>Truthy</c> and <c>Falsey</c> semantics used elsewhere, and a
 /// <c>Clean</c> helper that applies a per-element cleaner with configurable
-/// empty / null behavior.
+/// empty and null behavior.
 /// </summary>
 public static class EnumerableExtensions
 {
@@ -19,46 +19,46 @@ public static class EnumerableExtensions
     extension<T>(IEnumerable<T>? enumerable)
     {
         /// <summary>
-        /// Returns true when the enumerable is non-null AND contains at least
+        /// Returns true when the enumerable is non-null and contains at least
         /// one element.
         /// </summary>
         public bool Truthy() => enumerable?.Any() ?? false;
 
         /// <summary>
-        /// Returns true when the enumerable is null OR contains zero elements.
+        /// Returns true when the enumerable is null or contains zero elements.
         /// </summary>
         public bool Falsey() => !enumerable.Truthy();
 
         /// <summary>
-        /// Applies <paramref name="cleaner"/> to every element and reshapes the
-        /// result according to the supplied empty / null behaviors.
+        /// Applies <paramref name="cleaner"/> to every element and shapes the
+        /// result according to the supplied empty and null behaviors.
         /// </summary>
         ///
         /// <param name="cleaner">
-        /// Cleaner function. Returning <c>null</c> from the cleaner is
-        /// considered a "dropped" value.
+        /// Cleaner function. A <c>null</c> return value marks the element as
+        /// dropped.
         /// </param>
         /// <param name="enumEmptyBehavior">
-        /// What to do if the input is null/empty, OR if cleaning produced an
-        /// empty list. Defaults to <see cref="CleanEnumEmptyBehavior.ReturnNull"/>.
+        /// Selects the result when the input is null or empty, or when cleaning
+        /// produced an empty list. Defaults to <see cref="CleanEnumEmptyBehavior.ReturnNull"/>.
         /// </param>
         /// <param name="valueNullBehavior">
-        /// What to do if the cleaner returns null for any element. Defaults to
+        /// Selects the result when the cleaner returns null for any element. Defaults to
         /// <see cref="CleanValueNullBehavior.RemoveNulls"/>.
         /// </param>
         ///
         /// <returns>
-        /// The cleaned enumerable, an empty enumerable, or null — depending on
+        /// The cleaned enumerable, an empty enumerable, or null, according to
         /// the supplied behavior options.
         /// </returns>
         ///
         /// <exception cref="InvalidOperationException">
-        /// Thrown when the cleaner returns null for any element AND
+        /// Thrown when the cleaner returns null for any element and
         /// <paramref name="valueNullBehavior"/> is
         /// <see cref="CleanValueNullBehavior.ThrowOnNull"/>.
         /// </exception>
         /// <exception cref="ArgumentException">
-        /// Thrown when the input or post-clean enumerable is empty AND
+        /// Thrown when the input or the cleaned enumerable is empty and
         /// <paramref name="enumEmptyBehavior"/> is
         /// <see cref="CleanEnumEmptyBehavior.Throw"/>.
         /// </exception>
@@ -67,7 +67,7 @@ public static class EnumerableExtensions
             CleanEnumEmptyBehavior enumEmptyBehavior = CleanEnumEmptyBehavior.ReturnNull,
             CleanValueNullBehavior valueNullBehavior = CleanValueNullBehavior.RemoveNulls)
         {
-            // Materialize once to avoid double-enumeration of upstream LINQ.
+            // Materialize once so the upstream LINQ query is enumerated only once.
             var dirty = enumerable?.ToList();
 
             if (dirty.Falsey())

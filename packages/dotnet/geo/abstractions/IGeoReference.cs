@@ -7,11 +7,12 @@
 namespace DcsvIo.D2.Geo.Abstractions;
 
 /// <summary>
-/// Strongly-typed lookup contract for the seven reference-data catalogs.
-/// Every method takes a typed identifier (real enum or wrapper struct)
-/// and returns the matching non-nullable single-shape record — the type
+/// Strongly-typed lookup contract for the reference-data catalogs (countries,
+/// subdivisions, timezones, locales, currencies, languages and geopolitical
+/// entities). Every method takes a typed identifier (real enum or wrapper struct)
+/// and returns the matching non-nullable single-shape record - the type
 /// system enforces the absence of a NotFound branch because the typed
-/// identifier IS the catalog (every enum member maps to exactly one
+/// identifier is the catalog (every enum member maps to exactly one
 /// entity; every wrapper struct value comes through closed-set validation
 /// at the deserialization boundary).
 /// </summary>
@@ -25,9 +26,9 @@ namespace DcsvIo.D2.Geo.Abstractions;
 /// <see cref="TimezoneCode"/>) for open-set codes.
 /// </para>
 /// <para>
-/// String-input cousins (e.g. <c>TryGetCountry(string alpha2)</c>) and
+/// String-input variants (e.g. <c>TryGetCountry(string alpha2)</c>) and
 /// free-form name resolution (<see cref="NameResolution.IGeoNameResolver"/>)
-/// live outside this interface — they are boundary-code concerns and
+/// live outside this interface - they are boundary-code concerns and
 /// MUST NOT be called from domain handlers.
 /// </para>
 /// </remarks>

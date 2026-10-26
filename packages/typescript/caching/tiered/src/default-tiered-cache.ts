@@ -7,6 +7,7 @@ import type {
   IDistributedCache,
   ILocalCache,
   ITieredCache,
+  TokenBucketDecision,
 } from "@dcsv-io/d2-caching-abstractions";
 import type { ILogger } from "@dcsv-io/d2-logging";
 import {
@@ -19,16 +20,19 @@ import {
 } from "@dcsv-io/d2-result";
 
 import {
+  logInvalidationPublishFailed,
+  logL1DropFailed,
   logL1InvalidationFailed,
   logL1WriteFailedAfterL2Success,
   TieredCacheOp,
+  type TieredCacheOpName,
   TIERED_ERROR_CODE_UNKNOWN,
 } from "./tiered-cache-log.js";
 
 /**
  * Pinned registration-error message thrown by `*AndBroadcast*` when no
- * backplane was passed at construction. Twin meaning of .NET
- * `InvalidOperationException` on missing `ICacheInvalidationBackplane`.
+ * backplane was passed at construction. Same meaning as the .NET
+ * `InvalidOperationException` thrown on a missing `ICacheInvalidationBackplane`.
  */
 export const BACKPLANE_NOT_REGISTERED_MESSAGE =
   "ICacheInvalidationBackplane is not registered. Use set / remove " +
@@ -44,24 +48,24 @@ export interface DefaultTieredCacheDeps {
   logger: ILogger;
   /**
    * Optional invalidation backplane. Required for `*AndBroadcast*` and
-   * for cluster L1 coherency subscribe. When present, the tiered cache
-   * subscribes at construction for everyone-acts L1 drop.
+   * for cluster L1 coherency. When present, the tiered cache subscribes at
+   * construction and drops L1 on every invalidation (everyone-acts).
    */
   backplane?: ICacheInvalidationBackplane;
 }
 
 /**
  * Composes one {@link ILocalCache} (L1) and one {@link IDistributedCache}
- * (L2) into a tiered cache. Reads check L1 first / fall through to L2 /
- * populate L1 on L2 hit. Writes go L2-first - L1 only writes if L2
- * succeeded - so partial-write states are impossible. Atomic primitives
+ * (L2) into a tiered cache. Reads check L1 first, fall through to L2, and
+ * populate L1 on an L2 hit. Writes go to L2 first and L1 is written only if
+ * L2 succeeded, so partial-write states are impossible. Atomic primitives
  * route through L2 (the cluster source of truth) and invalidate L1 as a
- * side effect. Optional {@link ICacheInvalidationBackplane} wires up
+ * side effect. Optional {@link ICacheInvalidationBackplane} enables
  * cluster-wide L1 invalidation: this instance subscribes at construction
  * and drops L1 entries on every received invalidation (including its own,
  * per the universal everyone-acts rule).
  *
- * Pure composition - does not own or dispose L1, L2, or the backplane.
+ * Pure composition: it does not own or dispose L1, L2, or the backplane.
  * Disposing this instance only unsubscribes its backplane handler.
  *
  * @see ITieredCache port contracts on `@dcsv-io/d2-caching-abstractions`.
@@ -100,8 +104,9 @@ export class DefaultTieredCache implements ITieredCache, AsyncDisposable {
     this.backplane = deps.backplane;
 
     if (deps.backplane !== undefined) {
-      // Capture into locals for the lambda closure (subscription may
-      // outlive the immediate ctor frame; avoid disposed-this races).
+      // Capture into locals for the lambda closure: the subscription may
+      // outlive the constructor call, and the locals avoid races on a
+      // disposed `this`.
       const capturedLogger = deps.logger;
       const capturedL1 = deps.l1;
 
@@ -138,8 +143,9 @@ export class DefaultTieredCache implements ITieredCache, AsyncDisposable {
       return l2;
     }
 
-    // Populate L1 with default L1 TTL (no L2 remaining-TTL atomic).
-    // Ignore L1 set fail - match .NET fire-and-forget populate.
+    // Populate L1 with the default L1 TTL (there is no atomic read of the
+    // remaining L2 TTL). Ignore an L1 set failure, matching the .NET
+    // fire-and-forget populate.
     await this.l1.set(key, l2.data as T, undefined, signal);
 
     return l2;
@@ -147,7 +153,8 @@ export class DefaultTieredCache implements ITieredCache, AsyncDisposable {
 
   /**
    * Reads many keys: L1 partial hits first; missing keys from L2;
-   * merge with the one-truth result ladder (see package README).
+   * merge them into one result as the `getMany` rows of the Result mapping
+   * table in the package README state.
    */
   async getMany<T>(
     keys: readonly string[],
@@ -155,13 +162,13 @@ export class DefaultTieredCache implements ITieredCache, AsyncDisposable {
   ): Promise<D2Result<ReadonlyMap<string, T>>> {
     const l1 = await this.l1.getMany<T>(keys, signal);
 
-    // All keys hit in L1 - early exit before missing-key work.
+    // All keys hit in L1: return early, before any missing-key work.
     if (l1.success && !l1.isPartialSuccess) {
       return l1;
     }
 
-    // Hit map: ok OR someFound (isPartialSuccess alone - never gate on
-    // success; real TS someFound has success: false).
+    // Hit map: ok or someFound (isPartialSuccess alone identifies someFound;
+    // never gate on success, because the real TS someFound has success: false).
     const l1Hits: Map<string, T> =
       l1.success || l1.isPartialSuccess
         ? new Map(l1.data ?? new Map())
@@ -181,12 +188,13 @@ export class DefaultTieredCache implements ITieredCache, AsyncDisposable {
         : someFound({ data: l1Hits as ReadonlyMap<string, T> });
     }
 
-    // Hard fail (SU / VF / etc.) - not ok and not someFound.
+    // Hard failure (serviceUnavailable, validationFailed and so on): not ok
+    // and not someFound.
     if (!l2.success && !l2.isPartialSuccess) {
       return l2;
     }
 
-    // ok or someFound: merge L2 hits into L1 hits + populate L1.
+    // ok or someFound: merge L2 hits into L1 hits and populate L1.
     const l2Hits = l2.data ?? new Map<string, T>();
     const merged = new Map(l1Hits);
     const populate = new Map<string, T>();
@@ -197,7 +205,8 @@ export class DefaultTieredCache implements ITieredCache, AsyncDisposable {
     }
 
     if (populate.size > 0) {
-      // Ignore L1 populate fail - match .NET no check on GetMany populate.
+      // Ignore an L1 populate failure, matching .NET, which does not check
+      // the GetMany populate.
       await this.l1.setMany(populate, undefined, signal);
     }
 
@@ -233,7 +242,7 @@ export class DefaultTieredCache implements ITieredCache, AsyncDisposable {
 
   /**
    * Writes L2-first, then L1 with the same value/expirationMs/signal.
-   * L1 fail after L2 ok -> Warning log + return L2 success.
+   * An L1 failure after L2 succeeded logs a Warning and returns the L2 success.
    */
   async set<T>(
     key: string,
@@ -290,7 +299,8 @@ export class DefaultTieredCache implements ITieredCache, AsyncDisposable {
   }
 
   /**
-   * Removes L2-first, then L1. L1 fail after L2 ok -> log + return L2 ok.
+   * Removes L2-first, then L1. An L1 failure after L2 succeeded logs and
+   * returns the L2 ok.
    */
   async remove(key: string, signal?: AbortSignal): Promise<D2Result> {
     const l2 = await this.l2.remove(key, signal);
@@ -343,8 +353,9 @@ export class DefaultTieredCache implements ITieredCache, AsyncDisposable {
   // ----- ICacheAtomic -----
 
   /**
-   * Set-if-absent via L2; on took-write populate L1; on already-exists
-   * drop L1. L1 side-effects are fire-and-forget (no fail log).
+   * Set-if-absent via L2; when the write took effect, populate L1; when the
+   * key already exists, drop L1. L1 side effects are fire-and-forget (a
+   * failure is not logged).
    */
   async setNx<T>(
     key: string,
@@ -363,6 +374,97 @@ export class DefaultTieredCache implements ITieredCache, AsyncDisposable {
     } else {
       await this.l1.remove(key, signal);
     }
+
+    return l2;
+  }
+
+  /**
+   * Compare-and-set via L2, then drop L1 on every outcome: written,
+   * comparison failed and store failure alike. This differs from
+   * `increment`. Populating L1 with the written value the way
+   * `setNx` does would reopen the race the conditional write exists to
+   * close: the backplane subscriber drops L1 on its own task, so an
+   * invalidation applied between the L2 hop and the populate would be
+   * undone by the populate, and `get` returns an L1 hit without consulting
+   * L2. After a failed write the node cannot know whether its copy still
+   * matches the shared value either, and declining to trust a local copy is
+   * the purpose of the member.
+   *
+   * When the write took effect, the member also invalidates the other
+   * instances, on the terms {@link broadcastConditionalWrite} states.
+   */
+  async setIfEqual<T>(
+    key: string,
+    expected: T,
+    value: T,
+    expirationMs?: number,
+    signal?: AbortSignal,
+  ): Promise<D2Result<boolean>> {
+    const l2 = await this.l2.setIfEqual(
+      key,
+      expected,
+      value,
+      expirationMs,
+      signal,
+    );
+
+    const l1 = await this.l1.remove(key, signal);
+
+    if (!l1.success) {
+      logL1DropFailed(
+        this.logger,
+        TieredCacheOp.SET_IF_EQUAL,
+        key,
+        l1.errorCode ?? TIERED_ERROR_CODE_UNKNOWN,
+      );
+    }
+
+    await this.broadcastConditionalWrite(
+      TieredCacheOp.SET_IF_EQUAL,
+      key,
+      l2,
+      signal,
+    );
+
+    return l2;
+  }
+
+  /**
+   * Compare-and-delete via L2, then drop L1 on every outcome.
+   *
+   * L1 is dropped whatever L2 returned, for the reason {@link setIfEqual}
+   * gives: the comparison establishes a fact about the shared value at the
+   * instant it ran and none about a local copy a moment later. When the entry
+   * was removed, the local copy is of an entry that is gone; otherwise the node
+   * cannot know whether its copy still matches the shared value.
+   *
+   * When the removal took effect, the member also invalidates the other
+   * instances, on the terms {@link broadcastConditionalWrite} states.
+   */
+  async removeIfEqual<T>(
+    key: string,
+    expected: T,
+    signal?: AbortSignal,
+  ): Promise<D2Result<boolean>> {
+    const l2 = await this.l2.removeIfEqual(key, expected, signal);
+
+    const l1 = await this.l1.remove(key, signal);
+
+    if (!l1.success) {
+      logL1DropFailed(
+        this.logger,
+        TieredCacheOp.REMOVE_IF_EQUAL,
+        key,
+        l1.errorCode ?? TIERED_ERROR_CODE_UNKNOWN,
+      );
+    }
+
+    await this.broadcastConditionalWrite(
+      TieredCacheOp.REMOVE_IF_EQUAL,
+      key,
+      l2,
+      signal,
+    );
 
     return l2;
   }
@@ -388,7 +490,30 @@ export class DefaultTieredCache implements ITieredCache, AsyncDisposable {
   }
 
   /**
-   * Pure L2 lock acquire - L1 is not involved.
+   * Pure L2 delegation; the bucket state belongs to the shared store. An L1
+   * copy would reflect this node rather than the cluster, which defeats the
+   * purpose of a shared budget.
+   */
+  consumeToken(
+    key: string,
+    refillTokens: number,
+    refillIntervalMs: number,
+    burst: number,
+    cost = 1,
+    signal?: AbortSignal,
+  ): Promise<D2Result<TokenBucketDecision>> {
+    return this.l2.consumeToken(
+      key,
+      refillTokens,
+      refillIntervalMs,
+      burst,
+      cost,
+      signal,
+    );
+  }
+
+  /**
+   * Pure L2 lock acquire; L1 is not involved.
    */
   acquireLock(
     key: string,
@@ -400,7 +525,8 @@ export class DefaultTieredCache implements ITieredCache, AsyncDisposable {
   }
 
   /**
-   * Pure L2 lock release - ownership miss is ok; store down propagates.
+   * Pure L2 lock release: an ownership miss returns ok, and a store failure
+   * is returned as is.
    */
   releaseLock(
     key: string,
@@ -413,7 +539,7 @@ export class DefaultTieredCache implements ITieredCache, AsyncDisposable {
   // ----- ICacheBroadcast -----
 
   /**
-   * Tiered set then publish invalidation. Write fail -> no publish.
+   * Tiered set then publish invalidation. A write failure skips the publish.
    * Missing backplane throws with {@link BACKPLANE_NOT_REGISTERED_MESSAGE}.
    */
   async setAndBroadcast<T>(
@@ -432,7 +558,7 @@ export class DefaultTieredCache implements ITieredCache, AsyncDisposable {
   }
 
   /**
-   * Tiered setMany then bulk publish. Write fail -> no publish.
+   * Tiered setMany then bulk publish. A write failure skips the publish.
    */
   async setManyAndBroadcast<T>(
     entries: ReadonlyMap<string, T>,
@@ -449,7 +575,7 @@ export class DefaultTieredCache implements ITieredCache, AsyncDisposable {
   }
 
   /**
-   * Tiered remove then publish. Write fail -> no publish.
+   * Tiered remove then publish. A write failure skips the publish.
    */
   async removeAndBroadcast(
     key: string,
@@ -465,7 +591,7 @@ export class DefaultTieredCache implements ITieredCache, AsyncDisposable {
   }
 
   /**
-   * Tiered removeMany then bulk publish. Write fail -> no publish.
+   * Tiered removeMany then bulk publish. A write failure skips the publish.
    */
   async removeManyAndBroadcast(
     keys: readonly string[],
@@ -501,6 +627,50 @@ export class DefaultTieredCache implements ITieredCache, AsyncDisposable {
     await this.dispose();
   }
 
+  /**
+   * Invalidates the other instances' L1 copies of a key that a conditional
+   * write replaced or removed at L2.
+   *
+   * The plain writes leave the broadcast to the caller, which picks
+   * `setAndBroadcast` or `set`. A conditional write has no such pair. When the
+   * write took effect, the comparison succeeded against the shared value and
+   * the write replaced it, so every other instance now holds a copy of the
+   * value this write superseded. The publish runs in that case alone: a
+   * failed comparison changed nothing at L2, so the other instances' copies
+   * are as good as they were.
+   *
+   * It runs only where the host passed a backplane, and a publish that fails
+   * is logged rather than returned: this member must return whether the
+   * conditional write took effect, and a failed invalidation does not
+   * change that. The other instances then serve their local copies until those
+   * entries expire.
+   *
+   * @param operation - The member publishing, for the log line.
+   * @param key - The key that was written.
+   * @param write - What L2 returned.
+   */
+  private async broadcastConditionalWrite(
+    operation: TieredCacheOpName,
+    key: string,
+    write: D2Result<boolean>,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    if (this.backplane === undefined || !write.success || write.data !== true) {
+      return;
+    }
+
+    const published = await this.backplane.publishInvalidation(key, signal);
+
+    if (!published.success) {
+      logInvalidationPublishFailed(
+        this.logger,
+        operation,
+        key,
+        published.errorCode ?? TIERED_ERROR_CODE_UNKNOWN,
+      );
+    }
+  }
+
   private async publish(key: string, signal?: AbortSignal): Promise<D2Result> {
     if (this.backplane === undefined) {
       throw new Error(BACKPLANE_NOT_REGISTERED_MESSAGE);
@@ -525,6 +695,6 @@ function isNotFoundResult(r: D2Result<unknown>): boolean {
   return (
     !r.success &&
     (r.statusCode === HttpStatusCode.NotFound ||
-      r.errorCode === ErrorCodes.NOT_FOUND)
+      r.errorCode === ErrorCodes.GEN_NOT_FOUND)
   );
 }

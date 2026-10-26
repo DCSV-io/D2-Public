@@ -20,8 +20,8 @@ namespace DcsvIo.D2.Encryption;
 /// <remarks>
 /// Use these constants instead of raw strings so a typo can't silently
 /// route a message to a non-existent keyring. Adding a new domain is an
-/// architectural decision that requires KeyCustodian provisioning,
-/// key-rotation runbook updates, and operator coordination — the spec
+/// architectural decision that requires key provisioning,
+/// key-rotation runbook updates, and operator coordination - the spec
 /// edit forces all parties into the loop.
 /// </remarks>
 public static class EncryptionDomains
@@ -29,7 +29,7 @@ public static class EncryptionDomains
     /// <summary>Sentinel value indicating the message body MUST NOT be encrypted (always serialized as cleartext JSON). Surfaces on mq-messages.spec entries whose payload is non-PII; the message author MUST also document `encryptionReason` on the spec entry justifying the choice.</summary>
     public const string PLAINTEXT = "plaintext";
 
-    /// <summary>Public framework fixture domain for Shared.Tests sealed-path unit coverage of EncryptionDomainModes + EncryptedBodyComposer. Not a product keyring domain — hosts register product sealed domains (audit / notifications / courier) at composition time.</summary>
+    /// <summary>Public framework fixture domain for the sealed-path unit tests of EncryptionDomainModes + EncryptedBodyComposer. Not a production keyring domain - a host registers its own sealed domains at composition time.</summary>
     public const string FIXTURE_SEALED = "payload-fixture-sealed";
 
     /// <summary>
@@ -66,7 +66,7 @@ public enum EncryptionDomainMode
 /// <summary>
 /// Spec-derived per-domain encryption-mode + consumer-service lookups.
 /// A domain absent from the catalog (e.g. a test-seam synthetic domain)
-/// resolves to <c>Symmetric</c> — sealed-ness can originate only in the
+/// resolves to <c>Symmetric</c> - sealed-ness can originate only in the
 /// spec catalog, so a value that is not a declared sealed domain is by
 /// construction not sealed.
 /// </summary>

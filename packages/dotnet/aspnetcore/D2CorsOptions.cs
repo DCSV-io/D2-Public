@@ -12,42 +12,53 @@ using DcsvIo.D2.Headers.Http;
 /// Configuration for
 /// <see cref="CorsServiceCollectionExtensions.AddD2Cors"/>. Init-only
 /// properties; bind via the <c>configure</c> callback. Validated at host
-/// build via <c>ValidateOnStart()</c> — fail-fast on
+/// build via <c>ValidateOnStart()</c> - fail-fast on
 /// <see cref="Origins"/>=<c>[]</c> so an empty allowed-origins list never
 /// silently degrades to "no policy applied" at runtime.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <see cref="Origins"/> defaults to <c>[]</c> — empty list is intentionally
+/// <see cref="Origins"/> defaults to <c>[]</c> - empty list is intentionally
 /// fail-closed (no service should auto-allow cross-origin requests without
 /// an explicit decision). Services that need CORS configure the origins
 /// list explicitly via the
 /// <see cref="D2AspNetCoreConstants.CORS_ORIGINS_CONFIG_KEY"/> indexed
-/// env-var convention; services that need NO CORS don't call
-/// <c>AddD2Cors</c> at all.
+/// env-var convention; <c>AddD2Cors</c> is not called where NO CORS is
+/// needed.
 /// </para>
 /// <para>
-/// <see cref="AllowedHeaders"/> defaults enumerate the canonical D²
-/// cross-cutting headers (<c>X-Correlation-Id</c> — spec-driven constant
-/// from <c>HttpHeaders.CORRELATION_ID</c>; <c>Idempotency-Key</c> —
+/// <see cref="AllowedHeaders"/> defaults enumerate the canonical D2
+/// cross-cutting headers (<c>X-Correlation-Id</c> - spec-driven constant
+/// from <c>HttpHeaders.CORRELATION_ID</c>; <c>Idempotency-Key</c> -
 /// Stripe-style spec-driven constant from <c>HttpHeaders.IDEMPOTENCY_KEY</c>)
-/// + the standard request headers a SPA needs (<c>Content-Type</c>,
-/// <c>Authorization</c>) + IP-forwarding headers used by request enrichment
+/// + the standard request header a SPA needs (<c>Content-Type</c>)
+/// + IP-forwarding headers used by request enrichment
 /// (<c>X-Forwarded-For</c>, <c>X-Real-IP</c>, <c>CF-Connecting-IP</c>). New
 /// canonical headers added to any cross-cutting middleware MUST be added
 /// here in the same change per the doc-parity discipline.
+/// </para>
+/// <para>
+/// <c>Authorization</c> is not in the defaults, and
+/// <see cref="CorsServiceCollectionExtensions.AddD2Cors"/> rejects at host
+/// build a policy that allows it together with
+/// <see cref="AllowCredentials"/>. A policy that allows both lets a page on
+/// an allowlisted origin attach an arbitrary <c>Authorization</c> value to a
+/// credentialed cross-origin mutation, which is the state the forgery check
+/// in <c>UseD2ForgeryProtection</c> reads as exempt. To serve bearer-only
+/// cross-origin callers, add the header and set
+/// <see cref="AllowCredentials"/> to <c>false</c>.
 /// </para>
 /// </remarks>
 public sealed record D2CorsOptions
 {
     /// <summary>
-    /// Default allowed-headers list — covers the canonical D² cross-cutting
-    /// headers + standard SPA request headers + IP-forwarding headers.
+    /// Default allowed-headers list - covers the canonical D2 cross-cutting
+    /// headers + standard SPA request headers + IP-forwarding headers, and
+    /// not <c>Authorization</c>.
     /// </summary>
     internal static readonly IReadOnlyList<string> SR_DefaultAllowedHeaders =
     [
         "Content-Type",
-        HttpHeaders.AUTHORIZATION,
         HttpHeaders.CORRELATION_ID,
         HttpHeaders.IDEMPOTENCY_KEY,
         "X-Forwarded-For",
@@ -56,8 +67,8 @@ public sealed record D2CorsOptions
     ];
 
     /// <summary>
-    /// Default allowed-methods list — the seven HTTP methods a JSON API +
-    /// SPA needs (read, mutate, preflight).
+    /// Default allowed-methods list - the HTTP methods a JSON API and a SPA
+    /// need to read, to mutate and to preflight.
     /// </summary>
     internal static readonly IReadOnlyList<string> SR_DefaultAllowedMethods =
     [
@@ -71,7 +82,7 @@ public sealed record D2CorsOptions
     ];
 
     /// <summary>
-    /// Gets or sets the allowed origins — bound from
+    /// Gets or sets the allowed origins - bound from
     /// <see cref="D2AspNetCoreConstants.CORS_ORIGINS_CONFIG_KEY"/> via the
     /// indexed env-var convention. Default <c>[]</c> = fail-closed (no
     /// origins allowed). Validated non-empty + per-entry non-empty /
@@ -84,15 +95,19 @@ public sealed record D2CorsOptions
     public IReadOnlyList<string> Origins { get; set; } = [];
 
     /// <summary>
-    /// Gets or sets the allowed request headers — defaults to the canonical D² cross-cutting
-    /// headers + standard SPA request headers + IP-forwarding headers.
-    /// Validated per-entry non-empty / non-whitespace at host build.
+    /// Gets or sets the allowed request headers - defaults to the canonical
+    /// D2 cross-cutting headers + standard SPA request headers +
+    /// IP-forwarding headers. Validated per-entry non-empty / non-whitespace
+    /// at host build, and refused at host build when it contains
+    /// <c>Authorization</c> while <see cref="AllowCredentials"/> is
+    /// <c>true</c>.
     /// </summary>
     public IReadOnlyList<string> AllowedHeaders { get; set; } =
         SR_DefaultAllowedHeaders;
 
     /// <summary>
-    /// Gets or sets the allowed HTTP methods — defaults to the seven standard methods.
+    /// Gets or sets the allowed HTTP methods - defaults to the standard set
+    /// above.
     /// Validated per-entry non-empty / non-whitespace at host build.
     /// </summary>
     public IReadOnlyList<string> AllowedMethods { get; set; } =
@@ -102,16 +117,17 @@ public sealed record D2CorsOptions
     /// Gets or sets a value indicating whether the policy supports
     /// cookie / Authorization-header credentials (CORS spec
     /// <c>Access-Control-Allow-Credentials: true</c>).
-    /// Default <c>true</c> (the BFF needs cookies; service-to-service
-    /// outbound requires Authorization headers). Note: <c>true</c> is
-    /// incompatible with <see cref="Origins"/> containing the wildcard
-    /// <c>"*"</c> per the CORS spec — the validator catches this.
+    /// Default <c>true</c>, because a browser client authenticated by a
+    /// cookie needs it. Note: <c>true</c> is incompatible with
+    /// <see cref="Origins"/> containing the wildcard <c>"*"</c> per the CORS
+    /// spec, and with <c>Authorization</c> in
+    /// <see cref="AllowedHeaders"/>; the validator catches both.
     /// </summary>
     public bool AllowCredentials { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the browser preflight cache TTL in seconds. Default <c>600</c> (10 min)
-    /// — balance of cache-hit rate vs. policy-staleness window.
+    /// - balance of cache-hit rate vs. policy-staleness window.
     /// </summary>
     public int PreflightMaxAgeSeconds { get; set; } = 600;
 }

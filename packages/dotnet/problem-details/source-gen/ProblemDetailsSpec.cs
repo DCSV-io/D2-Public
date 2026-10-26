@@ -11,7 +11,7 @@ using System.Collections.Immutable;
 /// <summary>
 /// Parsed shape of
 /// <c>contracts/problem-details/problem-details.spec.json</c>.
-/// The <c>$schema</c> field is intentionally absent — JSON-Schema validation
+/// The <c>$schema</c> field is intentionally absent - JSON-Schema validation
 /// happens at edit time in editors / IDEs; the loader just deserializes the
 /// data fields and validates them in <see cref="ProblemDetailsEmitter"/>.
 /// </summary>
@@ -22,7 +22,7 @@ using System.Collections.Immutable;
 /// </param>
 /// <param name="ContentType">
 /// MIME type emitted on responses carrying an RFC 7807 ProblemDetails body
-/// (per RFC 7807 §6.1: <c>application/problem+json</c> for JSON bodies).
+/// (per RFC 7807 section 6.1: <c>application/problem+json</c> for JSON bodies).
 /// </param>
 /// <param name="ExtensionKeys">
 /// Every extension-key entry declared in the spec (in spec order).

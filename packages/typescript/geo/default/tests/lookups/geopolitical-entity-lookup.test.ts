@@ -29,14 +29,14 @@ describe("GeopoliticalEntityLookup", () => {
     ).toBeGreaterThanOrEqual(50);
   });
 
-  // §1.2 category: Domain-specific — per-VALUE pins.
+  // Category: Domain-specific - per-VALUE pins.
   it("EU fields pinned: FR + DE members, displayName non-empty", () => {
     const eu = GeopoliticalEntities.EU;
     expect(eu.shortCode).toBe(GeopoliticalEntityCode.EU);
     expect(eu.displayName.length).toBeGreaterThan(0);
 
     // EU continent / continental-Europe member set (per current spec
-    // hand-rolled catalog) — pin lower bound that captures core members.
+    // hand-rolled catalog) - pin a lower bound that includes the core members.
     expect(eu.memberCountryIso31661Alpha2Codes.size).toBeGreaterThanOrEqual(27);
     expect(
       eu.memberCountryIso31661Alpha2Codes.has(CountryCode.FR as CountryCode),
@@ -82,7 +82,7 @@ describe("GeopoliticalEntityLookup", () => {
     );
   });
 
-  // §1.2 category: Cross-field — code+nav agreement.
+  // Category: Cross-field - code+nav agreement.
   it("every entity: nav count matches code set size", () => {
     for (const entity of GeopoliticalEntityLookup.all) {
       expect(entity.memberCountries.length).toBe(

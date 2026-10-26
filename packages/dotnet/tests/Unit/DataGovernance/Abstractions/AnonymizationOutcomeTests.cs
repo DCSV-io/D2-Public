@@ -38,7 +38,7 @@ public sealed class AnonymizationOutcomeTests
     [Fact]
     public void Zero_valued_outcome_is_valid()
     {
-        // Represents "subject had no data in this domain" — not a failure.
+        // A zero-valued outcome means the subject had no data in this domain. It is not a failure.
         var sut = new AnonymizationOutcome
         {
             EntityTypesProcessed = 0,
@@ -95,8 +95,9 @@ public sealed class AnonymizationOutcomeTests
     [Fact]
     public void Properties_have_init_only_setters_not_regular_setters()
     {
-        // Required init-only — settable only at construction, never after. Verifies each
-        // property's setter carries the IsExternalInit modifier (init, not regular set).
+        // The properties are required and init-only: settable at construction and never after.
+        // The test verifies that each property's setter has the IsExternalInit modifier (init,
+        // not a regular set).
         const string is_external_init_name = "System.Runtime.CompilerServices.IsExternalInit";
         foreach (var prop in typeof(AnonymizationOutcome).GetProperties())
         {

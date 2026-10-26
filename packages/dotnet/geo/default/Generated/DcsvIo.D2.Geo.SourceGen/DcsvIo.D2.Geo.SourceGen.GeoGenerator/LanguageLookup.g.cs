@@ -16,7 +16,7 @@ namespace DcsvIo.D2.Geo.Default;
 
 /// <summary>
 /// Per-language <see cref="Language"/> accessors keyed by PascalCased
-/// ISO 639-1 (e.g. <c>Languages.En</c>) — matches the
+/// ISO 639-1 (e.g. <c>Languages.En</c>) - matches the
 /// <see cref="LanguageCode"/> enum member casing.
 /// </summary>
 public static class Languages

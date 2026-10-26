@@ -4,12 +4,13 @@
 
 /**
  * HTTP status code numeric constants used by the result layer.
- * Mirrors the .NET `System.Net.HttpStatusCode` values D2 actually
- * surfaces — not the full RFC catalog.
+ * Mirrors the .NET `System.Net.HttpStatusCode` values that D2 returns, not
+ * the full RFC catalog.
  */
 export const HttpStatusCode = {
   OK: 200,
   Created: 201,
+  NoContent: 204,
   PartialContent: 206,
   BadRequest: 400,
   Unauthorized: 401,

@@ -13,10 +13,10 @@ using Microsoft.Extensions.Logging;
 using Xunit;
 
 /// <summary>
-/// Pins the OTel logs MEL bridge — an <c>ILogger&lt;T&gt;</c> resolved
-/// from DI flows through the OpenTelemetry MEL provider that
-/// <c>AddD2Telemetry</c> registers, eventually reaching the in-memory
-/// log exporter.
+/// Pins the OTel logs bridge to Microsoft.Extensions.Logging (MEL): a log
+/// call on an <c>ILogger&lt;T&gt;</c> resolved from DI passes through the
+/// OpenTelemetry MEL provider that <c>AddD2Telemetry</c> registers and
+/// reaches the in-memory log exporter.
 /// </summary>
 [Collection("LogLoggerStaticState")]
 public sealed class LogsExporterTests
@@ -30,10 +30,10 @@ public sealed class LogsExporterTests
             .GetRequiredService<ILoggerFactory>()
             .CreateLogger("LogsExporterTests");
 
-        // Drive ILogger directly via the lowest-level Log overload to
-        // sidestep CA1848 / CA1727 — production code uses LoggerMessage
-        // source-generated delegates; this test exists to pin the
-        // pipeline plumbing, not the log-call ergonomics.
+        // Call ILogger through the lowest-level Log overload, which avoids
+        // CA1848 and CA1727. Production code uses LoggerMessage
+        // source-generated delegates; this test pins the pipeline wiring and
+        // not the log-call syntax.
         logger.Log(
             logLevel: LogLevel.Information,
             eventId: 0,
@@ -41,8 +41,8 @@ public sealed class LogsExporterTests
             exception: null,
             formatter: (s, _) => s);
 
-        // Force-dispose the LoggerFactory triggers the OTel logs
-        // processor's shutdown path, which flushes pending records.
+        // Disposing the LoggerFactory triggers the shutdown path of the OTel
+        // logs processor, which flushes pending records.
         handle.Host.Services.GetRequiredService<ILoggerFactory>().Dispose();
 
         handle.Logs.Snapshot().Should().NotBeEmpty(

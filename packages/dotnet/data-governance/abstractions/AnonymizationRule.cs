@@ -29,26 +29,26 @@ using JetBrains.Annotations;
 /// model-build time.
 /// </para>
 /// <para>
-/// <strong>Equality:</strong> <c>Constant("")</c> and <c>SetEmpty</c> are NOT equal
+/// <strong>Equality:</strong> <c>Constant("")</c> and <c>SetEmpty</c> are not equal
 /// (<see cref="Kind"/> differs) even though the engine treats them identically at apply-time.
-/// This distinction is deliberate — the startup divergence guard uses record equality to
-/// detect conflicting double-declarations, and silent equality collapse would hide
-/// contradictory attribute + fluent pairs.
+/// The distinction is deliberate: the startup divergence guard uses record equality to
+/// detect conflicting double declarations, and treating them as equal would hide
+/// contradictory pairs of an attribute and a fluent call.
 /// </para>
 /// <para>
 /// <strong>Construction:</strong> use <see cref="Create"/> rather than object-initializer
-/// syntax. The factory enforces the same <c>Kind ↔ payload</c> invariant as
+/// syntax. The factory enforces the same <c>Kind &lt;-> payload</c> invariant as
 /// <see cref="AnonymizableAttribute"/> so contradictory rules are impossible to build.
-/// Violations throw <see cref="ArgumentException"/> at model-build time — this is a
-/// developer error, not a runtime validation failure, so <c>D2Result</c> is intentionally
-/// not used here.
+/// Violations throw <see cref="ArgumentException"/> at model-build time. This is a
+/// developer error and not a runtime validation failure, so the factory does not use
+/// <c>D2Result</c>.
 /// </para>
 /// </remarks>
 public sealed record AnonymizationRule
 {
-    // Private ctor — callers use Create(). All three properties are private init so the
-    // only construction path is through the validated factory, making contradictory rules
-    // impossible to build. Placed before properties and methods per SA1201 (ctors first).
+    // Private constructor: all properties are private init, so Create() is the only
+    // construction path and contradictory rules cannot be built. The constructor comes
+    // before properties and methods per SA1201 (constructors first).
     private AnonymizationRule(AnonymizeKind kind, string? constantValue, string? template)
     {
         Kind = kind;
@@ -77,9 +77,9 @@ public sealed record AnonymizationRule
     public string? Template { get; private init; }
 
     /// <summary>
-    /// Creates a validated <see cref="AnonymizationRule"/> enforcing the <c>Kind ↔ payload</c>
-    /// invariant. This is the single construction point for both the EF Core attribute-mapping
-    /// model convention and the fluent mapping API.
+    /// Creates a validated <see cref="AnonymizationRule"/> enforcing the <c>Kind &lt;-> payload</c>
+    /// invariant. Every rule is built through this method, whether it comes from an
+    /// attribute or from the fluent mapping API.
     /// </summary>
     /// <param name="kind">The overwrite strategy.</param>
     /// <param name="constantValue">
@@ -102,7 +102,7 @@ public sealed record AnonymizationRule
         string? template = null)
     {
         // Plain BCL ArgumentException matches the "developer error at model-build time"
-        // contract. DcsvIo.D2.Utilities is referenced for Falsey() (§5.1).
+        // contract. DcsvIo.D2.Utilities is referenced for Falsey().
         switch (kind)
         {
             case AnonymizeKind.SetNull:

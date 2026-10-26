@@ -12,9 +12,9 @@ using DcsvIo.D2.InProcessKeys.SourceGen;
 using Xunit;
 
 /// <summary>
-/// Pure-logic coverage for <see cref="InProcessKeysEmitter"/>: happy-path
-/// emission per binding filter, invalid constName diagnostics, unknown
-/// binding diagnostics, and empty spec handling.
+/// Tests of <see cref="InProcessKeysEmitter"/> that need no I/O: emission for
+/// the http binding filter, the invalid constName diagnostic, the unknown
+/// binding diagnostic, and the empty spec.
 /// </summary>
 public sealed class InProcessKeysEmitterTests
 {

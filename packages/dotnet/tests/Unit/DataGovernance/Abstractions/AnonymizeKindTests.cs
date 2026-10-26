@@ -44,7 +44,7 @@ public sealed class AnonymizeKindTests
     [Fact]
     public void AnonymizeKind_has_exactly_four_members()
     {
-        // Pins the closed set — adding a fifth member without updating this test is intentional.
+        // Pins the closed set: adding a member fails this test until the test is updated.
         Enum.GetNames<AnonymizeKind>().Should().HaveCount(4);
     }
 }

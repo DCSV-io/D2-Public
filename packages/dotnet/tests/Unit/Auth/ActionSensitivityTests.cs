@@ -17,8 +17,8 @@ public sealed class ActionSensitivityTests
     public void Enum_HasExactlyThreeMembers()
     {
         // Adversarial: ActionSensitivity drives risk-score thresholds and audit
-        // verbosity. Adding a tier requires updating Edge risk-score logic +
-        // every Scopes.GetActionSensitivity caller.
+        // verbosity. A new tier requires changes to the host's risk-score logic
+        // and to every operation that declares a sensitivity.
         const int expected_count = 3;
 
         Enum.GetNames<ActionSensitivity>().Should().HaveCount(expected_count);
@@ -37,10 +37,10 @@ public sealed class ActionSensitivityTests
     [InlineData(ActionSensitivity.Critical, 2)]
     public void Enum_UnderlyingIntValuesAreOrdered(ActionSensitivity sensitivity, int expected)
     {
-        // Adversarial: unlike Role, sensitivity int values DO imply an
-        // ordering (Routine < Sensitive < Critical) — codebase logic that
-        // does `>= Sensitive` checks depends on this. Reordering would
-        // silently invert security posture.
+        // Adversarial: unlike Role, the int values of ActionSensitivity imply
+        // an ordering (Routine < Sensitive < Critical), and codebase logic
+        // that makes `>= Sensitive` checks depends on it. Reordering the
+        // members would invert the security posture with no compiler error.
         ((int)sensitivity).Should().Be(expected);
     }
 

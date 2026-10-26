@@ -2,11 +2,11 @@
 // Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 // -----------------------------------------------------------------------
 //
-// Dual-layout prebuild helper for public TypeScript packages.
+// Prebuild helper for public TypeScript packages.
 //
-// Monorepo: `ts-codegen` is in the workspace → run the emit script.
-// Public OSS clone: factory is not exported → skip regen and rely on
-// committed `*.g.ts` (publish-time SoT for outsiders).
+// When the `ts-codegen` package is in the workspace, the script runs its emit
+// script. Otherwise it skips regeneration and uses the committed `*.g.ts`
+// files, which are the published sources.
 //
 // Usage (from a package dir):
 //   node ../scripts/run-ts-codegen.mjs src/error-codes-emit.ts
@@ -43,7 +43,7 @@ function hasTsCodegen() {
 
 if (!hasTsCodegen()) {
   console.log(
-    "run-ts-codegen: ts-codegen not in workspace — skipping regen (committed generated sources)",
+    "run-ts-codegen: ts-codegen not in workspace - skipping regen (committed generated sources)",
   );
   process.exit(0);
 }

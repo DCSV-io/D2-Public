@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "D2 error codes spec (canonical generalized schema)",
-  "description": "Canonical generalized schema for all *-error-codes spec files — the source-of-truth catalogs the unified error-codes generator reads to emit <Domain>ErrorCodes.g.cs + <Domain>Failures.g.cs (.NET) and <domain>-error-codes.g.ts + <domain>-failures.g.ts (TypeScript) for each domain. The generic cross-cutting spec (contracts/error-codes/error-codes.spec.json) and every per-domain spec (contracts/<domain>-error-codes/<domain>-error-codes.spec.json) conform to this shape. Per-domain schema.json files either copy this definition verbatim or $ref it directly. The generator derives the emitted class names (<Domain>ErrorCodes / <Domain>Failures) and the enforced domain-prefix constraint from the spec filename; per-domain codes MUST be prefixed with the domain token in SCREAMING_SNAKE (e.g. AUTH_*, GEO_*, KEYCUSTODIAN_*); the generic spec owns the sole reserved unprefixed namespace (NOT_FOUND, CONFLICT, etc.); the merged-registry build hard-fails on any cross-catalog code collision. Example spec entry: { \"code\": \"GEO_SUBDIVISION_NOT_FOUND\", \"httpStatus\": 404, \"category\": \"not_found\", \"userMessageKey\": \"TK.Geo.Errors.SUBDIVISION_NOT_FOUND\", \"factoryName\": \"SubdivisionNotFound\", \"factoryShape\": \"standard\", \"doc\": \"The requested ISO 3166-2 subdivision code does not exist.\" }",
+  "description": "Canonical generalized schema for every *-error-codes spec file - the source-of-truth catalogs the unified error-codes generator reads to emit <Domain>ErrorCodes.g.cs and <Domain>Failures.g.cs (.NET) and <domain>-error-codes.g.ts and <domain>-failures.g.ts (TypeScript) for each domain. The generic cross-cutting spec (contracts/error-codes/error-codes.spec.json) and every per-domain spec (contracts/<domain>-error-codes/<domain>-error-codes.spec.json) conform to this shape, and a per-domain schema.json either copies this definition verbatim or $refs it. Every code carries an owner prefix and, outside the generic catalog, a domain token: GEN_{REST} for a generic or framework code, LIB_{DOMAIN}_{REST} for a library catalog, DOM_{DOMAIN}_{REST} for an application-domain catalog. The generator enforces the whole prefix as one string - the catalog configuration names it, a code that does not start with it fails the build with D2ERC001 - and derives the emitted class names from the spec filename. The merged registry hard-fails on a code collision across catalogs. Example spec entry: { \"code\": \"LIB_PAGINATION_REQUEST_REQUIRED\", \"httpStatus\": 400, \"category\": \"validation_failure\", \"userMessageKey\": \"TK.Common.Pagination.REQUEST_REQUIRED\", \"factoryName\": \"RequestRequired\", \"factoryShape\": \"standard\", \"doc\": \"No page request was supplied.\" }",
   "type": "object",
   "required": ["errorCodes"],
   "additionalProperties": false,
@@ -30,7 +30,7 @@
         "code": {
           "type": "string",
           "pattern": "^[A-Z][A-Z0-9_]*$",
-          "description": "Wire-format error code (SCREAMING_SNAKE). Shape-only regex — the generator derives the domain prefix token from the catalog filename and enforces that every code in a per-domain spec starts with that token (e.g. AUTH_*, GEO_*). The generic catalog owns the unprefixed reserved namespace. Must be unique across the spec."
+          "description": "Wire-format error code (SCREAMING_SNAKE). Shape-only regex - each catalog enforces its own full owner prefix, GEN_ or LIB_{DOMAIN}_ or DOM_{DOMAIN}_, and a code that does not carry it fails the build with D2ERC001. Must be unique across the spec."
         },
         "httpStatus": {
           "type": "integer",
@@ -50,12 +50,12 @@
             "internal_error",
             "partial_success"
           ],
-          "description": "Closed semantic/telemetry classification. NOT the factory selector — httpStatus drives factory selection. Added to the wire (gRPC trailers + JSON envelope) so consumers can do generic class-based handling (e.g. retry any infrastructure_unavailable) without importing the producer's catalog. partial_success classifies the read-partial (206 SOME_FOUND) + write-partial (207 PARTIAL_SUCCESS) codes, which are not failures."
+          "description": "Closed semantic/telemetry classification. NOT the factory selector - httpStatus drives factory selection. Added to the wire (gRPC trailers + JSON envelope) so consumers can do generic class-based handling (e.g. retry any infrastructure_unavailable) without importing the producer's catalog. partial_success classifies the read-partial SOME_FOUND and write-partial PARTIAL_SUCCESS codes - a mixed per-target outcome. Both are failures: anything short of every item or every target is reported as one, and a caller that may accept a partial outcome opts in by testing the code."
         },
         "userMessageKey": {
           "type": "string",
           "pattern": "^TK(\\.[A-Za-z][A-Za-z0-9]*){2}\\.[A-Z][A-Z0-9_]*$",
-          "description": "Translation key reference rendered as the messages argument on the emitted D2Result factory (e.g. TK.Auth.Errors.UNAUTHORIZED, TK.Common.Errors.NOT_FOUND). Written as the C# symbol-path string — the .NET emitter uses it verbatim in the factory body; the TS emitter passes it to tk(...). The generator enforces existence by inverse-transforming the symbol path to the snake_case key (TK.Auth.Errors.UNAUTHORIZED -> auth_errors_UNAUTHORIZED) and asserting membership in contracts/messages/en-US.json. Coarse on purpose for auth-class codes — one key per status bucket so the user-facing surface does not leak which validation step failed."
+          "description": "Translation key reference rendered as the messages argument on the emitted D2Result factory (e.g. TK.Auth.Errors.UNAUTHORIZED, TK.Common.Errors.NOT_FOUND). Written as the C# symbol-path string - the .NET emitter uses it verbatim in the factory body; the TS emitter passes it to tk(...). The generator enforces existence by inverse-transforming the symbol path to the snake_case key (TK.Auth.Errors.UNAUTHORIZED -> auth_errors_UNAUTHORIZED) and asserting membership in contracts/messages/en-US.json. Coarse on purpose for auth-class codes - one key per status bucket so the user-facing surface does not leak which validation step failed."
         },
         "factoryName": {
           "type": "string",
@@ -65,7 +65,7 @@
         "factoryShape": {
           "type": "string",
           "enum": ["standard", "none"],
-          "description": "Closed enum that drives the generated factory's signature variant. standard: the one universal error-factory shape (messages?, inputErrors?, errorCode?, category?, traceId?) — ALL optional. Every error factory at any status can stamp a domain code + category and optionally carry inputErrors; the errorCode / category overrides are how a delegating domain factory stamps a specific code + category on a base status. none: no factory generated for this code; only the constant + boolean are emitted — used by codes with no current factory (e.g. SOME_FOUND/PARTIAL_SUCCESS whose data-carrying 206/207 factories stay hand-rolled, IDEMPOTENCY_IN_FLIGHT/serialization codes)."
+          "description": "Closed enum that drives the generated factory's signature variant. standard: the one universal error-factory shape (messages?, inputErrors?, errorCode?, category?, traceId?) - ALL optional. Every error factory at any status can stamp a domain code + category and optionally carry inputErrors; the errorCode / category overrides are how a delegating domain factory stamps a specific code + category on a base status. none: no factory generated for this code; only the constant + boolean are emitted - used by codes with no current factory (e.g. SOME_FOUND/PARTIAL_SUCCESS whose data-carrying factories stay hand-rolled, IDEMPOTENCY_IN_FLIGHT/serialization codes)."
         },
         "doc": {
           "type": "string",
@@ -74,7 +74,7 @@
         },
         "deprecated": {
           "type": "boolean",
-          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive — the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
+          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive - the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
         },
         "deprecatedReason": {
           "type": "string",
@@ -88,7 +88,7 @@
         "sunset": {
           "type": "string",
           "format": "date",
-          "description": "ISO-8601 date for the future RFC 8594 Sunset response header. Edge-runtime-deferred: carried on the contract now, consumed by the Edge response middleware when it exists. Inert until then."
+          "description": "ISO-8601 date for the RFC 8594 Sunset response header. A host whose response pipeline emits that header reads the date from here; a host that does not ignores it."
         }
       }
     }

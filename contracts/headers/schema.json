@@ -33,7 +33,7 @@
         "constName": {
           "type": "string",
           "pattern": "^[A-Z][A-Z0-9_]*$",
-          "description": "Public C# / TS constant identifier — UPPER_SNAKE_CASE."
+          "description": "Public C# / TS constant identifier - UPPER_SNAKE_CASE."
         },
         "applicability": {
           "type": "array",
@@ -54,7 +54,7 @@
         },
         "deprecated": {
           "type": "boolean",
-          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive — the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
+          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive - the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
         },
         "deprecatedReason": {
           "type": "string",
@@ -68,7 +68,7 @@
         "sunset": {
           "type": "string",
           "format": "date",
-          "description": "ISO-8601 date for the future RFC 8594 Sunset response header. Edge-runtime-deferred: carried on the contract now, consumed by the Edge response middleware when it exists. Inert until then."
+          "description": "ISO-8601 date for the RFC 8594 Sunset response header. A host whose response pipeline emits that header reads the date from here; a host that does not ignores it."
         }
       }
     }

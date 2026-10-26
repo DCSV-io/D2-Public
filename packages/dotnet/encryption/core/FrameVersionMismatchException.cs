@@ -11,9 +11,10 @@ namespace DcsvIo.D2.Encryption;
 /// by this lib.
 /// </summary>
 /// <remarks>
-/// Frames are versioned so that a future format revision can ship without
-/// silently misinterpreting old (or attacker-crafted) frames. There is no
-/// "best effort" decode path — unrecognized versions are rejected.
+/// Frames are versioned so that a format revision can ship without a frame of
+/// another version, whether old or attacker-crafted, being silently
+/// misinterpreted. There is no
+/// "best effort" decode path - unrecognized versions are rejected.
 /// </remarks>
 public sealed class FrameVersionMismatchException : EncryptionException
 {

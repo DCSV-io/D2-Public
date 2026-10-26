@@ -31,7 +31,7 @@ public sealed class D2ResultMonadicTests
     [Fact]
     public void Bind_OnFailure_DoesNotInvokeNext()
     {
-        // Lazy evaluation: next must NOT be called when upstream failed.
+        // Lazy evaluation: next must NOT be called when the upstream result failed.
         var seed = D2Result<int>.NotFound();
         var invocations = 0;
 
@@ -43,7 +43,7 @@ public sealed class D2ResultMonadicTests
 
         invocations.Should().Be(0);
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.NOT_FOUND);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_NOT_FOUND);
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public sealed class D2ResultMonadicTests
         var result = seed.Bind(_ => D2Result<string>.Ok("never"));
 
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.CONFLICT);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_CONFLICT);
         result.Messages.Should().Equal(TK.Common.Errors.UNKNOWN);
         result.TraceId.Should().Be("t-up");
     }
@@ -70,15 +70,15 @@ public sealed class D2ResultMonadicTests
             D2Result<string>.Forbidden(messages: [TK.Common.Errors.UNKNOWN]));
 
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.FORBIDDEN);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_FORBIDDEN);
         result.Messages.Should().Equal(TK.Common.Errors.UNKNOWN);
     }
 
     [Fact]
     public void Bind_Chain_ShortCircuitsOnMidFailure()
     {
-        // Three-step chain: Ok → Failure → never-called. Verify both that the failure
-        // propagates AND that the third step is never invoked.
+        // Three-step chain: Ok -> Failure -> never called. The test checks that the
+        // failure propagates AND that the third step is never invoked.
         var seed = D2Result<int>.Ok(5);
         var step3Invoked = false;
 
@@ -91,7 +91,7 @@ public sealed class D2ResultMonadicTests
             });
 
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.NOT_FOUND);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_NOT_FOUND);
         result.Messages.Should().Equal(TK.Common.Errors.UNKNOWN);
         step3Invoked.Should().BeFalse();
     }
@@ -135,7 +135,7 @@ public sealed class D2ResultMonadicTests
 
         invocations.Should().Be(0);
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.CONFLICT);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_CONFLICT);
     }
 
     [Fact]
@@ -149,7 +149,7 @@ public sealed class D2ResultMonadicTests
         var result = seed.Map(x => x.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.VALIDATION_FAILED);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_VALIDATION_FAILED);
         result.Messages.Should().Equal(TK.Common.Errors.UNKNOWN);
         result.InputErrors.Should().HaveCount(1);
         result.TraceId.Should().Be("t");
@@ -158,7 +158,7 @@ public sealed class D2ResultMonadicTests
     [Fact]
     public void Map_ProjectionThrows_ExceptionPropagates()
     {
-        // Adversarial: Map does NOT catch exceptions — projection failures throw out
+        // Adversarial: Map does NOT catch exceptions - projection failures throw out
         // of the chain. This is intentional; D2Result wraps known failure modes via
         // factories, not exceptional cases.
         var seed = D2Result<int>.Ok(5);
@@ -193,7 +193,7 @@ public sealed class D2ResultMonadicTests
             onSuccess: _ => "should not be called",
             onFailure: r => $"{r.ErrorCode}:{r.Messages.Count}");
 
-        result.Should().Be($"{ErrorCodes.NOT_FOUND}:1");
+        result.Should().Be($"{ErrorCodes.GEN_NOT_FOUND}:1");
     }
 
     [Fact]
@@ -272,7 +272,7 @@ public sealed class D2ResultMonadicTests
         var rhs = m.Bind(x => D2Result<int>.Ok(x));
 
         rhs.Success.Should().BeFalse();
-        rhs.ErrorCode.Should().Be(ErrorCodes.CONFLICT);
+        rhs.ErrorCode.Should().Be(ErrorCodes.GEN_CONFLICT);
         rhs.Messages.Should().Equal(TK.Common.Errors.UNKNOWN);
     }
 

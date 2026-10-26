@@ -58,7 +58,7 @@ describe("PropagatedContextSerializer", () => {
   });
 
   it("null/undefined fields are omitted from the serialized envelope", () => {
-    // Null/undefined values must not become the string "null" — they must
+    // Null/undefined values must not become the string "null" - they must
     // be entirely absent from the wire envelope (WhenWritingNull semantics).
     // When decoded, absent fields surface as undefined (not null).
     const enc = PropagatedContextSerializer.serialize({
@@ -84,8 +84,10 @@ describe("PropagatedContextSerializer", () => {
   });
 });
 
-describe("PropagatedContextSerializer — new propagated fields (Surface 3/4)", () => {
-  // Surface 4: TS-side propagation round-trips for 7 new propagated fields.
+describe("PropagatedContextSerializer - new propagated fields (Surface 3/4)", () => {
+  // Round-trip tests of the TypeScript propagation for the propagated fields
+  // localeIetfBcp47Tag, timezoneIanaName, currencyIso4217Code, edgeNodeId,
+  // orgPlanTier, featureFlagsCsv and idempotencyKey.
 
   it("round-trips localeIetfBcp47Tag when set", () => {
     const enc = PropagatedContextSerializer.serialize({
@@ -283,7 +285,8 @@ describe("PropagatedContextSerializer — new propagated fields (Surface 3/4)", 
     expect(dec["idempotencyKey"]).toBeUndefined();
   });
 
-  // Surface 7 (TS): temporal adversarial — requestStartedAt (ISO 8601 string? wire form).
+  // Temporal adversarial cases for requestStartedAt (an optional ISO 8601
+  // string in its wire form).
   it("round-trips requestStartedAt ISO string when set", () => {
     const isoValue = "2026-05-27T14:30:00.000Z";
     const enc = PropagatedContextSerializer.serialize({
@@ -440,7 +443,7 @@ describe("IRequestContextRedactPaths", () => {
   });
 
   it("excludes network-category fields that are not personal identifiers", () => {
-    // asn, asnName, asnType — these are network-infrastructure fields.
+    // asn, asnName, asnType - these are network-infrastructure fields.
     // asn and asnName identify ISPs/organizations (not individual users),
     // and asnType is a closed-vocabulary category. None are redacted via
     // Pino path redaction; risk-scoring logic consumes them directly.
@@ -457,9 +460,9 @@ describe("IRequestContextRedactPaths", () => {
   });
 });
 
-describe("PropagatedContextSerializer — call-path (propagated list-of-records)", () => {
-  // The first propagated list-of-records field. Mirrors the .NET CallPath
-  // depth-bound (max entry count = 16) + per-entry-id cap (128).
+describe("PropagatedContextSerializer - call-path (propagated list-of-records)", () => {
+  // The first propagated list-of-records field. These tests mirror the .NET
+  // CallPath depth bound (maximum entry count = 16) and per-entry id cap (128).
 
   const buildPath = (count: number): IPropagatedContext["callPath"] =>
     Array.from({ length: count }, (_unused, i) => ({
@@ -476,12 +479,12 @@ describe("PropagatedContextSerializer — call-path (propagated list-of-records)
         timestamp: "2026-05-27T10:00:00.0000000+00:00",
       },
       {
-        id: "key-custodian",
+        id: "inventory",
         kind: CallPathKind.WorkloadHop,
         timestamp: "2026-05-27T10:00:01.0000000+00:00",
       },
       {
-        id: "audit",
+        id: "orders",
         kind: CallPathKind.ModuleHop,
         timestamp: "2026-05-27T10:00:02.0000000+00:00",
       },

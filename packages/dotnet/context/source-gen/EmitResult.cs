@@ -10,8 +10,8 @@ using System.Collections.Immutable;
 using DcsvIo.D2.SourceGen;
 
 /// <summary>
-/// Result of an emit operation (interface emission OR mutable+envelope emission).
-/// Pure data — the Roslyn host transforms the diagnostics into
+/// Result of an emit operation (interface, mutable class or propagated-context emission).
+/// Pure data. The Roslyn host transforms the diagnostics into
 /// <see cref="Microsoft.CodeAnalysis.Diagnostic"/> instances and writes the
 /// generated source to the named file.
 /// </summary>

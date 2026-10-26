@@ -16,14 +16,15 @@ using Xunit;
 
 /// <summary>
 /// Adversarial coverage for <see cref="PhoneNumber"/>: the structural floor
-/// (strip non-digits, 7-15 envelope, raw-length cap, bubbling the common
-/// invalid-phone key) and the injected-validator seam (output + failure bubbled
-/// verbatim, region forwarded to the validator and ignored by the floor).
+/// (strip non-digits, 7-15 envelope, raw-length cap, returning the common
+/// invalid-phone key on failure) and the injected-validator seam (the
+/// validator's output and failure returned verbatim, and the region forwarded
+/// to the validator and ignored by the floor).
 /// </summary>
 public sealed class PhoneNumberTests
 {
     // -----------------------------------------------------------------------
-    // Floor — valid
+    // Floor - valid
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -54,7 +55,7 @@ public sealed class PhoneNumberTests
     }
 
     // -----------------------------------------------------------------------
-    // Floor — invalid (bubbles common invalid-phone key)
+    // Floor - invalid (bubbles common invalid-phone key)
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -74,13 +75,13 @@ public sealed class PhoneNumberTests
     }
 
     // -----------------------------------------------------------------------
-    // Floor — raw-length cap (32 chars)
+    // Floor - raw-length cap (32 chars)
     // -----------------------------------------------------------------------
 
     [Fact]
     public void Create_FloorRawOverMaxLength_ReturnsPhoneTooLong()
     {
-        // 33 chars of digits — exceeds the raw E.164 ceiling before the digit
+        // 33 chars of digits - exceeds the raw E.164 ceiling before the digit
         // envelope is even consulted.
         var overMax = new string('1', FieldConstraints.PHONE_E164_MAX + 1);
         var result = PhoneNumber.Create(overMax);
@@ -101,13 +102,13 @@ public sealed class PhoneNumberTests
         var result = PhoneNumber.Create(raw);
 
         // The raw guard passes (length == max is allowed); the stripped digits
-        // (123456789012345) fall within the 7-15 envelope → Ok.
+        // (123456789012345) fall within the 7-15 envelope -> Ok.
         result.Success.Should().BeTrue();
         result.Data!.Value.Should().Be("123456789012345");
     }
 
     // -----------------------------------------------------------------------
-    // FromTrusted — verbatim trusted-store reconstruction (no validation)
+    // FromTrusted - verbatim trusted-store reconstruction (no validation)
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -119,7 +120,7 @@ public sealed class PhoneNumberTests
     [Fact]
     public void FromTrusted_DoesNotValidate_PassesInvalidValueVerbatim()
     {
-        // FromTrusted bypasses the Create gate — an invalid stored value is reconstructed
+        // FromTrusted bypasses the Create gate - an invalid stored value is reconstructed
         // verbatim (the trusted-store contract assumes the value was validated on write).
         PhoneNumber.FromTrusted("not-a-phone").Value.Should().Be("not-a-phone");
     }
@@ -187,8 +188,8 @@ public sealed class PhoneNumberTests
     {
         // The validator returns a key that PhoneNumber.Create itself never emits
         // (TK.Geo.Validation.ADMIN_EMPTY_RECORD is outside {PHONE_INVALID, PHONE_TOO_LONG}).
-        // This proves the validator's exact result was bubbled verbatim, not re-raised
-        // with a key from Contacts' own validation vocabulary.
+        // This shows that the result returned is the validator's exact result, and
+        // not a new failure with a key from Contacts' own validation vocabulary.
         var distinguishingKey = TK.Geo.Validation.ADMIN_EMPTY_RECORD;
         var failure = D2Result<string>.ValidationFailed(messages: [distinguishingKey]);
         var validator = new FakePhoneValidator(failure);
@@ -203,7 +204,7 @@ public sealed class PhoneNumberTests
     [Fact]
     public void Create_FloorMode_IgnoresRegion()
     {
-        // No validator — region must have no effect on the floor outcome.
+        // No validator - region must have no effect on the floor outcome.
         var withRegion = PhoneNumber.Create("+1 212 555 1234", region: CountryCode.GB);
         var withoutRegion = PhoneNumber.Create("+1 212 555 1234");
 

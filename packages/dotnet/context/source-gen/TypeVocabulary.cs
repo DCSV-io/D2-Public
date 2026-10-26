@@ -11,10 +11,10 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Closed vocabulary of types recognized by the context source generator.
-/// New types require schema + emitter updates in lockstep — the schema's
-/// <c>type</c> enum gates editor-time validation; this set gates build-time
+/// A new type requires updates to the schema and the emitter together: the schema's
+/// <c>type</c> enum checks the type at editor time; this set checks it at build time
 /// (<see cref="DiagnosticIds.UnknownType"/>); per-type emit helpers in
-/// <see cref="MutableEmitter"/> render the field default + parsing logic.
+/// <see cref="MutableEmitter"/> render the field default and the parsing logic.
 /// </summary>
 internal static class TypeVocabulary
 {
@@ -61,7 +61,7 @@ internal static class TypeVocabulary
 
     /// <summary>
     /// Read-only string list vocabulary key (used for multi-valued audience claim per
-    /// RFC 7519 §4.1.3).
+    /// RFC 7519 section 4.1.3).
     /// </summary>
     public const string StringList = "IReadOnlyList<string>";
 
@@ -90,6 +90,9 @@ internal static class TypeVocabulary
     private static readonly HashSet<string> sr_validDerivedRules =
         new(StringComparer.Ordinal) { "actorChain" };
 
+    private static readonly HashSet<string> sr_validClaimForms =
+        new(StringComparer.Ordinal) { "verbatimSet", "spaceJoined" };
+
     /// <summary>
     /// Gets a comma-separated list of valid types for diagnostic messages.
     /// </summary>
@@ -102,6 +105,12 @@ internal static class TypeVocabulary
     public static string ValidDerivedRulesForDiagnostics =>
         string.Join(", ", sr_validDerivedRules);
 
+    /// <summary>
+    /// Gets a comma-separated list of valid claim forms for diagnostic messages.
+    /// </summary>
+    public static string ValidClaimFormsForDiagnostics =>
+        string.Join(", ", sr_validClaimForms);
+
     /// <summary>True when <paramref name="type"/> is in the closed vocabulary.</summary>
     /// <param name="type">The type string from the spec.</param>
     /// <returns>True if recognized.</returns>
@@ -111,6 +120,21 @@ internal static class TypeVocabulary
     /// <param name="rule">The rule name from the spec.</param>
     /// <returns>True if recognized.</returns>
     public static bool IsValidDerivedRule(string rule) => sr_validDerivedRules.Contains(rule);
+
+    /// <summary>
+    /// True when the emitter implements <paramref name="claimForm"/> for a property of
+    /// <paramref name="type"/>: <c>verbatimSet</c> for <see cref="StringSet"/> and
+    /// <c>spaceJoined</c> for <see cref="StringNullable"/>.
+    /// </summary>
+    /// <param name="claimForm">The claim form from the spec.</param>
+    /// <param name="type">The property's type from the spec.</param>
+    /// <returns>True if the form applies to the type.</returns>
+    public static bool ClaimFormAppliesTo(string claimForm, string type) => claimForm switch
+    {
+        "verbatimSet" => type == StringSet,
+        "spaceJoined" => type == StringNullable,
+        _ => false,
+    };
 
     /// <summary>
     /// Returns the default-value expression for a field of <paramref name="type"/> when

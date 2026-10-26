@@ -100,22 +100,21 @@ internal static partial class SubscriberLog
         EventId = 309,
         Level = LogLevel.Error,
         Message = "DLQ republish failed on queue={Queue} (dlx={Dlx}, "
-            + "deliveryTag={DeliveryTag}, msgId={MessageId}, exType={ExType}, "
-            + "where={Where}); falling back to BasicNack so x-dead-letter-exchange "
-            + "routes the message — x-d2-failure-reason header will NOT survive.")]
+            + "deliveryTag={DeliveryTag}, msgId={MessageId}, outcome={Outcome}); "
+            + "an open original consumer channel will receive BasicNack without requeue. "
+            + "Broker dead-lettering does not preserve the added failure header.")]
     public static partial void DlqRepublishFailed(
         ILogger logger,
         string queue,
         string dlx,
         ulong deliveryTag,
         string? messageId,
-        string exType,
-        string? where);
+        string outcome);
 
     [LoggerMessage(
         EventId = 310,
         Level = LogLevel.Warning,
-        Message = "Disposal drain timed out on queue={Queue} after {TimeoutMs}ms — "
+        Message = "Disposal drain timed out on queue={Queue} after {TimeoutMs}ms - "
             + "{InflightCount} in-flight callback(s) still running. Closing channel "
             + "anyway; affected handlers may surface ObjectDisposedException on "
             + "their next ack/nack and the broker will redeliver the message.")]
@@ -143,7 +142,7 @@ internal static partial class SubscriberLog
         Level = LogLevel.Error,
         Message = "BasicAck failed on queue={Queue} (deliveryTag={DeliveryTag}, "
             + "msgId={MessageId}, exType={ExType}, where={Where}); broker will "
-            + "redeliver — idempotency mark already written, so handler will "
+            + "redeliver - idempotency mark already written, so handler will "
             + "skip on retry.")]
     public static partial void AckFailed(
         ILogger logger,
@@ -158,7 +157,7 @@ internal static partial class SubscriberLog
         Level = LogLevel.Error,
         Message = "Idempotency mark write failed on queue={Queue} "
             + "(deliveryTag={DeliveryTag}, msgId={MessageId}, "
-            + "errorCode={ErrorCode}); NACKing to DLQ rather than acking — "
+            + "errorCode={ErrorCode}); NACKing to DLQ rather than acking - "
             + "acking would leave the dedup window unguarded and a "
             + "redelivery would re-run the handler.")]
     public static partial void IdempotencyMarkFailed(
@@ -175,4 +174,27 @@ internal static partial class SubscriberLog
             + "did not start. Investigate the underlying exception before "
             + "expecting deliveries.")]
     public static partial void HostStartupFaulted(ILogger logger, Exception ex);
+
+    [LoggerMessage(
+        EventId = 315,
+        Level = LogLevel.Warning,
+        Message = "Consumer channel for queue={Queue} shut down "
+            + "(initiator={Initiator}, replyCode={ReplyCode}, replyText={ReplyText}). "
+            + "Deliveries stop until automatic recovery re-attaches the consumer.")]
+    public static partial void ConsumerChannelShutdown(
+        ILogger logger, string queue, string initiator, ushort replyCode, string replyText);
+
+    [LoggerMessage(
+        EventId = 316,
+        Level = LogLevel.Error,
+        Message = "DLQ delivery settlement failed on queue={Queue} (deliveryTag={DeliveryTag}, "
+            + "msgId={MessageId}, exType={ExType}, where={Where}); settlement is not retried. "
+            + "Broker redelivery remains possible.")]
+    public static partial void DlqSettlementFailed(
+        ILogger logger,
+        string queue,
+        ulong deliveryTag,
+        string? messageId,
+        string exType,
+        string? where);
 }

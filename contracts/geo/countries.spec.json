@@ -4,7 +4,7 @@
   "$schema": "./countries.schema.json",
   "$note": "TIER 2 codegen-ready spec — produced by the geo data pipeline from contracts/geo/src-data/*.spec.json (Tier 1). Matches the canonical entity record shape; consumed directly by codegen (.NET SourceGen + TS emitter — Tier 3) to produce concrete entity types. Do NOT hand-edit — re-run `pnpm geo:refresh` to regenerate.",
   "catalogVersion": "0.1.0",
-  "generatedAt": "2026-05-26T13:25:26.656Z",
+  "generatedAt": "2026-10-21T06:05:33.378Z",
   "entries": [
     {
       "iso31661Alpha2Code": "AD",
@@ -8979,7 +8979,7 @@
       "weekendStart": "Saturday",
       "weekendEnd": "Sunday",
       "measurementSystem": "Metric",
-      "primaryLanguageISO6391Code": "fil",
+      "primaryLanguageISO6391Code": "en",
       "primaryCurrencyISO4217AlphaCode": "USD",
       "primaryLocaleIETFBCP47Tag": "en-MP",
       "sovereignCountryISO31661Alpha2Code": "US",
@@ -8987,7 +8987,7 @@
       "subdivisionISO31662Codes": [],
       "timezoneIanaIdentifiers": ["Pacific/Guam"],
       "localeIETFBCP47Tags": ["en-MP"],
-      "spokenLanguageISO6391Codes": ["ch", "en", "fil"],
+      "spokenLanguageISO6391Codes": ["ch", "en"],
       "territoryISO31661Alpha2Codes": [],
       "currencies": [
         {
@@ -10123,7 +10123,7 @@
       "weekendStart": "Saturday",
       "weekendEnd": "Sunday",
       "measurementSystem": "Metric",
-      "primaryLanguageISO6391Code": "niu",
+      "primaryLanguageISO6391Code": "en",
       "primaryCurrencyISO4217AlphaCode": "NZD",
       "primaryLocaleIETFBCP47Tag": "en-NU",
       "sovereignCountryISO31661Alpha2Code": "NZ",
@@ -10131,7 +10131,7 @@
       "subdivisionISO31662Codes": [],
       "timezoneIanaIdentifiers": ["Pacific/Niue"],
       "localeIETFBCP47Tags": ["en-NU"],
-      "spokenLanguageISO6391Codes": ["en", "niu"],
+      "spokenLanguageISO6391Codes": ["en"],
       "territoryISO31661Alpha2Codes": [],
       "currencies": [
         {
@@ -10931,7 +10931,7 @@
       "weekendStart": "Saturday",
       "weekendEnd": "Sunday",
       "measurementSystem": "Metric",
-      "primaryLanguageISO6391Code": "pau",
+      "primaryLanguageISO6391Code": "en",
       "primaryCurrencyISO4217AlphaCode": "USD",
       "primaryLocaleIETFBCP47Tag": "en-PW",
       "sovereignCountryISO31661Alpha2Code": null,
@@ -10956,7 +10956,7 @@
       ],
       "timezoneIanaIdentifiers": ["Pacific/Palau"],
       "localeIETFBCP47Tags": ["en-PW"],
-      "spokenLanguageISO6391Codes": ["en", "pau"],
+      "spokenLanguageISO6391Codes": ["en"],
       "territoryISO31661Alpha2Codes": [],
       "currencies": [
         {
@@ -11751,7 +11751,7 @@
       "weekendStart": "Saturday",
       "weekendEnd": "Sunday",
       "measurementSystem": "Metric",
-      "primaryLanguageISO6391Code": "cmn",
+      "primaryLanguageISO6391Code": "zh",
       "primaryCurrencyISO4217AlphaCode": "SGD",
       "primaryLocaleIETFBCP47Tag": "zh-Hans-SG",
       "sovereignCountryISO31661Alpha2Code": null,
@@ -11768,7 +11768,7 @@
       "subdivisionISO31662Codes": ["SG-01", "SG-02", "SG-03", "SG-04", "SG-05"],
       "timezoneIanaIdentifiers": ["Asia/Singapore"],
       "localeIETFBCP47Tags": ["en-SG", "ms-SG", "ta-SG", "zh-Hans-SG"],
-      "spokenLanguageISO6391Codes": ["cmn", "en", "ml", "ms", "pa", "ta", "zh"],
+      "spokenLanguageISO6391Codes": ["en", "ml", "ms", "pa", "ta", "zh"],
       "territoryISO31661Alpha2Codes": [],
       "currencies": [
         {
@@ -12963,7 +12963,7 @@
       "weekendStart": "Saturday",
       "weekendEnd": "Sunday",
       "measurementSystem": "Metric",
-      "primaryLanguageISO6391Code": "tkl",
+      "primaryLanguageISO6391Code": "en",
       "primaryCurrencyISO4217AlphaCode": "NZD",
       "primaryLocaleIETFBCP47Tag": "en-TK",
       "sovereignCountryISO31661Alpha2Code": "NZ",
@@ -12971,7 +12971,7 @@
       "subdivisionISO31662Codes": [],
       "timezoneIanaIdentifiers": ["Pacific/Fakaofo"],
       "localeIETFBCP47Tags": ["en-TK"],
-      "spokenLanguageISO6391Codes": ["en", "sm", "tkl"],
+      "spokenLanguageISO6391Codes": ["en", "sm"],
       "territoryISO31661Alpha2Codes": [],
       "currencies": [
         {
@@ -12995,7 +12995,7 @@
       "weekendStart": "Saturday",
       "weekendEnd": "Sunday",
       "measurementSystem": "Metric",
-      "primaryLanguageISO6391Code": "tet",
+      "primaryLanguageISO6391Code": "pt",
       "primaryCurrencyISO4217AlphaCode": "USD",
       "primaryLocaleIETFBCP47Tag": "pt-TL",
       "sovereignCountryISO31661Alpha2Code": null,
@@ -13017,7 +13017,7 @@
       ],
       "timezoneIanaIdentifiers": ["Asia/Dili"],
       "localeIETFBCP47Tags": ["pt-TL"],
-      "spokenLanguageISO6391Codes": ["pt", "tet"],
+      "spokenLanguageISO6391Codes": ["pt"],
       "territoryISO31661Alpha2Codes": [],
       "currencies": [
         {
@@ -13354,7 +13354,7 @@
       "weekendStart": "Saturday",
       "weekendEnd": "Sunday",
       "measurementSystem": "Metric",
-      "primaryLanguageISO6391Code": "tvl",
+      "primaryLanguageISO6391Code": "en",
       "primaryCurrencyISO4217AlphaCode": "AUD",
       "primaryLocaleIETFBCP47Tag": "en-TV",
       "sovereignCountryISO31661Alpha2Code": null,
@@ -13371,7 +13371,7 @@
       ],
       "timezoneIanaIdentifiers": ["Pacific/Tarawa"],
       "localeIETFBCP47Tags": ["en-TV"],
-      "spokenLanguageISO6391Codes": ["en", "tvl"],
+      "spokenLanguageISO6391Codes": ["en"],
       "territoryISO31661Alpha2Codes": [],
       "currencies": [
         {
@@ -14424,7 +14424,7 @@
       "weekendStart": "Saturday",
       "weekendEnd": "Sunday",
       "measurementSystem": "Metric",
-      "primaryLanguageISO6391Code": "wls",
+      "primaryLanguageISO6391Code": "fr",
       "primaryCurrencyISO4217AlphaCode": "XPF",
       "primaryLocaleIETFBCP47Tag": "fr-WF",
       "sovereignCountryISO31661Alpha2Code": "FR",
@@ -14432,7 +14432,7 @@
       "subdivisionISO31662Codes": ["WF-AL", "WF-SG", "WF-UV"],
       "timezoneIanaIdentifiers": ["Pacific/Tarawa"],
       "localeIETFBCP47Tags": ["fr-WF"],
-      "spokenLanguageISO6391Codes": ["fr", "wls"],
+      "spokenLanguageISO6391Codes": ["fr"],
       "territoryISO31661Alpha2Codes": [],
       "currencies": [
         {

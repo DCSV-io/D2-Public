@@ -19,83 +19,99 @@ using Serilog;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Emits up to 42 fields when populated, organized into the following
-/// clusters:
+/// Emits the following fields when populated, organized into clusters:
 /// </para>
 /// <list type="bullet">
 ///   <item><description>
-///     <b>Tracing</b> (3): <c>TraceId</c>, <c>RequestId</c>,
+///     <b>Tracing</b>: <c>TraceId</c>, <c>RequestId</c>,
 ///     <c>RequestPath</c>.
 ///   </description></item>
 ///   <item><description>
-///     <b>Auth/Identity</b> (8): <c>IsAuthenticated</c>, <c>Subject</c>,
+///     <b>Auth/Identity</b>: <c>IsAuthenticated</c>, <c>Subject</c>,
 ///     <c>UserId</c>, <c>Username</c>, <c>RequestedByClientId</c>,
 ///     <c>ImmediateCallerClientId</c>, <c>OriginatingClientId</c>,
 ///     <c>IsServiceIdentity</c>.
 ///   </description></item>
 ///   <item><description>
-///     <b>Auth/Token+Trust</b> (5): <c>Audience</c>, <c>SessionId</c>,
+///     <b>Auth/Token+Trust</b>: <c>Audience</c>, <c>SessionIdHash</c>,
 ///     <c>TokenIssuedAt</c>, <c>TokenExpiresAt</c>, <c>ActorChain</c>
 ///     (destructured).
 ///   </description></item>
 ///   <item><description>
-///     <b>Auth/Org</b> (4): <c>OrgId</c>, <c>OrgName</c>, <c>OrgType</c>,
+///     <b>Auth/Org</b>: <c>OrgId</c>, <c>OrgName</c>, <c>OrgType</c>,
 ///     <c>OrgRole</c>.
 ///   </description></item>
 ///   <item><description>
-///     <b>Auth/Impersonation</b> (8): <c>IsImpersonating</c>,
+///     <b>Auth/Impersonation</b>: <c>IsImpersonating</c>,
 ///     <c>ImpersonationKind</c>, <c>ImpersonatedBy</c>,
-///     <c>ImpersonationSessionId</c>, <c>ImpersonatorOrgId</c>,
+///     <c>ImpersonationSessionIdHash</c>, <c>ImpersonatorOrgId</c>,
 ///     <c>ImpersonatorOrgName</c>, <c>ImpersonatorOrgType</c>,
 ///     <c>ImpersonatorOrgRole</c>.
 ///   </description></item>
 ///   <item><description>
-///     <b>Scopes</b> (1): <c>Scopes</c> (destructured).
+///     <b>Scopes</b>: <c>Scopes</c> (destructured).
 ///   </description></item>
 ///   <item><description>
-///     <b>Trust/Risk</b> (1): <c>RiskScore</c>.
+///     <b>Trust/Risk</b>: <c>RiskScore</c>.
 ///   </description></item>
 ///   <item><description>
-///     <b>Fingerprints</b> (2): <c>SessionFingerprint</c>,
+///     <b>Fingerprints</b>: <c>SessionFingerprint</c>,
 ///     <c>CurrentFingerprint</c>.
 ///   </description></item>
 ///   <item><description>
-///     <b>WhoIs/Geo</b> (3): <c>WhoIsHashId</c>,
+///     <b>WhoIs/Geo</b>: <c>WhoIsHashId</c>,
 ///     <c>AdminLocationHashId</c>, <c>CountryIso31661Alpha2Code</c>.
 ///   </description></item>
 ///   <item><description>
-///     <b>WhoIs/Network-Privacy</b> (4): <c>IsVpn</c>, <c>IsProxy</c>,
+///     <b>WhoIs/Network-Privacy</b>: <c>IsVpn</c>, <c>IsProxy</c>,
 ///     <c>IsTor</c>, <c>IsHosting</c>.
 ///   </description></item>
 ///   <item><description>
-///     <b>WhoIs/ASN</b> (3): <c>Asn</c>, <c>AsnName</c>, <c>AsnType</c>.
+///     <b>WhoIs/ASN</b>: <c>Asn</c>, <c>AsnName</c>, <c>AsnType</c>.
 ///   </description></item>
 /// </list>
 /// <para>
-/// See the per-lib README's "LOG-OK fields" section for the full per-field
-/// table including types and rationale.
+/// See the "LOG-OK fields" section of docs/field-policy.md in this package for
+/// the full per-field table including types and rationale.
 /// </para>
 /// <para>
 /// PII fields are NEVER emitted: <c>ClientIp</c>, <c>City</c>,
 /// <c>SubdivisionIso31662Code</c>, <c>PostalCode</c>, <c>Latitude</c>,
 /// <c>Longitude</c>, <c>Geohash</c>. Sub-country geographic precision
-/// escalates only via <c>WhoIsHashId</c> lookups against the WhoIs store.
+/// is available only through <c>WhoIsHashId</c> lookups against the WhoIs store.
+/// </para>
+/// <para>
+/// <b>Session identifiers are never emitted raw.</b> A session id does not authenticate
+/// a request - the session cookie carries an encrypted frame rather than the id - but a
+/// log line carrying it joins that session across every log and ties it to one person,
+/// and identifies that person's session to anything able to end it. The
+/// session-bearing scalars leave as non-reversible correlation digests under distinct
+/// names - <c>SessionIdHash</c> and <c>ImpersonationSessionIdHash</c> (see
+/// <see cref="LogSafeIdentifiers"/>). The actor chain is projected to
+/// <see cref="LogSafeActorEntry"/> before it reaches the diagnostic context, with each
+/// entry's session id replaced by the same correlation digest under the member name
+/// <c>SessionIdHash</c>; this class passes no <c>ActorEntry</c> instance to a sink.
+/// <c>[RedactData(SecretInformation)]</c> on <c>ActorEntry.SessionId</c> is a second
+/// layer of protection for other capture sites, not the protection on this path - it
+/// fires only on structural destructuring, and a sequence element bound as a scalar
+/// renders the record's <c>ToString()</c>, which prints the raw id. This is the SECRET
+/// policy, deliberately distinct from the PII policy above.
 /// </para>
 /// <para>
 /// Each per-field <c>Set</c> call is gated by a null check on the field
 /// value; null fields are not emitted at all (vs emitting a null structured
-/// property). For the three collection fields (<c>Audience</c>,
+/// property). For the collection fields (<c>Audience</c>,
 /// <c>ActorChain</c>, <c>Scopes</c>), an empty-collection gate via
-/// <c>Truthy()</c> applies — empty collections are not emitted to avoid
-/// polluting logs with empty arrays on every request.
+/// <c>Truthy()</c> applies - empty collections are not emitted, which keeps
+/// empty arrays out of the logs on every request.
 /// </para>
 /// <para>
-/// At pre-Edge-filler deployments this means the enricher is a structural
-/// no-op — every value is null on every request and zero properties get
-/// added to the log line.
+/// Where nothing populates the request context, the enricher is a structural
+/// no-op - every value is null on every request and the enricher adds no
+/// property to the log line.
 /// </para>
 /// <para>
-/// <b>Precedence note</b>: behavior of the three Tracing-axis fields
+/// <b>Precedence note</b>: behavior of the Tracing-axis fields
 /// differs by HOW the upstream value reaches the log event.
 /// <see cref="IRequestContext.TraceId"/> reaches the diagnostic context via
 /// the same <see cref="IDiagnosticContext"/> mechanism the request-logging
@@ -107,15 +123,15 @@ using Serilog;
 /// runs; once Serilog has populated those properties on the
 /// <c>LogEvent</c>, subsequent <c>IDiagnosticContext.Set</c> calls are
 /// silently dropped by Serilog's <c>AddPropertyIfAbsent</c> semantics.
-/// The enricher emits all three for spec-contract completeness — on
+/// The enricher emits each of them for spec-contract completeness - on
 /// non-HTTP transports without Serilog's pre-binding, every emission
-/// surfaces. See the per-lib README's "Precedence note" section for the
-/// full operator-facing description.
+/// reaches the log. See the "Precedence note" section of
+/// docs/field-policy.md in this package for the full operator-facing
+/// description.
 /// </para>
 /// <para>
 /// Degrades to a no-op when <see cref="IRequestContext"/> is not registered
-/// in the per-request DI scope (the early-deployment reality where most
-/// services don't yet have it wired). Never throws.
+/// in the per-request DI scope. Never throws.
 /// </para>
 /// </remarks>
 internal static class D2RequestContextEnricher
@@ -127,14 +143,14 @@ internal static class D2RequestContextEnricher
     /// context is unregistered or every field is null.
     /// </summary>
     /// <param name="diagnosticContext">
-    /// Serilog request-logging diagnostic context — receives one
+    /// Serilog request-logging diagnostic context - receives one
     /// <see cref="IDiagnosticContext.Set(string, object?, bool)"/> call per
     /// non-null LOG-OK field.
     /// </param>
     /// <param name="httpContext">
-    /// Current request's <see cref="HttpContext"/>. Must be non-null —
-    /// guarded by the <c>UseSerilogRequestLogging</c> middleware that calls
-    /// us, so the null path is defensive only.
+    /// Current request's <see cref="HttpContext"/>. Must be non-null; the
+    /// null check is defensive only, because the
+    /// <c>UseSerilogRequestLogging</c> middleware always supplies it.
     /// </param>
     internal static void Enrich(
         IDiagnosticContext diagnosticContext,
@@ -147,9 +163,11 @@ internal static class D2RequestContextEnricher
         if (ctx is null)
             return;
 
-        // Tracing (3 fields) — TraceId / RequestPath OVERRIDE the
-        // request-logging middleware's locally-set values when populated;
-        // see the precedence note in the type-level remarks above.
+        // Tracing - TraceId OVERRIDES the request-logging middleware's
+        // locally-set value when populated; RequestId and RequestPath are
+        // pre-bound by Serilog on the HTTP path, so Serilog drops these
+        // calls there. See the precedence note in the type-level remarks
+        // above.
         if (ctx.TraceId is { } traceId)
             diagnosticContext.Set(nameof(IRequestContext.TraceId), traceId);
 
@@ -159,7 +177,7 @@ internal static class D2RequestContextEnricher
         if (ctx.RequestPath is { } requestPath)
             diagnosticContext.Set(nameof(IRequestContext.RequestPath), requestPath);
 
-        // Auth/Identity (8 fields).
+        // Auth/Identity.
         if (ctx.IsAuthenticated is { } isAuthenticated)
         {
             diagnosticContext.Set(
@@ -204,7 +222,7 @@ internal static class D2RequestContextEnricher
                 isServiceIdentity);
         }
 
-        // Auth/Token+Trust (5 fields). Audience + ActorChain are non-null
+        // Auth/Token+Trust. Audience + ActorChain are non-null
         // collections per spec; gate on Truthy() to suppress empty arrays.
         if (ctx.Audience.Truthy())
         {
@@ -214,8 +232,14 @@ internal static class D2RequestContextEnricher
                 destructureObjects: true);
         }
 
+        // A session id is the handle every record about one session shares, not an opaque
+        // audit number. Only its non-reversible correlation digest may reach a sink.
         if (ctx.SessionId is { } sessionId)
-            diagnosticContext.Set(nameof(IRequestContext.SessionId), sessionId);
+        {
+            diagnosticContext.Set(
+                LogSafeIdentifiers.SESSION_ID_HASH,
+                LogSafeIdentifiers.SessionDigest(sessionId));
+        }
 
         if (ctx.TokenIssuedAt is { } tokenIssuedAt)
         {
@@ -231,15 +255,18 @@ internal static class D2RequestContextEnricher
                 tokenExpiresAt);
         }
 
+        // Projected before it is passed on: each entry's SessionId is a session id of the
+        // same class as the scalar above, and a record's ToString() would print it verbatim
+        // if Serilog binds the sequence elements as scalars rather than structures.
         if (ctx.ActorChain.Truthy())
         {
             diagnosticContext.Set(
                 nameof(IRequestContext.ActorChain),
-                ctx.ActorChain,
+                LogSafeIdentifiers.ToLogSafe(ctx.ActorChain),
                 destructureObjects: true);
         }
 
-        // Auth/Org (4 fields).
+        // Auth/Org.
         if (ctx.OrgId is { } orgId)
             diagnosticContext.Set(nameof(IRequestContext.OrgId), orgId);
 
@@ -252,7 +279,7 @@ internal static class D2RequestContextEnricher
         if (ctx.OrgRole is { } orgRole)
             diagnosticContext.Set(nameof(IRequestContext.OrgRole), orgRole);
 
-        // Auth/Impersonation (8 fields).
+        // Auth/Impersonation.
         if (ctx.IsImpersonating is { } isImpersonating)
         {
             diagnosticContext.Set(
@@ -274,11 +301,12 @@ internal static class D2RequestContextEnricher
                 impersonatedBy);
         }
 
+        // Same class as SessionId above - digest only.
         if (ctx.ImpersonationSessionId is { } impersonationSessionId)
         {
             diagnosticContext.Set(
-                nameof(IRequestContext.ImpersonationSessionId),
-                impersonationSessionId);
+                LogSafeIdentifiers.IMPERSONATION_SESSION_ID_HASH,
+                LogSafeIdentifiers.SessionDigest(impersonationSessionId));
         }
 
         if (ctx.ImpersonatorOrgId is { } impersonatorOrgId)
@@ -309,7 +337,7 @@ internal static class D2RequestContextEnricher
                 impersonatorOrgRole);
         }
 
-        // Scopes (1 field). Non-null set per spec; Truthy() gate suppresses
+        // Scopes. Non-null set per spec; Truthy() gate suppresses
         // empty sets so we don't emit "Scopes":[] on every unauthenticated
         // request.
         if (ctx.Scopes.Truthy())
@@ -320,11 +348,11 @@ internal static class D2RequestContextEnricher
                 destructureObjects: true);
         }
 
-        // Trust/Risk (1 field).
+        // Trust/Risk.
         if (ctx.RiskScore is { } riskScore)
             diagnosticContext.Set(nameof(IRequestContext.RiskScore), riskScore);
 
-        // Fingerprints (2 fields).
+        // Fingerprints.
         if (ctx.SessionFingerprint is { } sessionFingerprint)
         {
             diagnosticContext.Set(
@@ -339,7 +367,7 @@ internal static class D2RequestContextEnricher
                 currentFingerprint);
         }
 
-        // WhoIs/Geo (3 fields).
+        // WhoIs/Geo.
         if (ctx.WhoIsHashId is { } whoIsHashId)
         {
             diagnosticContext.Set(
@@ -361,7 +389,7 @@ internal static class D2RequestContextEnricher
                 countryIso31661Alpha2Code);
         }
 
-        // WhoIs/Network-Privacy (4 fields).
+        // WhoIs/Network-Privacy.
         if (ctx.IsVpn is { } isVpn)
             diagnosticContext.Set(nameof(IRequestContext.IsVpn), isVpn);
 
@@ -374,7 +402,7 @@ internal static class D2RequestContextEnricher
         if (ctx.IsHosting is { } isHosting)
             diagnosticContext.Set(nameof(IRequestContext.IsHosting), isHosting);
 
-        // WhoIs/ASN (3 fields).
+        // WhoIs/ASN.
         if (ctx.Asn is { } asn)
             diagnosticContext.Set(nameof(IRequestContext.Asn), asn);
 

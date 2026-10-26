@@ -9,11 +9,11 @@ namespace DcsvIo.D2.Handler.Repo.Abstractions;
 using DcsvIo.D2.Result;
 
 /// <summary>
-/// Standardized <see cref="D2Result.ErrorCode"/> values for DB-flavored
-/// failures. Parallel to <see cref="ErrorCodes"/> in the result lib but
-/// scoped to database concerns. Used by the
-/// <see cref="D2Result"/> extension factories defined in this package and
-/// surfaced to callers via the matching <c>IsXxx</c> boolean discriminators.
+/// Standardized <see cref="D2Result.ErrorCode"/> values for database
+/// failures. They parallel <see cref="ErrorCodes"/> in the result lib but
+/// cover database concerns. The
+/// <see cref="D2Result"/> extension factories defined in this package use
+/// them, and the matching <c>IsXxx</c> boolean discriminators expose them.
 /// </summary>
 public static class DbErrorCodes
 {

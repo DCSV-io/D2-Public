@@ -15,7 +15,7 @@ using Xunit;
 using SpecFile = TelemetryTagsSourceGen::DcsvIo.D2.SourceGen.SpecFile;
 
 /// <summary>
-/// Tests for <see cref="CrossSpecResolver"/> — the build-time cross-spec
+/// Tests for <see cref="CrossSpecResolver"/> - the build-time cross-spec
 /// resolver that surfaces <c>D2TEL006</c> when the AuthErrorCodes spec
 /// referenced via <c>valuesFromSpec=auth-error-codes</c> is missing or
 /// malformed.
@@ -28,9 +28,9 @@ public sealed class CrossSpecResolverTests
         var siblingJson = """
         {
           "errorCodes": [
-            { "code": "AUTH_A", "httpStatus": 401, "category": "validation_failure",
+            { "code": "LIB_AUTH_A", "httpStatus": 401, "category": "validation_failure",
               "userMessageKey": "TK", "factoryName": "A", "doc": "A" },
-            { "code": "AUTH_B", "httpStatus": 503, "category": "infrastructure_unavailable",
+            { "code": "LIB_AUTH_B", "httpStatus": 503, "category": "infrastructure_unavailable",
               "userMessageKey": "TK", "factoryName": "B", "doc": "B" }
           ]
         }
@@ -42,7 +42,7 @@ public sealed class CrossSpecResolverTests
             "auth-error-codes", siblings, "x", "t", "M");
 
         diag.Should().BeNull();
-        values.Should().BeEquivalentTo(new[] { "AUTH_A", "AUTH_B" });
+        values.Should().BeEquivalentTo(new[] { "LIB_AUTH_A", "LIB_AUTH_B" });
     }
 
     [Fact]

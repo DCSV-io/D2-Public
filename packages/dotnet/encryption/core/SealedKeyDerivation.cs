@@ -18,26 +18,26 @@ using System.Text;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <strong>WIRE-PERMANENT — do not change.</strong> Every value below is
+/// <strong>Wire-permanent - do not change.</strong> Every value below is
 /// baked into the content-encryption-key derivation of every sealed frame
 /// ever produced. Changing the label, the length-delimited info encoding,
 /// the salt, or the AAD breaks decryption of everything sealed before the
 /// change. The freeze is pinned by known-answer tests.
 /// </para>
 /// <para>
-/// The conventions (all anchored on the RECIPIENT SERVICE, never the
+/// The conventions (all anchored on the recipient service, never the
 /// message domain, so one opener per service covers every sealed domain
 /// routed to it):
 /// </para>
 /// <list type="bullet">
 /// <item>HKDF <c>info</c> = <c>"d2-seal-v1"</c> ‖ len16BE(serviceId) ‖
-/// UTF-8(serviceId) ‖ len16BE(ephSPKI) ‖ ephSPKI — each variable component
+/// UTF-8(serviceId) ‖ len16BE(ephSPKI) ‖ ephSPKI - each variable component
 /// prefixed by its 2-byte big-endian length, so component boundaries are
 /// unambiguous by construction (no concatenation ambiguity between the
 /// variable-length service id and the DER SPKI).</item>
-/// <item>HKDF <c>salt</c> = UTF-8(serviceId) — non-secret; recipient
+/// <item>HKDF <c>salt</c> = UTF-8(serviceId) - non-secret; recipient
 /// separation at zero cost.</item>
-/// <item>AES-GCM <c>aad</c> = UTF-8(serviceId) — a frame sealed for one
+/// <item>AES-GCM <c>aad</c> = UTF-8(serviceId) - a frame sealed for one
 /// service can never authenticate as sealed for another.</item>
 /// </list>
 /// </remarks>
@@ -59,7 +59,7 @@ internal static class SealedKeyDerivation
 
     /// <summary>
     /// Encodes the recipient service id to the exact bytes used as the HKDF
-    /// salt AND the AES-GCM additional authenticated data.
+    /// salt and the AES-GCM additional authenticated data.
     /// </summary>
     /// <param name="recipientServiceId">The validated recipient service id.</param>
     /// <returns>UTF-8 bytes of the service id.</returns>
@@ -77,7 +77,7 @@ internal static class SealedKeyDerivation
     internal static byte[] BuildInfo(
         ReadOnlySpan<byte> serviceIdBytes, ReadOnlySpan<byte> ephemeralPublicSpki)
     {
-        var label = INFO_LABEL.Length; // ASCII label — 1 byte per char.
+        var label = INFO_LABEL.Length; // ASCII label - 1 byte per char.
         var info = new byte[
             label
             + _INFO_LENGTH_PREFIX_SIZE + serviceIdBytes.Length
@@ -103,7 +103,7 @@ internal static class SealedKeyDerivation
     /// <summary>
     /// Derives the per-message AES-256-GCM content-encryption key from the
     /// raw ECDH shared secret via HKDF-SHA256 under the frozen salt + info
-    /// conventions. The caller owns zeroizing both the shared secret and the
+    /// conventions. The caller must zeroize both the shared secret and the
     /// derived key.
     /// </summary>
     /// <param name="sharedSecret">The raw ECDH agreement output.</param>

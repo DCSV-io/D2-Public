@@ -15,7 +15,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq;
 /// <summary>
 /// Spec-derived OTel activity-tag attribute-name constants. Every
 /// messaging publisher / consumer Activity.SetTag call references these
-/// constants instead of inline string literals — keeps publisher + consumer
+/// constants instead of inline string literals - keeps publisher + consumer
 /// in lockstep with the OTel semantic-convention catalog AND with each
 /// other.
 /// </summary>
@@ -39,10 +39,10 @@ public static class MessagingActivityTags
     /// <summary>OTel semantic-convention attribute carrying the producer-assigned message id (UUIDv7 hex for D2). Emitted on both publish and receive spans for end-to-end correlation. https://opentelemetry.io/docs/specs/semconv/messaging/messaging-spans/</summary>
     public const string MESSAGING_MESSAGE_ID = "messaging.message.id";
 
-    /// <summary>OTel semantic-convention attribute classifying the messaging operation. Closed enum on the OTel side: 'publish' / 'receive' / 'process' / 'settle'. D2 emits 'publish' on publisher spans and 'receive' on consumer spans. NOTE: this is the OTel-canonical attribute name; an earlier version of the consumer code used 'messaging.operation' (no '.type' suffix) which is non-standard — spec-driving structurally fixes that drift. https://opentelemetry.io/docs/specs/semconv/messaging/messaging-spans/#messaging-attributes</summary>
+    /// <summary>OTel semantic-convention attribute classifying the messaging operation. Closed enum on the OTel side: 'publish' / 'receive' / 'process' / 'settle'. D2 emits 'publish' on publisher spans and 'receive' on consumer spans. NOTE: this is the OTel-canonical attribute name; 'messaging.operation' (no '.type' suffix) is non-standard. https://opentelemetry.io/docs/specs/semconv/messaging/messaging-spans/#messaging-attributes</summary>
     public const string MESSAGING_OPERATION_TYPE = "messaging.operation.type";
 
-    /// <summary>D2-specific attribute carrying the .NET CLR FullName of the published message type. Publisher-side only — keeps the consumer-side message type information in the message-type bound at registration (and visible via descriptor lookup), so the consumer span doesn't need to enumerate it.</summary>
+    /// <summary>D2-specific attribute carrying the .NET CLR FullName of the published message type. Publisher-side only - keeps the consumer-side message type information in the message-type bound at registration (and visible via descriptor lookup), so the consumer span does not need to enumerate it.</summary>
     public const string D2_MESSAGE_TYPE = "d2.message_type";
 
     /// <summary>D2-specific attribute carrying the encryption key id used to wrap the message body. Publisher-side. Null/absent for plaintext messages. Surfaces alongside the AMQP x-d2-encryption-kid header in the message envelope itself.</summary>

@@ -15,7 +15,7 @@ using Xunit;
 public sealed class D2ResultGuardTests
 {
     // ----------------------------------------------------------------------
-    // BubbleOnFailure — happy path (success returns false, data populated)
+    // BubbleOnFailure - happy path (success returns false, data populated)
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -32,8 +32,9 @@ public sealed class D2ResultGuardTests
     [Fact]
     public void BubbleOnFailure_OnOkWithNullData_ReturnsFalseDataIsDefault()
     {
-        // Adversarial: Ok with no data → success path still returns false (caller
-        // should NOT bail), data is whatever Ok wrapped (default for ref type).
+        // Adversarial: Ok with no data -> the success path still returns false (the
+        // caller should NOT bail), and data is whatever Ok wrapped (the default for a
+        // reference type).
         var inner = D2Result<string>.Ok();
 
         var failed = inner.BubbleOnFailure<string, int>(out _, out var data);
@@ -43,7 +44,7 @@ public sealed class D2ResultGuardTests
     }
 
     // ----------------------------------------------------------------------
-    // BubbleOnFailure — failure path (returns true, bubbled populated correctly)
+    // BubbleOnFailure - failure path (returns true, bubbled populated correctly)
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -56,7 +57,7 @@ public sealed class D2ResultGuardTests
         failed.Should().BeTrue();
         bubbled.Should().NotBeNull();
         bubbled.Success.Should().BeFalse();
-        bubbled.ErrorCode.Should().Be(ErrorCodes.NOT_FOUND);
+        bubbled.ErrorCode.Should().Be(ErrorCodes.GEN_NOT_FOUND);
         bubbled.StatusCode.Should().Be(HttpStatusCode.NotFound);
         bubbled.Messages.Should().Equal(TK.Common.Errors.UNKNOWN);
         bubbled.TraceId.Should().Be("t");
@@ -84,7 +85,7 @@ public sealed class D2ResultGuardTests
 
         failed.Should().BeTrue();
         bubbled.Should().BeOfType<D2Result<string?>>();
-        bubbled.ErrorCode.Should().Be(ErrorCodes.FORBIDDEN);
+        bubbled.ErrorCode.Should().Be(ErrorCodes.GEN_FORBIDDEN);
         bubbled.Messages.Should().Equal(TK.Common.Errors.UNKNOWN);
     }
 
@@ -102,32 +103,32 @@ public sealed class D2ResultGuardTests
     }
 
     // ----------------------------------------------------------------------
-    // SomeFound — partial-success treated as failure by the guard
+    // SomeFound - the guard treats a partial success as a failure
     // ----------------------------------------------------------------------
 
     [Fact]
     public void BubbleOnFailure_OnSomeFound_ReturnsTrueAndBubblesPartialSuccess()
     {
-        // Adversarial: SomeFound is on the partial-success ladder — it has Success=false,
-        // so the guard treats it as a failure and bubbles. Callers that want to handle
+        // Adversarial: SomeFound is a partial-success result with Success=false,
+        // so the guard treats it as a failure and bubbles. Code that handles
         // SomeFound differently must inspect the result BEFORE calling the guard.
         var inner = D2Result<int>.SomeFound(99);
 
         var failed = inner.BubbleOnFailure<int, string>(out var bubbled, out _);
 
         failed.Should().BeTrue();
-        bubbled.ErrorCode.Should().Be(ErrorCodes.SOME_FOUND);
+        bubbled.ErrorCode.Should().Be(ErrorCodes.GEN_SOME_FOUND);
         bubbled.StatusCode.Should().Be(HttpStatusCode.PartialContent);
     }
 
     // ----------------------------------------------------------------------
-    // Realistic call-site pattern — guard then continue with locals
+    // Call-site pattern - guard, then continue with locals
     // ----------------------------------------------------------------------
 
     [Fact]
     public void BubbleOnFailure_HandlerPatternUsage_OnSuccess_ContinuesWithLocal()
     {
-        // Simulates the canonical handler pattern:
+        // Follows the handler pattern:
         //   if (upstream.BubbleOnFailure<_, OutputType>(out var b, out var data)) return b;
         //   // continue with `data` as a local
         var upstream = D2Result<int>.Ok(15);
@@ -147,12 +148,12 @@ public sealed class D2ResultGuardTests
 
         output.Success.Should().BeFalse();
         output.Data.Should().BeNull();
-        output.ErrorCode.Should().Be(ErrorCodes.NOT_FOUND);
+        output.ErrorCode.Should().Be(ErrorCodes.GEN_NOT_FOUND);
         output.Messages.Should().Equal(TK.Common.Errors.UNKNOWN);
     }
 
-    // Handler-shaped helper that uses BubbleOnFailure exactly as the workhorse pattern
-    // recommends — the test exercises the real call site shape, not a synthetic one.
+    // Handler-shaped helper that calls BubbleOnFailure the way the handler pattern
+    // does, so the tests use a realistic call site and not a synthetic one.
     private static D2Result<string?> ExampleHandler(D2Result<int> upstream)
     {
         if (upstream.BubbleOnFailure<int, string>(out var bubbled, out var data))

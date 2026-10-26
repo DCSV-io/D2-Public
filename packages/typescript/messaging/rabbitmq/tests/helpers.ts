@@ -11,9 +11,9 @@ import {
 import { type ConsumedMessage } from "../src/subscribing/consumed-message.js";
 
 /**
- * Encodes a propagated context into the `x-d2-context` wire value —
- * base64url-of-JSON, exactly what the .NET `PropagatedContextSerializer.Encode`
- * and the gRPC context interceptor produce.
+ * Encodes a propagated context into the `x-d2-context` wire value:
+ * base64url of the JSON, the same value that the .NET
+ * `PropagatedContextSerializer.Encode` and the gRPC context interceptor produce.
  */
 export function encodePropagatedHeader(ctx: IPropagatedContext): string {
   return Buffer.from(
@@ -71,7 +71,7 @@ export class RecordingLogger implements ILogger {
   }
 }
 
-/** Builds a {@link ConsumedMessage} with sensible defaults for tests. */
+/** Builds a {@link ConsumedMessage} with default values for tests. */
 export function makeMessage(
   overrides: Partial<ConsumedMessage> = {},
 ): ConsumedMessage {
@@ -81,7 +81,7 @@ export function makeMessage(
     headers: {},
     deliveryTag: 1,
     redelivered: false,
-    exchange: "d2.security.key-rotated",
+    exchange: "example.orders.placed",
     routingKey: "",
     ...overrides,
   };
@@ -90,6 +90,59 @@ export function makeMessage(
 const SAMPLE_TRACE_ID = "4bf92f3577b34da6a3ce929d0e0e4736";
 const SAMPLE_SPAN_ID = "00f067aa0ba902b7";
 
-/** A valid W3C traceparent carrying a known trace id (for linkage assertions). */
+/** A valid W3C traceparent that contains a known trace id (for linkage assertions). */
 export const SAMPLE_TRACEPARENT = `00-${SAMPLE_TRACE_ID}-${SAMPLE_SPAN_ID}-01`;
 export const SAMPLE_PRODUCER_TRACE_ID = SAMPLE_TRACE_ID;
+
+// Attempt-budget guard against a stuck test, the TypeScript counterpart of the
+// .NET `_POLL_ATTEMPT_BUDGET` (DlqTests.cs and PublishConsumeRoundTripTests.cs).
+// Each iteration waits a fixed poll interval. The budget caps attempts and
+// never elapsed wall-clock time, so under load the effective wait grows with
+// the slowdown, and no `Date.now()` deadline expires while the awaited work is
+// still making progress. The budget is not a success-path deadline: a healthy
+// delivery resolves in a few attempts, and the budget ends only a test that is
+// permanently stuck. The 120s vitest `testTimeout` is the outer limit of the
+// framework and is not part of any assertion's success path.
+const _POLL_INTERVAL_MS = 100;
+const _POLL_ATTEMPT_BUDGET = 600;
+
+/**
+ * Polls `probe` until it returns a value other than `undefined`, and returns
+ * that value. Throws when the attempt budget is spent.
+ */
+export async function waitForValue<T>(
+  probe: () => Promise<T | undefined> | T | undefined,
+): Promise<T> {
+  for (let attempt = 0; attempt < _POLL_ATTEMPT_BUDGET; attempt++) {
+    const value = await probe();
+    if (value !== undefined) return value;
+    await new Promise((r) => setTimeout(r, _POLL_INTERVAL_MS));
+  }
+
+  throw new Error(
+    `predicate not satisfied within ${_POLL_ATTEMPT_BUDGET} poll attempts`,
+  );
+}
+
+/** Polls `predicate` until it returns true. Throws when the budget is spent. */
+export async function waitUntil(predicate: () => boolean): Promise<void> {
+  await waitForValue(() => (predicate() ? true : undefined));
+}
+
+/**
+ * Waits on the attempt budget for `promise` to settle, then returns its value
+ * or rethrows its rejection.
+ */
+export async function waitForSettled<T>(promise: Promise<T>): Promise<T> {
+  let settled = false;
+  promise.then(
+    () => {
+      settled = true;
+    },
+    () => {
+      settled = true;
+    },
+  );
+  await waitUntil(() => settled);
+  return promise;
+}

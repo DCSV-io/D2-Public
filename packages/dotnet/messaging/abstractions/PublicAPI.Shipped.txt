@@ -27,11 +27,22 @@ DcsvIo.D2.Messaging.ISubscriberRegistration.Descriptor.get -> DcsvIo.D2.Messagin
 DcsvIo.D2.Messaging.ISubscriberRegistration.HandlerType.get -> System.Type!
 DcsvIo.D2.Messaging.ISubscriberRegistration.MessageType.get -> System.Type!
 DcsvIo.D2.Messaging.ISubscriberRegistration.ResolvedQueueName.get -> string!
+DcsvIo.D2.Messaging.MessagingCatalog
+DcsvIo.D2.Messaging.MessagingCatalog.<Clone>$() -> DcsvIo.D2.Messaging.MessagingCatalog!
+DcsvIo.D2.Messaging.MessagingCatalog.Deconstruct(out System.Collections.Generic.IReadOnlyDictionary<string!, DcsvIo.D2.Messaging.MqMessageDescriptor!>! Messages, out System.Collections.Generic.IReadOnlyDictionary<string!, DcsvIo.D2.Messaging.MqSubscriptionDescriptor!>! Subscriptions) -> void
+DcsvIo.D2.Messaging.MessagingCatalog.Equals(DcsvIo.D2.Messaging.MessagingCatalog? other) -> bool
+DcsvIo.D2.Messaging.MessagingCatalog.Messages.get -> System.Collections.Generic.IReadOnlyDictionary<string!, DcsvIo.D2.Messaging.MqMessageDescriptor!>!
+DcsvIo.D2.Messaging.MessagingCatalog.Messages.init -> void
+DcsvIo.D2.Messaging.MessagingCatalog.MessagingCatalog(System.Collections.Generic.IReadOnlyDictionary<string!, DcsvIo.D2.Messaging.MqMessageDescriptor!>! Messages, System.Collections.Generic.IReadOnlyDictionary<string!, DcsvIo.D2.Messaging.MqSubscriptionDescriptor!>! Subscriptions) -> void
+DcsvIo.D2.Messaging.MessagingCatalog.RequireDescriptor(System.Type! messageType) -> DcsvIo.D2.Messaging.MqMessageDescriptor!
+DcsvIo.D2.Messaging.MessagingCatalog.Subscriptions.get -> System.Collections.Generic.IReadOnlyDictionary<string!, DcsvIo.D2.Messaging.MqSubscriptionDescriptor!>!
+DcsvIo.D2.Messaging.MessagingCatalog.Subscriptions.init -> void
 DcsvIo.D2.Messaging.MessagingFailures
 DcsvIo.D2.Messaging.MessagingJsonOptions
 DcsvIo.D2.Messaging.MessagingServiceCollectionExtensions
 DcsvIo.D2.Messaging.MessagingServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 DcsvIo.D2.Messaging.MessagingServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddD2Subscriber<THandler, TMessage>(DcsvIo.D2.Messaging.MqSubscriptionDescriptor! descriptor) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+DcsvIo.D2.Messaging.MessagingServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddD2SubscribersFromAssembly(DcsvIo.D2.Messaging.MessagingCatalog! catalog, params System.Reflection.Assembly![]! assemblies) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 DcsvIo.D2.Messaging.MessagingServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddD2SubscribersFromAssembly(params System.Reflection.Assembly![]! assemblies) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 DcsvIo.D2.Messaging.MqMessageDescriptor
 DcsvIo.D2.Messaging.MqMessageDescriptor.<Clone>$() -> DcsvIo.D2.Messaging.MqMessageDescriptor!
@@ -121,11 +132,12 @@ const DcsvIo.D2.Messaging.DlqFailureMetadataFields.ERROR_CODE = "errorCode" -> s
 const DcsvIo.D2.Messaging.DlqFailureMetadataFields.NACKED_BY = "nackedBy" -> string!
 const DcsvIo.D2.Messaging.DlqFailureMetadataFields.TRACE_ID = "traceId" -> string!
 const DcsvIo.D2.Messaging.MqMessageDescriptor.PLAINTEXT = "plaintext" -> string!
-const DcsvIo.D2.Messaging.MqMessages.AuthKeyRotated = "AuthKeyRotated" -> string!
-const DcsvIo.D2.Messaging.MqSubscriptions.KeyringRefresh = "KeyringRefresh" -> string!
 override DcsvIo.D2.Messaging.DlqFailureMetadata.Equals(object? obj) -> bool
 override DcsvIo.D2.Messaging.DlqFailureMetadata.GetHashCode() -> int
 override DcsvIo.D2.Messaging.DlqFailureMetadata.ToString() -> string!
+override DcsvIo.D2.Messaging.MessagingCatalog.Equals(object? obj) -> bool
+override DcsvIo.D2.Messaging.MessagingCatalog.GetHashCode() -> int
+override DcsvIo.D2.Messaging.MessagingCatalog.ToString() -> string!
 override DcsvIo.D2.Messaging.MqMessageDescriptor.Equals(object? obj) -> bool
 override DcsvIo.D2.Messaging.MqMessageDescriptor.GetHashCode() -> int
 override DcsvIo.D2.Messaging.MqMessageDescriptor.ToString() -> string!
@@ -138,9 +150,13 @@ override DcsvIo.D2.Messaging.TieredRetryDescriptor.ToString() -> string!
 static DcsvIo.D2.Messaging.DlqFailureMetadata.operator !=(DcsvIo.D2.Messaging.DlqFailureMetadata? left, DcsvIo.D2.Messaging.DlqFailureMetadata? right) -> bool
 static DcsvIo.D2.Messaging.DlqFailureMetadata.operator ==(DcsvIo.D2.Messaging.DlqFailureMetadata? left, DcsvIo.D2.Messaging.DlqFailureMetadata? right) -> bool
 static DcsvIo.D2.Messaging.DlqFailureMetadataFields.AllFields.get -> System.Collections.Generic.IReadOnlyList<string!>!
+static DcsvIo.D2.Messaging.MessagingCatalog.Default.get -> DcsvIo.D2.Messaging.MessagingCatalog!
+static DcsvIo.D2.Messaging.MessagingCatalog.operator !=(DcsvIo.D2.Messaging.MessagingCatalog? left, DcsvIo.D2.Messaging.MessagingCatalog? right) -> bool
+static DcsvIo.D2.Messaging.MessagingCatalog.operator ==(DcsvIo.D2.Messaging.MessagingCatalog? left, DcsvIo.D2.Messaging.MessagingCatalog? right) -> bool
 static DcsvIo.D2.Messaging.MessagingFailures.Required(string! paramName) -> DcsvIo.D2.Result.D2Result!
 static DcsvIo.D2.Messaging.MessagingFailures.Required<T>(string! paramName) -> DcsvIo.D2.Result.D2Result<T>!
 static DcsvIo.D2.Messaging.MessagingServiceCollectionExtensions.AddD2Subscriber<THandler, TMessage>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, DcsvIo.D2.Messaging.MqSubscriptionDescriptor! descriptor) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static DcsvIo.D2.Messaging.MessagingServiceCollectionExtensions.AddD2SubscribersFromAssembly(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, DcsvIo.D2.Messaging.MessagingCatalog! catalog, params System.Reflection.Assembly![]! assemblies) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static DcsvIo.D2.Messaging.MessagingServiceCollectionExtensions.AddD2SubscribersFromAssembly(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, params System.Reflection.Assembly![]! assemblies) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static DcsvIo.D2.Messaging.MqMessageDescriptor.operator !=(DcsvIo.D2.Messaging.MqMessageDescriptor? left, DcsvIo.D2.Messaging.MqMessageDescriptor? right) -> bool
 static DcsvIo.D2.Messaging.MqMessageDescriptor.operator ==(DcsvIo.D2.Messaging.MqMessageDescriptor? left, DcsvIo.D2.Messaging.MqMessageDescriptor? right) -> bool

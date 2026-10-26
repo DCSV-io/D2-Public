@@ -17,6 +17,7 @@ import {
   RecipientPublicKeyring,
 } from "@dcsv-io/d2-encryption";
 import type { ILogger } from "@dcsv-io/d2-logging";
+import { RecordingLogger, waitUntil } from "../helpers.js";
 import type { MqMessageDescriptor } from "@dcsv-io/d2-messaging-abstractions";
 import { ok } from "@dcsv-io/d2-result";
 import { uuidv7 } from "@dcsv-io/d2-utilities";
@@ -24,6 +25,9 @@ import { Connection } from "rabbitmq-client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
+  createConnection,
+  RabbitMqConnectionOptions,
+  type D2Connection,
   CryptoBodyOpener,
   QueuePattern,
   type SubscriptionDescriptor,
@@ -33,37 +37,16 @@ import {
 } from "../../src/index.js";
 
 // -----------------------------------------------------------------------
-// The shipped TS consumer pipeline decrypting a REAL encrypted frame off a REAL
-// broker. Unit round-trips (crypto-body-opener.test.ts / publisher.test.ts) and
-// the cross-runtime golden/KAT gates cover the codecs; these two prove the full
-// delivery leg — publish (shipped compose / createPublisher fusion) → live
-// RabbitMQ → shipped `subscribe` + `CryptoBodyOpener` decrypt → handler sees
-// the plaintext object.
+// The shipped TypeScript consumer pipeline decrypts a real encrypted frame
+// delivered by a real broker. Unit round-trips (crypto-body-opener.test.ts and
+// publisher.test.ts) and the cross-runtime golden and KAT gates cover the
+// codecs. The symmetric and sealed rows below cover the full delivery path:
+// publish (the shipped compose or createPublisher fusion), live RabbitMQ, the
+// shipped `subscribe` with `CryptoBodyOpener` decrypting, and the handler
+// receiving the plaintext object.
 // -----------------------------------------------------------------------
 
 const utf8 = new TextEncoder();
-
-// Attempt-budget stuck-guard — the TS twin of the .NET `_POLL_ATTEMPT_BUDGET`
-// (DlqTests.cs / PublishConsumeRoundTripTests.cs). Each iteration awaits a fixed
-// poll interval; the budget caps ATTEMPTS, never elapsed wall-clock time, so
-// under load the effective wait GROWS with the slowdown instead of a
-// `Date.now()` deadline expiring mid-progress. This is NOT a success-path
-// deadline: healthy delivery resolves in a handful of attempts; the budget only
-// terminates a permanently-stuck test. (The 120s vitest `testTimeout` is the
-// outer framework net, not part of any assertion's success path.)
-const _POLL_INTERVAL_MS = 100;
-const _POLL_ATTEMPT_BUDGET = 600;
-
-async function waitUntil(predicate: () => boolean): Promise<void> {
-  for (let attempt = 0; attempt < _POLL_ATTEMPT_BUDGET; attempt++) {
-    if (predicate()) return;
-    await new Promise((r) => setTimeout(r, _POLL_INTERVAL_MS));
-  }
-
-  throw new Error(
-    `predicate not satisfied within ${_POLL_ATTEMPT_BUDGET} poll attempts`,
-  );
-}
 
 let uniqueCounter = 0;
 function unique(prefix: string): string {
@@ -115,23 +98,40 @@ async function makeSealerOpener(
   return { sealer: new PayloadSealer(pub), opener: new PayloadOpener(priv) };
 }
 
-describe("@dcsv-io/d2-messaging-rabbitmq consumer — real-broker encrypted decrypt", () => {
+describe("@dcsv-io/d2-messaging-rabbitmq consumer - real-broker encrypted decrypt", () => {
   let container: StartedRabbitMQContainer;
   let connection: Connection;
+  let managedConnection: D2Connection;
 
   beforeAll(async () => {
-    container = await new RabbitMQContainer("rabbitmq:3.13-management").start();
+    container = await new RabbitMQContainer(
+      "rabbitmq:4.1.7-management",
+    ).start();
     // getAmqpUrl() omits credentials; the container's default user is guest/guest.
     const url = container
       .getAmqpUrl()
       .replace("amqp://", "amqp://guest:guest@");
     connection = new Connection(url);
+    managedConnection = createConnection(
+      new RabbitMqConnectionOptions({
+        connectionUri: url,
+        allowUnencryptedTransport: true,
+      }),
+      new RecordingLogger(),
+    );
     await connection.onConnect();
   }, 180_000);
 
   afterAll(async () => {
-    await connection?.close();
-    await container?.stop();
+    try {
+      await managedConnection?.close();
+    } finally {
+      try {
+        await connection?.close();
+      } finally {
+        await container?.stop();
+      }
+    }
   });
 
   async function publishRaw(
@@ -156,9 +156,10 @@ describe("@dcsv-io/d2-messaging-rabbitmq consumer — real-broker encrypted decr
     }
   }
 
-  it("row 1 — symmetric: consumes + decrypts a real v1 frame off the broker via CryptoBodyOpener.symmetric", async () => {
-    // §7.23 fixture marker in the domain leaf. The production catalog carries no
-    // symmetric domain, so this is a test-seam domain (Symmetric by default).
+  it("row 1 - symmetric: consumes + decrypts a real v1 frame off the broker via CryptoBodyOpener.symmetric", async () => {
+    // A fixture domain that the domain leaf provides for tests. The production
+    // catalog contains no symmetric domain, so this is a test-seam domain
+    // (Symmetric by default).
     const domain = "payload-fixture-symmetric";
     const kid = "sym-fixture-1";
     const crypto = new PayloadCrypto(
@@ -172,11 +173,9 @@ describe("@dcsv-io/d2-messaging-rabbitmq consumer — real-broker encrypted decr
     const queueName = unique("q.sym");
     const payload = { marker: "sym-" + uuidv7(), n: 42 };
 
-    // Publish side — the shipped symmetric compose arm builds the real v1 frame.
-    // createPublisher/publishVia resolve the mode from the production catalog
-    // (which has no symmetric domain), so the frame is composed via
-    // `composeBody`'s mode-override seam (the same seam publisher.test.ts uses)
-    // and put on the wire by a raw confirm-publisher.
+    // Publish side - the shipped symmetric compose arm builds the real v1 frame.
+    // The frame is composed through `composeBody`'s mode-override argument and
+    // put on the wire by a raw confirm-publisher.
     const descriptor: MqMessageDescriptor = {
       constant: "SymFixture",
       messageType: "D2.Test.SymFixture",
@@ -192,10 +191,10 @@ describe("@dcsv-io/d2-messaging-rabbitmq consumer — real-broker encrypted decr
     );
     expect(composed.body[0]).toBe(1); // v1 symmetric frame version byte
 
-    // Consume side — the shipped subscriber pipeline + the real decrypting opener.
+    // Consume side - the shipped subscriber pipeline + the real decrypting opener.
     let received: unknown;
     const sub = subscribe({
-      connection,
+      connection: managedConnection,
       descriptor: makeSubscription(queueName, exchange),
       logger: silentLogger(),
       opener: CryptoBodyOpener.symmetric(domain, crypto),
@@ -213,9 +212,10 @@ describe("@dcsv-io/d2-messaging-rabbitmq consumer — real-broker encrypted decr
     await sub.close();
   });
 
-  it("row 2 — sealed: consumes + opens a real v2 sealed frame off the broker via CryptoBodyOpener.sealed", async () => {
-    // Public catalog sealed domain (`payload-fixture-sealed`) — seals to the
-    // recipient public keyring; only the private-keyring holder opens.
+  it("row 2 - sealed: consumes + opens a real v2 sealed frame off the broker via CryptoBodyOpener.sealed", async () => {
+    // Public catalog sealed domain (`payload-fixture-sealed`): it seals to the
+    // recipient public keyring, and only the holder of the private keyring can
+    // open the frame.
     const domain = "payload-fixture-sealed";
     const kid = "seal-fixture-1";
     const { sealer, opener } = await makeSealerOpener(domain, kid);
@@ -223,32 +223,33 @@ describe("@dcsv-io/d2-messaging-rabbitmq consumer — real-broker encrypted decr
     const queueName = unique("q.sealed");
     const payload = { marker: "sealed-" + uuidv7(), secret: "top" };
 
-    // Publish side — the shipped createPublisher fusion over the live connection.
-    // The production catalog carries no sealed MESSAGE, so the documented
-    // `descriptors` fixture-registry option supplies one; the publish key is cast
-    // because the compile-time type-witness is scoped to the production catalog
-    // (fixture messages intentionally live outside it — runtime default-deny +
-    // the injected registry are the enforcement here).
-    // crypto map key MUST equal descriptor.encryption (composeBody domain lookup).
+    // Publish side - the shipped createPublisher fusion over the live connection.
+    // The production catalog contains no sealed message, so the documented
+    // `descriptors` fixture-registry option supplies one. The publish key is cast
+    // because the compile-time type witness covers only the production catalog;
+    // fixture messages are outside it by design, and here the runtime
+    // default-deny and the injected registry enforce the restriction.
+    // The crypto map key must equal descriptor.encryption (composeBody looks up
+    // the domain by it).
     const fixtureRegistry: Readonly<Record<string, MqMessageDescriptor>> = {
-      SealedAuditFixture: {
-        constant: "SealedAuditFixture",
-        messageType: "D2.Test.SealedAuditFixture",
+      SealedOrderFixture: {
+        constant: "SealedOrderFixture",
+        messageType: "D2.Test.SealedOrderFixture",
         exchange,
         exchangeType: "fanout",
         encryption: domain,
       },
     };
-    const publisher = createPublisher(connection, {
+    const publisher = createPublisher(managedConnection, {
       crypto: { "payload-fixture-sealed": sealer },
       logger: silentLogger(),
       descriptors: fixtureRegistry,
     });
 
-    // Consume side — the shipped subscriber pipeline + the real sealed opener.
+    // Consume side - the shipped subscriber pipeline + the real sealed opener.
     let received: unknown;
     const sub = subscribe({
-      connection,
+      connection: managedConnection,
       descriptor: makeSubscription(queueName, exchange),
       logger: silentLogger(),
       opener: CryptoBodyOpener.sealed(domain, opener),
@@ -264,7 +265,7 @@ describe("@dcsv-io/d2-messaging-rabbitmq consumer — real-broker encrypted decr
         key: string,
         message: object,
       ) => Promise<{ failed: boolean }>
-    )("SealedAuditFixture", payload);
+    )("SealedOrderFixture", payload);
     expect(publish.failed).toBe(false);
 
     await waitUntil(() => received !== undefined);

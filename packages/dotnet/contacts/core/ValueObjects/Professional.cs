@@ -17,14 +17,14 @@ using DcsvIo.D2.Validation.Abstractions;
 /// Immutable professional-details value object: a required company name plus
 /// optional job title, department, and company website. The website is accepted
 /// as raw text and stored as an absolute <c>http</c> / <c>https</c>
-/// <see cref="Uri"/> (or null when omitted). No correlation hash is derived —
+/// <see cref="Uri"/> (or null when omitted). No correlation hash is derived -
 /// professional details are not identity-defining.
 /// </summary>
 /// <remarks>
 /// <b>Self-redacting PII.</b> <see cref="CompanyName"/>, <see cref="JobTitle"/>,
 /// and <see cref="Department"/> are marked <c>[RedactData(PersonalInformation)]</c>
-/// — tied to a person these are contextually identifying. <see cref="CompanyWebsite"/>
-/// is left visible — a public website URL is not individually identifying.
+/// - tied to a person these are contextually identifying. <see cref="CompanyWebsite"/>
+/// is left visible - a public website URL is not individually identifying.
 /// </remarks>
 public sealed record Professional
 {
@@ -42,7 +42,7 @@ public sealed record Professional
 
     /// <summary>
     /// Gets the optional company website as an absolute <c>http</c> / <c>https</c>
-    /// URI. Emitted unredacted in logs — a public website URL is not individually
+    /// URI. Emitted unredacted in logs - a public website URL is not individually
     /// identifying.
     /// </summary>
     public Uri? CompanyWebsite { get; init; }
@@ -97,7 +97,7 @@ public sealed record Professional
                 messages: [TK.Contacts.Validation.DEPARTMENT_TOO_LONG]);
         }
 
-        // Website: trim only (ToNullIfEmpty) — do NOT collapse internal whitespace,
+        // Website: trim only (ToNullIfEmpty) - do not collapse internal whitespace,
         // which would mangle a query string. Raw-length guard runs before parsing.
         Uri? website = null;
         var rawWebsite = companyWebsite.ToNullIfEmpty();

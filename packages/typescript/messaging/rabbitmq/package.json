@@ -1,6 +1,11 @@
 {
   "name": "@dcsv-io/d2-messaging-rabbitmq",
-  "version": "0.1.2",
+  "version": "0.7.7",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DCSV-io/D2-Public.git",
+    "directory": "packages/typescript/messaging/rabbitmq"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,7 +18,19 @@
   "files": [
     "dist"
   ],
+  "d2PackInputs": [
+    "patches/rabbitmq-client@5.0.8.patch",
+    "patches/rabbitmq-client.json",
+    "packaging/producer.package.json",
+    "packaging/producer.pnpm-lock.yaml",
+    "packaging/producer.pnpm-workspace.yaml",
+    "packaging/producer.npmrc",
+    "scripts/pack-patched.mjs",
+    "scripts/check-pack-entry.mjs"
+  ],
   "scripts": {
+    "pack:patched": "node scripts/pack-patched.mjs",
+    "prepack": "node scripts/check-pack-entry.mjs",
     "build": "tsc -b",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
@@ -31,7 +48,8 @@
     "@dcsv-io/d2-telemetry": "workspace:*",
     "@dcsv-io/d2-utilities": "workspace:*",
     "@opentelemetry/api": "1.9.0",
-    "rabbitmq-client": "5.0.8"
+    "rabbitmq-client": "5.0.8",
+    "temporal-polyfill": "0.3.2"
   },
   "devDependencies": {
     "@testcontainers/rabbitmq": "11.14.0",

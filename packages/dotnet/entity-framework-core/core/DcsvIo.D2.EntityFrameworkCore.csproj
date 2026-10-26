@@ -7,24 +7,30 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   </PropertyGroup>
 
   <!--
-    Generic, VO-agnostic EF Core migration helpers. Currently ships one public helper:
-    CreateD2Index<TEntity> — a MigrationBuilder extension that derives the
+    Generic, VO-agnostic EF Core helpers that need no database driver. Ships:
+    CreateD2Index<TEntity> - a MigrationBuilder extension that derives the
     {ComplexProp}_{Member} column name from a typed member-selector expression and emits
     a raw CreateIndexOperation. Exists because EF Core 10 cannot declare model-aware
     indexes on ComplexProperty member columns (silently discarded at finalization);
     see the README for the limitation details and the EF Core 11 upgrade path.
-    No contacts, no location, no data-governance dependency — pure EF migration plumbing.
+    PgClassedAdvisoryLock and PgRowLock - two-integer advisory locks and one-row
+    SELECT ... FOR UPDATE, both taken on the caller's DbContext. Their statements are
+    PostgreSQL and they ship from here anyway: the SQL crosses as text, identifiers come
+    from the provider's ISqlGenerationHelper, refusals are read from DbException.SqlState,
+    and application-layer code may not reference the Npgsql closure of the
+    DcsvIo.D2.EntityFrameworkCore.Postgres package.
+    No contacts, no location, no data-governance dependency - pure EF plumbing.
     PackageReference: Microsoft.EntityFrameworkCore.Relational (supplies MigrationBuilder,
     CreateIndexOperation, OperationBuilder<T> from Migrations.Operations and
     Migrations.Operations.Builders). Base EF Core flows transitively; do NOT add a
     separate base Microsoft.EntityFrameworkCore ref to avoid NU1510.
-    ProjectReference: DcsvIo.D2.Utilities — uses ThrowIfFalsey for combined
+    ProjectReference: DcsvIo.D2.Utilities - uses ThrowIfFalsey for combined
     null/empty/whitespace guards; no cycle (Utilities does not reference EF or this lib).
   -->
 
   <ItemGroup>
     <!--
-      Microsoft.EntityFrameworkCore.Relational — CPM-pinned in Directory.Packages.props.
+      Microsoft.EntityFrameworkCore.Relational - CPM-pinned in Directory.Packages.props.
       Provides MigrationBuilder, CreateIndexOperation, and OperationBuilder<CreateIndexOperation>
       from Microsoft.EntityFrameworkCore.Migrations.Operations and
       Microsoft.EntityFrameworkCore.Migrations.Operations.Builders. Base EF Core flows
@@ -36,7 +42,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <ItemGroup>
     <!--
-      DcsvIo.D2.Utilities — uses ThrowIfFalsey for a combined null/empty/whitespace guard
+      DcsvIo.D2.Utilities - uses ThrowIfFalsey for a combined null/empty/whitespace guard
       on required string parameters. Cycle-free: Utilities does not reference EF or this lib.
     -->
     <ProjectReference Include="..\..\utilities\DcsvIo.D2.Utilities.csproj" />
@@ -48,9 +54,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.1</Version>
+    <Version>0.4.11</Version>
     <PackageId>DcsvIo.D2.EntityFrameworkCore</PackageId>
-    <Description>EF Core migration helpers for D2 — declaring indexes on ComplexProperty member columns.</Description>
+    <Description>Driver-free EF Core helpers for D2 - indexes on ComplexProperty member columns, and the advisory and row locks a caller takes on its own DbContext.</Description>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

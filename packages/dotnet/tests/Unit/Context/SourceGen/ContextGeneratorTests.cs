@@ -18,9 +18,10 @@ using Xunit;
 
 /// <summary>
 /// IIncrementalGenerator integration tests for <see cref="ContextGenerator"/>.
-/// Drives synthetic compilations targeting each of the three recognized
-/// assembly names and asserts the per-target dispatch (interface emission vs
-/// mutable emission vs no-op).
+/// Drives synthetic compilations targeting each recognized assembly name
+/// (<c>DcsvIo.D2.AuthContext.Abstractions</c> and
+/// <c>DcsvIo.D2.Context.Abstractions</c>) and asserts the per-target dispatch
+/// (interface emission vs mutable emission vs no-op).
 /// </summary>
 public sealed class ContextGeneratorTests
 {
@@ -118,8 +119,9 @@ public sealed class ContextGeneratorTests
     public void Generator_ContextAbstractionsAssembly_EmitsAllRequestSideArtifacts()
     {
         // The unified abstractions target receives the IRequestContext
-        // interface PLUS MutableRequestContext + the PropagatedContext trio
-        // (record / extensions / serializer) — five files in total.
+        // interface, MutableRequestContext, and the PropagatedContext record,
+        // extensions and serializer, five files in total; the assertions below
+        // list each file.
         var driver = RunGenerator(
             assemblyName: "DcsvIo.D2.Context.Abstractions",
             authSpec: _AUTH_SPEC,
@@ -165,8 +167,9 @@ public sealed class ContextGeneratorTests
     public void Generator_EstablishmentSpec_PropagatedContextHasCallPathButNotOriginOrCaller()
     {
         // Anti-spoofing invariant #1 at the generator level: only propagate:true
-        // fields enter PropagatedContext. Origin + ImmediateCaller (non-propagated,
-        // authority-grade) must NOT appear; CallPath (telemetry) must.
+        // fields enter PropagatedContext. Origin and ImmediateCaller
+        // (non-propagated, authority-grade) must not appear; CallPath
+        // (telemetry) must.
         var driver = RunGenerator(
             assemblyName: "DcsvIo.D2.Context.Abstractions",
             authSpec: _AUTH_SPEC,
@@ -194,9 +197,9 @@ public sealed class ContextGeneratorTests
     [Fact]
     public void Generator_RequestContextAssemblyMissingAuthSpec_EmitsMissingSpecFileDiagnostic()
     {
-        // The combined emitter requires BOTH specs — auth is needed even when
-        // the target is RequestContext. If only request spec is present, fire
-        // D2CTX006.
+        // The combined emitter requires both specs: the auth spec is needed
+        // even when the target is RequestContext. If only the request spec is
+        // present, the generator reports D2CTX006.
         var driver = RunGenerator(
             assemblyName: "DcsvIo.D2.Context.Abstractions",
             authSpec: null,
@@ -221,8 +224,8 @@ public sealed class ContextGeneratorTests
     [Fact]
     public void Generator_RunTwice_SameInputs_ProducesIdenticalOutput()
     {
-        // Cache stability — identical inputs must produce identical generator
-        // output (so downstream incremental builds can reuse cached results).
+        // Cache stability: identical inputs must produce identical generator
+        // output, so that downstream incremental builds can reuse cached results.
         var firstSrc = RunGenerator(
                 assemblyName: "DcsvIo.D2.Context.Abstractions",
                 authSpec: _AUTH_SPEC,
@@ -275,8 +278,8 @@ public sealed class ContextGeneratorTests
     private static string Normalize(string s) => s.Replace("\r\n", "\n").Trim();
 
     /// <summary>
-    /// Minimal AdditionalText shim for synthesizing AdditionalFiles in
-    /// generator tests without filesystem I/O.
+    /// Minimal AdditionalText implementation that synthesizes AdditionalFiles
+    /// in generator tests without file system I/O.
     /// </summary>
     private sealed class InMemoryAdditionalText : AdditionalText
     {

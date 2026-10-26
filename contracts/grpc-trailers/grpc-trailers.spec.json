@@ -14,7 +14,7 @@
     {
       "constName": "TRACE_ID",
       "value": "traceId",
-      "doc": "Trailer key carrying the W3C trace id (lower-hex, 32 chars) when an Activity is current. OMITTED when no Activity is present, mirroring the HTTP middleware's omission policy. NOTE: camelCase 'traceId' value matches the HTTP ProblemDetails extension key 'traceId' — single mental model across transports. gRPC HTTP/2 trailer names are case-insensitive per the HTTP/2 spec; senders may pick any casing, and the spec pins camelCase so consumers comparing trailer values against the HTTP ProblemDetails extension key share one string literal across transports."
+      "doc": "Trailer key carrying the W3C trace id (lower-hex, 32 chars) when an Activity is current. OMITTED when no Activity is present, mirroring the HTTP middleware's omission policy. NOTE: the camelCase 'traceId' value matches the HTTP ProblemDetails extension key 'traceId', so one name identifies the trace id on both transports. gRPC HTTP/2 trailer names are case-insensitive per the HTTP/2 spec and senders may use any casing; this spec fixes camelCase so consumers that compare trailer values against the HTTP ProblemDetails extension key use one string literal for both transports."
     }
   ]
 }

@@ -13,7 +13,7 @@ using DcsvIo.D2.Geo.Default;
 using Xunit;
 
 /// <summary>
-/// Wire-up-risk coverage for <see cref="GeoDataInitializer"/>. The
+/// Coverage for the wiring done by <see cref="GeoDataInitializer"/>. The
 /// coordinator runs once at assembly load via
 /// <see cref="System.Runtime.CompilerServices.ModuleInitializerAttribute"/>;
 /// these tests verify the post-init nav graph + idempotency guard +
@@ -21,7 +21,7 @@ using Xunit;
 /// </summary>
 public sealed class GeoDataInitializerTests
 {
-    // §1.2 category: State-lifecycle — module-init ran before any test.
+    // Category: State-lifecycle - module-init ran before any test.
     [Fact]
     public void Initialize_RunsAtAssemblyLoad_SInitializedFlagIsTrue()
     {
@@ -68,7 +68,7 @@ public sealed class GeoDataInitializerTests
         act.Should().NotThrow();
     }
 
-    // §1.2 category: Cross-field — every Country has expected nav graph.
+    // Category: Cross-field - every Country has expected nav graph.
     [Fact]
     public void PostInit_EveryCountry_HasPrimaryLanguageNavOrCodeIsNull()
     {
@@ -109,7 +109,7 @@ public sealed class GeoDataInitializerTests
     public void PostInit_AQ_HasNullPrimaryCurrency()
     {
         // AQ (Antarctica) has no primary currency in the spec. BV and HM
-        // carry sovereign-country currency by spec convention (NOK / AUD)
+        // have a sovereign-country currency by spec convention (NOK / AUD)
         // even though they have no resident population.
         Countries.AQ.PrimaryCurrency.Should().BeNull();
     }
@@ -122,7 +122,7 @@ public sealed class GeoDataInitializerTests
         Countries.HM.PrimaryLocale.Should().BeNull();
     }
 
-    // §1.2 category: Cross-field — Subdivision cross-ref symmetry.
+    // Category: Cross-field - Subdivision cross-ref symmetry.
     [Fact]
     public void PostInit_EverySubdivision_CountryBackrefMatches()
     {
@@ -157,7 +157,7 @@ public sealed class GeoDataInitializerTests
         }
     }
 
-    // §1.2 category: Cross-field — Locale + Language + Country nav symmetry.
+    // Category: Cross-field - Locale + Language + Country nav symmetry.
     [Fact]
     public void PostInit_EveryLocale_LanguageAndCountryNavMatchCodes()
     {
@@ -175,7 +175,7 @@ public sealed class GeoDataInitializerTests
         }
     }
 
-    // §1.2 category: Cross-field — GeopoliticalEntity M:M coherence.
+    // Category: Cross-field - GeopoliticalEntity M:M coherence.
     [Fact]
     public void PostInit_EveryGeopoliticalEntity_MemberCountriesMatchCodes()
     {

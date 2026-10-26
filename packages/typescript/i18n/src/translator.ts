@@ -19,11 +19,11 @@ export type LocaleCatalogs = Readonly<
  * Default `ITranslator` implementation. Resolves the requested locale via
  * {@link SupportedLocales}, looks the key up in the per-locale catalog,
  * falls back to the default locale's catalog, and finally returns the
- * key verbatim if neither has the entry. NEVER throws — matches the .NET
- * `Translator.T` semantic.
+ * key verbatim if neither has the entry. Never throws, matching the .NET
+ * `Translator.T` semantics.
  *
  * Parameter substitution uses `{name}` placeholders. Unmatched placeholders
- * are left literal so the operator notices them in the output.
+ * are left literal so they are visible in the output.
  */
 export class Translator implements ITranslator {
   constructor(

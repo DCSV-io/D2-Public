@@ -13,12 +13,14 @@ using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Drives <see cref="ITopologyDeclarer"/> on startup once the connection is
-/// ready. Non-blocking — kicks off a background task that awaits
-/// <see cref="ID2Connection.ReadyTask"/> so a slow / unavailable broker
-/// doesn't stall host startup. Subscribers / publishers will surface their
-/// own <c>ServiceUnavailable</c> failures while topology hasn't been
-/// declared yet.
+/// ready. Non-blocking: it starts a background task that awaits
+/// <see cref="ID2Connection.ReadyTask"/>, so a slow or unavailable broker
+/// does not stall host startup.
 /// </summary>
+/// <remarks>
+/// While the topology is not yet declared, subscribers and publishers surface
+/// their own <c>ServiceUnavailable</c> failures.
+/// </remarks>
 [MustDisposeResource(false)]
 internal sealed class TopologyHostedService : IHostedService, IAsyncDisposable
 {
@@ -46,16 +48,16 @@ internal sealed class TopologyHostedService : IHostedService, IAsyncDisposable
         r_logger = logger;
     }
 
-    /// <summary>Gets the background declare task — internal observable
-    /// for the M7 fault-log test (lets tests await its completion).</summary>
+    /// <summary>Gets the background declare task, which a test can await to
+    /// observe its completion.</summary>
     internal Task? DeclareTaskForTesting => _declareTask;
 
     /// <inheritdoc />
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        // Spin off a background task so StartAsync returns immediately.
-        // Awaiting ReadyTask blocks until the connection lands; declaration
-        // then runs on a dedicated channel.
+        // Run a background task so StartAsync returns immediately. Awaiting
+        // ReadyTask waits until the connection opens; declaration then runs
+        // on a dedicated channel.
         _declareTask = Task.Run(
             async () =>
             {
@@ -64,11 +66,12 @@ internal sealed class TopologyHostedService : IHostedService, IAsyncDisposable
             },
             r_cts.Token);
 
-        // M7: a fire-and-forget Task.Run that throws would otherwise vanish
-        // into TaskScheduler.UnobservedTaskException and the operator would
-        // see "consumers don't get messages" with no log explaining why
+        // A fire-and-forget Task.Run that throws would otherwise go to
+        // TaskScheduler.UnobservedTaskException, and the operator would see
+        // "consumers don't get messages" with no log entry explaining why
         // (e.g. PRECONDITION_FAILED on a queue declared with mismatched
-        // arguments). Surface the failure structured so it's actionable.
+        // arguments). Log the failure as a structured entry so it can be
+        // acted on.
         _declareTask.ContinueWith(
             t => TopologyLog.DeclarationFailedFaultSink(r_logger, t.Exception!),
             CancellationToken.None,
@@ -83,9 +86,9 @@ internal sealed class TopologyHostedService : IHostedService, IAsyncDisposable
     {
         await r_cts.CancelAsync();
 
-        // Wait for the background task to wind down so any in-flight channel
-        // ops get a chance to abort cleanly. Suppress cancellation —
-        // shutdown.
+        // Wait for the background task to finish so any in-flight channel
+        // ops get a chance to abort cleanly. Cancellation is expected during
+        // shutdown, so it is suppressed.
         if (_declareTask is { } t)
         {
             try
@@ -94,7 +97,7 @@ internal sealed class TopologyHostedService : IHostedService, IAsyncDisposable
             }
             catch (OperationCanceledException)
             {
-                // Expected on shutdown — declaration was canceled mid-flight.
+                // Expected on shutdown - declaration was canceled mid-flight.
             }
         }
     }

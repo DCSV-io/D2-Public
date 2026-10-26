@@ -16,15 +16,15 @@ namespace DcsvIo.D2.Geo.Abstractions;
 /// Provenance constants for the geo catalog. Surfaced so consumers can
 /// confirm the running version (e.g. observability tags, ETag headers,
 /// audit metadata). <see cref="CatalogPublishedAt"/> uses
-/// <see cref="DateTimeOffset"/> (NOT NodaTime <c>Instant</c>) — this
+/// <see cref="DateTimeOffset"/> (NOT NodaTime <c>Instant</c>) - this
 /// lib stays NodaTime-free so it can be a leaf dependency.
 /// </summary>
 public static class GeoCatalog
 {
-    /// <summary>Catalog version — surfaced from spec metadata.</summary>
+    /// <summary>Catalog version - surfaced from spec metadata.</summary>
     public const string CatalogVersion = "0.1.0";
 
     /// <summary>Catalog publication timestamp (UTC). Sourced from spec metadata.</summary>
     public static readonly DateTimeOffset CatalogPublishedAt =
-        new DateTimeOffset(2026, 5, 26, 13, 25, 26, 656, TimeSpan.Zero);
+        new DateTimeOffset(2026, 10, 21, 6, 5, 33, 378, TimeSpan.Zero);
 }

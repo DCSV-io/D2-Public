@@ -14,11 +14,10 @@ using Xunit;
 
 /// <summary>
 /// Pins the wire shape of <see cref="DlqFailureMetadata"/> against the
-/// spec-driven <see cref="DlqFailureMetadataFields"/> catalog. Mirrors the
-/// <c>D2ResultJsonShapeTests</c> structural-guard pattern so any future
-/// auto-property added to the record without a <c>[JsonIgnore]</c> attribute
-/// (or any drift between the property's wire key and the spec catalog)
-/// surfaces as a test failure rather than a silent wire-shape change.
+/// spec-driven <see cref="DlqFailureMetadataFields"/> catalog, with the same
+/// structural check as <c>D2ResultJsonShapeTests</c>. An auto-property added
+/// without a <c>[JsonIgnore]</c> attribute, or a wire key that differs from the
+/// spec catalog, fails a test and does not change the wire shape silently.
 /// </summary>
 public sealed class DlqFailureMetadataJsonShapeTests
 {
@@ -55,9 +54,9 @@ public sealed class DlqFailureMetadataJsonShapeTests
     [Fact]
     public void Serialize_WireKeysSubsetOfCatalog()
     {
-        // Every wire key emitted by a fully-populated DlqFailureMetadata MUST
-        // be in the spec catalog. Pins against accidental leakage when a
-        // future auto-property is added without a [JsonIgnore] attribute.
+        // Every wire key that a fully populated DlqFailureMetadata emits must
+        // be in the spec catalog. The test fails when an auto-property without
+        // a [JsonIgnore] attribute adds a key that the catalog lacks.
         var metadata = new DlqFailureMetadata
         {
             Cause = "HANDLER_EXCEPTION",
@@ -82,15 +81,15 @@ public sealed class DlqFailureMetadataJsonShapeTests
     [Fact]
     public void Serialize_IsImmuneToDefaultOptions()
     {
-        // Default JsonSerializerOptions has NO PropertyNamingPolicy set, so a
+        // The default JsonSerializerOptions sets no PropertyNamingPolicy, so a
         // typical record would round-trip as PascalCase. The
-        // [JsonPropertyName] attributes pin camelCase even under default
-        // options — confirms the wire shape is per-property explicit and does
-        // not depend on the caller setting JsonNamingPolicy.CamelCase.
+        // [JsonPropertyName] attributes pin camelCase under the default
+        // options. The test confirms that each property sets its wire name and
+        // does not depend on the caller setting JsonNamingPolicy.CamelCase.
         var metadata = new DlqFailureMetadata
         {
             Cause = "HANDLER_RESULT_FAILURE",
-            ErrorCode = "NOT_FOUND",
+            ErrorCode = "GEN_NOT_FOUND",
         };
 
         var json = JsonSerializer.Serialize(metadata);
@@ -105,13 +104,13 @@ public sealed class DlqFailureMetadataJsonShapeTests
     [Fact]
     public void Serialize_OmitsNullOptionalFields()
     {
-        // Optional nullable fields (Detail / TraceId / NackedBy) omit-on-null
-        // under the default System.Text.Json behavior, keeping the AMQP
-        // header payload as small as possible.
+        // The test serializes with options that set WhenWritingNull, so the
+        // optional nullable fields (Detail, TraceId and NackedBy) are omitted
+        // when null, which keeps the AMQP header payload small.
         var metadata = new DlqFailureMetadata
         {
             Cause = "HANDLER_RESULT_FAILURE",
-            ErrorCode = "NOT_FOUND",
+            ErrorCode = "GEN_NOT_FOUND",
         };
 
         var json = JsonSerializer.Serialize(metadata, sr_omitNullOptions);

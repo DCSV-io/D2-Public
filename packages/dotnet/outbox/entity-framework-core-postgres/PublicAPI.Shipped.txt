@@ -1,0 +1,9 @@
+#nullable enable
+DcsvIo.D2.Outbox.EntityFrameworkCore.Postgres.OutboxRelay<TDb>
+DcsvIo.D2.Outbox.EntityFrameworkCore.Postgres.OutboxRelay<TDb>.OutboxRelay(DcsvIo.D2.Context.Abstractions.ISystemWorkScopeFactory! systemWork, System.Collections.Generic.IEnumerable<DcsvIo.D2.Outbox.IOutboxDispatcherBinding<TDb>!>! dispatchers, DcsvIo.D2.Time.IClock! clock, Microsoft.Extensions.Options.IOptionsMonitor<DcsvIo.D2.Outbox.OutboxOptionsFor<TDb>!>! options, Microsoft.Extensions.Logging.ILogger<DcsvIo.D2.Outbox.EntityFrameworkCore.Postgres.OutboxRelay<TDb>!>! logger, Microsoft.Extensions.DependencyInjection.IServiceProviderIsService! storePresence) -> void
+DcsvIo.D2.Outbox.EntityFrameworkCore.Postgres.OutboxRelayPostgresServiceCollectionExtensions
+DcsvIo.D2.Outbox.EntityFrameworkCore.Postgres.OutboxRelayPostgresServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+DcsvIo.D2.Outbox.EntityFrameworkCore.Postgres.OutboxRelayPostgresServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddD2OutboxRelayPostgres<TDb>() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+const DcsvIo.D2.Outbox.EntityFrameworkCore.Postgres.OutboxRelay<TDb>.DISPATCHER_THREW_MARKER = "outbox.dispatcher-threw" -> string!
+const DcsvIo.D2.Outbox.EntityFrameworkCore.Postgres.OutboxRelay<TDb>.NO_DISPATCHER_MARKER = "outbox.no-dispatcher" -> string!
+static DcsvIo.D2.Outbox.EntityFrameworkCore.Postgres.OutboxRelayPostgresServiceCollectionExtensions.AddD2OutboxRelayPostgres<TDb>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

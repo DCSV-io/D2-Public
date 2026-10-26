@@ -17,22 +17,20 @@ using Microsoft.EntityFrameworkCore.Metadata;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <strong>Three-operation design:</strong>
+/// <strong>Operations:</strong>
 /// <list type="bullet">
 ///   <item>
-///     <see cref="Parse"/> — pure string operation; splits the template into literal and token
-///     segments. Called once, result cached by the caller for reuse.
+///     <see cref="Parse"/> - pure string operation; splits the template into literal and token
+///     segments. One parse per template is enough; the result can be cached for reuse.
 ///   </item>
 ///   <item>
-///     <see cref="ValidateTokens"/> — model-time operation; called by the startup model
-///     validator to ensure every token names a supported scalar sibling. Returns bad-token
-///     names (empty list means valid) so the validator can aggregate all failures before
-///     throwing.
+///     <see cref="ValidateTokens"/> - model-time operation; checks that every token names a
+///     supported scalar sibling. Returns the bad-token names (empty list means valid) so a
+///     caller can aggregate all failures before throwing.
 ///   </item>
 ///   <item>
-///     <see cref="Resolve"/> — per-row runtime operation; called by the anonymization engine
-///     against a materialized entity instance. Reads each sibling value, formats it, and
-///     returns the final tombstone string.
+///     <see cref="Resolve"/> - per-row runtime operation on a materialized entity instance.
+///     Reads each sibling value, formats it, and returns the final tombstone string.
 ///   </item>
 /// </list>
 /// </para>
@@ -42,25 +40,25 @@ using Microsoft.EntityFrameworkCore.Metadata;
 /// <c>{{</c> (produces <c>{</c>) and <c>}}</c> (produces <c>}</c>) following the
 /// <c>string.Format</c> / interpolation convention. A lone unmatched <c>{</c> or <c>}</c>
 /// or an empty token (<c>{}</c>) causes <see cref="Parse"/> to throw
-/// <see cref="ArgumentException"/> — these are developer errors caught at model-build time.
+/// <see cref="ArgumentException"/> - these are developer errors caught at model-build time.
 /// </para>
 /// <para>
 /// <strong>Formatting rules:</strong>
 /// <list type="bullet">
-///   <item><see cref="Guid"/> siblings → 32-char lowercase no-dashes (<c>ToString("N")</c>).</item>
+///   <item><see cref="Guid"/> siblings -> 32-char lowercase no-dashes (<c>ToString("N")</c>).</item>
 ///   <item>
-///     All other non-null types →
+///     All other non-null types ->
 ///     <c>Convert.ToString(value, CultureInfo.InvariantCulture)</c>.
 ///   </item>
 ///   <item>
-///     Null sibling → empty string substitution (never throws — the erasure sweep
+///     Null sibling -> empty string substitution (never throws - the erasure sweep
 ///     must continue).
 ///   </item>
 /// </list>
 /// </para>
 /// <para>
-/// <strong>Stateless:</strong> this class carries no cache. The anonymization engine is
-/// responsible for caching the <see cref="AnonymizationTemplatePlan"/> alongside the entity's
+/// <strong>Stateless:</strong> this class keeps no cache. Cache the
+/// <see cref="AnonymizationTemplatePlan"/> alongside the entity's
 /// <see cref="AnonymizationClassification"/> if repeated resolution is expected.
 /// </para>
 /// </remarks>
@@ -93,14 +91,14 @@ public static class AnonymizationTemplateResolver
         var tokenNames = new List<string>();
         var literal = new StringBuilder();
 
-        int i = 0;
+        var i = 0;
         while (i < template.Length)
         {
-            char c = template[i];
+            var c = template[i];
 
             if (c == '{')
             {
-                // Peek for escaped brace: {{ → literal {
+                // Peek for escaped brace: {{ -> literal {
                 if (i + 1 < template.Length && template[i + 1] == '{')
                 {
                     literal.Append('{');
@@ -146,7 +144,7 @@ public static class AnonymizationTemplateResolver
             }
             else if (c == '}')
             {
-                // Peek for escaped brace: }} → literal }
+                // Peek for escaped brace: }} -> literal }
                 if (i + 1 < template.Length && template[i + 1] == '}')
                 {
                     literal.Append('}');
@@ -190,8 +188,8 @@ public static class AnonymizationTemplateResolver
     /// <summary>
     /// Validates that every token in <paramref name="plan"/> names a supported scalar
     /// sibling property on <paramref name="entityType"/>. Returns the list of invalid
-    /// token names (empty means all tokens are valid). Does not throw — the startup model
-    /// validator owns the fail-fast policy.
+    /// token names (empty means all tokens are valid). Does not throw; failing fast is left
+    /// to the caller.
     /// </summary>
     /// <param name="plan">The parsed template plan. Must not be <see langword="null"/>.</param>
     /// <param name="entityType">
@@ -214,9 +212,9 @@ public static class AnonymizationTemplateResolver
         ArgumentNullException.ThrowIfNull(entityType);
 
         var badTokens = new List<string>();
-        foreach (string tokenName in plan.TokenNames)
+        foreach (var tokenName in plan.TokenNames)
         {
-            IProperty? property = entityType.FindProperty(tokenName);
+            var property = entityType.FindProperty(tokenName);
             if (property is null || property.IsShadowProperty())
                 badTokens.Add(tokenName);
         }
@@ -242,7 +240,7 @@ public static class AnonymizationTemplateResolver
     /// </param>
     /// <returns>
     /// The formatted tombstone string. A null sibling value contributes an empty string to the
-    /// result — resolution never throws for a null sibling so the erasure sweep can continue.
+    /// result - resolution never throws for a null sibling so the erasure sweep can continue.
     /// </returns>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="plan"/>, <paramref name="entityType"/>, or
@@ -258,7 +256,7 @@ public static class AnonymizationTemplateResolver
         ArgumentNullException.ThrowIfNull(entityInstance);
 
         var result = new StringBuilder();
-        foreach (AnonymizationTemplateSegment segment in plan.Segments)
+        foreach (var segment in plan.Segments)
         {
             if (!segment.IsToken)
             {
@@ -266,14 +264,14 @@ public static class AnonymizationTemplateResolver
                 continue;
             }
 
-            IProperty? property = entityType.FindProperty(segment.Text);
+            var property = entityType.FindProperty(segment.Text);
             if (property is null)
             {
                 // Defensive: validate-at-boot already caught this; never throw mid-sweep.
                 continue;
             }
 
-            object? value = property.GetGetter().GetClrValue(entityInstance);
+            var value = property.GetGetter().GetClrValue(entityInstance);
             result.Append(FormatSibling(value));
         }
 

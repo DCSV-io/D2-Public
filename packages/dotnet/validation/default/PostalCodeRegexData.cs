@@ -21,7 +21,7 @@ internal static class PostalCodeRegexData
 {
     /// <summary>
     /// Per-country regex map. Keys are ISO 3166-1 alpha-2 strings (e.g. <c>"US"</c>,
-    /// <c>"GB"</c>). Each <see cref="Regex"/> is anchored, compiled, and carries a
+    /// <c>"GB"</c>). Each <see cref="Regex"/> is anchored, compiled, and has a
     /// 50 ms match timeout.
     /// </summary>
     internal static readonly FrozenDictionary<string, Regex> SR_Map = BuildMap();
@@ -30,11 +30,11 @@ internal static class PostalCodeRegexData
 
     private static FrozenDictionary<string, Regex> BuildMap()
     {
-        // A const (compile-time literal) timeout — NOT a static readonly field —
-        // so there is no static-field initialization-order hazard. (A static
-        // readonly TimeSpan declared AFTER Map would still be its default
+        // The timeout is a const (compile-time literal) and not a static readonly
+        // field, so there is no static-field initialization-order hazard. A static
+        // readonly TimeSpan declared after Map would still be its default
         // TimeSpan.Zero when this initializer-invoked method runs, and
-        // `new Regex(..., TimeSpan.Zero)` throws ArgumentOutOfRangeException.)
+        // `new Regex(..., TimeSpan.Zero)` throws ArgumentOutOfRangeException.
         var matchTimeout = TimeSpan.FromMilliseconds(_MATCH_TIMEOUT_MS);
 
         var assembly = Assembly.GetExecutingAssembly();
@@ -46,7 +46,7 @@ internal static class PostalCodeRegexData
 
         var raw = JsonSerializer.Deserialize<Dictionary<string, string>>(stream)
             ?? throw new InvalidOperationException(
-                "Failed to deserialize PostalCodeRegexData.json — result was null.");
+                "Failed to deserialize PostalCodeRegexData.json - result was null.");
 
         var builder = new Dictionary<string, Regex>(StringComparer.OrdinalIgnoreCase);
         foreach (var (key, pattern) in raw)

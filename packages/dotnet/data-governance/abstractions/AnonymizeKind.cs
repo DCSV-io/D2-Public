@@ -11,13 +11,14 @@ namespace DcsvIo.D2.DataGovernance.Abstractions;
 /// decorated PII field.
 /// </summary>
 /// <remarks>
-/// This is a closed set — there are exactly four strategies. Adding a fifth requires
+/// This is a closed set: <see cref="SetNull"/>, <see cref="SetEmpty"/>,
+/// <see cref="Constant"/> and <see cref="Template"/>. Adding a strategy requires
 /// a coordinated change here, in the anonymization engine, and in the startup
 /// divergence guard.
 ///
 /// Crypto-shred (derive a field-specific key from a per-subject secret and encrypt the
 /// value so that destroying the key renders the data unrecoverable) is not currently
-/// supported and would require a fifth member plus engine support.
+/// supported and would require a new member plus engine support.
 /// </remarks>
 public enum AnonymizeKind
 {

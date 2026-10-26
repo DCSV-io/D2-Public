@@ -11,6 +11,7 @@ export type { IDistributedCache } from "./i-distributed-cache.js";
 export type { ITieredCache } from "./i-tiered-cache.js";
 export type { ICacheInvalidationBackplane } from "./i-cache-invalidation-backplane.js";
 export type { ICacheSerializer } from "./i-cache-serializer.js";
+export type { TokenBucketDecision } from "./token-bucket-decision.js";
 export type { LocalCacheOptions } from "./local-cache-options.js";
 export {
   LOCAL_CACHE_DEFAULTS,

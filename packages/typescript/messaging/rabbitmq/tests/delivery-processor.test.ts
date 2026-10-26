@@ -32,15 +32,84 @@ import {
 } from "./helpers.js";
 
 const baseDescriptor: SubscriptionDescriptor = {
-  queueName: "audit.key-rotated",
-  exchange: "d2.security.key-rotated",
+  queueName: "orders.order-placed",
+  exchange: "example.orders.placed",
   exchangeType: "fanout",
   pattern: QueuePattern.DurableShared,
   routingKeyBinding: "",
   prefetch: 8,
   idempotency: false,
-  nackedBy: "audit-svc",
+  nackedBy: "orders-svc",
 };
+
+describe("DeliveryProcessor original wire snapshot", () => {
+  it.each([undefined, "", "rejected:id"])(
+    "Republish_ProcessingIdentityDiffers_PreservesOriginalProperty(%s)",
+    async (originalMessageId) => {
+      const republish = vi.fn(async (..._args: unknown[]) => {});
+      const h = build({
+        republish,
+        handler: () => fail({ errorCode: "DOM_SAMPLE_X" }),
+      });
+      const message = {
+        ...makeMessage({
+          contentType: "application/json",
+          correlationId: "correlation",
+        }),
+        originalMessageId,
+        contentEncoding: "utf-8",
+      };
+      await h.processor.process(message);
+      expect(republish.mock.calls[0]![3]).toEqual({
+        messageId: originalMessageId,
+        contentType: "application/json",
+        contentEncoding: "utf-8",
+        correlationId: "correlation",
+      });
+    },
+  );
+
+  it("Republish_OpenerMutatesInput_PreservesOriginalBytes", async () => {
+    const body = Buffer.from([0, 255, 123, 32, 125]);
+    const expected = Buffer.from(body);
+    const h = build({
+      opener: {
+        open: (input) => {
+          input.fill(42);
+          throw new Error("decode failed");
+        },
+      },
+    });
+    await h.processor.process(makeMessage({ body }));
+    expect(h.republished).toHaveLength(1);
+    expect(h.republished[0]!.body).toEqual(expected);
+  });
+
+  it("Republish_LoggerMutatesOriginal_PreservesBodyAndHeaders", async () => {
+    const body = Buffer.from("original");
+    const header = Buffer.from([1, 2, 3]);
+    const logger = new RecordingLogger();
+    logger.debug = () => {
+      body.fill(42);
+      header.fill(42);
+    };
+    const h = build({
+      logger,
+      opener: {
+        open: () => {
+          throw new Error("decode failed");
+        },
+      },
+    });
+    await h.processor.process(
+      makeMessage({ body, headers: { original: header } }),
+    );
+    expect(h.republished[0]!.body).toEqual(Buffer.from("original"));
+    expect(
+      Buffer.from(h.republished[0]!.headers.original as Uint8Array),
+    ).toEqual(Buffer.from([1, 2, 3]));
+  });
+});
 
 interface Harness {
   readonly processor: DeliveryProcessor;
@@ -74,7 +143,7 @@ function build(overrides: Partial<DeliveryProcessorDeps> = {}): Harness {
 
   const processor = new DeliveryProcessor({
     descriptor: baseDescriptor,
-    resolvedQueueName: "audit.key-rotated",
+    resolvedQueueName: "orders.order-placed",
     handler,
     opener,
     republish,
@@ -95,7 +164,7 @@ function decodeFailure(
   >;
 }
 
-describe("DeliveryProcessor — success + DLQ routing", () => {
+describe("DeliveryProcessor - success + DLQ routing", () => {
   it("acks on handler success", async () => {
     const h = build();
     const action = await h.processor.process(makeMessage());
@@ -106,7 +175,7 @@ describe("DeliveryProcessor — success + DLQ routing", () => {
 
   it("routes a failed handler result to the DLQ then acks (HANDLER_RESULT_FAILURE)", async () => {
     const h = build({
-      handler: vi.fn(() => fail({ errorCode: "KEYCUSTODIAN_X" })),
+      handler: vi.fn(() => fail({ errorCode: "DOM_SAMPLE_X" })),
     });
     const action = await h.processor.process(makeMessage());
     expect(action).toBe(DeliveryAction.Ack);
@@ -115,7 +184,7 @@ describe("DeliveryProcessor — success + DLQ routing", () => {
     expect(meta[DlqFailureMetadataFields.CAUSE]).toBe(
       DlqFailureCauses.HANDLER_RESULT_FAILURE,
     );
-    expect(meta[DlqFailureMetadataFields.ERROR_CODE]).toBe("KEYCUSTODIAN_X");
+    expect(meta[DlqFailureMetadataFields.ERROR_CODE]).toBe("DOM_SAMPLE_X");
   });
 
   it("routes a thrown handler to the DLQ (HANDLER_EXCEPTION)", async () => {
@@ -164,7 +233,7 @@ describe("DeliveryProcessor — success + DLQ routing", () => {
     expect(h.logger.logged("DLQ republish failed")).toBe(true);
   });
 
-  it("carries producer headers forward and stamps the failure reason on republish (§5.2)", async () => {
+  it("carries producer headers forward and stamps the failure reason on republish (section 5.2)", async () => {
     const h = build({ handler: vi.fn(() => fail({ errorCode: "X" })) });
     await h.processor.process(
       makeMessage({
@@ -178,13 +247,13 @@ describe("DeliveryProcessor — success + DLQ routing", () => {
   });
 });
 
-describe("DeliveryProcessor — idempotency 5-point contract (§5.2)", () => {
+describe("DeliveryProcessor - idempotency 5-point contract (section 5.2)", () => {
   const idempotent: SubscriptionDescriptor = {
     ...baseDescriptor,
     idempotency: true,
   };
 
-  it("#1 already-seen id → ACK-and-SKIP, handler NOT invoked, NEVER DLQ", async () => {
+  it("#1 already-seen id -> ACK-and-SKIP, handler NOT invoked, NEVER DLQ", async () => {
     const h = build({
       descriptor: idempotent,
       store: {
@@ -199,12 +268,12 @@ describe("DeliveryProcessor — idempotency 5-point contract (§5.2)", () => {
     expect(h.logger.logged("ack-and-skip")).toBe(true);
   });
 
-  it("#2 read-path store outage → FAIL-OPEN (process the message)", async () => {
+  it("#2 read-path store outage -> FAIL-OPEN (process the message)", async () => {
     const h = build({
       descriptor: idempotent,
       store: {
         hasSeen: vi.fn(() =>
-          Promise.resolve(fail({ errorCode: "SERVICE_UNAVAILABLE" })),
+          Promise.resolve(fail({ errorCode: "GEN_SERVICE_UNAVAILABLE" })),
         ),
         markSeen: vi.fn(() => Promise.resolve(ok())),
       } as unknown as IMessageIdempotencyStore,
@@ -220,13 +289,13 @@ describe("DeliveryProcessor — idempotency 5-point contract (§5.2)", () => {
     expect(h.store.markSeen).toHaveBeenCalledWith("id-3");
   });
 
-  it("#4 MarkSeen WRITE failure → NACK-no-requeue → DLQ + operator signal", async () => {
+  it("#4 MarkSeen WRITE failure -> NACK-no-requeue -> DLQ + operator signal", async () => {
     const h = build({
       descriptor: idempotent,
       store: {
         hasSeen: vi.fn(() => Promise.resolve(ok(false))),
         markSeen: vi.fn(() =>
-          Promise.resolve(fail({ errorCode: "SERVICE_UNAVAILABLE" })),
+          Promise.resolve(fail({ errorCode: "GEN_SERVICE_UNAVAILABLE" })),
         ),
       } as unknown as IMessageIdempotencyStore,
     });
@@ -258,7 +327,7 @@ describe("DeliveryProcessor — idempotency 5-point contract (§5.2)", () => {
   });
 });
 
-describe("DeliveryProcessor — tiered-retry attempt cap", () => {
+describe("DeliveryProcessor - tiered-retry attempt cap", () => {
   const tiered: SubscriptionDescriptor = {
     ...baseDescriptor,
     tieredRetry: { maxAttempts: 3, tiersMs: [1000] },
@@ -292,7 +361,7 @@ describe("DeliveryProcessor — tiered-retry attempt cap", () => {
   });
 });
 
-describe("DeliveryProcessor — consume-side context establishment (§5.2a)", () => {
+describe("DeliveryProcessor - consume-side context establishment (section 5.2a)", () => {
   it("3a: the handler-visible context carries the producer's propagated fields", async () => {
     let captured: ConsumeContext | undefined;
     const encoded = encodePropagatedHeader({
@@ -326,7 +395,7 @@ describe("DeliveryProcessor — consume-side context establishment (§5.2a)", ()
     );
   });
 
-  it("3a: a malformed x-d2-context is fail-safe — the message still processes", async () => {
+  it("3a: a malformed x-d2-context is fail-safe - the message still processes", async () => {
     let captured: ConsumeContext | undefined;
     const h = build({
       handler: vi.fn((_msg, ctx: ConsumeContext) => {
@@ -355,9 +424,9 @@ describe("DeliveryProcessor — consume-side context establishment (§5.2a)", ()
     });
     await h.processor.process(
       makeMessage({
-        body: Buffer.from(JSON.stringify({ domain: "audit" }), "utf8"),
+        body: Buffer.from(JSON.stringify({ domain: "orders" }), "utf8"),
       }),
     );
-    expect(decoded).toEqual({ domain: "audit" });
+    expect(decoded).toEqual({ domain: "orders" });
   });
 });

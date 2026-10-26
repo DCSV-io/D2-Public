@@ -7,7 +7,7 @@ import type { IResilientLayer } from "./i-resilient-layer.js";
 
 /**
  * Timeout options. Mirrors .NET `TimeoutOptions`.
- * `durationMs <= 0` disables the timeout — the layer becomes a pass-through.
+ * `durationMs <= 0` disables the timeout - the layer becomes a pass-through.
  * Default: 10 000 ms.
  */
 export interface TimeoutOptions {
@@ -37,22 +37,23 @@ export class TimeoutError extends Error {
 
 /**
  * Pipeline layer that bounds the inner operation with a wall-clock deadline AND
- * genuinely cancels it on expiry. Mirrors .NET `TimeoutLayer<TKey, TValue>`,
+ * cancels it on expiry. Mirrors .NET `TimeoutLayer<TKey, TValue>`,
  * which links a `CancellationTokenSource` to the caller's token and passes the
  * linked token down.
  *
  * The op is handed a linked {@link AbortSignal} that aborts when EITHER the
  * caller's signal fires OR the timeout elapses. On expiry the layer aborts that
- * signal (so a cooperative op — e.g. a `fetch` — is actually canceled and its
+ * signal (so a cooperative op, such as a `fetch`, is canceled and its
  * socket released) AND rejects with {@link TimeoutError}. The deadline is still
  * deterministic: the inner promise is raced against the timer, so a
  * non-cooperative op (one that ignores its signal) still times out.
  *
  * A CALLER-initiated abort propagates as the caller's {@link AbortError}, NOT
- * masked as {@link TimeoutError} — preserving the abort-vs-timeout distinction
- * so an outer retry layer retries timeouts (transient) but never a caller abort.
+ * masked as {@link TimeoutError}. This preserves the abort-vs-timeout
+ * distinction, so an outer retry layer retries timeouts (transient) but never a
+ * caller abort.
  *
- * Position at TWO positions to express separate total-request and per-attempt
+ * Add the layer at TWO positions to express separate total-request and per-attempt
  * deadlines:
  * ```
  * builder
@@ -64,7 +65,7 @@ export class TimeoutError extends Error {
  *   .build()
  * ```
  *
- * `durationMs <= 0` disables the timeout — the layer is a pass-through (no timer
+ * `durationMs <= 0` disables the timeout - the layer is a pass-through (no timer
  * is created and the caller signal is forwarded unchanged).
  */
 export class TimeoutLayer implements IResilientLayer {
@@ -86,53 +87,49 @@ export class TimeoutLayer implements IResilientLayer {
 
     const { durationMs } = this.opts;
 
-    // Linked controller: aborts on the caller's signal OR on our timer — the
-    // signal the inner op observes for cooperative cancellation.
+    // Linked controller: aborts on the caller's signal OR on our timer. Its
+    // signal is the one the inner op observes for cooperative cancellation.
     const linked = linkAbort(signal);
 
     return new Promise<T>((resolve, reject) => {
       let settled = false;
 
-      const finish = (): void => {
-        clearTimeout(timer);
-        linked.dispose();
-      };
-
-      const timer = setTimeout(() => {
+      const complete = (
+        outcome:
+          | { kind: "timeout" }
+          | { kind: "success"; value: T }
+          | { kind: "failure"; error: unknown },
+      ): void => {
         if (settled) return;
         settled = true;
-        // Cancel the inner op cooperatively, THEN reject deterministically.
-        linked.controller.abort();
-        finish();
-        // Mirror C#'s `when (timeoutCts.IsCancellationRequested &&
-        // !ct.IsCancellationRequested)`: if the caller also aborted, a caller
-        // cancellation wins over the timeout (AbortError, not TimeoutError).
-        reject(
-          signal?.aborted === true
-            ? new AbortError()
-            : new TimeoutError(
-                `Operation exceeded the configured timeout of ${durationMs} ms.`,
-              ),
-        );
-      }, durationMs);
+        if (outcome.kind === "timeout") linked.controller.abort();
+        clearTimeout(timer);
+        linked.dispose();
+        switch (outcome.kind) {
+          case "timeout":
+            // Caller cancellation wins over a coincident timeout.
+            reject(
+              signal?.aborted === true
+                ? new AbortError()
+                : new TimeoutError(
+                    `Operation exceeded the configured timeout of ${durationMs} ms.`,
+                  ),
+            );
+            break;
+          case "success":
+            resolve(outcome.value);
+            break;
+          case "failure":
+            reject(signal?.aborted === true ? new AbortError() : outcome.error);
+            break;
+        }
+      };
+
+      const timer = setTimeout(() => complete({ kind: "timeout" }), durationMs);
 
       this.inner.execute(key, op, linked.controller.signal).then(
-        (value) => {
-          if (settled) return;
-          settled = true;
-          finish();
-          resolve(value);
-        },
-        (err: unknown) => {
-          if (settled) return;
-          settled = true;
-          finish();
-          // A caller-initiated abort must surface as the caller's AbortError,
-          // never be reshaped into a TimeoutError. If the caller's signal is
-          // the one that fired, normalize to AbortError; otherwise propagate
-          // the inner error unchanged.
-          reject(signal?.aborted === true ? new AbortError() : err);
-        },
+        (value) => complete({ kind: "success", value }),
+        (error: unknown) => complete({ kind: "failure", error }),
       );
     });
   }

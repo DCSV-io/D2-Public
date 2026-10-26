@@ -11,11 +11,11 @@ using DcsvIo.D2.Encryption;
 using Xunit;
 
 /// <summary>
-/// Pins public EncryptionDomainModes after dual-values strip. The only sealed
-/// domain on the public half is the framework fixture
-/// <see cref="EncryptionDomains.FIXTURE_SEALED"/>. Product sealed domains
-/// (audit / notifications / courier) resolve as unknown → Symmetric here and
-/// are pinned on ProductEncryptionDomainModes in private hosts.
+/// Pins the public EncryptionDomainModes. The only sealed domain in the public
+/// catalog is the framework fixture
+/// <see cref="EncryptionDomains.FIXTURE_SEALED"/>. Sealed domains that a host
+/// registers outside the public catalog resolve as unknown -> Symmetric here;
+/// the host pins their modes in its own tests.
 /// </summary>
 public sealed class EncryptionDomainModesTests
 {
@@ -37,15 +37,15 @@ public sealed class EncryptionDomainModesTests
             .Should().Be(EncryptionDomainMode.Symmetric);
 
     [Theory]
-    [InlineData("audit")]
-    [InlineData("notifications")]
-    [InlineData("courier")]
+    [InlineData("orders")]
+    [InlineData("shipping")]
+    [InlineData("inventory")]
     [InlineData("payload-fixture-a")]
     [InlineData("metrics")]
     [InlineData("")]
     [InlineData("   ")]
-    [InlineData("AUDIT")]
-    public void ModeFor_ProductOrUnknownDomain_ReturnsSymmetric(string domain)
+    [InlineData("ORDERS")]
+    public void ModeFor_UnknownOrUnsealedDomain_ReturnsSymmetric(string domain)
         => EncryptionDomainModes.ModeFor(domain).Should().Be(EncryptionDomainMode.Symmetric);
 
     [Fact]
@@ -67,9 +67,9 @@ public sealed class EncryptionDomainModesTests
 
     [Theory]
     [InlineData("plaintext")]
-    [InlineData("audit")]
-    [InlineData("notifications")]
-    [InlineData("courier")]
+    [InlineData("orders")]
+    [InlineData("shipping")]
+    [InlineData("inventory")]
     [InlineData("metrics")]
     [InlineData("payload-fixture-a")]
     [InlineData("")]

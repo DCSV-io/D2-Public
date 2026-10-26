@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.Routing;
 
 /// <summary>
 /// ASP.NET Core endpoint-routing extensions for
-/// <see cref="DcsvIo.D2.Telemetry"/> — maps the in-process Prometheus
+/// <see cref="DcsvIo.D2.Telemetry"/> - maps the in-process Prometheus
 /// scraping endpoint at
 /// <see cref="D2TelemetryConstants.PROMETHEUS_ENDPOINT_PATH"/> with an
 /// IP-allow-list endpoint filter that restricts access to loopback +
@@ -27,7 +27,7 @@ public static class WebApplicationTelemetryExtensions
     {
         /// <summary>
         /// Maps the <c>/metrics</c> route via OpenTelemetry's
-        /// <c>MapPrometheusScrapingEndpoint</c> AND attaches an endpoint
+        /// <c>MapPrometheusScrapingEndpoint</c> and attaches an endpoint
         /// filter that returns <c>403 Forbidden</c> for any request whose
         /// connection-remote IP is neither loopback nor RFC 1918 private.
         /// </summary>
@@ -36,18 +36,21 @@ public static class WebApplicationTelemetryExtensions
         /// When
         /// <see cref="D2TelemetryConstants.OTEL_SDK_DISABLED_ENV_VAR"/>
         /// is set to <c>"true"</c> (case-insensitive), this method
-        /// short-circuits — no <c>/metrics</c> route is mapped — symmetric
+        /// short-circuits - no <c>/metrics</c> route is mapped - symmetric
         /// with the
         /// <see cref="TelemetryServiceCollectionExtensions.AddD2Telemetry"/>
-        /// no-op behavior. Consumers MUST tolerate the absence of the
+        /// no-op behavior. Callers must tolerate the absence of the
         /// route under the kill-switch condition.
         /// </para>
         /// <para>
         /// The IP allow-list deliberately matches the connection-remote
         /// IP, not any forwarded-for header. Hosts behind reverse proxies
-        /// expose the proxy IP at the connection layer; the proxy IS the
+        /// expose the proxy IP at the connection layer; the proxy is the
         /// loopback / RFC 1918 source for in-cluster scraping. Public
-        /// scrapers must not reach this endpoint by design.
+        /// scrapers must not reach this endpoint by design. The filter admits
+        /// any directly connected loopback or private-range peer. When an
+        /// untrusted private network can connect to the host, serve the
+        /// endpoint on a port or address that network cannot connect to.
         /// </para>
         /// </remarks>
         /// <returns>

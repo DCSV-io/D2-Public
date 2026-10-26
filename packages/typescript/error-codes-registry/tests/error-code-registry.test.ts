@@ -13,13 +13,13 @@ import { errorCodeRegistry } from "../src/generated/error-code-registry.g.js";
 import { TK } from "@dcsv-io/d2-i18n-keys";
 
 // ---------------------------------------------------------------------------
-// buildRegistry — unit tests
+// buildRegistry - unit tests
 // ---------------------------------------------------------------------------
 
-describe("buildRegistry — resolution API", () => {
+describe("buildRegistry - resolution API", () => {
   const entries: readonly ErrorCodeInfo[] = [
     {
-      code: "NOT_FOUND",
+      code: "GEN_NOT_FOUND",
       httpStatus: 404,
       category: "not_found",
       userMessageKey: TK.common.errors.NOT_FOUND,
@@ -27,9 +27,11 @@ describe("buildRegistry — resolution API", () => {
       factoryShape: "standard",
       doc: "Not found.",
       domain: "common",
+      owner: "gen",
+      isDeprecated: false,
     },
     {
-      code: "AUTH_BEARER_MISSING",
+      code: "LIB_AUTH_BEARER_MISSING",
       httpStatus: 401,
       category: "validation_failure",
       userMessageKey: TK.auth.errors.UNAUTHORIZED,
@@ -37,14 +39,16 @@ describe("buildRegistry — resolution API", () => {
       factoryShape: "standard",
       doc: "Bearer missing.",
       domain: "auth",
+      owner: "lib",
+      isDeprecated: false,
     },
   ];
   const registry = buildRegistry(entries);
 
-  it("resolve: known code returns full 8-field ErrorCodeInfo", () => {
-    const info = registry.resolve("NOT_FOUND");
+  it("resolve: known code returns full 10-field ErrorCodeInfo", () => {
+    const info = registry.resolve("GEN_NOT_FOUND");
     expect(info).toBeDefined();
-    expect(info?.code).toBe("NOT_FOUND");
+    expect(info?.code).toBe("GEN_NOT_FOUND");
     expect(info?.httpStatus).toBe(404);
     expect(info?.category).toBe("not_found");
     expect(info?.userMessageKey).toBe(TK.common.errors.NOT_FOUND);
@@ -52,6 +56,8 @@ describe("buildRegistry — resolution API", () => {
     expect(info?.factoryShape).toBe("standard");
     expect(info?.doc).toBe("Not found.");
     expect(info?.domain).toBe("common");
+    expect(info?.owner).toBe("gen");
+    expect(info?.isDeprecated).toBe(false);
   });
 
   it("resolve: unknown code returns undefined (hard not-found)", () => {
@@ -68,7 +74,7 @@ describe("buildRegistry — resolution API", () => {
   });
 
   it("resolve: lowercase code returns undefined (ordinal case-sensitive)", () => {
-    // Codes are SCREAMING_SNAKE — lowercase must not resolve.
+    // Codes are SCREAMING_SNAKE - lowercase must not resolve.
     expect(registry.resolve("not_found")).toBeUndefined();
     expect(registry.resolve("auth_bearer_missing")).toBeUndefined();
   });
@@ -78,8 +84,8 @@ describe("buildRegistry — resolution API", () => {
   });
 
   it("has: known code returns true", () => {
-    expect(registry.has("NOT_FOUND")).toBe(true);
-    expect(registry.has("AUTH_BEARER_MISSING")).toBe(true);
+    expect(registry.has("GEN_NOT_FOUND")).toBe(true);
+    expect(registry.has("LIB_AUTH_BEARER_MISSING")).toBe(true);
   });
 
   it("has: unknown code returns false", () => {
@@ -96,17 +102,19 @@ describe("buildRegistry — resolution API", () => {
 
   it("all: contains every registered entry", () => {
     expect(registry.all).toHaveLength(2);
-    expect(registry.all.map((e) => e.code)).toContain("NOT_FOUND");
-    expect(registry.all.map((e) => e.code)).toContain("AUTH_BEARER_MISSING");
+    expect(registry.all.map((e) => e.code)).toContain("GEN_NOT_FOUND");
+    expect(registry.all.map((e) => e.code)).toContain(
+      "LIB_AUTH_BEARER_MISSING",
+    );
   });
 
   it("all: is frozen (immutable)", () => {
     expect(Object.isFrozen(registry.all)).toBe(true);
   });
 
-  it("resolve: auth entry has correct 8 fields", () => {
-    const info = registry.resolve("AUTH_BEARER_MISSING");
-    expect(info?.code).toBe("AUTH_BEARER_MISSING");
+  it("resolve: auth entry has correct 10 fields", () => {
+    const info = registry.resolve("LIB_AUTH_BEARER_MISSING");
+    expect(info?.code).toBe("LIB_AUTH_BEARER_MISSING");
     expect(info?.httpStatus).toBe(401);
     expect(info?.category).toBe("validation_failure");
     expect(info?.userMessageKey).toBe(TK.auth.errors.UNAUTHORIZED);
@@ -114,21 +122,23 @@ describe("buildRegistry — resolution API", () => {
     expect(info?.factoryShape).toBe("standard");
     expect(info?.doc).toBe("Bearer missing.");
     expect(info?.domain).toBe("auth");
+    expect(info?.owner).toBe("lib");
+    expect(info?.isDeprecated).toBe(false);
   });
 
   it("buildRegistry with empty entries produces an empty registry", () => {
     const empty = buildRegistry([]);
     expect(empty.all).toHaveLength(0);
-    expect(empty.resolve("NOT_FOUND")).toBeUndefined();
-    expect(empty.has("NOT_FOUND")).toBe(false);
+    expect(empty.resolve("GEN_NOT_FOUND")).toBeUndefined();
+    expect(empty.has("GEN_NOT_FOUND")).toBe(false);
   });
 });
 
 // ---------------------------------------------------------------------------
-// ErrorCategory type — all 9 schema values are valid
+// ErrorCategory type - every schema value is valid
 // ---------------------------------------------------------------------------
 
-describe("ErrorCategory type — 9 schema values", () => {
+describe("ErrorCategory type - 9 schema values", () => {
   it("covers all 9 canonical category values", () => {
     const categories: ErrorCategory[] = [
       "validation_failure",
@@ -141,16 +151,16 @@ describe("ErrorCategory type — 9 schema values", () => {
       "internal_error",
       "partial_success",
     ];
-    // All 9 values — if the type is narrowed incorrectly, a TS error will fire.
+    // Every value - if the type is narrowed incorrectly, a TS error will fire.
     expect(categories).toHaveLength(9);
   });
 });
 
 // ---------------------------------------------------------------------------
-// ErrorCodeFactoryShape type — the 2 schema values are valid
+// ErrorCodeFactoryShape type - both schema values are valid
 // ---------------------------------------------------------------------------
 
-describe("ErrorCodeFactoryShape type — 2 schema values", () => {
+describe("ErrorCodeFactoryShape type - 2 schema values", () => {
   it("covers both canonical factoryShape values", () => {
     const shapes: ErrorCodeFactoryShape[] = ["standard", "none"];
     expect(shapes).toHaveLength(2);
@@ -158,79 +168,84 @@ describe("ErrorCodeFactoryShape type — 2 schema values", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Generated errorCodeRegistry — the real merged registry
+// Generated errorCodeRegistry - the real merged registry
 // ---------------------------------------------------------------------------
 
-describe("errorCodeRegistry — generated merged registry", () => {
-  it("all: contains the expected public-only total count (15 auth + 15 generic = 30)", () => {
-    // Public dual-values half excludes private KeyCustodian catalog.
-    expect(errorCodeRegistry.all).toHaveLength(30);
-    expect(
-      errorCodeRegistry.all.some((e) => e.code.startsWith("KEYCUSTODIAN_")),
-    ).toBe(false);
+describe("errorCodeRegistry - generated merged registry", () => {
+  it("all: contains the expected public-only total count (16 generic + 15 auth + 21 pagination + 1 messaging = 53)", () => {
+    // The public merge excludes every closed-source catalog, and every such
+    // catalog emits codes under the `DOM_` owner prefix.
+    expect(errorCodeRegistry.all).toHaveLength(53);
+    expect(errorCodeRegistry.all.some((e) => e.code.startsWith("DOM_"))).toBe(
+      false,
+    );
   });
 
-  it("resolve: every generic code resolves with domain 'common'", () => {
+  it("resolve: every generic code resolves with domain 'common' and owner 'gen'", () => {
     const genericCodes = [
-      "NOT_FOUND",
-      "FORBIDDEN",
-      "UNAUTHORIZED",
-      "VALIDATION_FAILED",
-      "CONFLICT",
-      "UNHANDLED_EXCEPTION",
-      "COULD_NOT_BE_SERIALIZED",
-      "COULD_NOT_BE_DESERIALIZED",
-      "SERVICE_UNAVAILABLE",
-      "SOME_FOUND",
-      "PARTIAL_SUCCESS",
-      "RATE_LIMITED",
-      "IDEMPOTENCY_IN_FLIGHT",
-      "PAYLOAD_TOO_LARGE",
-      "CANCELED",
+      "GEN_NOT_FOUND",
+      "GEN_FORBIDDEN",
+      "GEN_UNAUTHORIZED",
+      "GEN_VALIDATION_FAILED",
+      "GEN_CONFLICT",
+      "GEN_UNHANDLED_EXCEPTION",
+      "GEN_COULD_NOT_BE_SERIALIZED",
+      "GEN_COULD_NOT_BE_DESERIALIZED",
+      "GEN_SERVICE_UNAVAILABLE",
+      "GEN_SOME_FOUND",
+      "GEN_PARTIAL_SUCCESS",
+      "GEN_RATE_LIMITED",
+      "GEN_IDEMPOTENCY_IN_FLIGHT",
+      "GEN_PAYLOAD_TOO_LARGE",
+      "GEN_CANCELED",
+      "GEN_FORGERY_REFUSED",
     ];
     for (const code of genericCodes) {
       const info = errorCodeRegistry.resolve(code);
       expect(info, `${code} should resolve`).toBeDefined();
       expect(info?.domain, `${code} domain should be 'common'`).toBe("common");
+      expect(info?.owner, `${code} owner should be 'gen'`).toBe("gen");
+      expect(info?.isDeprecated, `${code} isDeprecated`).toBe(false);
     }
   });
 
-  it("resolve: every auth code resolves with domain 'auth'", () => {
+  it("resolve: every auth code resolves with domain 'auth' and owner 'lib'", () => {
     const authCodes = [
-      "AUTH_BEARER_MISSING",
-      "AUTH_BEARER_MALFORMED",
-      "AUTH_JWT_SIGNATURE_INVALID",
-      "AUTH_JWT_EXPIRED",
-      "AUTH_JWT_NOT_YET_VALID",
-      "AUTH_JWT_ISSUER_MISMATCH",
-      "AUTH_JWT_AUDIENCE_MISMATCH",
-      "AUTH_JWT_CLAIM_MISSING",
-      "AUTH_JWT_ACT_CHAIN_MALFORMED",
-      "AUTH_JWT_KID_NOT_FOUND",
-      "AUTH_JWKS_UNAVAILABLE",
-      "AUTH_SESSION_REVOKED",
-      "AUTH_SESSION_LIVENESS_UNAVAILABLE",
-      "AUTH_SCOPE_INSUFFICIENT",
-      "AUTH_REQUEST_ORIGIN_UNESTABLISHED",
+      "LIB_AUTH_BEARER_MISSING",
+      "LIB_AUTH_BEARER_MALFORMED",
+      "LIB_AUTH_JWT_SIGNATURE_INVALID",
+      "LIB_AUTH_JWT_EXPIRED",
+      "LIB_AUTH_JWT_NOT_YET_VALID",
+      "LIB_AUTH_JWT_ISSUER_MISMATCH",
+      "LIB_AUTH_JWT_AUDIENCE_MISMATCH",
+      "LIB_AUTH_JWT_CLAIM_MISSING",
+      "LIB_AUTH_JWT_ACT_CHAIN_MALFORMED",
+      "LIB_AUTH_JWT_KID_NOT_FOUND",
+      "LIB_AUTH_JWKS_UNAVAILABLE",
+      "LIB_AUTH_SESSION_REVOKED",
+      "LIB_AUTH_SESSION_LIVENESS_UNAVAILABLE",
+      "LIB_AUTH_SCOPE_INSUFFICIENT",
+      "LIB_AUTH_REQUEST_ORIGIN_UNESTABLISHED",
     ];
     for (const code of authCodes) {
       const info = errorCodeRegistry.resolve(code);
       expect(info, `${code} should resolve`).toBeDefined();
       expect(info?.domain, `${code} domain should be 'auth'`).toBe("auth");
+      expect(info?.owner, `${code} owner should be 'lib'`).toBe("lib");
+      expect(info?.isDeprecated, `${code} isDeprecated`).toBe(false);
     }
   });
 
-  it("resolve: product KEYCUSTODIAN_* codes are absent from the public registry", () => {
-    // Product KeyCustodian catalog is private — public registry must not resolve it.
+  it("resolve: DOM_-prefixed codes are absent from the public registry", () => {
+    // Closed-source catalogs own the `DOM_` owner prefix. None of their codes
+    // is merged here, so resolve returns undefined and has returns false for one.
     expect(
-      errorCodeRegistry.resolve("KEYCUSTODIAN_KEY_NOT_FOUND"),
-    ).toBeUndefined();
+      errorCodeRegistry.all.filter((e) => e.code.startsWith("DOM_")),
+    ).toEqual([]);
     expect(
-      errorCodeRegistry.resolve("KEYCUSTODIAN_PRECONDITION_VIOLATED"),
+      errorCodeRegistry.resolve("DOM_SAMPLE_KEY_NOT_FOUND"),
     ).toBeUndefined();
-    expect(errorCodeRegistry.has("KEYCUSTODIAN_KEY_STATE_CONFLICT")).toBe(
-      false,
-    );
+    expect(errorCodeRegistry.has("DOM_SAMPLE_KEY_STATE_CONFLICT")).toBe(false);
   });
 
   it("resolve: unknown code returns undefined", () => {
@@ -264,10 +279,10 @@ describe("errorCodeRegistry — generated merged registry", () => {
     expect(errorCodeRegistry.has("TOTALLY_UNKNOWN")).toBe(false);
   });
 
-  it("resolve NOT_FOUND: full 8-field correctness", () => {
-    const info = errorCodeRegistry.resolve("NOT_FOUND");
+  it("resolve GEN_NOT_FOUND: full 10-field correctness", () => {
+    const info = errorCodeRegistry.resolve("GEN_NOT_FOUND");
     expect(info).toBeDefined();
-    expect(info?.code).toBe("NOT_FOUND");
+    expect(info?.code).toBe("GEN_NOT_FOUND");
     expect(info?.httpStatus).toBe(404);
     expect(info?.category).toBe("not_found");
     expect(info?.userMessageKey).toBe(TK.common.errors.NOT_FOUND);
@@ -275,18 +290,33 @@ describe("errorCodeRegistry — generated merged registry", () => {
     expect(info?.factoryShape).toBe("standard");
     expect(info?.doc).toMatch(/resource was not found/i);
     expect(info?.domain).toBe("common");
+    expect(info?.owner).toBe("gen");
+    expect(info?.isDeprecated).toBe(false);
   });
 
-  it("resolve AUTH_JWKS_UNAVAILABLE: full 8-field correctness", () => {
-    const info = errorCodeRegistry.resolve("AUTH_JWKS_UNAVAILABLE");
+  it("resolve LIB_AUTH_JWKS_UNAVAILABLE: full 10-field correctness", () => {
+    const info = errorCodeRegistry.resolve("LIB_AUTH_JWKS_UNAVAILABLE");
     expect(info).toBeDefined();
-    expect(info?.code).toBe("AUTH_JWKS_UNAVAILABLE");
+    expect(info?.code).toBe("LIB_AUTH_JWKS_UNAVAILABLE");
     expect(info?.httpStatus).toBe(503);
     expect(info?.category).toBe("infrastructure_unavailable");
     expect(info?.userMessageKey).toBe(TK.auth.errors.TEMPORARILY_UNAVAILABLE);
     expect(info?.factoryName).toBe("JwksUnavailable");
     expect(info?.factoryShape).toBe("standard");
     expect(info?.domain).toBe("auth");
+    expect(info?.owner).toBe("lib");
+    expect(info?.isDeprecated).toBe(false);
+  });
+
+  it("every entry has closed-set owner and boolean isDeprecated", () => {
+    const owners = new Set(["gen", "lib", "dom"]);
+    for (const info of errorCodeRegistry.all) {
+      expect(
+        owners.has(info.owner),
+        `${info.code}: owner '${info.owner}'`,
+      ).toBe(true);
+      expect(typeof info.isDeprecated).toBe("boolean");
+    }
   });
 
   it("every userMessageKey is a TKMessage with a non-empty key string", () => {

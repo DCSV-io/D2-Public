@@ -15,24 +15,27 @@ using DcsvIo.D2.SourceGen;
 
 /// <summary>
 /// Pure logic for parsing <c>scopes.spec.json</c> into a <see cref="ScopesSpec"/>
-/// record. Responsible only for JSON-shape validation; semantic validation
-/// (naming convention, enum values, tree-position collisions, etc.) lives in
-/// <see cref="ScopesEmitter"/>.
+/// record. It validates only the JSON shape; <see cref="ScopesEmitter"/>
+/// validates the content, for example the naming convention, the enum values and
+/// tree-position collisions.
 /// </summary>
 internal static class ScopeSpecLoader
 {
     private const string _SCOPES_KEY = "scopes";
     private const string _NAME_KEY = "name";
     private const string _DESCRIPTION_KEY = "description";
-    private const string _ACTION_SENSITIVITY_KEY = "actionSensitivity";
     private const string _IMPERSONATION_BLOCKED_KEY = "impersonationBlocked";
     private const string _GRANTED_TO_KEY = "grantedTo";
+    private const string _DEPRECATED_KEY = "deprecated";
+    private const string _DEPRECATED_REASON_KEY = "deprecatedReason";
+    private const string _REPLACED_BY_KEY = "replacedBy";
+    private const string _INTERNAL_KEY = "internal";
 
     /// <summary>
     /// Parses raw JSON spec content into a <see cref="ScopesSpec"/>. Returns
     /// either a populated spec or a single diagnostic explaining the parse failure.
     /// </summary>
-    /// <param name="path">Spec file path (used for diagnostic message context).</param>
+    /// <param name="path">Spec file path. Diagnostics report its file name.</param>
     /// <param name="json">Raw JSON content of the spec file.</param>
     /// <returns>A <see cref="LoadResult{TSpec}"/> wrapping <see cref="ScopesSpec"/>.</returns>
     public static LoadResult<ScopesSpec> Load(string path, string json)
@@ -87,6 +90,11 @@ internal static class ScopeSpecLoader
         }
     }
 
+    private static string? ReadOptionalString(JsonElement element, string key)
+        => element.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : null;
+
     private static (ScopeEntry? Entry, EmitDiagnostic? Diagnostic) ParseScopeEntry(
         JsonElement element, string fileName, int index)
     {
@@ -113,16 +121,6 @@ internal static class ScopeSpecLoader
         {
             description = descElement.GetString();
         }
-
-        if (!element.TryGetProperty(_ACTION_SENSITIVITY_KEY, out var sensElement) ||
-            sensElement.ValueKind != JsonValueKind.String)
-        {
-            return (null, EmitDiagnostics.MalformedSpec(
-                fileName,
-                $"scopes[{index}] '{name}' missing required string 'actionSensitivity'"));
-        }
-
-        var actionSensitivity = sensElement.GetString()!;
 
         if (!element.TryGetProperty(_IMPERSONATION_BLOCKED_KEY, out var impElement) ||
             (impElement.ValueKind != JsonValueKind.True &&
@@ -177,12 +175,24 @@ internal static class ScopeSpecLoader
             grantedTo = dict;
         }
 
+        var deprecated =
+            element.TryGetProperty(_DEPRECATED_KEY, out var deprecatedElement) &&
+            deprecatedElement.ValueKind == JsonValueKind.True;
+
+        // Absent means false: an entry that declares nothing is not internal.
+        var isInternal =
+            element.TryGetProperty(_INTERNAL_KEY, out var internalElement) &&
+            internalElement.ValueKind == JsonValueKind.True;
+
         var entry = new ScopeEntry(
             Name: name,
             Description: description,
-            ActionSensitivity: actionSensitivity,
             ImpersonationBlocked: impersonationBlocked,
-            GrantedTo: grantedTo);
+            GrantedTo: grantedTo,
+            Deprecated: deprecated,
+            DeprecatedReason: ReadOptionalString(element, _DEPRECATED_REASON_KEY),
+            ReplacedBy: ReadOptionalString(element, _REPLACED_BY_KEY),
+            Internal: isInternal);
 
         return (entry, null);
     }

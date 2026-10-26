@@ -12,6 +12,7 @@ using DcsvIo.D2.Caching.Distributed.Redis;
 using DcsvIo.D2.Caching.Local.Default;
 using DcsvIo.D2.Caching.Tiered;
 using DcsvIo.D2.Tests.Integration.Caching.Distributed;
+using DcsvIo.D2.Tests.Integration.Caching.Tiered.Fixtures;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -26,6 +27,16 @@ using Xunit;
 [Collection("Redis")]
 public sealed class DefaultTieredCacheAdversarialTests
 {
+    // A 100ms lifetime is gone on the first or second read of a healthy run;
+    // the budget is sized so a passing run never reaches it.
+    private const int _EXPIRY_POLL_ATTEMPTS = 50;
+    private const int _EXPIRY_POLL_GAP_MS = 20;
+
+    // A Redis pub/sub round trip lands on the first or second read of a healthy
+    // run; the budget is sized so a passing run never reaches it.
+    private const int _PROPAGATION_POLL_ATTEMPTS = 50;
+    private const int _PROPAGATION_POLL_GAP_MS = 20;
+
     private readonly RedisFixture r_fixture;
 
     public DefaultTieredCacheAdversarialTests(RedisFixture fixture)
@@ -38,7 +49,7 @@ public sealed class DefaultTieredCacheAdversarialTests
     {
         // Two replicas. Both fire SetAndBroadcast on the same key with
         // different values. Final L2 value: one of the two (last-writer-wins).
-        // After all broadcasts settle, BOTH instances' L1 must agree with L2.
+        // After all broadcasts settle, both instances' L1 must agree with L2.
         var channel = $"chaos-{Guid.NewGuid():N}";
         var keyPrefix = $"chaos-{Guid.NewGuid():N}:";
 
@@ -55,13 +66,18 @@ public sealed class DefaultTieredCacheAdversarialTests
                 await instance.Tiered.SetAndBroadcastAsync("k", $"value-{i}", ct: ct);
             });
 
-        // Let broadcasts drain.
-        await Task.Delay(500);
-
         // L2 has the final value (whichever was last).
         var l2Final = await a.L2.GetAsync<string>("k");
         l2Final.IsOk.Should().BeTrue();
         var canonical = l2Final.Data;
+
+        // Poll until the broadcasts drain. An L1 copy no broadcast dropped
+        // keeps disagreeing, so the budget runs out and the assertion fails.
+        var agreed = await WaitUntilAsync(async () =>
+            (await a.Tiered.GetAsync<string>("k")).Data == canonical
+            && (await b.Tiered.GetAsync<string>("k")).Data == canonical);
+
+        agreed.Should().BeTrue("every broadcast reaches both instances within the budget");
 
         // Both instances' tiered Get should agree (they fall through to L2 on miss
         // since broadcast invalidated their L1).
@@ -87,9 +103,13 @@ public sealed class DefaultTieredCacheAdversarialTests
 
         // A removes + broadcasts.
         await a.Tiered.RemoveAndBroadcastAsync("k");
-        await Task.Delay(300);  // let broadcast propagate
 
-        // B's tiered Get → L1 was dropped by broadcast → L2 miss → NotFound.
+        var dropped = await WaitUntilAsync(async () =>
+            (await b.Tiered.GetAsync<string>("k")).IsNotFound);
+
+        dropped.Should().BeTrue("the broadcast reaches B within the budget");
+
+        // B's tiered Get -> L1 was dropped by broadcast -> L2 miss -> NotFound.
         var bGet = await b.Tiered.GetAsync<string>("k");
         bGet.IsNotFound.Should().BeTrue();
     }
@@ -99,7 +119,7 @@ public sealed class DefaultTieredCacheAdversarialTests
     {
         // 3-instance scenario simulating a small cluster. Instance A writes,
         // B and C read (populate their L1), then A writes again with broadcast.
-        // After settling, all three L1s must agree with L2.
+        // After settling, the L1 of A, of B and of C must each agree with L2.
         var channel = $"chaos-{Guid.NewGuid():N}";
         var keyPrefix = $"chaos-{Guid.NewGuid():N}:";
 
@@ -112,7 +132,12 @@ public sealed class DefaultTieredCacheAdversarialTests
         await c.Tiered.GetAsync<string>("k");  // C's L1 = v1
 
         await a.Tiered.SetAndBroadcastAsync("k", "v2");
-        await Task.Delay(400);  // broadcast settle
+
+        var settled = await WaitUntilAsync(async () =>
+            (await b.Tiered.GetAsync<string>("k")).Data == "v2"
+            && (await c.Tiered.GetAsync<string>("k")).Data == "v2");
+
+        settled.Should().BeTrue("the broadcast reaches B and C within the budget");
 
         // All three must see v2 on next read.
         var aGet = await a.Tiered.GetAsync<string>("k");
@@ -188,31 +213,44 @@ public sealed class DefaultTieredCacheAdversarialTests
     [Fact]
     public async Task SetAndBroadcastAsync_BroadcastFails_ReturnsFailure_DataInL2()
     {
-        // Edge case documentation: if Set succeeds but broadcast fails,
-        // we return the broadcast failure. The data IS in the cache;
-        // other instances just don't know to invalidate.
-        // Here we don't have an easy way to inject a backplane failure,
-        // but we can verify the inverse: WITHOUT a backplane registered,
-        // the broadcast call throws (different failure mode).
+        // If the set succeeds and the broadcast fails, the call returns the broadcast
+        // failure; the value is in L2, and other instances do not learn to invalidate.
+        var backplane = new FailingBackplaneStub();
+        await using var redis = await ConnectionMultiplexer.ConnectAsync(
+            r_fixture.ConnectionString);
+        using var l1 = new DefaultLocalCache(Options.Create(new LocalCacheOptions
+        {
+            DefaultExpiration = TimeSpan.FromMinutes(5),
+        }));
+        var l2 = NewL2WithBackplane(redis, backplane);
+        await using var tiered = new DefaultTieredCache(
+            l1,
+            l2,
+            NullLogger<DefaultTieredCache>.Instance,
+            backplane);
+
+        var result = await tiered.SetAndBroadcastAsync("k", "v");
+        var stored = await l2.GetAsync<string>("k");
+
+        (result.IsServiceUnavailable, stored.Data).Should().Be((true, "v"));
+    }
+
+    [Fact]
+    public async Task SetAndBroadcastAsync_NoBackplane_Throws()
+    {
         await using var ctx = NewTieredContextNoBackplane();
 
-        InvalidOperationException? caught = null;
-        try
-        {
-            await ctx.Tiered.SetAndBroadcastAsync("k", "v");
-        }
-        catch (InvalidOperationException ex)
-        {
-            caught = ex;
-        }
+        // ReSharper disable once AccessToDisposedClosure -- act is awaited inside
+        // ThrowAsync, before ctx disposes.
+        var act = async () => await ctx.Tiered.SetAndBroadcastAsync("k", "v");
 
-        caught.Should().NotBeNull();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
     public async Task TieredCache_DisposedAndReused_HandlesGracefully()
     {
-        // Dispose tiered cache → its backplane subscription is removed.
+        // Dispose tiered cache -> its backplane subscription is removed.
         // Verify no NPE / no crash on subsequent ops.
         var channel = $"chaos-{Guid.NewGuid():N}";
         var keyPrefix = $"chaos-{Guid.NewGuid():N}:";
@@ -221,37 +259,42 @@ public sealed class DefaultTieredCacheAdversarialTests
         await ctx.Tiered.SetAsync("k", "v");
         await ctx.DisposeAsync();
 
-        // After dispose, the underlying caches are gone too. We can't legally use
-        // ctx anymore — that's the contract. The test verifies that disposal
-        // itself doesn't throw.
+        // After dispose, the underlying caches are gone too, so ctx must not be
+        // used again. The test verifies that disposal itself does not throw.
     }
 
     [Fact]
     public async Task Tiered_SetAsyncWithVeryShortTtl_ExpiresOnBothTiers()
     {
-        // 100ms TTL on both L1 and L2. After 250ms, both should report NotFound.
+        // A 100ms lifetime on both tiers. The reads are polled rather than
+        // taken after an elapsed span, so a slow machine costs an extra poll
+        // rather than a red case.
         await using var ctx = NewTieredContext(
             $"chaos-{Guid.NewGuid():N}",
             $"chaos-{Guid.NewGuid():N}:");
 
         await ctx.Tiered.SetAsync("k", "v", TimeSpan.FromMilliseconds(100));
 
-        await Task.Delay(300);
+        var gone = false;
 
-        var l1Get = await ctx.L1.GetAsync<string>("k");
-        var l2Get = await ctx.L2.GetAsync<string>("k");
-        var tieredGet = await ctx.Tiered.GetAsync<string>("k");
+        for (var attempt = 0; attempt < _EXPIRY_POLL_ATTEMPTS && !gone; attempt++)
+        {
+            gone = (await ctx.L1.GetAsync<string>("k")).IsNotFound
+                && (await ctx.L2.GetAsync<string>("k")).IsNotFound;
 
-        l1Get.IsNotFound.Should().BeTrue();
-        l2Get.IsNotFound.Should().BeTrue();
-        tieredGet.IsNotFound.Should().BeTrue();
+            if (!gone)
+                await Task.Delay(_EXPIRY_POLL_GAP_MS);
+        }
+
+        gone.Should().BeTrue("a 100ms lifetime expires on both tiers");
+        (await ctx.Tiered.GetAsync<string>("k")).IsNotFound.Should().BeTrue();
     }
 
     [Fact]
     public async Task Tiered_NullValue_RoundTripsThroughBothTiers()
     {
         // Cache a null value via tiered. Both L1 and L2 should hold "null"
-        // (not absent — present-with-null). GetAsync<string?> should return
+        // (not absent - present-with-null). GetAsync<string?> should return
         // Ok(null), not NotFound.
         await using var ctx = NewTieredContext(
             $"chaos-{Guid.NewGuid():N}",
@@ -268,8 +311,97 @@ public sealed class DefaultTieredCacheAdversarialTests
         (await ctx.L2.ExistsAsync("k")).Data.Should().BeTrue();
     }
 
+    /// <summary>
+    /// The interleaving the member exists to close. A holds a live copy in L1 and
+    /// L2; B revokes it and broadcasts; A then conditionally writes back the copy
+    /// it read. The comparison is decided at L2, which B has already changed, so
+    /// A writes nothing and B's value stands.
+    /// </summary>
+    [Fact]
+    public async Task SetIfEqual_ARevocationLandingFirst_LeavesTheRevocationStanding()
+    {
+        var channel = $"chaos-{Guid.NewGuid():N}";
+        var keyPrefix = $"chaos-{Guid.NewGuid():N}:";
+
+        await using var a = NewTieredContext(channel, keyPrefix);
+        await using var b = NewTieredContext(channel, keyPrefix);
+
+        await a.Tiered.SetAsync("k", "live");
+        var readByA = (await a.Tiered.GetAsync<string>("k")).Data;
+
+        await b.Tiered.SetAndBroadcastAsync("k", "revoked");
+        var wrote = await a.Tiered.SetIfEqualAsync("k", readByA, "live-again");
+
+        wrote.Data.Should().BeFalse();
+        (await b.L2.GetAsync<string>("k")).Data.Should().Be("revoked");
+    }
+
+    [Fact]
+    public async Task SetIfEqual_ARevocationLandingFirst_LeavesNoLiveCopyOnTheLosingNode()
+    {
+        // The losing node must not keep returning values from its own L1 either: the
+        // comparison proved something about the shared value and nothing about a
+        // local copy, so the local copy goes on every outcome.
+        var channel = $"chaos-{Guid.NewGuid():N}";
+        var keyPrefix = $"chaos-{Guid.NewGuid():N}:";
+
+        await using var a = NewTieredContext(channel, keyPrefix);
+        await using var b = NewTieredContext(channel, keyPrefix);
+
+        await a.Tiered.SetAsync("k", "live");
+        var readByA = (await a.Tiered.GetAsync<string>("k")).Data;
+
+        await b.Tiered.SetAndBroadcastAsync("k", "revoked");
+        _ = await a.Tiered.SetIfEqualAsync("k", readByA, "live-again");
+
+        (await a.L1.ExistsAsync("k")).Data.Should().BeFalse();
+        (await a.Tiered.GetAsync<string>("k")).Data.Should().Be("revoked");
+    }
+
+    /// <summary>
+    /// The admitting case beside it: with nothing racing, the same call writes.
+    /// Without this the refusing test above would pass against an implementation
+    /// whose conditional write never lands at all.
+    /// </summary>
+    [Fact]
+    public async Task SetIfEqual_NothingRacingIt_Writes()
+    {
+        var channel = $"chaos-{Guid.NewGuid():N}";
+        var keyPrefix = $"chaos-{Guid.NewGuid():N}:";
+
+        await using var a = NewTieredContext(channel, keyPrefix);
+
+        await a.Tiered.SetAsync("k", "live");
+        var readByA = (await a.Tiered.GetAsync<string>("k")).Data;
+
+        var wrote = await a.Tiered.SetIfEqualAsync("k", readByA, "live-again");
+
+        wrote.Data.Should().BeTrue();
+        (await a.L2.GetAsync<string>("k")).Data.Should().Be("live-again");
+    }
+
+    /// <summary>
+    /// Polls a condition until it holds or the attempt budget runs out. The
+    /// budget is sized so a healthy run never reaches it; reaching it means the
+    /// condition did not hold, not that the machine was slow.
+    /// </summary>
+    /// <param name="condition">The condition to poll.</param>
+    /// <returns>Whether the condition held.</returns>
+    private static async Task<bool> WaitUntilAsync(Func<Task<bool>> condition)
+    {
+        for (var attempt = 0; attempt < _PROPAGATION_POLL_ATTEMPTS; attempt++)
+        {
+            if (await condition())
+                return true;
+
+            await Task.Delay(_PROPAGATION_POLL_GAP_MS);
+        }
+
+        return await condition();
+    }
+
     [MustDisposeResource(false)]
-    private TieredContext NewTieredContext(string channel, string keyPrefix)
+    private TieredContextFixture NewTieredContext(string channel, string keyPrefix)
     {
         var redis = ConnectionMultiplexer.Connect(r_fixture.ConnectionString);
         var redisOpts = Options.Create(new RedisCacheOptions
@@ -298,11 +430,26 @@ public sealed class DefaultTieredCacheAdversarialTests
             l2,
             NullLogger<DefaultTieredCache>.Instance,
             backplane);
-        return new TieredContext(redis, l1, l2, tiered, backplane);
+        return new TieredContextFixture(redis, l1, l2, tiered, backplane);
     }
 
+    private RedisDistributedCache NewL2WithBackplane(
+        IConnectionMultiplexer redis,
+        ICacheInvalidationBackplane backplane)
+        => new(
+            redis,
+            Options.Create(new RedisCacheOptions
+            {
+                ConnectionString = r_fixture.ConnectionString,
+                KeyPrefix = $"failing-bp-{Guid.NewGuid():N}:",
+                DefaultExpiration = TimeSpan.FromMinutes(5),
+            }),
+            new JsonCacheSerializer(),
+            NullLogger<RedisDistributedCache>.Instance,
+            backplane);
+
     [MustDisposeResource(false)]
-    private TieredContext NewTieredContextNoBackplane()
+    private TieredContextFixture NewTieredContextNoBackplane()
     {
         var redis = ConnectionMultiplexer.Connect(r_fixture.ConnectionString);
         var redisOpts = Options.Create(new RedisCacheOptions
@@ -326,11 +473,11 @@ public sealed class DefaultTieredCacheAdversarialTests
             l2,
             NullLogger<DefaultTieredCache>.Instance,
             backplane: null);
-        return new TieredContext(redis, l1, l2, tiered, backplane: null);
+        return new TieredContextFixture(redis, l1, l2, tiered, backplane: null);
     }
 
     [MustDisposeResource(false)]
-    private sealed class TieredContext : IAsyncDisposable
+    private sealed class TieredContextFixture : IAsyncDisposable
     {
         private readonly ConnectionMultiplexer r_redis;
         private readonly DefaultLocalCache r_l1;
@@ -338,7 +485,7 @@ public sealed class DefaultTieredCacheAdversarialTests
         private readonly DefaultTieredCache r_tiered;
 
         [MustDisposeResource(false)]
-        internal TieredContext(
+        internal TieredContextFixture(
             ConnectionMultiplexer redis,
             DefaultLocalCache l1,
             RedisDistributedCache l2,

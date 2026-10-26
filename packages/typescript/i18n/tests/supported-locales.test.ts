@@ -22,7 +22,7 @@ describe("SupportedLocales.canonicalize", () => {
     ["fr-fR", "fr-FR"],
     ["zh-Hans-CN", "zh-Hans-CN"],
     ["  en-us  ", "en-US"],
-  ])("%s → %s", (input, expected) => {
+  ])("%s -> %s", (input, expected) => {
     expect(SupportedLocales.canonicalize(input)).toBe(expected);
   });
 });
@@ -83,12 +83,12 @@ describe("SupportedLocales.resolve", () => {
     ["case-insensitive", "EN-us", "en-US"],
     ["language-only fallback", "fr", "fr-FR"],
     ["region variant fallback to language", "fr-CH", "fr-FR"],
-    ["unknown → default", "ja-JP", "en-US"],
-    ["null → default", null, "en-US"],
-    ["undefined → default", undefined, "en-US"],
-    ["empty → default", "", "en-US"],
-    ["whitespace → default", "   ", "en-US"],
-  ])("%s '%s' → %s", (_label, input, expected) => {
+    ["unknown -> default", "ja-JP", "en-US"],
+    ["null -> default", null, "en-US"],
+    ["undefined -> default", undefined, "en-US"],
+    ["empty -> default", "", "en-US"],
+    ["whitespace -> default", "   ", "en-US"],
+  ])("%s '%s' -> %s", (_label, input, expected) => {
     expect(sl.resolve(input)).toBe(expected);
   });
 });

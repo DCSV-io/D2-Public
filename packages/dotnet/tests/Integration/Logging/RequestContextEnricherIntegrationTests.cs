@@ -6,9 +6,14 @@
 
 namespace DcsvIo.D2.Tests.Integration.Logging;
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using AwesomeAssertions;
 using DcsvIo.D2.Auth.Abstractions;
 using DcsvIo.D2.Context.Abstractions;
+using DcsvIo.D2.Logging.Internal;
 using DcsvIo.D2.Tests.Integration.Logging.Infrastructure;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -56,7 +61,7 @@ public sealed class RequestContextEnricherIntegrationTests
 
         // Auth/Token+Trust
         requestEvent.Properties.Keys.Should().Contain(nameof(IRequestContext.Audience));
-        requestEvent.Properties.Keys.Should().Contain(nameof(IRequestContext.SessionId));
+        requestEvent.Properties.Keys.Should().Contain(LogSafeIdentifiers.SESSION_ID_HASH);
         requestEvent.Properties.Keys.Should().Contain(nameof(IRequestContext.TokenIssuedAt));
         requestEvent.Properties.Keys.Should().Contain(nameof(IRequestContext.TokenExpiresAt));
         requestEvent.Properties.Keys.Should().Contain(nameof(IRequestContext.ActorChain));
@@ -72,7 +77,7 @@ public sealed class RequestContextEnricherIntegrationTests
         requestEvent.Properties.Keys.Should().Contain(nameof(IRequestContext.ImpersonationKind));
         requestEvent.Properties.Keys.Should().Contain(nameof(IRequestContext.ImpersonatedBy));
         requestEvent.Properties.Keys.Should().Contain(
-            nameof(IRequestContext.ImpersonationSessionId));
+            LogSafeIdentifiers.IMPERSONATION_SESSION_ID_HASH);
         requestEvent.Properties.Keys.Should().Contain(nameof(IRequestContext.ImpersonatorOrgId));
         requestEvent.Properties.Keys.Should().Contain(nameof(IRequestContext.ImpersonatorOrgName));
         requestEvent.Properties.Keys.Should().Contain(nameof(IRequestContext.ImpersonatorOrgType));
@@ -127,19 +132,19 @@ public sealed class RequestContextEnricherIntegrationTests
         //
         // Excluded from this assertion because they're emitted by Serilog
         // / the middleware INDEPENDENTLY of the enricher (the enricher's
-        // contribution is silently overridden — see precedence notes in the
+        // contribution is silently overridden - see precedence notes in the
         // type-level remarks of D2RequestContextEnricher):
         //   - TraceId    (middleware sets from HttpContext.TraceIdentifier
         //                 via diag-ctx; enricher's overrides via same diag-ctx
         //                 work, but a null IRequestContext.TraceId leaves the
         //                 middleware's value intact)
         //   - RequestId  (Serilog 9.x request-logging middleware emits
-        //                 RequestId from its own ForContext binding —
+        //                 RequestId from its own ForContext binding -
         //                 enricher's emission via diag-ctx is silently
         //                 dropped by Serilog's AddPropertyIfAbsent semantics)
         //   - RequestPath (Serilog's request-completion message template
         //                 binds RequestPath from HttpContext.Request.Path
-        //                 via ForContext — same AddPropertyIfAbsent
+        //                 via ForContext - same AddPropertyIfAbsent
         //                 limitation applies)
         requestEvent.Properties.Keys.Should().NotContain(nameof(IRequestContext.IsAuthenticated));
         requestEvent.Properties.Keys.Should().NotContain(nameof(IRequestContext.Subject));
@@ -153,7 +158,7 @@ public sealed class RequestContextEnricherIntegrationTests
             nameof(IRequestContext.OriginatingClientId));
         requestEvent.Properties.Keys.Should().NotContain(nameof(IRequestContext.IsServiceIdentity));
         requestEvent.Properties.Keys.Should().NotContain(nameof(IRequestContext.Audience));
-        requestEvent.Properties.Keys.Should().NotContain(nameof(IRequestContext.SessionId));
+        requestEvent.Properties.Keys.Should().NotContain(LogSafeIdentifiers.SESSION_ID_HASH);
         requestEvent.Properties.Keys.Should().NotContain(nameof(IRequestContext.TokenIssuedAt));
         requestEvent.Properties.Keys.Should().NotContain(nameof(IRequestContext.TokenExpiresAt));
         requestEvent.Properties.Keys.Should().NotContain(nameof(IRequestContext.ActorChain));
@@ -165,7 +170,7 @@ public sealed class RequestContextEnricherIntegrationTests
         requestEvent.Properties.Keys.Should().NotContain(nameof(IRequestContext.ImpersonationKind));
         requestEvent.Properties.Keys.Should().NotContain(nameof(IRequestContext.ImpersonatedBy));
         requestEvent.Properties.Keys.Should().NotContain(
-            nameof(IRequestContext.ImpersonationSessionId));
+            LogSafeIdentifiers.IMPERSONATION_SESSION_ID_HASH);
         requestEvent.Properties.Keys.Should().NotContain(nameof(IRequestContext.ImpersonatorOrgId));
         requestEvent.Properties.Keys.Should().NotContain(
             nameof(IRequestContext.ImpersonatorOrgName));
@@ -196,8 +201,8 @@ public sealed class RequestContextEnricherIntegrationTests
     [Fact]
     public async Task NoIRequestContextRegistered_GracefulNoOp_StaticFieldsStillEmitted()
     {
-        // Pre-Edge-filler reality: most services don't yet have IRequestContext
-        // wired. The enricher must degrade silently — no throw, no crash.
+        // Most services do not yet have IRequestContext wired. The enricher must
+        // degrade silently - no throw, no crash.
         var (host, sink) = await LoggingTestHostBuilder.BuildAsync();
         using var hostScope = host;
         var client = host.GetTestClient();
@@ -214,11 +219,12 @@ public sealed class RequestContextEnricherIntegrationTests
     [Fact]
     public async Task PiiFields_NeverEmittedEvenWhenPopulated()
     {
-        // Pin the conservative-by-default §3 PII contract — every NOT-LOGGED
-        // field populated, not one of them shows up in the JSON output.
-        // Adding a new PII field to IRequestContext WITHOUT adding it to
-        // either the enricher's LOG-OK set or this contract requires this
-        // test to be updated, which forces the §3 review.
+        // Pins the NOT-LOGGED contract of the logging package's docs/field-policy.md:
+        // every NOT-LOGGED field is populated, and none of them shows up in the
+        // JSON output. Adding a new PII field to IRequestContext WITHOUT adding it
+        // to either the enricher's LOG-OK set or this contract requires this
+        // test to be updated, which makes a reviewer decide whether the field
+        // is logged.
         var stub = new StubRequestContext
         {
             ClientIp = "203.0.113.42",
@@ -248,6 +254,41 @@ public sealed class RequestContextEnricherIntegrationTests
     }
 
     [Fact]
+    public async Task DeviceAndReachFields_NeverEmittedEvenWhenPopulated()
+    {
+        // DeviceKey, DeviceConfidence, RootOrgId and AccessibleOrgIds are each
+        // decided NOT-LOGGED. DeviceKey carries [RedactData(PersonalInformation)]
+        // and correlates one device across requests; AccessibleOrgIds is the
+        // caller's per-request authority set. DeviceConfidence and RootOrgId are
+        // neither PII nor secret, and the enricher's LOG-OK set does not include
+        // them; moving one into that set requires changing this test.
+        var stub = new StubRequestContext
+        {
+            DeviceKey = "device-key-fixture",
+            DeviceConfidence = "High",
+            RootOrgId = Guid.Parse("0192f3a4-5b6c-7d8e-9f01-234567890abc"),
+            AccessibleOrgIds = new HashSet<string>(StringComparer.Ordinal)
+            {
+                "0192f3a4-5b6c-7d8e-9f01-234567890abc",
+            },
+        };
+        var (host, sink) = await LoggingTestHostBuilder.BuildAsync(
+            extraServices: services =>
+                services.AddScoped<IRequestContext>(_ => stub));
+        using var hostScope = host;
+        var client = host.GetTestClient();
+
+        await client.GetAsync(new Uri("/api/echo", UriKind.Relative));
+
+        var rendered = string.Join("\n", sink.Events.Select(sink.Render));
+        rendered.Should().NotContain($"\"{nameof(IRequestContext.DeviceKey)}\"");
+        rendered.Should().NotContain($"\"{nameof(IRequestContext.DeviceConfidence)}\"");
+        rendered.Should().NotContain($"\"{nameof(IRequestContext.RootOrgId)}\"");
+        rendered.Should().NotContain($"\"{nameof(IRequestContext.AccessibleOrgIds)}\"");
+        rendered.Should().NotContain("device-key-fixture");
+    }
+
+    [Fact]
     public async Task LocalTraceIdOverridden_WhenIRequestContextTraceIdPopulated()
     {
         // Pins precedence: when IRequestContext.TraceId is populated, the
@@ -274,9 +315,9 @@ public sealed class RequestContextEnricherIntegrationTests
     [Fact]
     public async Task LocalTraceIdSurvives_WhenIRequestContextTraceIdNull()
     {
-        // Graceful degradation pin: when IRequestContext is registered but
+        // Graceful degradation: when IRequestContext is registered but
         // its TraceId is null, the enricher does NOT override the
-        // middleware's locally-set TraceId — the local value survives intact.
+        // middleware's locally-set TraceId - the local value survives intact.
         // Current reality is that IRequestContext.TraceId is null on every
         // request; this test pins the no-op outcome.
         var stub = new StubRequestContext();
@@ -292,7 +333,7 @@ public sealed class RequestContextEnricherIntegrationTests
         requestEvent.Should().NotBeNull();
 
         // The middleware ALWAYS emits TraceId from HttpContext.TraceIdentifier
-        // — so the key must be present, and the value must be non-empty
+        // - so the key must be present, and the value must be non-empty
         // (HttpContext.TraceIdentifier is a non-null synthetic identifier).
         requestEvent.Properties.Should().ContainKey(nameof(IRequestContext.TraceId));
         var traceIdValue = requestEvent.Properties[nameof(IRequestContext.TraceId)].ToString();
@@ -307,16 +348,16 @@ public sealed class RequestContextEnricherIntegrationTests
         // HttpContext.Request.Path via ForContext BEFORE the enricher's
         // EnrichDiagnosticContext callback runs. Once Serilog's LogEvent
         // property is set, IDiagnosticContext.Set("RequestPath", ...) is
-        // silently dropped by AddPropertyIfAbsent semantics — so the
+        // silently dropped by AddPropertyIfAbsent semantics - so the
         // enricher's IRequestContext.RequestPath emission is LOST on the
         // HTTP path.
         //
-        // The emission is preserved in the enricher's contract anyway —
-        // when this enricher is reused on transports where Serilog does
-        // NOT pre-bind RequestPath (e.g. AMQP message-handling pipelines
-        // wired through a custom diag-ctx integration), the IRequestContext
-        // value will appear. The HTTP-path limitation is documented in the
-        // README's "Precedence note" section.
+        // The enricher still emits IRequestContext.RequestPath. On transports
+        // where Serilog does NOT pre-bind RequestPath (e.g. AMQP
+        // message-handling pipelines wired through a custom diag-ctx
+        // integration), the IRequestContext value appears. The HTTP-path
+        // limitation is documented in the "Precedence note" section of the
+        // logging package's docs/field-policy.md.
         const string propagated_path = "/originating/upstream/handler";
         var stub = new StubRequestContext { RequestPath = propagated_path };
         var (host, sink) = await LoggingTestHostBuilder.BuildAsync(
@@ -331,7 +372,7 @@ public sealed class RequestContextEnricherIntegrationTests
         requestEvent.Should().NotBeNull();
         requestEvent.Properties.Should().ContainKey(nameof(IRequestContext.RequestPath));
 
-        // The local path WINS on HTTP — IRequestContext.RequestPath is
+        // The local path WINS on HTTP - IRequestContext.RequestPath is
         // dropped by Serilog's property-merge semantics.
         requestEvent.Properties[nameof(IRequestContext.RequestPath)]
             .ToString().Should().Contain("/api/echo");
@@ -436,7 +477,7 @@ public sealed class RequestContextEnricherIntegrationTests
     [Fact]
     public async Task AudiencePopulated_RenderedAsJsonArray()
     {
-        var audience = new[] { "edge", "audit" };
+        var audience = new[] { "edge", "orders" };
         var stub = new StubRequestContext { Audience = audience };
         var (host, sink) = await LoggingTestHostBuilder.BuildAsync(
             extraServices: services =>
@@ -452,7 +493,7 @@ public sealed class RequestContextEnricherIntegrationTests
 
         var rendered = string.Join("\n", sink.Events.Select(sink.Render));
         rendered.Should().Contain($"\"{nameof(IRequestContext.Audience)}\"");
-        rendered.Should().Contain("audit");
+        rendered.Should().Contain("orders");
     }
 
     [Fact]
@@ -475,11 +516,12 @@ public sealed class RequestContextEnricherIntegrationTests
     [Fact]
     public async Task UsernameLogOk_AppearsInOutput()
     {
-        // Pins the user-locked decision: Username is LOG-OK (operator
-        // debug-ability outweighs the marginal privacy delta from a user
-        // CHOOSING email-shaped identifiers — see the README's per-cluster
-        // rationale). Adding a [RedactData] to Username later would silently
-        // strip it from logs; this test makes that change visible.
+        // Pins the decision that Username is LOG-OK: operator debugging
+        // outweighs the small privacy cost of a user CHOOSING an email-shaped
+        // identifier (see the Username row of the Auth/Identity table in the
+        // logging package's docs/field-policy.md). Adding a [RedactData] to
+        // Username would silently strip it from logs; this test makes that
+        // change visible.
         var stub = new StubRequestContext { Username = "alice" };
         var (host, sink) = await LoggingTestHostBuilder.BuildAsync(
             extraServices: services =>
@@ -499,9 +541,11 @@ public sealed class RequestContextEnricherIntegrationTests
     [Fact]
     public async Task OrgNameLogOk_AppearsInOutput()
     {
-        // Pins the user-locked decision: OrgName is LOG-OK (internal logs
-        // behind auth; no incremental disclosure beyond what operators can
-        // already query). Same rationale applies to ImpersonatorOrgName.
+        // Pins the decision that OrgName is LOG-OK (internal logs behind auth;
+        // no incremental disclosure beyond what operators can already query;
+        // see the OrgName row of the Auth/Org table in the logging package's
+        // docs/field-policy.md). The same rationale applies to
+        // ImpersonatorOrgName.
         var stub = new StubRequestContext { OrgName = "Acme Corp" };
         var (host, sink) = await LoggingTestHostBuilder.BuildAsync(
             extraServices: services =>

@@ -7,8 +7,9 @@
 namespace DcsvIo.D2.DataGovernance.EntityFrameworkCore;
 
 /// <summary>
-/// Classifies an entity type into one of three anonymization tiers based on
-/// how its annotated properties are mapped in the EF Core model.
+/// Classifies an entity type into an anonymization tier (<see cref="TierA"/>,
+/// <see cref="TierB"/> or <see cref="TierC"/>) based on how its annotated properties are
+/// mapped in the EF Core model.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -30,7 +31,7 @@ public enum AnonymizationTier
     /// <summary>
     /// All annotated properties are constant-rule fields on scalar, table-split-owned, or
     /// complex-property shapes. The anonymization engine anonymizes these entities with a single
-    /// chained <c>ExecuteUpdateAsync</c> call — no materialization required.
+    /// chained <c>ExecuteUpdateAsync</c> call - no materialization required.
     /// </summary>
     TierA = 0,
 
@@ -45,7 +46,7 @@ public enum AnonymizationTier
 
     /// <summary>
     /// At least one annotated property is in a mapping shape that the anonymization engine
-    /// cannot reach — specifically an owned entity mapped to JSON (<c>OwnsOne(...).ToJson()</c>)
+    /// cannot reach - specifically an owned entity mapped to JSON (<c>OwnsOne(...).ToJson()</c>)
     /// or an <c>OwnsMany</c> child table. The startup model validator rejects entities in this
     /// tier at host startup so they never reach the engine.
     /// </summary>

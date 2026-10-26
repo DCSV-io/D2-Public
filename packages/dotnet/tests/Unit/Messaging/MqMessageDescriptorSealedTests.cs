@@ -12,10 +12,11 @@ using DcsvIo.D2.Messaging;
 using Xunit;
 
 /// <summary>
-/// Coverage for the descriptor's computed <see cref="MqMessageDescriptor.IsSealed"/> +
-/// <see cref="MqMessageDescriptor.ConsumerService"/> properties — resolved via
-/// <see cref="EncryptionDomainModeCatalog"/> (overlay first, then generated
-/// <see cref="EncryptionDomainModes"/> baseline) after dual-values strip.
+/// Tests of the computed <see cref="MqMessageDescriptor.IsSealed"/> and
+/// <see cref="MqMessageDescriptor.ConsumerService"/> properties of the
+/// descriptor. They resolve through <see cref="EncryptionDomainModeCatalog"/>
+/// (overlay first, then the generated <see cref="EncryptionDomainModes"/>
+/// baseline) after the dual values are stripped.
 /// </summary>
 public sealed class MqMessageDescriptorSealedTests
 {
@@ -30,13 +31,13 @@ public sealed class MqMessageDescriptorSealedTests
     }
 
     [Theory]
-    [InlineData("audit")]
-    [InlineData("notifications")]
-    [InlineData("courier")]
-    public void ProductSealedDomainStrings_AreNotSealedOnPublicCatalog(string domain)
+    [InlineData("orders")]
+    [InlineData("shipping")]
+    [InlineData("inventory")]
+    public void PrivateSealedDomainStrings_AreNotSealedOnPublicCatalog(string domain)
     {
-        // Product sealed domains live on ProductEncryptionDomainModes only.
-        // On the public catalog they resolve as unknown → Symmetric.
+        // The public catalog does not declare these sealed domains, so here
+        // they resolve as unknown -> Symmetric.
         var descriptor = Descriptor(domain);
 
         descriptor.IsSealed.Should().BeFalse();
@@ -56,8 +57,9 @@ public sealed class MqMessageDescriptorSealedTests
     [Fact]
     public void UnknownDomain_DefaultsToSymmetric_NotSealed()
     {
-        // A synthetic test-seam domain is by construction not sealed (sealed-ness can only
-        // originate in the spec catalog) — the documented ModeFor unknown → Symmetric default.
+        // A synthetic test domain is not sealed, because a domain can be sealed
+        // only if the spec catalog declares it. This is the documented ModeFor
+        // default of unknown -> Symmetric.
         var descriptor = Descriptor("some-fixture-domain");
 
         descriptor.IsSealed.Should().BeFalse();

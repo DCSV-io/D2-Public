@@ -12,8 +12,9 @@ using DcsvIo.D2.Encryption;
 using Xunit;
 
 /// <summary>
-/// Pin the public encryption-domain wire values after dual-values split.
-/// Product sealed domains emit on ProductEncryptionDomains only.
+/// Pins the public encryption-domain wire values.
+/// The other sealed domains are emitted on a separate catalog, not on
+/// <see cref="EncryptionDomains"/>.
 /// </summary>
 public sealed class EncryptionDomainsTests
 {
@@ -29,11 +30,6 @@ public sealed class EncryptionDomainsTests
     public void AllDomains_EnumeratesEveryPublicEntryInSpecOrder()
         => EncryptionDomains.AllDomains.Should()
             .Equal("plaintext", "payload-fixture-sealed");
-
-    [Fact]
-    public void AllDomains_ExcludesProductSealedDomains()
-        => EncryptionDomains.AllDomains.Should()
-            .NotContain(["audit", "notifications", "courier"]);
 
     [Fact]
     public void AllDomains_ContainsNoDuplicates()

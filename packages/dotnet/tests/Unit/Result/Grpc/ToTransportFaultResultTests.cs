@@ -14,17 +14,17 @@ using Microsoft.Extensions.Logging;
 using Xunit;
 
 /// <summary>
-/// Pins <see cref="ProtoExtensions.ToTransportFaultResult{TData}"/> — the SHARED
-/// <see cref="RpcException"/> → <c>D2Result</c> transport-fault mapping that both
-/// <c>HandleAsync</c> and the generated gRPC client use.
+/// Pins <see cref="ProtoExtensions.ToTransportFaultResult{TData}"/> - the
+/// <see cref="RpcException"/> -> <c>D2Result</c> transport-fault mapping that
+/// <c>HandleAsync</c> and callers that catch the exception themselves use.
 /// <para>
 /// Regression intent: a transport <see cref="RpcException"/> that falls through a
 /// gRPC-agnostic resilience pipeline must map to <c>ServiceUnavailable</c> (503,
 /// "downstream unavailable"), NOT <c>UnhandledException</c> (500, "bug in caller's
-/// own logic"). 500 would be wrong: the caller is fine, the peer faulted. The
-/// generated client captures the thrown <see cref="RpcException"/> and remaps it via
-/// THIS method so the code is consistent with the <c>HandleAsync</c> path. Cancelled
-/// (gRPC code 1) maps to <c>Canceled</c>.
+/// own logic"). 500 would be wrong: the caller is fine, the peer faulted. A caller
+/// that catches the thrown <see cref="RpcException"/> and remaps it through THIS
+/// method gets the same results as the <c>HandleAsync</c> path. A gRPC cancellation
+/// (code 1) maps to <c>Canceled</c>.
 /// </para>
 /// </summary>
 public sealed class ToTransportFaultResultTests
@@ -37,9 +37,7 @@ public sealed class ToTransportFaultResultTests
     [InlineData(StatusCode.Aborted)]
     [InlineData(StatusCode.InvalidArgument)]
     [InlineData(StatusCode.NotFound)]
-    [InlineData(StatusCode.PermissionDenied)]
-    [InlineData(StatusCode.Unauthenticated)]
-    public void NonCancelled_MapsToServiceUnavailable_Not500(StatusCode code)
+    public void NonCanceled_MapsToServiceUnavailable_Not500(StatusCode code)
     {
         var ex = new RpcException(new Status(code, "transport detail"));
 
@@ -53,9 +51,54 @@ public sealed class ToTransportFaultResultTests
     }
 
     [Fact]
-    public void Cancelled_MapsToCanceled()
+    public void Unauthenticated_MapsToUnauthorized()
     {
-        var ex = new RpcException(new Status(StatusCode.Cancelled, string.Empty));
+        var ex = new RpcException(new Status(StatusCode.Unauthenticated, "transport detail"));
+
+        var result = ex.ToTransportFaultResult<string?>();
+
+        result.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public void PermissionDenied_MapsToForbidden()
+    {
+        var ex = new RpcException(new Status(StatusCode.PermissionDenied, "transport detail"));
+
+        var result = ex.ToTransportFaultResult<string?>();
+
+        result.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Theory]
+    [InlineData(StatusCode.Unauthenticated)]
+    [InlineData(StatusCode.PermissionDenied)]
+    public void CredentialRejection_IsNotTransientRetryable(StatusCode code)
+    {
+        var ex = new RpcException(new Status(code, "transport detail"));
+
+        var result = ex.ToTransportFaultResult<string?>();
+
+        result.IsTransientRetryable.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Unavailable_IsTransientRetryable()
+    {
+        // The admitting counterpart: the transport fault that a retry may cure stays retryable.
+        var ex = new RpcException(new Status(StatusCode.Unavailable, "transport detail"));
+
+        var result = ex.ToTransportFaultResult<string?>();
+
+        result.IsTransientRetryable.Should().BeTrue();
+    }
+
+    // StatusCode.Cancelled is the spelling of the Grpc.Core library. british-spelling:exempt-line
+    [Fact]
+    public void Cancelled_MapsToCanceled() // british-spelling:exempt-line
+    {
+        var ex = new RpcException(
+            new Status(StatusCode.Cancelled, string.Empty)); // british-spelling:exempt-line
 
         var result = ex.ToTransportFaultResult<string?>();
 

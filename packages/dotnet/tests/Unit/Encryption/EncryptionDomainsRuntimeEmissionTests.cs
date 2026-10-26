@@ -6,15 +6,19 @@
 
 namespace DcsvIo.D2.Tests.Unit.Encryption;
 
+using System.IO;
+using System.Linq;
+using System.Text.Json;
 using AwesomeAssertions;
 using DcsvIo.D2.Encryption;
+using DcsvIo.D2.Tests.Unit.Auth;
 using Xunit;
 
 /// <summary>
 /// Runtime-emission pin tests for the public EncryptionDomains closed-set
-/// catalog (plaintext + framework fixture sealed domain). Product sealed
-/// domains (audit / notifications / courier) live on
-/// <c>ProductEncryptionDomains</c> and are not pinned here.
+/// catalog (plaintext + framework fixture sealed domain). Sealed domains that a
+/// host registers outside the public catalog are declared in the host's own
+/// catalog and are not pinned here.
 /// </summary>
 public sealed class EncryptionDomainsRuntimeEmissionTests
 {
@@ -27,16 +31,26 @@ public sealed class EncryptionDomainsRuntimeEmissionTests
     }
 
     [Fact]
-    public void ProductSealedDomains_AreAbsentFromPublicCatalog()
+    public void PublicCatalog_HoldsExactlyThePublicSpecValuesInSpecOrder()
     {
-        EncryptionDomains.AllDomains.Should().NotContain(["audit", "notifications", "courier"]);
+        var specPath = Path.Combine(
+            TestPaths.PublicContractsRoot(),
+            "encryption-domains",
+            "encryption-domains.spec.json");
+
+        using var doc = JsonDocument.Parse(File.ReadAllText(specPath));
+        var specValues = doc.RootElement.GetProperty("domains").EnumerateArray()
+            .Select(domain => domain.GetProperty("value").GetString())
+            .ToList();
+
+        EncryptionDomains.AllDomains.Should().Equal(specValues);
     }
 
     [Fact]
     public void FixtureSealedDomain_RegistersResolvableKeyedSealerPathConstant()
     {
-        // Public catalog carries one framework fixture sealed domain so sealed
-        // ModeFor / compose paths remain unit-testable without product IP.
+        // The public catalog contains one framework fixture sealed domain, so the sealed
+        // ModeFor and compose paths stay unit-testable without a product domain.
         EncryptionDomains.FIXTURE_SEALED.Should().Be("payload-fixture-sealed");
         EncryptionDomainModes.ModeFor(EncryptionDomains.FIXTURE_SEALED)
             .Should().Be(EncryptionDomainMode.Sealed);
@@ -45,9 +59,9 @@ public sealed class EncryptionDomainsRuntimeEmissionTests
     [Fact]
     public void PlaintextDomain_FlowsThroughMqMessageDescriptor()
     {
-        // The PLAINTEXT sentinel is special — it does NOT register a keyed
-        // IPayloadCrypto. Its production emit site is
-        // mq-messages.spec entries with "encryption": "plaintext".
+        // The PLAINTEXT sentinel does not register a keyed IPayloadCrypto.
+        // Its production emit site is mq-messages.spec entries with
+        // "encryption": "plaintext".
         var descriptor = new DcsvIo.D2.Messaging.MqMessageDescriptor(
             Constant: "TestPlaintext",
             MessageTypeName: typeof(object).FullName!,

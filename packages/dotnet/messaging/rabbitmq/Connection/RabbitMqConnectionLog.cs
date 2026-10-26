@@ -56,4 +56,62 @@ internal static partial class RabbitMqConnectionLog
         Level = LogLevel.Information,
         Message = "RabbitMQ connection recovered after {Down} of degradation.")]
     public static partial void ConnectionRecovered(ILogger logger, TimeSpan down);
+
+    [LoggerMessage(
+        EventId = 7,
+        Level = LogLevel.Warning,
+        Message = "RabbitMQ connection shut down (initiator={Initiator}, "
+            + "replyCode={ReplyCode}, replyText={ReplyText}). Automatic recovery will "
+            + "re-open the connection and re-declare topology; publishes issued before "
+            + "the queue bindings are back can reach no queue.")]
+    public static partial void ConnectionShutdown(
+        ILogger logger, string initiator, ushort replyCode, string replyText);
+
+    [LoggerMessage(
+        EventId = 8,
+        Level = LogLevel.Warning,
+        Message = "RabbitMQ automatic recovery succeeded; the client re-opened the "
+            + "connection and re-declared the topology it owns.")]
+    public static partial void RecoverySucceeded(ILogger logger);
+
+    [LoggerMessage(
+        EventId = 9,
+        Level = LogLevel.Error,
+        Message = "RabbitMQ automatic recovery failed (exType={ExType}); the client "
+            + "will retry. Consumers stay detached until it succeeds.")]
+    public static partial void RecoveryFailed(ILogger logger, string exType);
+
+    [LoggerMessage(
+        EventId = 10,
+        Level = LogLevel.Error,
+        Message = "RabbitMQ connection callback raised (exType={ExType}, "
+            + "context={Context}).")]
+    public static partial void ConnectionCallbackFailed(
+        ILogger logger, string exType, string context);
+
+    [LoggerMessage(
+        EventId = 11,
+        Level = LogLevel.Warning,
+        Message = "RabbitMQ is re-attaching consumer {ConsumerTag} after recovery.")]
+    public static partial void RecoveringConsumer(ILogger logger, string consumerTag);
+
+    [LoggerMessage(
+        EventId = 12,
+        Level = LogLevel.Warning,
+        Message = "RabbitMQ renamed queue {OldName} to {NewName} during recovery.")]
+    public static partial void QueueNameChangedAfterRecovery(
+        ILogger logger, string oldName, string newName);
+
+    [LoggerMessage(
+        EventId = 13,
+        Level = LogLevel.Warning,
+        Message = "RabbitMQ blocked the connection (reason={Reason}); publishes stall "
+            + "until the broker unblocks it.")]
+    public static partial void ConnectionBlocked(ILogger logger, string reason);
+
+    [LoggerMessage(
+        EventId = 14,
+        Level = LogLevel.Information,
+        Message = "RabbitMQ unblocked the connection.")]
+    public static partial void ConnectionUnblocked(ILogger logger);
 }

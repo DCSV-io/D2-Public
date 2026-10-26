@@ -1,0 +1,88 @@
+<!--
+Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>DcsvIo.D2.Pagination</RootNamespace>
+    <!-- Nested package folders are separate csprojs; never compile into pure Pagination. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);entity-framework-core/**;entity-framework-core-nodatime/**;entity-framework-core-postgres/**;error-codes-source-gen/**</DefaultItemExcludes>
+
+    <!-- Emit the generator's output to <project-dir>/Generated/. The directory is
+         tracked in git so reviewers see codegen diffs without a local build. -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      The SourceGen pipeline feeds the in-memory compiler with the same content
+      that lands on disk under Generated/. Without this Remove, the SDK-default
+      <Compile Include="**/*.cs" /> glob picks up the on-disk copy and the build
+      fails with duplicate-definition errors (CS0101 / CS0111).
+    -->
+    <Compile Remove="$(CompilerGeneratedFilesOutputPath)\**\*.cs" />
+  </ItemGroup>
+
+  <!--
+    DcsvIo.D2.Pagination - portable keyset page request/result, policy and
+    readable versioned cursor encode/decode. It has no dependency on any
+    authentication or authorization type; hosts own LINQ composition and
+    per-list sort policies.
+    Depends on Result, Utilities, I18n.Keys and ErrorCodes.Category (no EF).
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\result\core\DcsvIo.D2.Result.csproj" />
+    <ProjectReference Include="..\utilities\DcsvIo.D2.Utilities.csproj" />
+    <!--
+      The emitted PaginationFailures factories use TK.Common.Pagination.* keys
+      and ErrorCategory values, so both hosts are direct references rather
+      than transitive ones.
+    -->
+    <ProjectReference Include="..\i18n\keys\DcsvIo.D2.I18n.Keys.csproj" />
+    <ProjectReference Include="..\error-codes\category\DcsvIo.D2.ErrorCodes.Category.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The pagination error-code catalog's generator shell. It emits
+      PaginationErrorCodes + PaginationFailures into this assembly, which is the
+      TargetAssemblyName its CatalogConfig gates on.
+    -->
+    <ProjectReference Include="error-codes-source-gen\DcsvIo.D2.Pagination.ErrorCodes.SourceGen.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <AdditionalFiles Include="$(D2PublicContractsRoot)pagination-error-codes\pagination-error-codes.spec.json" />
+    <!--
+      error-category.spec.json - the closed ErrorCategory wire set, so the
+      closed-set category check (D2PGN002) validates against the spec-derived
+      set rather than a hand-maintained subset. Absent or malformed degrades the
+      check to a no-op rather than a false positive.
+    -->
+    <AdditionalFiles Include="$(D2PublicContractsRoot)error-category\error-category.spec.json" />
+    <!--
+      en-US.json - the translation-key source of truth, so every userMessageKey
+      is cross-checked against a real key (D2ERC002). The engine reduces it to
+      its key set at the pipeline boundary, so a translation-value edit does not
+      re-run codegen.
+    -->
+    <AdditionalFiles Include="$(D2PublicContractsRoot)messages\en-US.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DcsvIo.D2.Tests" />
+  </ItemGroup>
+
+  <!-- Publish metadata (per-package semver + NuGet identity). -->
+  <PropertyGroup>
+    <Version>0.5.8</Version>
+    <PackageId>DcsvIo.D2.Pagination</PackageId>
+    <Description>Portable keyset cursor pagination helpers for D2 list APIs.</Description>
+    <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>

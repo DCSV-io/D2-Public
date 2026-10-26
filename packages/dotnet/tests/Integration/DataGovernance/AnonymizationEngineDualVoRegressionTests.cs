@@ -22,13 +22,13 @@ using Xunit;
 /// <c>DualVoHost { PrimaryAddress: SimpleAddress, SecondaryAddress: SimpleAddress }</c>).
 /// <para>
 /// Tier-A symptom: <c>ExecuteUpdateAsync</c> emitted duplicate SET columns
-/// (<c>"PrimaryAddress_City"=…, "PrimaryAddress_City"=…</c>), causing Postgres to reject
+/// (<c>"PrimaryAddress_City"=..., "PrimaryAddress_City"=...</c>), causing Postgres to reject
 /// the statement. Tier-B symptom: <c>SetPropertyValue</c> always wrote to
 /// <c>PrimaryAddress</c> for both navigations, leaving <c>SecondaryAddress</c> untouched.
 /// </para>
 /// <para>
 /// Fix: <c>BuildNavigationChain(IProperty)</c> walks the EF model chain
-/// (<c>IProperty.DeclaringType → IComplexType.ComplexProperty →
+/// (<c>IProperty.DeclaringType -> IComplexType.ComplexProperty ->
 /// IComplexProperty.DeclaringType</c>) instead of CLR-reflection-by-type, so each
 /// property resolves to its exact, distinct navigation regardless of how many navigations
 /// share the same CLR type.
@@ -63,10 +63,11 @@ public sealed class AnonymizationEngineDualVoRegressionTests : IAsyncLifetime
             nameof(AnonymizationEngineDualVoRegressionTests));
         r_schemaCtx = GovDbContext.Build(r_connectionString);
 
-        // Fresh isolated DB — EnsureCreatedAsync succeeds unconditionally and creates all
-        // GovDbContext tables (TierAUsers, TierBUsers, OrgRecords, ExemptLedgers).
-        // DualVoHosts and TierBDualVoHosts are added via raw IF NOT EXISTS DDL (they are
-        // not in GovDbContext's model — the DDL is idempotent as a safety measure).
+        // Fresh isolated DB - EnsureCreatedAsync succeeds unconditionally and creates all
+        // GovDbContext tables (TierAUsers, TierBUsers, Orgs, ExemptLedgers, DualVoHosts,
+        // TierBDualVoHosts). DualVoHosts and TierBDualVoHosts are in GovDbContext's
+        // model, so the IF NOT EXISTS statements below create nothing and leave the
+        // tables as EnsureCreatedAsync built them.
         await r_schemaCtx.Database.EnsureCreatedAsync();
 
         await r_schemaCtx.Database.ExecuteSqlRawAsync(@"
@@ -101,13 +102,14 @@ public sealed class AnonymizationEngineDualVoRegressionTests : IAsyncLifetime
 
         await r_schemaCtx.DisposeAsync();
         AnonymizationTierClassifier.ClearCache();
+        await r_fixture.AssertNoConnectionOpenAsync(r_connectionString);
     }
 
     // =========================================================================
-    // Dual-VO regression — Tier-A: same complex VO mapped twice → independent tombstones
+    // Dual-VO regression - Tier-A: same complex VO mapped twice -> independent tombstones
     // =========================================================================
 
-    // long identifier — cannot wrap
+    // long identifier - cannot wrap
     [Fact]
     public async Task Anonymize_EntityMappingSameComplexVoTwice_TombstonesBothIndependently()
     {
@@ -120,17 +122,17 @@ public sealed class AnonymizationEngineDualVoRegressionTests : IAsyncLifetime
             secondaryCity: "Shelbyville",
             secondaryZip: "00002");
 
-        // Pre-erasure: assert the two address slots are genuinely distinct so the test
-        // is not tautological — seeds distinct values, not the same value twice.
+        // Pre-erasure: assert PrimaryAddress and SecondaryAddress hold distinct values,
+        // so the post-erasure assertions compare two seeded values and not one twice.
         await using var preCtx = GovDbContext.Build(r_connectionString);
         var pre = await preCtx.DualVoHosts.FirstAsync(h => h.UserId == userId);
         pre.PrimaryAddress.City.Should().Be("Springfield", "primary city pre-erasure");
         pre.SecondaryAddress.City.Should().Be(
             "Shelbyville",
-            "secondary city pre-erasure — distinct");
+            "secondary city pre-erasure - distinct");
 
         // The buggy engine produced duplicate SET columns in SQL
-        // ("PrimaryAddress_City"=…, "PrimaryAddress_City"=…) and Postgres rejected the
+        // ("PrimaryAddress_City"=..., "PrimaryAddress_City"=...) and Postgres rejected the
         // statement. With the fix, each navigation resolves to its own column.
         var engine = BuildEngine();
         var result = await engine.AnonymizeUserAsync(userId);
@@ -143,7 +145,7 @@ public sealed class AnonymizationEngineDualVoRegressionTests : IAsyncLifetime
         await using var readCtx = GovDbContext.Build(r_connectionString);
         var row = await readCtx.DualVoHosts.FirstAsync(h => h.UserId == userId);
 
-        // (b) Both slots tombstoned independently — no cross-leak.
+        // (b) Both slots tombstoned independently - no cross-leak.
         row.PrimaryAddress.City.Should().Be(
             "[deleted]",
             "primary city tombstoned with its own constant");
@@ -151,7 +153,7 @@ public sealed class AnonymizationEngineDualVoRegressionTests : IAsyncLifetime
 
         row.SecondaryAddress.City.Should().Be(
             "[deleted-secondary]",
-            "secondary city tombstoned with its OWN distinct constant — proves no cross-leak");
+            "secondary city tombstoned with its OWN distinct constant - proves no cross-leak");
         row.SecondaryAddress.ZipCode.Should().BeNull("secondary zip tombstoned to null");
 
         // (c) IsAnonymized flagged.
@@ -159,27 +161,17 @@ public sealed class AnonymizationEngineDualVoRegressionTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // Dual-VO regression — Tier-B: same complex VO mapped twice → independent in-memory writes
+    // Dual-VO regression - Tier-B: same complex VO mapped twice -> independent in-memory writes
     // =========================================================================
 
-    // long identifier — cannot wrap
+    // long identifier - cannot wrap
     [Fact]
     public async Task Anonymize_EntityMappingSameComplexVoTwice_TierB_TombstonesBothIndependently()
     {
-        // Tier-B is triggered by a Template rule. We map the DualVoHost via a
-        // DualVoTierBHost that extends the scenario with a Template field, forcing the
-        // engine to materialize and mutate in CLR (SetPropertyValue path). Because
-        // GovDbContext only has DualVoHost (Tier-A), we drive Tier-B via TierBUser with
-        // a TierBDualVoHost extension below. Instead of adding a whole new entity, we
-        // exercise Tier-B through the existing TierBUser and separately pin the
-        // SetPropertyValue path via a unit-observable side effect.
-        //
-        // Simplest approach: seed a DualVoHost row, run Tier-A (already tested above),
-        // and then verify SetPropertyValue by directly invoking the engine on an
-        // in-memory DualVoHost instance via the AnonymizationEngine's Tier-B code path.
-        // Because DualVoHost has no Template field it goes Tier-A; to test Tier-B CLR
-        // mutation we build a TierBDualVoHost that wraps SimpleAddress twice + adds a
-        // Template field so the engine materializes it.
+        // Tier-B is triggered by a Template rule. DualVoHost has no Template field, so
+        // the engine treats it as Tier-A. TierBDualVoHost maps SimpleAddress twice and
+        // adds a Template field (Email), so AnonymizationEngine materializes the entity
+        // and mutates it in CLR (the SetPropertyValue path).
 
         var userId = Guid.NewGuid();
 
@@ -219,7 +211,7 @@ public sealed class AnonymizationEngineDualVoRegressionTests : IAsyncLifetime
         await using var readCtx = GovDbContext.Build(r_connectionString);
         var row = await readCtx.TierBDualVoHosts.FirstAsync(h => h.UserId == userId);
 
-        // (b) Both slots tombstoned to their own values — no cross-leak.
+        // (b) Both slots tombstoned to their own values - no cross-leak.
         row.PrimaryAddress.City.Should().Be(
             "[deleted]",
             "primary city tombstoned independently");

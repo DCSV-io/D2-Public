@@ -17,9 +17,8 @@ using DcsvIo.D2.SourceGen.Polyfills;
 /// <summary>
 /// Pure logic for emitting the <c>Audiences</c> static partial class source from
 /// a parsed <see cref="AudiencesSpec"/>. Stateless and unit-testable in isolation.
-/// The Roslyn-host integration (<see cref="AudiencesGenerator"/>) calls this and
-/// translates emit-side <see cref="EmitDiagnostic"/> records into Roslyn
-/// <c>Diagnostic</c> instances.
+/// It reports problems as emit-side <see cref="EmitDiagnostic"/> records and
+/// does not use Roslyn <c>Diagnostic</c> instances.
 /// </summary>
 internal static class AudiencesEmitter
 {
@@ -30,9 +29,11 @@ internal static class AudiencesEmitter
     /// Emits the Audiences class source plus diagnostics for the supplied spec.
     /// </summary>
     /// <param name="spec">Parsed audience spec.</param>
-    /// <param name="rootNamespace">Emit namespace (public or private product type).</param>
-    /// <param name="className">Emit class name (<c>Audiences</c> or <c>ProductAudiences</c>).</param>
-    /// <returns>Generated source + diagnostics.</returns>
+    /// <param name="rootNamespace">Emit namespace (public or extension target).</param>
+    /// <param name="className">
+    /// Emit class name: <c>Audiences</c>, or the extension prefix followed by <c>Audiences</c>.
+    /// </param>
+    /// <returns>Generated source and diagnostics.</returns>
     public static EmitResult Emit(
         AudiencesSpec spec,
         string? rootNamespace = null,
@@ -45,8 +46,8 @@ internal static class AudiencesEmitter
         var validAudiences = new List<AudienceEntry>();
         var seenNames = new HashSet<string>(StringComparer.Ordinal);
 
-        // Track URL → first-seen name so duplicate-URL diagnostics can name both
-        // sides of the collision (Files=https://x.internal AND Notifications=https://x.internal).
+        // Track URL -> first-seen name so duplicate-URL diagnostics can identify both
+        // sides of the collision (NameA=https://x.internal and NameB=https://x.internal).
         var urlToFirstName = new Dictionary<string, string>(StringComparer.Ordinal);
 
         foreach (var audience in spec.Audiences)
@@ -67,7 +68,7 @@ internal static class AudiencesEmitter
             // root-relative paths such as "/relative/path": on some .NET versions it
             // returns true (treating the leading slash as a host-relative file URI) while
             // on others it correctly returns false.  Uri.IsWellFormedUriString follows
-            // RFC 3986 strictly — it requires a scheme component — and therefore rejects
+            // RFC 3986 strictly - it requires a scheme component - and therefore rejects
             // "/relative/path" consistently across all platforms and .NET versions.
             if (!Uri.IsWellFormedUriString(audience.Url, UriKind.Absolute))
             {
@@ -199,7 +200,7 @@ internal static class AudiencesEmitter
 
         sb.AppendLine("    /// <summary>");
         sb.AppendLine(
-            "    /// Resolves an audience <paramref name=\"name\"/> (e.g. <c>\"Files\"</c>) to "
+            "    /// Resolves an audience <paramref name=\"name\"/> (e.g. <c>\"Orders\"</c>) to "
             + "its URL, or returns <c>null</c> when the name is not in the spec.");
         sb.AppendLine("    /// </summary>");
         sb.AppendLine("    /// <param name=\"name\">The audience name.</param>");
@@ -211,7 +212,7 @@ internal static class AudiencesEmitter
         sb.AppendLine("    /// <summary>");
         sb.AppendLine(
             "    /// Reverse-resolves an audience <paramref name=\"url\"/> (e.g. "
-            + "<c>\"https://files.internal\"</c>) to its name, or returns <c>null</c> when "
+            + "<c>\"https://orders.example.internal\"</c>) to its name, or returns <c>null</c> when "
             + "the URL is not in the spec.");
         sb.AppendLine("    /// </summary>");
         sb.AppendLine("    /// <param name=\"url\">The audience URL.</param>");
@@ -228,7 +229,7 @@ internal static class AudiencesEmitter
         sb.AppendLine();
         sb.AppendLine("    /// <summary>");
         sb.AppendLine(
-            "    /// Gets the name → URL map for all registered audiences.");
+            "    /// Gets the name -> URL map for all registered audiences.");
         sb.AppendLine("    /// </summary>");
         sb.AppendLine(
             "    public static IReadOnlyDictionary<string, string> ByName => sr_byName;");

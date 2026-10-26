@@ -43,7 +43,7 @@ public sealed class HandlerContextTests
     public void Ctor_RequestExposesIRequestContextProperties()
     {
         // Adversarial: ensure the IRequestContext is exposed by reference
-        // rather than copied — properties read after construction must
+        // rather than copied - properties read after construction must
         // reflect the real instance (not a snapshot).
         var request = new TestRequestContext
         {
@@ -63,8 +63,8 @@ public sealed class HandlerContextTests
     [Fact]
     public void Logger_GenericTypeFlowsThroughToCategoryName()
     {
-        // The whole point of HandlerContext<T> is that the typed logger's
-        // category matches the handler's full type name — verify by running
+        // HandlerContext<T> exists so that the typed logger's
+        // category matches the handler's full type name - verify by running
         // a real log call through a TestLogger and inspecting the category
         // we record on construction (the TestLogger captures typeof(T)).
         var test_logger = new TestLogger<SampleHandlerType>();
@@ -80,7 +80,7 @@ public sealed class HandlerContextTests
         // End-to-end: write a log entry through the IHandlerContext.Logger
         // surface and assert the underlying typed TestLogger captured it.
         // Use Log() directly (not LogInformation extension) to avoid CA1848
-        // — this test asserts plumbing, not a real log shape.
+        // - this test asserts plumbing, not a real log shape.
         var test_logger = new TestLogger<SampleHandlerType>();
         var ctx = new HandlerContext<SampleHandlerType>(new TestRequestContext(), test_logger);
 
@@ -96,9 +96,9 @@ public sealed class HandlerContextTests
     }
 
     // ----------------------------------------------------------------------
-    // Adversarial: null arguments. The implementation does not currently
-    // throws ArgumentNullException — fail-fast at DI resolution, so a
-    // misconfigured container surfaces the missing registration at
+    // Adversarial: null arguments. The constructor throws
+    // ArgumentNullException - fail-fast at DI resolution, so a
+    // misconfigured container reports the missing registration at
     // construction (not far inside the handler pipeline where the trace
     // points away from the actual misconfiguration).
     // ----------------------------------------------------------------------

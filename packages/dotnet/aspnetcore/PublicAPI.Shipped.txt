@@ -57,6 +57,51 @@ DcsvIo.D2.AspNetCore.D2SecurityHeadersOptions.XFrameOptions.get -> string?
 DcsvIo.D2.AspNetCore.D2SecurityHeadersOptions.XFrameOptions.set -> void
 DcsvIo.D2.AspNetCore.D2SecurityHeadersOptions.XPermittedCrossDomainPolicies.get -> string?
 DcsvIo.D2.AspNetCore.D2SecurityHeadersOptions.XPermittedCrossDomainPolicies.set -> void
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryHeaderNames
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryPostures
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions.<Clone>$() -> DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions!
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions.D2ForgeryProtectionOptions() -> void
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions.D2ForgeryProtectionOptions(string? tokenCookieName = null, string? tokenHeaderName = null) -> void
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions.Equals(DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions? other) -> bool
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions.TokenCookieName.get -> string!
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions.TokenCookieName.set -> void
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions.TokenHeaderName.get -> string!
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions.TokenHeaderName.set -> void
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryRefusalReasons
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenCookie
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue.<Clone>$() -> DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue!
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue.D2ForgeryTokenIssue(string! Value, System.DateTimeOffset? ExpiresAt) -> void
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue.Deconstruct(out string! Value, out System.DateTimeOffset? ExpiresAt) -> void
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue.Equals(DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue? other) -> bool
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue.ExpiresAt.get -> System.DateTimeOffset?
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue.ExpiresAt.init -> void
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue.Value.get -> string!
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue.Value.init -> void
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenState
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenState.Checked.get -> bool
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenState.D2ForgeryTokenState() -> void
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenState.Verdict.get -> DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenVerdict
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenVerdict
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenVerdict.Absent = 2 -> DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenVerdict
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenVerdict.Bound = 1 -> DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenVerdict
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenVerdict.Forged = 4 -> DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenVerdict
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenVerdict.NoSession = 0 -> DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenVerdict
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenVerdict.Stale = 3 -> DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenVerdict
+DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenVerdict.Unverifiable = 5 -> DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenVerdict
+DcsvIo.D2.AspNetCore.Forgery.ForgeryProtectionApplicationBuilderExtensions
+DcsvIo.D2.AspNetCore.Forgery.ForgeryProtectionApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!)
+DcsvIo.D2.AspNetCore.Forgery.ForgeryProtectionApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseD2ForgeryProtection() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
+DcsvIo.D2.AspNetCore.Forgery.ForgeryProtectionServiceCollectionExtensions
+DcsvIo.D2.AspNetCore.Forgery.ForgeryProtectionServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+DcsvIo.D2.AspNetCore.Forgery.ForgeryProtectionServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddD2ForgeryProtection(Microsoft.Extensions.Configuration.IConfiguration! configuration, System.Action<DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+DcsvIo.D2.AspNetCore.Forgery.ForgeryProtectionTelemetry
+DcsvIo.D2.AspNetCore.Forgery.ID2ForgeryPostureDeclaration
+DcsvIo.D2.AspNetCore.Forgery.ID2ForgeryPostureDeclaration.Posture.get -> string!
+DcsvIo.D2.AspNetCore.Forgery.ID2ForgeryTokenVerifier
+DcsvIo.D2.AspNetCore.Forgery.ID2ForgeryTokenVerifier.IssueForResolvedSession(Microsoft.AspNetCore.Http.HttpContext! context) -> DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue?
+DcsvIo.D2.AspNetCore.Forgery.ID2ForgeryTokenVerifier.Verify(Microsoft.AspNetCore.Http.HttpContext! context, string? presentedToken) -> DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenVerdict
 DcsvIo.D2.AspNetCore.HealthEndpointsRouteBuilderExtensions
 DcsvIo.D2.AspNetCore.HealthEndpointsRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
 DcsvIo.D2.AspNetCore.HealthEndpointsRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapD2HealthEndpoints() -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
@@ -112,6 +157,35 @@ const DcsvIo.D2.AspNetCore.D2SecurityHeadersOptions.DEFAULT_STRICT_TRANSPORT_SEC
 const DcsvIo.D2.AspNetCore.D2SecurityHeadersOptions.DEFAULT_X_CONTENT_TYPE_OPTIONS = "nosniff" -> string!
 const DcsvIo.D2.AspNetCore.D2SecurityHeadersOptions.DEFAULT_X_FRAME_OPTIONS = "DENY" -> string!
 const DcsvIo.D2.AspNetCore.D2SecurityHeadersOptions.DEFAULT_X_PERMITTED_CROSS_DOMAIN_POLICIES = "none" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryHeaderNames.ORIGIN = "Origin" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryHeaderNames.SEC_FETCH_SITE = "Sec-Fetch-Site" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryHeaderNames.SEC_FETCH_SITE_CROSS_SITE = "cross-site" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryHeaderNames.SEC_FETCH_SITE_NONE = "none" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryHeaderNames.SEC_FETCH_SITE_SAME_ORIGIN = "same-origin" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryHeaderNames.SEC_FETCH_SITE_SAME_SITE = "same-site" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryPostures.EXEMPT = "exempt" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryPostures.METADATA = "metadata" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryPostures.REQUIRED = "required" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions.DEFAULT_TOKEN_COOKIE_NAME = "__Host-d2_csrf" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions.DEFAULT_TOKEN_HEADER_NAME = "X-CSRF-Token" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions.REQUIRED_COOKIE_NAME_PREFIX = "__Host-" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions.SECTION = "LIB_ASPNETCORE_FORGERY" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryRefusalReasons.HEADERS_ABSENT = "headers-absent" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryRefusalReasons.METADATA_CROSS_SITE = "metadata-cross-site" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryRefusalReasons.METADATA_UNKNOWN_VALUE = "metadata-unknown-value" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryRefusalReasons.ORIGIN_MISMATCH = "origin-mismatch" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryRefusalReasons.TOKEN_ABSENT = "token-absent" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryRefusalReasons.TOKEN_FORGED = "token-forged" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryRefusalReasons.TOKEN_STALE = "token-stale" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryRefusalReasons.TOKEN_UNVERIFIABLE = "token-unverifiable" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryRefusalReasons.VERIFIER_ABSENT = "verifier-absent" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenCookie.HTTP_ONLY = false -> bool
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenCookie.PATH = "/" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenCookie.SAME_SITE = Microsoft.AspNetCore.Http.SameSiteMode.Lax -> Microsoft.AspNetCore.Http.SameSiteMode
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenCookie.SECURE = true -> bool
+const DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue.REDACTION_PLACEHOLDER = "[redacted-forgery-token]" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.ForgeryProtectionTelemetry.METER_NAME = "DcsvIo.D2.AspNetCore.Forgery" -> string!
+const DcsvIo.D2.AspNetCore.Forgery.ForgeryProtectionTelemetry.TAG_OUTCOME = "outcome" -> string!
 override DcsvIo.D2.AspNetCore.D2CorsOptions.Equals(object? obj) -> bool
 override DcsvIo.D2.AspNetCore.D2CorsOptions.GetHashCode() -> int
 override DcsvIo.D2.AspNetCore.D2CorsOptions.ToString() -> string!
@@ -124,6 +198,12 @@ override DcsvIo.D2.AspNetCore.D2ProblemDetailsOptions.ToString() -> string!
 override DcsvIo.D2.AspNetCore.D2SecurityHeadersOptions.Equals(object? obj) -> bool
 override DcsvIo.D2.AspNetCore.D2SecurityHeadersOptions.GetHashCode() -> int
 override DcsvIo.D2.AspNetCore.D2SecurityHeadersOptions.ToString() -> string!
+override DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions.Equals(object? obj) -> bool
+override DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions.GetHashCode() -> int
+override DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions.ToString() -> string!
+override DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue.Equals(object? obj) -> bool
+override DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue.GetHashCode() -> int
+override DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue.ToString() -> string!
 static DcsvIo.D2.AspNetCore.CorsApplicationBuilderExtensions.UseD2Cors(this Microsoft.AspNetCore.Builder.IApplicationBuilder! app) -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
 static DcsvIo.D2.AspNetCore.CorsServiceCollectionExtensions.AddD2Cors(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration! configuration, System.Action<DcsvIo.D2.AspNetCore.D2CorsOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static DcsvIo.D2.AspNetCore.D2CorsOptions.operator !=(DcsvIo.D2.AspNetCore.D2CorsOptions? left, DcsvIo.D2.AspNetCore.D2CorsOptions? right) -> bool
@@ -134,6 +214,13 @@ static DcsvIo.D2.AspNetCore.D2ProblemDetailsOptions.operator !=(DcsvIo.D2.AspNet
 static DcsvIo.D2.AspNetCore.D2ProblemDetailsOptions.operator ==(DcsvIo.D2.AspNetCore.D2ProblemDetailsOptions? left, DcsvIo.D2.AspNetCore.D2ProblemDetailsOptions? right) -> bool
 static DcsvIo.D2.AspNetCore.D2SecurityHeadersOptions.operator !=(DcsvIo.D2.AspNetCore.D2SecurityHeadersOptions? left, DcsvIo.D2.AspNetCore.D2SecurityHeadersOptions? right) -> bool
 static DcsvIo.D2.AspNetCore.D2SecurityHeadersOptions.operator ==(DcsvIo.D2.AspNetCore.D2SecurityHeadersOptions? left, DcsvIo.D2.AspNetCore.D2SecurityHeadersOptions? right) -> bool
+static DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions.operator !=(DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions? left, DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions? right) -> bool
+static DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions.operator ==(DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions? left, DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions? right) -> bool
+static DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenCookie.Options(System.DateTimeOffset? expires) -> Microsoft.AspNetCore.Http.CookieOptions!
+static DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue.operator !=(DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue? left, DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue? right) -> bool
+static DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue.operator ==(DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue? left, DcsvIo.D2.AspNetCore.Forgery.D2ForgeryTokenIssue? right) -> bool
+static DcsvIo.D2.AspNetCore.Forgery.ForgeryProtectionApplicationBuilderExtensions.UseD2ForgeryProtection(this Microsoft.AspNetCore.Builder.IApplicationBuilder! app) -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
+static DcsvIo.D2.AspNetCore.Forgery.ForgeryProtectionServiceCollectionExtensions.AddD2ForgeryProtection(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration! configuration, System.Action<DcsvIo.D2.AspNetCore.Forgery.D2ForgeryProtectionOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static DcsvIo.D2.AspNetCore.HealthEndpointsRouteBuilderExtensions.MapD2HealthEndpoints(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
 static DcsvIo.D2.AspNetCore.HealthEndpointsServiceCollectionExtensions.AddD2HealthChecks(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static DcsvIo.D2.AspNetCore.HttpContextD2ResultExtensions.GetD2Result(this Microsoft.AspNetCore.Http.HttpContext! context) -> DcsvIo.D2.Result.D2Result?
@@ -146,3 +233,6 @@ static DcsvIo.D2.AspNetCore.ProblemDetailsServiceCollectionExtensions.AddD2Probl
 static DcsvIo.D2.AspNetCore.RunD2ServiceWebApplicationExtensions.RunD2ServiceAsync(this Microsoft.AspNetCore.Builder.WebApplication! app, string? serviceName = null) -> System.Threading.Tasks.Task!
 static DcsvIo.D2.AspNetCore.SecurityHeadersApplicationBuilderExtensions.UseD2SecurityHeaders(this Microsoft.AspNetCore.Builder.IApplicationBuilder! app, System.Action<DcsvIo.D2.AspNetCore.D2SecurityHeadersOptions!>? configure = null) -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
 static readonly DcsvIo.D2.AspNetCore.D2AspNetCoreConstants.DEFAULT_INFRASTRUCTURE_PATHS -> System.Collections.Generic.IReadOnlyList<string!>!
+static readonly DcsvIo.D2.AspNetCore.Forgery.ForgeryProtectionTelemetry.SR_Meter -> System.Diagnostics.Metrics.Meter!
+static readonly DcsvIo.D2.AspNetCore.Forgery.ForgeryProtectionTelemetry.SR_Refusals -> System.Diagnostics.Metrics.Counter<long>!
+static readonly DcsvIo.D2.AspNetCore.Forgery.ForgeryProtectionTelemetry.SR_TokenHalfSkipped -> System.Diagnostics.Metrics.Counter<long>!

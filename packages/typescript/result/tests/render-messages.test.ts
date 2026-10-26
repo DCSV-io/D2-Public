@@ -13,7 +13,7 @@ import {
 } from "../src/render-messages.js";
 import type { TKMessage } from "@dcsv-io/d2-i18n-abstractions";
 
-/** Synthetic translator — echoes "<key>(p1=v1,p2=v2)" so tests can assert on rendered output. */
+/** Synthetic translator - echoes "<key>(p1=v1,p2=v2)" so tests can assert on rendered output. */
 const echo: TranslateFn = (key, params) => {
   if (params === undefined) return key;
   const entries = Object.entries(params)

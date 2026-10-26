@@ -53,7 +53,7 @@ function layerWith(
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("RateLimiterLayer — construction", () => {
+describe("RateLimiterLayer - construction", () => {
   it("constructs with default options", () => {
     expect(() => new RateLimiterLayer(new TerminalLayer())).not.toThrow();
   });
@@ -63,7 +63,7 @@ describe("RateLimiterLayer — construction", () => {
     expect(RATE_LIMITER_DEFAULTS.acquisitionTimeoutMs).toBe(0);
   });
 
-  it("maxConcurrency = 0 → throws RangeError at construction (fail-loud)", () => {
+  it("maxConcurrency = 0 -> throws RangeError at construction (fail-loud)", () => {
     expect(
       () =>
         new RateLimiterLayer(new TerminalLayer(), {
@@ -73,7 +73,7 @@ describe("RateLimiterLayer — construction", () => {
     ).toThrow(RangeError);
   });
 
-  it("maxConcurrency < 0 → throws RangeError at construction", () => {
+  it("maxConcurrency < 0 -> throws RangeError at construction", () => {
     expect(
       () =>
         new RateLimiterLayer(new TerminalLayer(), {
@@ -83,7 +83,7 @@ describe("RateLimiterLayer — construction", () => {
     ).toThrow(RangeError);
   });
 
-  it("maxConcurrency = 1 → constructs successfully", () => {
+  it("maxConcurrency = 1 -> constructs successfully", () => {
     expect(
       () =>
         new RateLimiterLayer(new TerminalLayer(), {
@@ -94,13 +94,13 @@ describe("RateLimiterLayer — construction", () => {
   });
 });
 
-describe("RateLimiterLayer — admit up to maxConcurrency", () => {
-  it("single call under limit → admitted and result returned", async () => {
+describe("RateLimiterLayer - admit up to maxConcurrency", () => {
+  it("single call under limit -> admitted and result returned", async () => {
     const layer = layerWith(2);
     expect(await layer.execute("k", async () => 42)).toBe(42);
   });
 
-  it("maxConcurrency concurrent calls → all admitted", async () => {
+  it("maxConcurrency concurrent calls -> all admitted", async () => {
     const layer = layerWith(3);
     const d1 = deferred<number>();
     const d2 = deferred<number>();
@@ -110,7 +110,7 @@ describe("RateLimiterLayer — admit up to maxConcurrency", () => {
     const p2 = layer.execute("k", () => d2.promise);
     const p3 = layer.execute("k", () => d3.promise);
 
-    // All three are inside the gate (none rejected yet).
+    // All of them are inside the gate (none rejected yet).
     expect(layer.activeCount).toBe(3);
 
     d1.resolve(1);
@@ -121,7 +121,7 @@ describe("RateLimiterLayer — admit up to maxConcurrency", () => {
     expect(await p3).toBe(3);
   });
 
-  it("(maxConcurrency + 1)th call with acquisitionTimeout=0 → rejected immediately", async () => {
+  it("(maxConcurrency + 1)th call with acquisitionTimeout=0 -> rejected immediately", async () => {
     const layer = layerWith(2, 0);
     const d1 = deferred<number>();
     const d2 = deferred<number>();
@@ -139,7 +139,7 @@ describe("RateLimiterLayer — admit up to maxConcurrency", () => {
   });
 });
 
-describe("RateLimiterLayer — admit on release", () => {
+describe("RateLimiterLayer - admit on release", () => {
   it("(N+1)th caller admitted after one of the N slots releases", async () => {
     const layer = layerWith(2, 100);
     const d1 = deferred<number>();
@@ -148,10 +148,10 @@ describe("RateLimiterLayer — admit on release", () => {
     const p1 = layer.execute("k", () => d1.promise);
     const p2 = layer.execute("k", () => d2.promise);
 
-    // Start a third caller — it must wait.
+    // Start a third caller - it must wait.
     const p3 = layer.execute("k", async () => 3);
 
-    // Release one slot — p3 should be admitted.
+    // Release one slot - p3 should be admitted.
     d1.resolve(1);
     await p1;
 
@@ -161,7 +161,7 @@ describe("RateLimiterLayer — admit on release", () => {
     await p2;
   });
 
-  it("release restores the permit — subsequent call is admitted", async () => {
+  it("release restores the permit - subsequent call is admitted", async () => {
     const layer = layerWith(1);
     expect(await layer.execute("k", async () => "first")).toBe("first");
     // Slot must be released now.
@@ -170,7 +170,7 @@ describe("RateLimiterLayer — admit on release", () => {
   });
 });
 
-describe("RateLimiterLayer — reject when acquisition timeout elapses", () => {
+describe("RateLimiterLayer - reject when acquisition timeout elapses", () => {
   it("queued caller rejected after acquisitionTimeoutMs with no release", async () => {
     const layer = layerWith(1, 10);
     const d = deferred<number>();
@@ -189,8 +189,8 @@ describe("RateLimiterLayer — reject when acquisition timeout elapses", () => {
   });
 });
 
-describe("RateLimiterLayer — release on throw (no permit leak)", () => {
-  it("inner op throws → permit released → next call admitted", async () => {
+describe("RateLimiterLayer - release on throw (no permit leak)", () => {
+  it("inner op throws -> permit released -> next call admitted", async () => {
     const layer = layerWith(1);
 
     await expect(
@@ -206,7 +206,7 @@ describe("RateLimiterLayer — release on throw (no permit leak)", () => {
     expect(await layer.execute("k", async () => "recovered")).toBe("recovered");
   });
 
-  it("multiple inner throws → active count always returns to 0", async () => {
+  it("multiple inner throws -> active count always returns to 0", async () => {
     const layer = layerWith(3);
     await Promise.allSettled([
       layer.execute("k", async () => {
@@ -223,8 +223,8 @@ describe("RateLimiterLayer — release on throw (no permit leak)", () => {
   });
 });
 
-describe("RateLimiterLayer — concurrency stress: never exceeds maxConcurrency", () => {
-  it("100 concurrent callers, maxConcurrency = 5 → never more than 5 active", async () => {
+describe("RateLimiterLayer - concurrency stress: never exceeds maxConcurrency", () => {
+  it("100 concurrent callers, maxConcurrency = 5 -> never more than 5 active", async () => {
     const layer = layerWith(5, 10_000);
     let maxObserved = 0;
 
@@ -246,7 +246,7 @@ describe("RateLimiterLayer — concurrency stress: never exceeds maxConcurrency"
   });
 });
 
-describe("RateLimiterLayer — RateLimitRejectedError properties", () => {
+describe("RateLimiterLayer - RateLimitRejectedError properties", () => {
   it("is an instance of Error", () => {
     expect(new RateLimitRejectedError()).toBeInstanceOf(Error);
   });
@@ -266,7 +266,7 @@ describe("RateLimiterLayer — RateLimitRejectedError properties", () => {
   });
 });
 
-describe("RateLimiterLayer — key forwarded to inner", () => {
+describe("RateLimiterLayer - key forwarded to inner", () => {
   it("passes the key through to the inner layer", async () => {
     const seen: string[] = [];
     const recordKey: IResilientLayer = {
@@ -289,47 +289,47 @@ describe("RateLimiterLayer — key forwarded to inner", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Regression: splice-before-resolve race — timed-out waiter must not receive
+// Regression: splice-before-resolve race - a timed-out waiter must not receive
 // a phantom permit from a subsequent release().
 // ---------------------------------------------------------------------------
-// This test pins the correctness of the waiter-timeout-vs-release race path in
-// tryAcquire(): when the acquisition timer fires first (waiter rejected), a
-// subsequent release() must NOT hand the already-timed-out waiter a second
-// phantom permit (which would leak an active count and starve future callers).
+// This test covers the race in tryAcquire() between the waiter timeout and
+// release(): when the acquisition timer fires first (the waiter is rejected), a
+// subsequent release() must not hand the already-timed-out waiter a second
+// phantom permit, which would leak an active count and starve future callers.
 //
-// Mechanism: timer callback splices the waiter out of the queue BEFORE calling
-// resolve(false). release() dequeues via shift() — after the splice, the waiter
-// is no longer in the queue, so shift() returns undefined and active-- runs
-// instead of granting the phantom permit.
+// Mechanism: the timer callback splices the waiter out of the queue before it
+// calls resolve(false). release() dequeues via shift(); after the splice, the
+// waiter is no longer in the queue, so shift() returns undefined and active--
+// runs instead of granting the phantom permit.
 
-describe("RateLimiterLayer — splice-before-resolve race (regression)", () => {
+describe("RateLimiterLayer - splice-before-resolve race (regression)", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
   it("timed-out waiter does not receive a phantom permit from a subsequent release()", async () => {
-    // maxConcurrency=1: sole slot taken by holderDeferred.
+    // maxConcurrency=1: the sole slot is taken by `holder`.
     // acquisitionTimeoutMs=5: waiter times out after 5ms.
     const layer = layerWith(1, 5);
     const holder = deferred<number>();
 
-    // Fill the sole slot — stays in-flight while holderDeferred is unsettled.
+    // Fill the sole slot - stays in-flight while `holder` is unsettled.
     const holderCall = layer.execute("k", () => holder.promise);
     expect(layer.activeCount).toBe(1);
 
-    // Start a second caller — it queues as a waiter (slot is full).
+    // Start a second caller - it queues as a waiter (slot is full).
     // Attach .catch before advancing timers to avoid PromiseRejectionHandledWarning.
     const waiterCall = layer.execute("k", async () => 0);
     const waiterCaught = waiterCall.catch((e: unknown) => e);
 
     // Advance fake timers past the 5ms acquisition timeout.
-    // The waiter's timer fires: waiter spliced out, resolve(false) called →
+    // The waiter's timer fires: waiter spliced out, resolve(false) called ->
     // waiterCall rejects with RateLimitRejectedError.
     await vi.advanceTimersByTimeAsync(10);
     const waiterResult = await waiterCaught;
     expect(waiterResult).toBeInstanceOf(RateLimitRejectedError);
 
-    // Now release the holder. release() calls shift() — the waiter was already
-    // spliced out by the timer, so shift() returns undefined → active-- runs.
+    // Now release the holder. release() calls shift() - the waiter was already
+    // spliced out by the timer, so shift() returns undefined -> active-- runs.
     // active goes from 1 to 0: no phantom permit handed to the timed-out waiter.
     holder.resolve(1);
     await holderCall;

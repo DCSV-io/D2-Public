@@ -12,8 +12,8 @@ using global::RabbitMQ.Client.Exceptions;
 
 /// <summary>
 /// Decides whether an exception thrown during a publish attempt is
-/// transient (worth retrying) or terminal (caller-side bug, surface
-/// immediately). Used by the publisher's built-in retry loop.
+/// transient (worth retrying) or terminal (a caller-side bug, which
+/// surfaces immediately).
 /// </summary>
 internal static class TransientPublishClassifier
 {
@@ -21,34 +21,34 @@ internal static class TransientPublishClassifier
     /// <param name="ex">The exception.</param>
     public static bool IsTransient(Exception ex) => ex switch
     {
-        // Connection wasn't open at acquire time — almost certainly comes
-        // back within a retry cycle (or we surface ServiceUnavailable after
-        // attempts exhaust).
+        // The connection was not open at acquire time. It most likely reopens
+        // within a retry cycle; if it does not, the publish returns
+        // ServiceUnavailable after the attempts run out.
         BrokerUnavailableException => true,
 
-        // Channel-level: the channel went down mid-call. Pool will discard
-        // it; next attempt creates a fresh one.
+        // Channel-level: the channel went down mid-call. The pool discards
+        // it, and the next attempt creates a fresh one.
         AlreadyClosedException => true,
 
         // RabbitMQ.Client wraps various AMQP / network failures here.
         OperationInterruptedException => true,
 
-        // Couldn't reach the broker at all.
+        // The broker was not reachable at all.
         BrokerUnreachableException => true,
 
-        // Pool acquire timed out — usually because every channel is stuck
+        // Pool acquire timed out - usually because every channel is stuck
         // waiting on a confirm during broker degradation. Worth retrying.
         TimeoutException => true,
 
-        // M3: broker-NACK / confirm-failure during a publish attempt. We
-        // EXCLUDE return-publish failures (mandatory:true → unroutable):
-        // those are routing-config bugs, not transient broker conditions,
-        // and retrying won't help. Everything else (queue full, mirror
-        // sync in progress, broker restart in progress) IS worth a
-        // backoff retry.
-        PublishException pex when !pex.IsReturn => true,
+        // Broker NACK, confirm failure, or a basic.return for a mandatory
+        // publish that matched no queue: all of them retry. A return is
+        // transient in the case that loses messages here. When two hosts bind
+        // at once, each gets bind-ok before the exchange index is written, and
+        // that window closes on its own. A binding that is genuinely absent
+        // still fails once the attempts run out.
+        PublishException => true,
 
-        // Defer the rest to the standard classifier (HTTP / sockets / etc.).
+        // Defer everything else to the standard classifier (HTTP / sockets / etc.).
         _ => RetryHelper.IsTransientException(ex),
     };
 }

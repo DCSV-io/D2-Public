@@ -50,7 +50,8 @@ public sealed class TypeRedactionInfoTests
         var a = new TypeRedactionInfo("PersonalInformation", [], dict);
         var b = new TypeRedactionInfo("PersonalInformation", [], dict);
 
-        // Reference-equal collection inputs → record equality holds.
+        // Both records hold the same collection references, so record
+        // equality holds.
         a.Should().Be(b);
     }
 }

@@ -9,12 +9,14 @@ namespace DcsvIo.D2.Context.SourceGen;
 using System.Collections.Immutable;
 
 /// <summary>
-/// Parsed shape of an interface spec file (e.g. <c>IAuthContext.spec.json</c> /
-/// <c>IRequestContext.spec.json</c>). The codegen emits a read-only interface
-/// from this; the mutable concrete + envelope are emitted from the combined
-/// non-derived properties of all parsed specs in the same generator run.
+/// Parsed shape of an interface spec file (for example <c>IAuthContext.spec.json</c> or
+/// <c>IRequestContext.spec.json</c>). The generator emits a read-only interface
+/// from this spec. <see cref="MutableEmitter"/> emits the mutable concrete class from the
+/// combined properties of every spec parsed in the same generator run:
+/// non-derived properties become settable properties and derived ones become
+/// computed getters (MutableEmitter.cs).
 /// </summary>
-/// <param name="Name">The interface name (e.g. <c>"IAuthContext"</c>).</param>
+/// <param name="Name">The interface name (for example <c>"IAuthContext"</c>).</param>
 /// <param name="Namespace">The .NET namespace the interface lives in.</param>
 /// <param name="Description">Free-form description rendered as XML doc on the interface.</param>
 /// <param name="Extends">

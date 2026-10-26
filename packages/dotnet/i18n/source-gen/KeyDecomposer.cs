@@ -6,8 +6,6 @@
 
 namespace DcsvIo.D2.I18n.SourceGen;
 
-using System;
-using System.Collections.Generic;
 using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
@@ -17,17 +15,17 @@ using DcsvIo.D2.SourceGen.Polyfills;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Stateless and unit-testable in isolation. The Roslyn-host integration
-/// (<see cref="TKGenerator"/>) calls this on every key in en-US.json.
+/// This class is stateless and has no dependency on the Roslyn host.
+/// <see cref="TKGenerator"/> is the Roslyn-host integration.
 /// </para>
 /// <para>
 /// Decomposition rules:
 /// <list type="bullet">
 /// <item>Split the key by <c>'_'</c>.</item>
 /// <item>Require at least 3 non-empty segments.</item>
-/// <item>Segment 0 → domain (PascalCase first letter).</item>
-/// <item>Segment 1 → category (PascalCase first letter).</item>
-/// <item>Segments 2..N joined by <c>'_'</c> and uppercased → constant name.</item>
+/// <item>Segment 0 -> domain (PascalCase first letter).</item>
+/// <item>Segment 1 -> category (PascalCase first letter).</item>
+/// <item>Segments 2..N joined by <c>'_'</c> and uppercased -> constant name.</item>
 /// <item>The constant name MUST be a valid C# identifier (start with letter or
 /// underscore; rest letters/digits/underscores; ASCII only for predictability).</item>
 /// </list>
@@ -36,23 +34,6 @@ using DcsvIo.D2.SourceGen.Polyfills;
 internal static class KeyDecomposer
 {
     private const int _MIN_SEGMENTS = 3;
-
-    private static readonly HashSet<string> sr_csharpReservedWords = new(StringComparer.Ordinal)
-    {
-        // Defensive: uppercase identifiers shouldn't collide with lowercase
-        // C# reserved words, but cover the contextual / new-since-roslyn ones
-        // that are lowercase-only just in case the SrcGen ever emits non-uppercase.
-        "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char",
-        "checked", "class", "const", "continue", "decimal", "default", "delegate",
-        "do", "double", "else", "enum", "event", "explicit", "extern", "false",
-        "finally", "fixed", "float", "for", "foreach", "goto", "if", "implicit",
-        "in", "int", "interface", "internal", "is", "lock", "long", "namespace",
-        "new", "null", "object", "operator", "out", "override", "params", "private",
-        "protected", "public", "readonly", "ref", "return", "sbyte", "sealed",
-        "short", "sizeof", "stackalloc", "static", "string", "struct", "switch",
-        "this", "throw", "true", "try", "typeof", "uint", "ulong", "unchecked",
-        "unsafe", "ushort", "using", "virtual", "void", "volatile", "while",
-    };
 
     /// <summary>
     /// Decomposes a translation key into its TK path components.
@@ -91,7 +72,8 @@ internal static class KeyDecomposer
         var domain = ToPascalCase(segments[0]);
         var category = ToPascalCase(segments[1]);
 
-        // Validate domain + category as C# identifiers (start letter, ASCII only).
+        // Validate the domain and category as C# identifiers (start with a
+        // letter, ASCII only).
         if (!IsValidCSharpIdentifier(domain))
         {
             return DecomposedKey.Invalid(
@@ -106,24 +88,21 @@ internal static class KeyDecomposer
                 $"category segment '{segments[1]}' produces invalid C# identifier '{category}'");
         }
 
-        // Constant name is everything after the first two segments, uppercased.
+        // The constant name is everything after the domain and category
+        // segments, uppercased.
         const int constantStartIndex = _MIN_SEGMENTS - 1;
         var constantSegmentCount = segments.Length - constantStartIndex;
         var constantName = string
             .Join("_", segments, constantStartIndex, constantSegmentCount)
             .ToUpperInvariant();
+
+        // C# keywords are lower case and the constant name is upper case, so a valid
+        // identifier here is never a keyword.
         if (!IsValidCSharpIdentifier(constantName))
         {
             return DecomposedKey.Invalid(
                 key,
                 $"constant name '{constantName}' is not a valid C# identifier");
-        }
-
-        if (sr_csharpReservedWords.Contains(constantName.ToLowerInvariant()))
-        {
-            return DecomposedKey.Invalid(
-                key,
-                $"constant name '{constantName}' collides with a C# reserved word");
         }
 
         return DecomposedKey.Valid(key, domain, category, constantName);

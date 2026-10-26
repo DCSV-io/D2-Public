@@ -15,20 +15,20 @@ using DcsvIo.D2.SourceGen;
 using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
-/// Pure logic for emitting the messaging spec output: <c>MqMessages</c> +
-/// <c>MqSubscriptions</c> static classes (string constants) AND a runtime
-/// registry pair (<c>MqMessagesRegistry</c> + <c>MqSubscriptionsRegistry</c>)
-/// mapping each constant to its full descriptor record. Stateless, unit-
-/// testable in isolation.
+/// Pure logic for emitting the messaging spec output: the <c>MqMessages</c>
+/// and <c>MqSubscriptions</c> static classes (string constants) and a runtime
+/// registry pair (<c>MqMessagesRegistry</c> and <c>MqSubscriptionsRegistry</c>)
+/// that maps each constant to its full descriptor record. The emitter is
+/// stateless and has no dependency on the Roslyn host.
 /// </summary>
 internal static class MqEmitter
 {
-    private const string _TARGET_NAMESPACE = "DcsvIo.D2.Messaging";
     private const string _PATTERNS_FQN = "DcsvIo.D2.Messaging.QueuePattern";
     private const string _PLAINTEXT_LITERAL = "plaintext";
 
-    // Closed vocabulary — kept inline so unit tests can pin behavior without
-    // pulling enums from a downstream assembly.
+    // Closed vocabulary, declared inline instead of read from the enums of a
+    // downstream assembly, so its behavior can be pinned without a reference
+    // to that assembly.
     private static readonly HashSet<string> sr_exchangeTypes =
         new(StringComparer.Ordinal) { "fanout", "topic", "direct" };
 
@@ -40,21 +40,27 @@ internal static class MqEmitter
     };
 
     /// <summary>
-    /// Emits the full messaging spec output. Returns 1-2 generated files:
-    /// <c>MqMessages.g.cs</c> always; <c>MqSubscriptions.g.cs</c> when there
-    /// are any subscriptions (or always for symmetry).
+    /// Emits the full messaging spec output. Returns one result for the
+    /// messages file (<c>MqMessages.g.cs</c> for the public target) and one for
+    /// the subscriptions file (<c>MqSubscriptions.g.cs</c> for the public
+    /// target). Both files are always emitted, even when a spec has no
+    /// entries.
     /// </summary>
     /// <param name="messages">Parsed messages spec.</param>
     /// <param name="subscriptions">Parsed subscriptions spec.</param>
     /// <param name="encryptionDomains">EncryptionDomains constant values
-    /// (e.g. ["audit", "notifications", "courier"]) extracted from the
+    /// (e.g. ["payload-fixture-sealed"]) extracted from the
     /// compilation symbol. The emitter validates each message's encryption
     /// value against this set + the literal "plaintext".</param>
-    /// <returns>Two emit results plus aggregated diagnostics.</returns>
+    /// <param name="target">Which set of type names and which namespace the
+    /// output carries.</param>
+    /// <returns>The messages and subscriptions emit results, each with its
+    /// own diagnostics.</returns>
     public static (EmitResult Messages, EmitResult Subscriptions) Emit(
         MqMessagesSpec messages,
         MqSubscriptionsSpec subscriptions,
-        IReadOnlyList<string> encryptionDomains)
+        IReadOnlyList<string> encryptionDomains,
+        MqEmitTarget target)
     {
         var msgDiags = ImmutableArray.CreateBuilder<EmitDiagnostic>();
         var subDiags = ImmutableArray.CreateBuilder<EmitDiagnostic>();
@@ -62,12 +68,12 @@ internal static class MqEmitter
         var validMessages = ValidateMessages(messages, encryptionDomains, msgDiags);
         var validSubs = ValidateSubscriptions(subscriptions, validMessages, subDiags);
 
-        var messagesSrc = EmitMessagesClass(validMessages);
-        var subsSrc = EmitSubscriptionsClass(validSubs);
+        var messagesSrc = EmitMessagesClass(validMessages, target);
+        var subsSrc = EmitSubscriptionsClass(validSubs, target);
 
         return (
-            new EmitResult("MqMessages.g.cs", messagesSrc, msgDiags.ToImmutable()),
-            new EmitResult("MqSubscriptions.g.cs", subsSrc, subDiags.ToImmutable()));
+            new EmitResult(target.MessagesHint, messagesSrc, msgDiags.ToImmutable()),
+            new EmitResult(target.SubscriptionsHint, subsSrc, subDiags.ToImmutable()));
     }
 
     private static List<MqMessageEntry> ValidateMessages(
@@ -224,24 +230,29 @@ internal static class MqEmitter
         return true;
     }
 
-    private static string EmitMessagesClass(List<MqMessageEntry> messages)
+    private static string EmitMessagesClass(List<MqMessageEntry> messages, MqEmitTarget target)
     {
         var sb = new StringBuilder();
         EmitFileHeader(sb);
         sb.AppendLine();
         sb.AppendLine("using System.Collections.Generic;");
+
+        if (target.NeedsDescriptorUsing)
+            sb.AppendLine($"using {MqEmitTarget.DESCRIPTOR_NAMESPACE};");
+
         sb.AppendLine();
-        sb.AppendLine($"namespace {_TARGET_NAMESPACE};");
+        sb.AppendLine($"namespace {target.TargetNamespace};");
         sb.AppendLine();
 
-        // Constants class — what [MqPub(MqMessages.X)] consumers see.
+        // Constants class, referenced as [MqPub(<constants class>.X)].
         sb.AppendLine("/// <summary>");
         sb.AppendLine(
             "/// Codegen'd string constants for every message type registered in");
         sb.AppendLine("/// <c>contracts/mq-messages/mq-messages.spec.json</c>.");
-        sb.AppendLine("/// Apply via <c>[MqPub(MqMessages.X)]</c> on the message type.");
+        sb.AppendLine(
+            $"/// Apply via <c>[MqPub({target.MessagesClass}.X)]</c> on the message type.");
         sb.AppendLine("/// </summary>");
-        sb.AppendLine("public static class MqMessages");
+        sb.AppendLine($"public static class {target.MessagesClass}");
         sb.AppendLine("{");
         foreach (var m in messages)
         {
@@ -253,19 +264,20 @@ internal static class MqEmitter
         sb.AppendLine("}");
         sb.AppendLine();
 
-        // Registry — the runtime resolver looks up by constant.
+        // Registry that the runtime catalog looks up by constant.
         sb.AppendLine("/// <summary>");
         sb.AppendLine(
-            "/// Runtime registry mapping every <see cref=\"MqMessages\"/> constant to its");
+            $"/// Runtime registry mapping every <see cref=\"{target.MessagesClass}\"/> "
+            + "constant to its");
         sb.AppendLine(
             "/// fully-resolved <see cref=\"MqMessageDescriptor\"/> (exchange, encryption,");
         sb.AppendLine("/// default routing key, message type FQN). Looked up by");
-        sb.AppendLine("/// <c>MessageWireResolver</c> via the constant on a type's");
-        sb.AppendLine("/// <c>[MqPub]</c> attribute.");
+        sb.AppendLine("/// <c>MessagingCatalog.RequireDescriptor</c> via the constant on a");
+        sb.AppendLine("/// type's <c>[MqPub]</c> attribute.");
         sb.AppendLine("/// </summary>");
-        sb.AppendLine("public static class MqMessagesRegistry");
+        sb.AppendLine($"public static class {target.MessagesRegistryClass}");
         sb.AppendLine("{");
-        sb.AppendLine("    /// <summary>Lookup table: constant → descriptor.</summary>");
+        sb.AppendLine("    /// <summary>Lookup table: constant -> descriptor.</summary>");
         sb.AppendLine(
             "    public static readonly IReadOnlyDictionary<string, MqMessageDescriptor> "
             + "ByConstant = new Dictionary<string, MqMessageDescriptor>("
@@ -296,15 +308,20 @@ internal static class MqEmitter
         return sb.ToString().LfNormalized();
     }
 
-    private static string EmitSubscriptionsClass(List<MqSubscriptionEntry> subscriptions)
+    private static string EmitSubscriptionsClass(
+        List<MqSubscriptionEntry> subscriptions, MqEmitTarget target)
     {
         var sb = new StringBuilder();
         EmitFileHeader(sb);
         sb.AppendLine();
         sb.AppendLine("using System;");
         sb.AppendLine("using System.Collections.Generic;");
+
+        if (target.NeedsDescriptorUsing)
+            sb.AppendLine($"using {MqEmitTarget.DESCRIPTOR_NAMESPACE};");
+
         sb.AppendLine();
-        sb.AppendLine($"namespace {_TARGET_NAMESPACE};");
+        sb.AppendLine($"namespace {target.TargetNamespace};");
         sb.AppendLine();
 
         sb.AppendLine("/// <summary>");
@@ -313,9 +330,9 @@ internal static class MqEmitter
         sb.AppendLine(
             "/// <c>contracts/mq-subscriptions/mq-subscriptions.spec.json</c>.");
         sb.AppendLine(
-            "/// Apply via <c>[MqSub(MqSubscriptions.X)]</c> on a handler class.");
+            $"/// Apply via <c>[MqSub({target.SubscriptionsClass}.X)]</c> on a handler class.");
         sb.AppendLine("/// </summary>");
-        sb.AppendLine("public static class MqSubscriptions");
+        sb.AppendLine($"public static class {target.SubscriptionsClass}");
         sb.AppendLine("{");
         foreach (var s in subscriptions)
         {
@@ -331,15 +348,16 @@ internal static class MqEmitter
 
         sb.AppendLine("/// <summary>");
         sb.AppendLine(
-            "/// Runtime registry mapping every <see cref=\"MqSubscriptions\"/> constant");
+            $"/// Runtime registry mapping every <see cref=\"{target.SubscriptionsClass}\"/> "
+            + "constant");
         sb.AppendLine(
             "/// to its fully-resolved <see cref=\"MqSubscriptionDescriptor\"/>.");
         sb.AppendLine(
             "/// Used by the assembly-scan registration to build per-subscriber DI entries.");
         sb.AppendLine("/// </summary>");
-        sb.AppendLine("public static class MqSubscriptionsRegistry");
+        sb.AppendLine($"public static class {target.SubscriptionsRegistryClass}");
         sb.AppendLine("{");
-        sb.AppendLine("    /// <summary>Lookup table: constant → descriptor.</summary>");
+        sb.AppendLine("    /// <summary>Lookup table: constant -> descriptor.</summary>");
         sb.AppendLine(
             "    public static readonly IReadOnlyDictionary<string, MqSubscriptionDescriptor> "
             + "ByConstant = new Dictionary<string, MqSubscriptionDescriptor>("

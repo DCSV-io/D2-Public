@@ -16,7 +16,7 @@ using DcsvIo.D2.Result;
 /// <remarks>
 /// <para>
 /// This interface (<c>DcsvIo.D2.Validation.Abstractions.IPostalCodeValidator</c>) is the
-/// <em>country-aware</em> member of the validator family — it accepts an explicit
+/// <em>country-aware</em> member of the validator family - it accepts an explicit
 /// <see cref="CountryCode"/> to apply country-specific format rules and normalization.
 /// <b>Fail-closed contract:</b> a null or unrecognized country code causes validation to
 /// fail immediately; there is no permissive global-range fallback.
@@ -25,9 +25,9 @@ using DcsvIo.D2.Result;
 /// A deliberately distinct twin exists at
 /// <c>DcsvIo.D2.Location.IPostalCodeValidator</c>: that interface is the
 /// <em>country-blind</em> boundary validator used by value-object construction
-/// (global-range regex only, no country-specific rules). The two interfaces share
-/// a short name but live in separate namespaces by design. Consumers that require
-/// both may alias one with a <c>using</c> directive.
+/// (global-range regex only, no country-specific rules). This interface and that
+/// one share a short name but live in separate namespaces by design. Code that
+/// needs both can alias one with a <c>using</c> directive.
 /// </para>
 /// </remarks>
 public interface IPostalCodeValidator

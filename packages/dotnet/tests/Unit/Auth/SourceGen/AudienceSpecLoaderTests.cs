@@ -11,10 +11,10 @@ using DcsvIo.D2.Auth.Audiences.SourceGen;
 using Xunit;
 
 /// <summary>
-/// Adversarial coverage for <see cref="AudienceSpecLoader.Load"/>. The loader is
-/// responsible only for JSON-shape validation (D2AUD001 — malformed spec); all
-/// semantic validation (name shape, URL parsing, duplicates) is delegated to
-/// <see cref="AudiencesEmitter"/> and tested separately.
+/// Adversarial coverage for <see cref="AudienceSpecLoader.Load"/>. The loader
+/// validates only the JSON shape (D2AUD001 - malformed spec).
+/// <see cref="AudiencesEmitter"/> performs all semantic validation (name shape,
+/// URL parsing, duplicates), and its tests cover that separately.
 /// </summary>
 public sealed class AudienceSpecLoaderTests
 {
@@ -29,9 +29,9 @@ public sealed class AudienceSpecLoaderTests
         {
           "audiences": [
             {
-              "name": "Files",
-              "url": "https://files.internal",
-              "description": "D2 Files service."
+              "name": "Catalog",
+              "url": "https://catalog.example.internal",
+              "description": "Catalog service."
             }
           ]
         }
@@ -43,16 +43,16 @@ public sealed class AudienceSpecLoaderTests
         result.Spec.Should().NotBeNull();
         result.Spec!.Audiences.Should().HaveCount(1);
         var audience = result.Spec.Audiences[0];
-        audience.Name.Should().Be("Files");
-        audience.Url.Should().Be("https://files.internal");
-        audience.Description.Should().Be("D2 Files service.");
+        audience.Name.Should().Be("Catalog");
+        audience.Url.Should().Be("https://catalog.example.internal");
+        audience.Description.Should().Be("Catalog service.");
     }
 
     [Fact]
     public void Load_DescriptionAbsent_ReturnsSpecWithNullDescription()
     {
         const string json = """
-        { "audiences": [ { "name": "Files", "url": "https://files.internal" } ] }
+        { "audiences": [ { "name": "Catalog", "url": "https://catalog.example.internal" } ] }
         """;
 
         var result = AudienceSpecLoader.Load("audiences.spec.json", json);
@@ -82,7 +82,7 @@ public sealed class AudienceSpecLoaderTests
     }
 
     // ----------------------------------------------------------------------
-    // D2AUD001 — malformed JSON / schema-violating
+    // D2AUD001 - malformed JSON / schema-violating
     // ----------------------------------------------------------------------
 
     [Theory]
@@ -148,7 +148,7 @@ public sealed class AudienceSpecLoaderTests
     [Fact]
     public void Load_AudienceMissingUrl_EmitsD2AUD001()
     {
-        const string json = """{ "audiences": [ { "name": "Files" } ] }""";
+        const string json = """{ "audiences": [ { "name": "Catalog" } ] }""";
 
         var result = AudienceSpecLoader.Load("audiences.spec.json", json);
 
@@ -172,7 +172,7 @@ public sealed class AudienceSpecLoaderTests
     public void Load_AudienceUrlIsNumber_EmitsD2AUD001()
     {
         const string json = """
-        { "audiences": [ { "name": "Files", "url": 42 } ] }
+        { "audiences": [ { "name": "Catalog", "url": 42 } ] }
         """;
 
         var result = AudienceSpecLoader.Load("audiences.spec.json", json);
@@ -181,12 +181,12 @@ public sealed class AudienceSpecLoaderTests
     }
 
     // ----------------------------------------------------------------------
-    // Adversarial — extra unknown properties
+    // Adversarial - extra unknown properties
     //
-    // The schema's additionalProperties is `false` (editor-time gate), but the
-    // loader's responsibility ends at JSON-shape validation. Unknown properties
-    // on an audience entry are silently ignored at load-time — schema-level gate
-    // catches them in editors / IDEs / a JSON-Schema CLI.
+    // The schema sets additionalProperties to `false` (an editor-time gate), but
+    // the loader only validates JSON shape. The loader silently ignores unknown
+    // properties on an audience entry at load time; the schema gate catches
+    // them in editors, IDEs and a JSON-Schema CLI.
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -195,7 +195,7 @@ public sealed class AudienceSpecLoaderTests
         const string json = """
         {
           "audiences": [
-            { "name": "Files", "url": "https://files.internal",
+            { "name": "Catalog", "url": "https://catalog.example.internal",
               "extraField": "ignored", "anotherExtra": 42 }
           ]
         }
@@ -205,16 +205,17 @@ public sealed class AudienceSpecLoaderTests
 
         result.Diagnostic.Should().BeNull();
         result.Spec!.Audiences.Should().HaveCount(1);
-        result.Spec.Audiences[0].Name.Should().Be("Files");
+        result.Spec.Audiences[0].Name.Should().Be("Catalog");
     }
 
     [Fact]
     public void Load_DescriptionWrongType_IsTreatedAsAbsent()
     {
-        // description is optional; a non-string value is silently treated as
-        // absent rather than rejected — keeps loader lenient on optional fields.
+        // description is optional; the loader silently treats a non-string
+        // value as absent and does not reject it, which keeps the loader
+        // lenient on optional fields.
         const string json = """
-        { "audiences": [ { "name": "Files", "url": "https://x.internal", "description": 42 } ] }
+        { "audiences": [ { "name": "Catalog", "url": "https://x.internal", "description": 42 } ] }
         """;
 
         var result = AudienceSpecLoader.Load("audiences.spec.json", json);
@@ -224,13 +225,14 @@ public sealed class AudienceSpecLoaderTests
     }
 
     // ----------------------------------------------------------------------
-    // Boundary — empty audiences array
+    // Boundary - empty audiences array
     // ----------------------------------------------------------------------
 
     [Fact]
     public void Load_EmptyAudiencesArray_ReturnsEmptySpec()
     {
-        // Schema's minItems: 1 is editor-time only; loader accepts empty array.
+        // The schema's minItems: 1 applies at editor time only; the loader
+        // accepts an empty array.
         const string json = """{ "audiences": [] }""";
 
         var result = AudienceSpecLoader.Load("audiences.spec.json", json);

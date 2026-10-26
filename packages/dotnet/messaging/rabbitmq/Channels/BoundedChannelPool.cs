@@ -8,7 +8,9 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Channels;
 
 using System.Collections.Concurrent;
 using DcsvIo.D2.Messaging.RabbitMq.Connection;
+using DcsvIo.D2.Messaging.RabbitMq.Telemetry;
 using global::RabbitMQ.Client;
+using global::RabbitMQ.Client.Events;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -27,11 +29,12 @@ internal sealed class BoundedChannelPool : IChannelPool
     private readonly ILogger<BoundedChannelPool> r_logger;
     private readonly SemaphoreSlim r_slots;
 
-    // Each entry pairs the channel with the tick at which it was returned to
-    // the pool. AcquireAsync uses the timestamp to evict entries idle longer
-    // than ChannelPoolOptions.IdleTtl (M8). ConcurrentBag keeps insertion
-    // and removal lock-free; LIFO-ish ordering is fine — we re-check each
-    // candidate on every acquire.
+    // Each entry pairs the channel with the tick count at which it was
+    // returned to the pool. AcquireAsync compares that count with
+    // ChannelPoolOptions.IdleTtl to evict idle entries. ConcurrentBag makes
+    // insertion and removal lock-free. Its removal order is not strictly
+    // last-in first-out, which does not matter because every acquire
+    // re-checks each candidate.
     private readonly ConcurrentBag<IdleEntry> r_idle = [];
     private bool _disposed;
 
@@ -67,7 +70,7 @@ internal sealed class BoundedChannelPool : IChannelPool
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        // Wait for a slot — bounds total channel count to PublishPoolSize.
+        // Wait for a slot - bounds total channel count to PublishPoolSize.
         var acquired = await r_slots.WaitAsync(r_options.AcquireTimeout, ct);
         if (!acquired)
         {
@@ -75,12 +78,12 @@ internal sealed class BoundedChannelPool : IChannelPool
                 $"Timed out after {r_options.AcquireTimeout.TotalSeconds:F1}s "
                 + $"waiting for a publisher channel "
                 + $"(pool size: {r_options.PublishPoolSize}). "
-                + "Pool is likely backed up — check publisher confirm latency.");
+                + "Pool is likely backed up - check publisher confirm latency.");
         }
 
         // Try to reuse an idle channel; otherwise create one. Either way, the
-        // slot semaphore guarantees we never exceed PublishPoolSize live
-        // channels.
+        // slot semaphore keeps the number of live channels at or below
+        // PublishPoolSize.
         IChannel? channel = null;
         var idleTtlTicks = (long)r_options.IdleTtl.TotalMilliseconds;
         var nowTicks = Environment.TickCount64;
@@ -90,14 +93,14 @@ internal sealed class BoundedChannelPool : IChannelPool
             {
                 if (!candidate.Channel.IsOpen)
                 {
-                    // Faulted channel — discard.
+                    // Faulted channel - discard.
                     await DisposeChannelSafelyAsync(candidate.Channel);
                     continue;
                 }
 
-                // M8: idle-TTL eviction. Stale-pool channels accumulate
-                // broker-side state (heartbeats, confirm-tracking
-                // bookkeeping) that's cheaper to recreate than to keep
+                // Idle-TTL eviction. A channel that stays in the pool
+                // accumulates broker-side state (heartbeats, confirm-tracking
+                // bookkeeping), which costs less to recreate than to keep
                 // alive across hours of idleness.
                 if (nowTicks - candidate.ReturnedAtTicks > idleTtlTicks)
                 {
@@ -114,8 +117,8 @@ internal sealed class BoundedChannelPool : IChannelPool
         }
         catch
         {
-            // If we failed to obtain a channel, release the slot so we don't
-            // leak capacity.
+            // The acquire failed, so release the slot to keep the pool's
+            // capacity.
             r_slots.Release();
             throw;
         }
@@ -140,14 +143,38 @@ internal sealed class BoundedChannelPool : IChannelPool
         var opts = new CreateChannelOptions(
             publisherConfirmationsEnabled: r_options.PublisherConfirmsEnabled,
             publisherConfirmationTrackingEnabled: r_options.PublisherConfirmsEnabled);
-        return await r_connection.CreateChannelAsync(opts, ct);
+        var channel = await r_connection.CreateChannelAsync(opts, ct);
+
+        // With confirmation tracking on, a return fails the publish itself and
+        // the publisher handles it. With tracking off there is no sequence
+        // number to match the return to and no publish left to fail, so the
+        // pool counts and logs the return.
+        if (!r_options.PublisherConfirmsEnabled)
+            channel.BasicReturnAsync += OnBasicReturnAsync;
+
+        return channel;
+    }
+
+    private Task OnBasicReturnAsync(object sender, BasicReturnEventArgs ea)
+    {
+        // Runs in the RabbitMQ client's event callback. It writes no shared
+        // state: a counter add and a log call, both safe to call from any
+        // thread.
+        MessagingTelemetry.SR_PublishReturnsCounter.Add(1);
+        MessagingLog.PublishReturnedUntracked(
+            r_logger,
+            ea.Exchange,
+            ea.RoutingKey,
+            ea.ReplyCode,
+            ea.ReplyText);
+        return Task.CompletedTask;
     }
 
     private async ValueTask ReturnToPoolAsync(IChannel channel)
     {
         try
         {
-            // Drop closed channels — pool stays clean of zombies.
+            // Dispose closed channels instead of pooling them.
             if (_disposed || !channel.IsOpen)
             {
                 await DisposeChannelSafelyAsync(channel);
@@ -164,6 +191,9 @@ internal sealed class BoundedChannelPool : IChannelPool
 
     private async ValueTask DisposeChannelSafelyAsync(IChannel channel)
     {
+        if (!r_options.PublisherConfirmsEnabled)
+            channel.BasicReturnAsync -= OnBasicReturnAsync;
+
         try
         {
             if (channel.IsOpen) await channel.CloseAsync();

@@ -30,7 +30,7 @@ trim_trailing_whitespace = false
 indent_style = space
 indent_size = 4
 
-# Promote all analyzer diagnostics to warning (visible in build + Rider)
+# Promote all analyzer diagnostics to warning (visible in the build and in Rider)
 dotnet_analyzer_diagnostic.severity = warning
 
 # SA1633: File should have header
@@ -45,23 +45,22 @@ dotnet_diagnostic.SA1101.severity = none
 # Prefer simple names
 dotnet_diagnostic.IDE0001.severity = warning
 
-# IDE0065: project convention is `namespace` FIRST, then `using` directives.
-# For file-scoped namespaces, "inside_namespace" means usings come AFTER the
-# namespace declaration. This enforces the project convention that namespace
-# comes first, then using directives — never the other way around.
+# IDE0065: the project convention places `namespace` first, then the `using`
+# directives. For a file-scoped namespace, "inside_namespace" puts the usings
+# after the namespace declaration.
 csharp_using_directive_placement = inside_namespace
 
-# IDE0036 / R# "Modifiers Order": match StyleCop SA1206 ordering — access keyword
-# first, then `static`, then `new` and other modifiers. R# defaults to
-# `public new static`, which conflicts with SA1206's `public static new`.
-# Setting this explicitly makes both Roslyn IDE0036 and JetBrains R# agree
-# with StyleCop and stops the "inconsistent modifier order" warning.
+# IDE0036 / ReSharper "Modifiers Order": match the StyleCop SA1206 order - access
+# keyword first, then `static`, then `new` and the other modifiers. ReSharper
+# defaults to `public new static`, which conflicts with SA1206's `public static new`.
+# Setting the order explicitly makes both Roslyn IDE0036 and JetBrains ReSharper
+# follow StyleCop and removes the "inconsistent modifier order" warning.
 csharp_preferred_modifier_order = public, private, protected, internal, file, static, extern, new, virtual, abstract, sealed, override, readonly, unsafe, required, volatile, async:warning
 
 # SA1310: Field names should not contain underscore
 dotnet_diagnostic.SA1310.severity = none
 
-# SA1300: Field names should not begin with underscore
+# SA1309: Field names should not begin with underscore
 dotnet_diagnostic.SA1309.severity = none
 
 # SA1124: Do not use regions
@@ -71,29 +70,30 @@ dotnet_diagnostic.SA1124.severity = none
 dotnet_diagnostic.SA1601.severity = none
 
 # SA1615: Element return value should be documented
-# Suppressed — for factory methods, fluent-API methods, and obvious-projection
-# extensions, the return value is fully implied by the method name + <summary>.
-# Forcing a `<returns>A new D2Result instance.</returns>` after every factory
-# is noise without semantic value. CS1591 still enforces that every public
-# member has a `<summary>`, which is where the actual documentation lives.
+# Suppressed. For factory methods, fluent-API methods and obvious-projection
+# extensions, the method name and the <summary> imply the return value.
+# A `<returns>A new D2Result instance.</returns>` after every factory adds no
+# information. CS1591 still requires a `<summary>` on every public member, and
+# the summary is where the documentation is written.
 dotnet_diagnostic.SA1615.severity = none
 
 # SA1619: Generic, partial element should include type parameter documentation
-# Suppressed — when a generic type is split across multiple partial files
-# (e.g. D2Result.Generic.cs / D2Result.Generic.Factories.cs / D2Result.Generic.Monadic.cs),
-# the type-parameter <typeparam> doc lives on the main partial declaration only.
-# Repeating it on every partial is noise; SA1601 is already suppressed for the
-# same reason at the type-summary level.
+# Suppressed. When a generic type is split across several partial files
+# (for example D2Result.Generic.cs / D2Result.Generic.Factories.cs / D2Result.Generic.Monadic.cs),
+# the <typeparam> documentation sits on the main partial declaration only.
+# Repeating it on every partial adds no information; SA1601 is suppressed for
+# the same reason at the type-summary level.
 dotnet_diagnostic.SA1619.severity = none
 
 # SA1308: Variable names should not be prefixed (project uses s_ for mutable static, sr_ for static readonly)
 dotnet_diagnostic.SA1308.severity = none
 
-# SA1311: Some silly naming crap
+# SA1311: Static readonly fields should begin with upper-case letter
+# (the project prefixes them with sr_)
 dotnet_diagnostic.SA1311.severity = none
 
 # CA2007: Do not directly await a Task without ConfigureAwait
-# Not needed in ASP.NET Core (no sync context)
+# ASP.NET Core has no synchronization context, so ConfigureAwait is not needed
 dotnet_diagnostic.CA2007.severity = none
 
 # SA1118: Parameter should not span multiple lines
@@ -109,17 +109,17 @@ dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.CA1861.severity = none
 
 # SA1503: Braces should not be omitted (single-statement if/else/for/while/etc.)
-# Project convention: brace-less form is allowed when the line BEFORE the
-# statement is blank or a comment, AND the line AFTER is blank. This visually
-# isolates the guarded statement and reduces boilerplate around early-return
-# guards. Where the surrounding context is dense (no blank/comment buffer),
-# braces remain to preserve scan readability.
+# Project convention: the brace-less form is allowed when the line before the
+# statement is blank or a comment and the line after it is blank. That visually
+# isolates the guarded statement and removes boilerplate around early-return
+# guards. Where the surrounding code is dense (no blank or comment line beside
+# the statement), braces stay so the code remains easy to scan.
 dotnet_diagnostic.SA1503.severity = none
 
-# SA1642: Constructor summary should begin with rigid "Initializes a new
-# instance of the X class." text. Project preference: ctor docs read as
-# natural prose explaining intent / behavior / parameter semantics rather
-# than echoing the boilerplate template.
+# SA1642: Constructor summary should begin with the fixed text "Initializes a new
+# instance of the X class." Project preference: constructor docs are prose that
+# explains intent, behavior and parameter meaning instead of repeating that
+# template.
 dotnet_diagnostic.SA1642.severity = none
 
 # CA1000: Do not declare static members on generic types (D2Result<T> factory pattern)
@@ -131,17 +131,27 @@ dotnet_diagnostic.CA1859.severity = none
 # CA1708: Identifiers should differ by more than case (TLC namespace convention)
 dotnet_diagnostic.CA1708.severity = none
 
+# CA1710: Identifiers should have correct suffix (an exception type ends in
+# Exception, a collection type in Collection, and so on). The rule defaults to
+# the public surface; it was turned on for a defect in a private nested
+# exception, so it reads every accessibility (api_surface = all).
+dotnet_diagnostic.CA1710.severity = warning
+dotnet_code_quality.CA1710.api_surface = all
+
 # CA1873: Avoid unnecessary logging calls (false positives on Moq test predicates)
 dotnet_diagnostic.CA1873.severity = none
 
-# CA1068: CancellationToken should be last parameter (BaseHandler design — ct is passed far more often than options)
+# CA1068: CancellationToken should be last parameter (BaseHandler design - ct is passed far more often than options)
 dotnet_diagnostic.CA1068.severity = none
 
-# ReSharper: Partial type with single part (intentional — scaffolding for future extension per convention)
-# Intentional full-qualified targets in file-scoped `using H = …IHandler` aliases
-# (§5.29). Without this, clean CI checkouts flood "Qualifier is redundant" at WARNING.
+# ReSharper: Redundant name qualifier. The file-scoped `using H = ...IHandler`
+# aliases use fully qualified targets on purpose. Without this setting, clean CI
+# checkouts report "Qualifier is redundant" at WARNING in large numbers.
 resharper_redundant_name_qualifier_highlighting = none
 
+# ReSharper: Partial type with single part. A type with a single partial part is
+# intentional: the convention declares such a type partial so that more parts can
+# be added later.
 resharper_partial_type_with_single_part_highlighting = none
 
 # ReSharper: Positional property never accessed (consumed via serialization, proto mapping, destructuring)
@@ -150,17 +160,16 @@ resharper_not_accessed_positional_property_global_highlighting = none
 # ReSharper: Auto-property accessor never used (set by JSON deserialization or config binding)
 resharper_unused_auto_property_accessor_global_highlighting = none
 
-# ReSharper: Inconsistent modifiers declaration order — R# enforces its own modifier
-# ordering ("public new static") that conflicts with StyleCop SA1206
-# ("public static new"). Project chose to follow StyleCop; SA1206 is enforced at
-# build time via TreatWarningsAsErrors, so R#'s parallel check is redundant.
+# ReSharper: Inconsistent modifiers declaration order. ReSharper enforces its own
+# modifier order ("public new static"), which conflicts with StyleCop SA1206
+# ("public static new"). The project follows StyleCop. SA1206 is enforced at
+# build time through TreatWarningsAsErrors, so the ReSharper check duplicates it.
 resharper_arrange_modifiers_order_highlighting = none
 
-# ReSharper: Inconsistent naming — R#'s default rule wants PascalCase for non-private
-# constants ("NotFound"), but project convention is UPPER_CASE
-# ("NOT_FOUND"). The dotnet_naming_rule above ("public_constants_must_be_upper_case")
-# enforces UPPER_CASE at the Roslyn analyzer level (build-enforced); suppress R#'s
-# parallel inspection that uses its own naming rules.
+# ReSharper: Inconsistent naming. ReSharper's default rule expects PascalCase for
+# non-private constants ("NotFound"), but the project convention is UPPER_CASE
+# ("NOT_FOUND"). This setting turns off ReSharper's inspection that applies its
+# own naming rules.
 resharper_inconsistent_naming_highlighting = none
 
 # Global usings are top-level by C# language rule (they cannot be nested inside a
@@ -171,17 +180,18 @@ csharp_using_directive_placement = outside_namespace
 dotnet_diagnostic.SA1200.severity = none
 
 # EF Core migrations are reproducible generated output (`dotnet ef migrations add`),
-# never hand-authored — exclude them from style analysis. Real compile errors still surface.
+# never hand-authored - exclude them from style analysis. Real compile errors still surface.
 [**/Migrations/*.cs]
 generated_code = true
 
-# Protoc / Grpc.Tools output (the message C# generated from the shared .proto
-# files into obj/<Config>/<TFM>/) carries oblivious — un-annotated — reference
-# types because Google.Protobuf does not emit nullable annotations. That trips
-# the PublicApiAnalyzers RS0041 ("uses some oblivious reference types") rule on
-# the generated public proto types, which are part of the published surface but
-# whose nullability we do not author. Disable RS0041 for the generated proto
-# C# only; the API-recording rules (RS0016 new-API / RS0017 removed-API) still
-# run, so the proto-derived public surface is still tracked in PublicAPI.*.txt.
+# Protoc / Grpc.Tools output (the C# generated from the shared .proto files into
+# obj/<Config>/<TFM>/) has oblivious (un-annotated) reference types, because
+# Google.Protobuf does not emit nullable annotations. That triggers the
+# PublicApiAnalyzers rule RS0041 ("uses some oblivious reference types") on the
+# generated public proto types. Those types are part of the published surface,
+# but the project does not author their nullability. This section disables RS0041
+# for the generated proto C# only; the API-recording rules RS0016 (new API) and
+# RS0017 (removed API) still run, so PublicAPI.*.txt still tracks the
+# proto-derived public surface.
 [**/obj/**/*.cs]
 dotnet_diagnostic.RS0041.severity = none

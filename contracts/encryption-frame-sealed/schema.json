@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "D2 sealed encryption-frame binary-layout spec",
-  "description": "Schema for contracts/encryption-frame-sealed/encryption-frame-sealed.spec.json — the source-of-truth catalog of binary-layout field positions + byte lengths for the D2 on-wire SEALED encryption frame ([version:1][recipient_kid_len:1][recipient_kid:UTF-8 N][eph_pub_len:2 BE][eph_pub:SPKI M][nonce:12][ct+tag:K]). Sibling of contracts/encryption-frame/ (the symmetric version-1 frame) — the two specs never share a file so the version-1 artifacts stay byte-identical when this catalog evolves. DcsvIo.D2.EncryptionFrame.SourceGen reads it to emit SealedFrameLayout constants into DcsvIo.D2.Encryption; the TypeScript codegen pipeline reads it to emit encryption-frame-sealed.g.ts into @dcsv-io/d2-encryption-abstractions. The .NET codec and any TS reader reference the same catalog so the binary layout cannot drift across language boundaries.",
+  "description": "Schema for contracts/encryption-frame-sealed/encryption-frame-sealed.spec.json - the source-of-truth catalog of binary-layout field positions + byte lengths for the D2 on-wire SEALED encryption frame ([version:1][recipient_kid_len:1][recipient_kid:UTF-8 N][eph_pub_len:2 BE][eph_pub:SPKI M][nonce:12][ct+tag:K]). Sibling of contracts/encryption-frame/ (the symmetric version-1 frame) - the two specs never share a file so the version-1 artifacts stay byte-identical when this catalog evolves. DcsvIo.D2.EncryptionFrame.SourceGen reads it to emit SealedFrameLayout constants into DcsvIo.D2.Encryption; the TypeScript codegen pipeline reads it to emit encryption-frame-sealed.g.ts into @dcsv-io/d2-encryption-abstractions. The .NET codec and any TS reader reference the same catalog so the binary layout cannot drift across language boundaries.",
   "type": "object",
   "required": ["version", "fields", "constraints"],
   "additionalProperties": false,
@@ -28,7 +28,7 @@
         "constName": {
           "type": "string",
           "pattern": "^[A-Z][A-Z0-9_]*$",
-          "description": "Public C# / TS constant identifier — UPPER_SNAKE_CASE. Must be unique across the spec."
+          "description": "Public C# / TS constant identifier - UPPER_SNAKE_CASE. Must be unique across the spec."
         },
         "offset": {
           "type": "integer",
@@ -56,7 +56,7 @@
         },
         "deprecated": {
           "type": "boolean",
-          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive — the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
+          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive - the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
         },
         "deprecatedReason": {
           "type": "string",
@@ -70,7 +70,7 @@
         "sunset": {
           "type": "string",
           "format": "date",
-          "description": "ISO-8601 date for the future RFC 8594 Sunset response header. Edge-runtime-deferred: carried on the contract now, consumed by the Edge response middleware when it exists. Inert until then."
+          "description": "ISO-8601 date for the RFC 8594 Sunset response header. A host whose response pipeline emits that header reads the date from here; a host that does not ignores it."
         }
       }
     },
@@ -92,7 +92,7 @@
         "ephPubLengthPrefixSize": {
           "type": "integer",
           "const": 2,
-          "description": "Byte width of the big-endian unsigned-integer length prefix in front of the ephemeral public key. Fixed at 2 (uint16) — a P-256 SubjectPublicKeyInfo is ~91 bytes, beyond a 1-byte prefix."
+          "description": "Byte width of the big-endian unsigned-integer length prefix in front of the ephemeral public key. Fixed at 2 (uint16) - a P-256 SubjectPublicKeyInfo is ~91 bytes, beyond a 1-byte prefix."
         },
         "maxEphPubLength": {
           "type": "integer",

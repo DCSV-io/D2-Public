@@ -18,23 +18,24 @@ namespace DcsvIo.D2.Resilience.RateLimiting;
 /// </para>
 /// <para>
 /// <b>Client-side, in-process limiter only.</b> This configures the
-/// <see cref="Pipeline.RateLimiterLayer{TKey, TValue}"/>'s concurrency gate —
+/// <see cref="Pipeline.RateLimiterLayer{TKey, TValue}"/>'s concurrency gate -
 /// a caller-side admission-control mechanism that limits the number of concurrent
-/// outbound calls. It is NOT the server-side, distributed per-tier rate-limit
+/// outbound calls. It is not the server-side, distributed per-tier rate-limit
 /// middleware (which uses <c>IDistributedCache</c> counters).
 /// </para>
 /// </remarks>
 public sealed record RateLimiterOptions
 {
     /// <summary>
-    /// Default maximum concurrent in-flight operations. Internal — consumers either
-    /// pass an override or accept the default via the parameterless ctor.
+    /// Default maximum concurrent in-flight operations. Internal; the
+    /// parameterless ctor applies it, and the parameterized ctor accepts an
+    /// override.
     /// </summary>
     internal const int DEFAULT_MAX_CONCURRENCY = 100;
 
     /// <summary>
     /// Default acquisition timeout: zero means reject-fast (don't wait for a permit).
-    /// Internal — see <see cref="DEFAULT_MAX_CONCURRENCY"/>.
+    /// Internal - see <see cref="DEFAULT_MAX_CONCURRENCY"/>.
     /// </summary>
     internal static readonly TimeSpan SR_DefaultAcquisitionTimeout = TimeSpan.Zero;
 
@@ -55,8 +56,8 @@ public sealed record RateLimiterOptions
     /// <paramref name="acquisitionTimeout"/>) are preserved as-is.
     /// </summary>
     /// <param name="maxConcurrency">
-    /// Override for <see cref="MaxConcurrency"/>; <c>null</c> = default 100. Must be ≥ 1
-    /// when supplied — a zero-permit limiter (one that admits nobody) is a misconfiguration;
+    /// Override for <see cref="MaxConcurrency"/>; <c>null</c> = default 100. Must be >= 1
+    /// when supplied - a zero-permit limiter (one that admits nobody) is a misconfiguration;
     /// use a circuit breaker or a feature flag to fully close a path instead.
     /// </param>
     /// <param name="acquisitionTimeout">
@@ -75,7 +76,7 @@ public sealed record RateLimiterOptions
                 nameof(maxConcurrency),
                 max,
                 "MaxConcurrency must be at least 1. A zero-permit limiter admits nobody and is a " +
-                "misconfiguration — use a circuit breaker or a feature flag to fully close a path.");
+                "misconfiguration - use a circuit breaker or a feature flag to fully close a path.");
         }
 
         MaxConcurrency = max;
@@ -83,7 +84,7 @@ public sealed record RateLimiterOptions
     }
 
     /// <summary>
-    /// Gets the maximum number of concurrent in-flight operations. Must be ≥ 1. Default: 100.
+    /// Gets the maximum number of concurrent in-flight operations. Must be >= 1. Default: 100.
     /// </summary>
     public int MaxConcurrency { get; init; }
 

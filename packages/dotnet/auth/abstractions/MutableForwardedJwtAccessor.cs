@@ -7,24 +7,22 @@
 namespace DcsvIo.D2.Auth.Abstractions;
 
 /// <summary>
-/// Default <see cref="IForwardedJwtAccessor"/> implementation — a plain
-/// per-request mutable cell. Registered request-scoped by both
-/// <c>AddD2AuthHttp()</c> and <c>AddD2AuthGrpc()</c>, so each request gets a
+/// Default <see cref="IForwardedJwtAccessor"/> implementation - a plain
+/// per-request mutable cell. Registered request-scoped, every request gets a
 /// fresh instance with no captured token and no cross-request state.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Holds no static state — request isolation is provided entirely by the
+/// Holds no static state - request isolation is provided entirely by the
 /// scoped DI lifetime. The capture path routes through
 /// <see cref="ForwardedJwt.Create"/>, so a blank input is validated away and
 /// never stored.
 /// </para>
 /// <para>
-/// Public because the DI registration sites live in the separate transport
-/// assemblies (<c>DcsvIo.D2.Auth.Http</c> / <c>DcsvIo.D2.Auth.Grpc</c>) — the
-/// same cross-assembly-registration reason the analogous request-context
-/// concrete impl is public. Consumers depend on <see cref="IForwardedJwtAccessor"/>,
-/// not this type.
+/// Public because the DI registration sites live in separate transport
+/// assemblies - the same cross-assembly-registration reason the analogous
+/// request-context concrete implementation is public. Depend on
+/// <see cref="IForwardedJwtAccessor"/>, not on this type.
 /// </para>
 /// </remarks>
 public sealed class MutableForwardedJwtAccessor : IForwardedJwtAccessor
@@ -46,4 +44,7 @@ public sealed class MutableForwardedJwtAccessor : IForwardedJwtAccessor
         if (result.Success)
             _current = result.Data;
     }
+
+    /// <inheritdoc/>
+    public void Clear() => _current = null;
 }

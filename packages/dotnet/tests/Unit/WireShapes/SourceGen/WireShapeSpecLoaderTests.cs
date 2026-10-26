@@ -172,10 +172,10 @@ public sealed class WireShapeSpecLoaderTests
     [Fact]
     public void Load_EmptyPropertiesArray_ParsesWithNoEntries()
     {
-        // Note: SCHEMA-level "minItems: 1" lives in schema.json (IDE-time
-        // validation). The loader itself accepts an empty array — emitter
+        // Schema-level "minItems: 1" lives in schema.json (IDE-time
+        // validation). The loader itself accepts an empty array - emitter
         // surface stays silent because there are no entries to validate.
-        // This documents the loader's contract: no schema-level enforcement.
+        // This pins the loader's contract: no schema-level enforcement.
         const string json = """{ "properties": [] }""";
 
         var result = WireShapeSpecLoader.Load("any.spec.json", json);

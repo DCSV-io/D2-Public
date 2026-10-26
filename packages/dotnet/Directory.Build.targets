@@ -3,38 +3,37 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Project>
   <!--
-    Universal AFTER-build targets applied to every .csproj under
-    public/packages/dotnet/. Properties from Directory.Build.props apply
-    to this scope automatically; this file adds post-Compile splitter wiring.
+    Targets that run after the build, applied to every .csproj under
+    packages/dotnet/. Properties from Directory.Build.props apply to this
+    scope automatically; this file adds the post-Compile splitter wiring.
 
-    SplitLoggerMessageGcs — see private/tools/loggermessage-splitter/README.md
-    for the full rationale. Background in brief: the
-    Microsoft.Extensions.Logging.Generators emitter writes ALL [LoggerMessage]
+    SplitLoggerMessageGcs - background: the
+    Microsoft.Extensions.Logging.Generators emitter writes all [LoggerMessage]
     partial-class blocks into a single LoggerMessage.g.cs file with
-    non-deterministic cross-class ordering. Because EmitCompilerGeneratedFiles
-    is true on consumers and the Generated/ tree is tracked in git for
-    PR-review visibility, every clean build produces a different blob hash —
-    constant churn for zero source change.
+    non-deterministic cross-class ordering. EmitCompilerGeneratedFiles is true
+    on consuming projects and git tracks the Generated/ tree so that pull
+    request reviewers can see it, so every clean build produces a different
+    blob hash: a change on every clean build with no change in source.
 
     The splitter tool parses the combined file into one deterministic file
     per (namespace, class) tuple. The combined file is gitignored; only the
-    per-class split files are committed. Result: PR reviewers still see codegen
-    diffs (when there's a real source change), but no spurious churn.
+    per-class split files are committed. Pull request reviewers still see
+    codegen diffs when the source really changes, and see no other churn.
 
-    Dual-lane: the splitter lives under private/tools/. When
-    $(D2PrivateToolsRoot)loggermessage-splitter exists (combined monorepo),
-    the targets build+run it. When it does NOT exist (export / public-only
-    checkout without the private tree), the targets no-op — committed
-    LoggerMessage.g.cs split files remain the SoT for export builds.
+    Dual-lane: the splitter lives outside the public tree. When
+    $(D2PrivateToolsRoot)loggermessage-splitter exists (a combined checkout),
+    the targets build and run it. When it does not exist (an export or
+    public-only checkout), the targets do nothing, and the committed
+    LoggerMessage.g.cs split files remain the source of truth for export builds.
   -->
 
   <PropertyGroup>
     <!--
       Single canonical path to the LoggerMessage.g.cs file the framework's
       source generator emits. The CompilerGeneratedFilesOutputPath = "Generated"
-      convention is set per-consumer in their .csproj; if a consumer chooses a
-      different output path, the splitter target's Exists() guard simply won't
-      fire (and we'd need to revisit this).
+      convention is set in the .csproj of each consuming project; if a consuming
+      project sets a different output path, the Exists() guard of the splitter
+      target does not fire, and this path convention must be revisited.
     -->
     <_LoggerMessageGcsPath>$(MSBuildProjectDirectory)\Generated\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs</_LoggerMessageGcsPath>
     <_LoggerMessageSplitterCsproj>$(D2PrivateToolsRoot)loggermessage-splitter\D2.Tools.LoggerMessageSplitter.csproj</_LoggerMessageSplitterCsproj>
@@ -45,27 +44,27 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   <!--
     Build the splitter tool on demand. The <MSBuild> task caches by
     (Project, Targets, Properties) within a single MSBuild session so
-    multiple consumer csprojs share a single build of the tool.
+    multiple consuming csprojs share a single build of the tool.
 
-    We skip splitter rebuild when the DLL is already up-to-date relative to
-    its sources — this is a fast no-op via incremental MSBuild.
+    When the DLL is already up to date relative to its sources, the rebuild
+    is a fast no-op through incremental MSBuild.
 
-    Condition requires BOTH the combined LoggerMessage.g.cs and the private
-    tool project (export clones without private/tools no-op cleanly).
+    The condition requires both the combined LoggerMessage.g.cs and the tool
+    project, so export clones without the tool do nothing and report no error.
   -->
   <Target Name="EnsureLoggerMessageSplitterBuilt"
           Condition="Exists('$(_LoggerMessageGcsPath)') And '$(_LoggerMessageSplitterAvailable)' == 'true'">
     <!--
       Restore THEN build the splitter csproj, as two separate <MSBuild> calls.
-      Restore must be its own invocation — combining it with other targets in
+      Restore must be its own invocation - combining it with other targets in
       one call is unsupported (the build targets evaluate against the
       pre-restore import state). Restoring here makes a clean checkout
       self-sufficient: CI and fresh clones have no prior project.assets.json for
-      the tool, and the solution restore does not cover it (the tool lives in
-      private/tools/, outside D2.slnx). Both invocations are incremental fast
-      no-ops once current, and the <MSBuild> task caches by
-      (Project, Targets, Properties) within a session so the consumer csprojs
-      share one restore + one build of the tool.
+      the tool, and the solution restore does not cover it (the tool lives
+      outside D2.slnx). Both invocations are incremental fast no-ops once
+      current, and the <MSBuild> task caches by (Project, Targets, Properties)
+      within a session so the consuming csprojs share one restore and one build
+      of the tool.
     -->
     <MSBuild Projects="$(_LoggerMessageSplitterCsproj)"
              Targets="Restore"
@@ -77,18 +76,19 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!--
     AfterTargets="Compile" runs once the source generator has emitted
-    LoggerMessage.g.cs to disk. The splitter parses + writes per-class split
-    files + cleans up stale per-class files in the same directory. Inside the
-    same compile, generated files would already be loaded into the in-memory
-    compilation (via <Compile Remove="Generated\**\*.cs" /> in each consumer);
-    the splitter's job is purely to make the on-disk artifacts deterministic
-    for git.
+    LoggerMessage.g.cs to disk. The splitter parses the file, writes the
+    per-class split files, and cleans up stale per-class files in the same
+    directory. Inside the same compile, the in-memory compilation already holds
+    the generated files (through <Compile Remove="Generated\**\*.cs" /> in each
+    consuming project); the splitter only makes the on-disk artifacts
+    deterministic for git.
 
-    Exec output streams to MSBuild's normal stdout/stderr so failures are
-    visible in `dotnet build` output.
+    Exec output streams to the normal stdout and stderr of MSBuild, so failures
+    are visible in `dotnet build` output.
 
-    Export / public-only: when the private splitter project is absent, this
-    target does not run (DependsOnTargets still safe — Ensure is also gated).
+    Export / public-only: when the splitter project is absent, this target does
+    not run (DependsOnTargets is still safe, because Ensure has the same
+    condition).
   -->
   <Target Name="SplitLoggerMessageGcs"
           AfterTargets="Compile"
@@ -97,4 +97,36 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <Exec Command="dotnet exec &quot;$(_LoggerMessageSplitterDll)&quot; --input &quot;$(_LoggerMessageGcsPath)&quot; --output-dir &quot;$([System.IO.Path]::GetDirectoryName('$(_LoggerMessageGcsPath)'))&quot;"
           ConsoleToMSBuild="true" />
   </Target>
+
+  <!--
+    D2PinProjectReferenceVersions - exact pins between packages. NuGet's pack
+    writes a ProjectReference dependency as version="x.y.z", which NuGet reads
+    as the minimum version x.y.z. This target runs after NuGet's
+    _GetProjectReferenceVersions and rewrites the ProjectVersion metadata of
+    each _ProjectReferencesWithVersions item to [x.y.z]. Pack passes that
+    metadata to VersionRange.Parse, so the nuspec pins the exact version of the
+    referenced project. Both names are private to NuGet, so with an SDK that
+    renames them this target does nothing and pack writes minimum versions
+    again.
+  -->
+  <Target Name="D2PinProjectReferenceVersions"
+          AfterTargets="_GetProjectReferenceVersions">
+    <ItemGroup>
+      <_ProjectReferencesWithVersions Update="@(_ProjectReferencesWithVersions)"
+                                      Condition="'%(_ProjectReferencesWithVersions.ProjectVersion)' != '' And !$([System.String]::Copy('%(_ProjectReferencesWithVersions.ProjectVersion)').StartsWith('['))"
+                                      ProjectVersion="[%(_ProjectReferencesWithVersions.ProjectVersion)]" />
+    </ItemGroup>
+  </Target>
+
+  <!--
+    SDK package validation, per package. When the property
+    D2PackageValidationProps is set, the file it names is imported here; the
+    file holds one PropertyGroup per validated package, conditioned on
+    $(PackageId), that sets EnablePackageValidation and
+    PackageValidationBaselineVersion. Restore downloads the baseline, so a pack
+    that does not build needs the property set on the build before it as well.
+    A missing file fails the build.
+  -->
+  <Import Project="$(D2PackageValidationProps)"
+          Condition="'$(D2PackageValidationProps)' != ''" />
 </Project>

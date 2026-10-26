@@ -10,21 +10,22 @@ using DcsvIo.D2.Contacts.EntityFrameworkCore;
 using DcsvIo.D2.Contacts.ValueObjects;
 using DcsvIo.D2.DataGovernance.Abstractions;
 using DcsvIo.D2.DataGovernance.EntityFrameworkCore;
+using DcsvIo.D2.EntityFrameworkCore.Postgres;
 using DcsvIo.D2.Location.EntityFrameworkCore;
 using DcsvIo.D2.Location.ValueObjects;
-using DcsvIo.D2.Time.EfCore;
 using Microsoft.EntityFrameworkCore;
 
 /// <summary>
 /// Synthetic host <c>DbContext</c> for Contacts VO end-to-end integration tests.
-/// Holds four host entities covering all live-DB scenarios:
+/// Holds the host entities for the live-DB scenarios:
 /// <list type="bullet">
-///   <item><see cref="ContactHost"/> — round-trip + erasure (Tier B).</item>
-///   <item><see cref="GeoOnlyHost"/> — Coordinates-only Tier-A coercion proof.</item>
-///   <item><see cref="Invoice"/> — partial anonymization + same-VO-twice (Tier A).</item>
-///   <item><see cref="UniqueContactRow"/> — unique-template per-row resolution.</item>
+///   <item><see cref="ContactHost"/> - round-trip + erasure (Tier B).</item>
+///   <item><see cref="GeoOnlyHost"/> - Coordinates-only Tier-A coercion proof.</item>
+///   <item><see cref="Invoice"/> - partial anonymization + same-VO-twice (Tier A).</item>
+///   <item><see cref="UniqueContactRow"/> - unique-template per-row resolution.</item>
 /// </list>
-/// Schema created via <c>EnsureCreatedAsync</c> — no migrations.
+/// Schema created via <c>EnsureSchemaAsync</c> (IF NOT EXISTS DDL) - no
+/// migrations.
 /// </summary>
 internal sealed class ContactsHostDbContext : DbContext
 {
@@ -162,7 +163,7 @@ internal sealed class ContactsHostDbContext : DbContext
     /// <summary>
     /// Host aggregate for round-trip, erasure, and Tier-B Coordinates coercion tests.
     /// Carries all multi-field VOs (Personal, NameAffixes, Demographics, Professional,
-    /// StreetAddress, AdminLocation, Coordinates) plus nullable Email (Template → Tier B)
+    /// StreetAddress, AdminLocation, Coordinates) plus nullable Email (Template -> Tier B)
     /// and Phone (Constant).
     /// <c>AccountTier</c> is a non-PII field that must be retained after erasure.
     /// <para>
@@ -180,13 +181,13 @@ internal sealed class ContactsHostDbContext : DbContext
         public Personal Name { get; set; } = null!;
 
         /// <summary>
-        /// Gets or sets the name affixes. Required complex type (no required scalar —
+        /// Gets or sets the name affixes. Required complex type (no required scalar -
         /// EF rejects an optional all-nullable complex prop at model build).
         /// </summary>
         public NameAffixes Affixes { get; set; } = null!;
 
         /// <summary>
-        /// Gets or sets the demographics. Required complex type (no required scalar —
+        /// Gets or sets the demographics. Required complex type (no required scalar -
         /// EF rejects an optional all-nullable complex prop at model build).
         /// </summary>
         public Demographics Demo { get; set; } = null!;
@@ -204,7 +205,7 @@ internal sealed class ContactsHostDbContext : DbContext
         public PhoneNumber? Phone { get; set; }
 
         /// <summary>
-        /// Gets or sets the account tier. Non-PII (undecorated) — must be retained on
+        /// Gets or sets the account tier. Non-PII (undecorated) - must be retained on
         /// erasure to prove non-PII retention.
         /// </summary>
         public string AccountTier { get; set; } = string.Empty;
@@ -215,7 +216,7 @@ internal sealed class ContactsHostDbContext : DbContext
 
     /// <summary>
     /// Minimal host for the Tier-A Coordinates-coercion proof.
-    /// No Email/Phone template → classified Tier A → engine uses
+    /// No Email/Phone template -> classified Tier A -> engine uses
     /// <c>ExecuteUpdateAsync</c>, which exercises the numeric-Constant coercion design.
     /// </summary>
     internal sealed class GeoOnlyHost : IUserOwned, IAnonymizationTrackable
@@ -234,7 +235,7 @@ internal sealed class ContactsHostDbContext : DbContext
     /// Invoice host for partial-anonymization tests. Maps <c>AdminLocation</c> twice
     /// (billing + shipping) and a <c>Personal</c> customer name. Financial scalars
     /// are non-PII and must be retained after erasure.
-    /// No Template rules → Tier A (<c>ExecuteUpdateAsync</c>).
+    /// No Template rules -> Tier A (<c>ExecuteUpdateAsync</c>).
     /// </summary>
     internal sealed class Invoice : IUserOwned, IAnonymizationTrackable
     {
@@ -248,13 +249,13 @@ internal sealed class ContactsHostDbContext : DbContext
 
         public Personal CustomerName { get; set; } = null!;
 
-        /// <summary>Gets or sets the invoice total. Non-PII — retained on erasure.</summary>
+        /// <summary>Gets or sets the invoice total. Non-PII - retained on erasure.</summary>
         public decimal TotalAmount { get; set; }
 
-        /// <summary>Gets or sets the tax amount. Non-PII — retained on erasure.</summary>
+        /// <summary>Gets or sets the tax amount. Non-PII - retained on erasure.</summary>
         public decimal TaxAmount { get; set; }
 
-        /// <summary>Gets or sets the invoice number. Non-PII — retained on erasure.</summary>
+        /// <summary>Gets or sets the invoice number. Non-PII - retained on erasure.</summary>
         public string InvoiceNumber { get; set; } = string.Empty;
 
         /// <inheritdoc />

@@ -27,7 +27,7 @@ public sealed class PropagatedContextExtensionsTests
             RiskScore = 95,
             WhoIsHashId = "whois-h",
 
-            // NOT in the propagated subset — must NOT appear in the projection.
+            // NOT in the propagated subset - must NOT appear in the projection.
             UserId = Guid.NewGuid(),
             OrgId = Guid.NewGuid(),
             ClientIp = "1.2.3.4",
@@ -72,7 +72,7 @@ public sealed class PropagatedContextExtensionsTests
     [Fact]
     public void ApplyPropagatedContext_DoesNotTouchIdentityFields()
     {
-        // Pre-seed identity fields and verify Apply doesn't clobber them —
+        // Pre-seed identity fields and verify Apply doesn't clobber them -
         // identity comes from JWT validation each hop, never from the wire.
         var preExistingUserId = Guid.NewGuid();
         var preExistingOrgId = Guid.NewGuid();
@@ -101,8 +101,8 @@ public sealed class PropagatedContextExtensionsTests
     }
 
     // ------------------------------------------------------------------
-    // Full propagated-field set — ToPropagatedContext + ApplyPropagatedContext
-    // Verifies the original 6 plus the 8 additional fields are projected and applied.
+    // Full propagated-field set - ToPropagatedContext + ApplyPropagatedContext
+    // Verifies the original fields plus the additional fields are projected and applied.
     // ------------------------------------------------------------------
 
     [Fact]
@@ -112,7 +112,7 @@ public sealed class PropagatedContextExtensionsTests
         var startedAt = new DateTimeOffset(2026, 5, 27, 10, 0, 0, TimeSpan.Zero);
         var ctx = new MutableRequestContext
         {
-            // Original 6
+            // Original fields
             RequestId = "req-proj",
             RequestPath = "/proj",
             CurrentFingerprint = "fp-current-proj",
@@ -120,7 +120,7 @@ public sealed class PropagatedContextExtensionsTests
             RiskScore = 77,
             WhoIsHashId = "whois-proj",
 
-            // 8 additional fields
+            // Additional fields
             RequestStartedAt = startedAt,
             IdempotencyKey = "idem-proj-key",
             EdgeNodeId = "edge-node-proj",
@@ -152,12 +152,12 @@ public sealed class PropagatedContextExtensionsTests
     [Fact]
     public void ApplyPropagatedContext_PopulatesAllPropagatedFields()
     {
-        // All 8 additional propagated fields must land on MutableRequestContext
+        // Every additional propagated field must be set on MutableRequestContext
         // when ApplyPropagatedContext is called.
         var startedAt = new DateTimeOffset(2026, 5, 27, 11, 0, 0, TimeSpan.Zero);
         var propagated = new PropagatedContext
         {
-            // Original 6
+            // Original fields
             RequestId = "r5",
             RequestPath = "/p5",
             CurrentFingerprint = "fc5",
@@ -165,7 +165,7 @@ public sealed class PropagatedContextExtensionsTests
             RiskScore = 55,
             WhoIsHashId = "w5",
 
-            // 8 additional fields
+            // Additional fields
             RequestStartedAt = startedAt,
             IdempotencyKey = "idem-apply-key",
             EdgeNodeId = "edge-apply-node",
@@ -196,7 +196,7 @@ public sealed class PropagatedContextExtensionsTests
     }
 
     // ------------------------------------------------------------------
-    // CallPath (the propagated list-of-records field) — null-when-empty
+    // CallPath (the propagated list-of-records field) - null-when-empty
     // projection + replace-on-apply semantics.
     // ------------------------------------------------------------------
 

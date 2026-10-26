@@ -4,9 +4,14 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Handler.Repo
 
-EF-flavored `BaseRepoHandler<TSelf, TInput, TOutput>` — sits on top of `BaseHandler` from `DcsvIo.D2.Handler`. Overrides `HandleAsync` to convert any database exception captured during `ExecuteAsync` into a typed `D2Result` failure (concurrency conflict, unique violation, deadlock, connection failure, etc.) so callers can branch on what actually went wrong instead of getting a generic 500.
+`BaseRepoHandler<TSelf, TInput, TOutput>` is the Entity Framework Core subclass of `BaseHandler` from
+`DcsvIo.D2.Handler`. Its `HandleAsync` override converts any database exception captured during `ExecuteAsync` into a
+typed `D2Result` failure (concurrency conflict, unique violation, deadlock, connection failure, etc.), so callers can
+branch on what went wrong instead of receiving a generic 500.
 
-Provider-agnostic by design: catches the BCL-typed `DbUpdateConcurrencyException` directly and routes everything else through an injected `IDbExceptionClassifier`. Provider-specific knowledge lives in sibling packages (e.g. `DcsvIo.D2.Handler.Repo.Postgres`).
+The handler is provider-agnostic: it catches the BCL-typed `DbUpdateConcurrencyException` directly and routes every
+other exception through an injected `IDbExceptionClassifier`. Provider-specific code is in sibling packages, such as
+`DcsvIo.D2.Handler.Repo.Postgres`.
 
 ## Install
 
@@ -18,12 +23,20 @@ dotnet add package DcsvIo.D2.Handler.Repo
 
 ## Public API
 
-| Type | Role |
-| ---- | ---- |
-| `BaseRepoHandler<TSelf, TInput, TOutput>` | Abstract subclass of `BaseHandler`. Constructor takes an injected `IDbExceptionClassifier`. Override `HandleAsync` calls `RunCorePipelineAsync` then dispatches the captured exception through the classifier to a typed `D2Result` factory. |
-| `MapDbException` (virtual) | Per-handler refinement hook — attach domain-specific `TKMessage` + `InputError`; return `null` for default factory. |
+| Type                                                           | Role                                                                                                                                                                                                                                                  |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BaseRepoHandler<TSelf, TInput, TOutput>` (`TInput : notnull`) | Abstract subclass of `BaseHandler`. The constructor takes an injected `IDbExceptionClassifier`. The `HandleAsync` override calls `RunCorePipelineAsync`, then dispatches the captured exception through the classifier to a typed `D2Result` factory. |
+| `MapDbException` (virtual)                                     | Per-handler refinement hook: attach a domain-specific `TKMessage` and `InputError`, or return `null` to use the default factory.                                                                                                                      |
 
-Zero provider deps in this package (no Npgsql). Refs `DcsvIo.D2.Handler`, `DcsvIo.D2.Handler.Abstractions`, `DcsvIo.D2.Handler.Repo.Abstractions`, `DcsvIo.D2.Result`, and `Microsoft.EntityFrameworkCore`.
+This package has no provider dependencies (no Npgsql). It references `DcsvIo.D2.Handler`,
+`DcsvIo.D2.Handler.Abstractions`, `DcsvIo.D2.Handler.Repo.Abstractions`, `DcsvIo.D2.Result`, and
+`Microsoft.EntityFrameworkCore`.
+
+## Host requirement
+
+`HandleAsync` awaits without `ConfigureAwait(false)`, so the package is supported only in a host with no
+`SynchronizationContext` - which is what an ASP.NET Core host runs under. In a host that installs one, every
+continuation marshals back to it and a caller that blocks on `HandleAsync` deadlocks.
 
 ---
 
@@ -31,7 +44,7 @@ Zero provider deps in this package (no Npgsql). Refs `DcsvIo.D2.Handler`, `DcsvI
 
 | Captured exception                                              | Classified as                                  | Default `D2Result`                                             |
 | --------------------------------------------------------------- | ---------------------------------------------- | -------------------------------------------------------------- |
-| `DbUpdateConcurrencyException`                                  | `ConcurrencyConflict` (BCL — handled directly) | `D2Result.ConcurrencyConflict()`                               |
+| `DbUpdateConcurrencyException`                                  | `ConcurrencyConflict` (BCL - handled directly) | `D2Result.ConcurrencyConflict()`                               |
 | `IDbExceptionClassifier.Classify(ex)` returns `UniqueViolation` | `UniqueViolation`                              | `D2Result.UniqueViolation()`                                   |
 | Returns `ForeignKeyViolation`                                   | `ForeignKeyViolation`                          | `D2Result.ForeignKeyViolation()`                               |
 | Returns `NotNullViolation`                                      | `NotNullViolation`                             | `D2Result.NotNullViolation()`                                  |
@@ -39,17 +52,21 @@ Zero provider deps in this package (no Npgsql). Refs `DcsvIo.D2.Handler`, `DcsvI
 | Returns `Timeout`                                               | `Timeout`                                      | `D2Result.DbTimeout()`                                         |
 | Returns `Deadlock`                                              | `Deadlock`                                     | `D2Result.DbDeadlock()`                                        |
 | Returns `ConnectionFailure`                                     | `ConnectionFailure`                            | `D2Result.DbConnectionFailure()`                               |
-| Classifier returns `null`                                       | unknown                                        | Falls through — `BaseHandler`'s `UnhandledException` preserved |
+| Classifier returns `null`                                       | unknown                                        | Falls through - `BaseHandler`'s `UnhandledException` preserved |
 
-`OperationCanceledException` is intentionally NOT remapped here — `BaseHandler.RunCorePipelineAsync` already handles it (returns `D2Result.Canceled` for caller-initiated cancellation, `D2Result.ServiceUnavailable` for downstream timeouts not tied to the request token).
+This package intentionally does not remap `OperationCanceledException`; `BaseHandler.RunCorePipelineAsync` already
+handles it (returns `D2Result.Canceled` for caller-initiated cancellation, `D2Result.ServiceUnavailable` for downstream
+timeouts not tied to the request token).
 
 ---
 
 ## Per-handler refinement
 
-The default factory dispatch produces a generic message ("This value is already in use") with no field-level information — useful for diagnostics + programmatic discrimination, but weak UX for form-driven flows.
+The default factory dispatch produces a generic message ("This value is already in use") with no field-level
+information. That is enough for diagnostics and programmatic discrimination, but weak for form-driven flows.
 
-Handlers that know their constraint identity should override `MapDbException` to attach a domain-specific `TKMessage` + `InputError`:
+Handlers that know their constraint identity should override `MapDbException` to attach a domain-specific `TKMessage`
+and `InputError`:
 
 ```csharp
 public sealed class CreateUser(
@@ -82,7 +99,7 @@ public sealed class CreateUser(
 }
 ```
 
-Returning `null` from the override means "use the default" — handlers only customize the cases they care about.
+Returning `null` from the override selects the default result, so a handler customizes only the cases it needs.
 
 ---
 
@@ -99,15 +116,20 @@ if (result.IsTransientDbFailure)     return await retry.RetryAsync(...);       /
 if (result.IsForeignKeyViolation)    return BadRequest(result);                // referenced item missing
 ```
 
-The roll-up `IsTransientDbFailure` covers deadlock + timeout + connection-failure (caller may safely retry). Concurrency conflicts are intentionally excluded from the roll-up — they need reload-then-merge, not a blind retry.
+The roll-up `IsTransientDbFailure` covers deadlock, timeout and connection failure (a caller may safely retry).
+Concurrency conflicts are intentionally excluded from the roll-up: they need reload-then-merge, not a blind retry.
 
-`IsTransientDbFailure` is a separate axis from the built-in `IsTransientRetryable` (`IsServiceUnavailable || IsRateLimited`) on `D2Result` from the result lib. A generic retry policy that wants to catch BOTH the HTTP-flavored AND DB-flavored transient sets should check the union: `result.IsTransientRetryable || result.IsTransientDbFailure`.
+`IsTransientDbFailure` is separate from the built-in `IsTransientRetryable` (`IsServiceUnavailable || IsRateLimited`) on
+`D2Result` from the result package. A generic retry policy that must catch both the HTTP-related and the
+database-related transient sets should check the union:
+`result.IsTransientRetryable || result.IsTransientDbFailure`.
 
 ---
 
 ## DI registration
 
-`BaseRepoHandler` requires an `IDbExceptionClassifier` from DI. The composition root registers a provider-specific implementation:
+`BaseRepoHandler` requires an `IDbExceptionClassifier` from DI. The composition root registers a provider-specific
+implementation:
 
 ```csharp
 services.AddD2Handler();
@@ -122,18 +144,18 @@ Without a registered classifier, resolving any `BaseRepoHandler` subclass fails 
 
 ## Dependencies
 
-- `DcsvIo.D2.Handler` — base + `HandlerContext<T>`
-- `DcsvIo.D2.Handler.Abstractions` — `IHandler`, `HandlerOptions`
-- `DcsvIo.D2.Handler.Repo.Abstractions` — `IDbExceptionClassifier`, `DbFailureKind`, `D2Result` extension factories
-- `DcsvIo.D2.Result` — base `D2Result`
-- `Microsoft.EntityFrameworkCore` — `DbUpdateConcurrencyException`
+- `DcsvIo.D2.Handler` - the base class and `HandlerContext<T>`
+- `DcsvIo.D2.Handler.Abstractions` - `IHandler`, `HandlerOptions`
+- `DcsvIo.D2.Handler.Repo.Abstractions` - `IDbExceptionClassifier`, `DbFailureKind`, `D2Result` extension factories
+- `DcsvIo.D2.Result` - base `D2Result`
+- `Microsoft.EntityFrameworkCore` - `DbUpdateConcurrencyException`
 
-No Npgsql, no provider-specific deps.
+No Npgsql and no other provider-specific dependencies.
 
 ---
 
 ## Related packages
 
-- `DcsvIo.D2.Handler.Repo.Abstractions` — vocabulary + extension factories + booleans
-- `DcsvIo.D2.Handler.Repo.Postgres` — PostgreSQL classifier impl
-- `DcsvIo.D2.Handler` — base handler
+- `DcsvIo.D2.Handler.Repo.Abstractions` - `IDbExceptionClassifier`, failure kinds, extension factories and booleans
+- `DcsvIo.D2.Handler.Repo.Postgres` - PostgreSQL classifier impl
+- `DcsvIo.D2.Handler` - base handler

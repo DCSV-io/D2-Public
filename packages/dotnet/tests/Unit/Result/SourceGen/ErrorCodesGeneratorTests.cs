@@ -22,7 +22,7 @@ using ErrorCodesGenerator =
 
 /// <summary>
 /// IIncrementalGenerator integration tests for the generic ErrorCodes SrcGen
-/// — drive <see cref="ErrorCodesGenerator"/> via a synthetic
+/// - drive <see cref="ErrorCodesGenerator"/> via a synthetic
 /// <see cref="CSharpGeneratorDriver"/> rather than the build pipeline.
 /// </summary>
 public sealed class ErrorCodesGeneratorTests
@@ -81,7 +81,7 @@ public sealed class ErrorCodesGeneratorTests
     [Fact]
     public void Generator_TargetAssemblyButNoSpec_EmitsNothing()
     {
-        // No AdditionalText supplied — generator silently no-ops (no spec).
+        // No AdditionalText supplied - generator silently no-ops (no spec).
         var driver = RunGenerator(
             assemblyName: "DcsvIo.D2.Result",
             specJson: null);

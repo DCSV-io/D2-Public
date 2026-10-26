@@ -19,23 +19,25 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 /// <summary>
-/// Unit-level coverage for <see cref="ConsumerHostedService"/> — disposal
-/// idempotency and background-fault logging. The runtime channel-lifecycle
-/// behavior is exercised by the integration tests under
-/// <c>Integration/Messaging/SubscriberChannelBehaviorIntegrationTests.cs</c>;
-/// this file pins the host-process-only contracts.
+/// Unit tests of <see cref="ConsumerHostedService"/> for disposal idempotency
+/// and background-fault logging. The integration tests in
+/// <c>Integration/Messaging/SubscriberChannelBehaviorIntegrationTests.cs</c>
+/// cover the runtime channel-lifecycle behavior. This file pins the contracts
+/// that involve only the host process.
 /// </summary>
 public sealed class ConsumerHostedServiceTests
 {
     [Fact]
     public async Task DisposeAsync_CalledTwice_DoesNotThrow()
     {
-        // Empty registry → StartAsync is a no-op; dispose path still runs.
-        // The internal CancellationTokenSource is disposed exactly once;
-        // a second DisposeAsync must NOT throw on the already-disposed CTS.
+        // The registry is empty, so StartAsync does nothing and the dispose
+        // path still runs. The internal CancellationTokenSource is disposed
+        // exactly once, so a second DisposeAsync must not throw on the
+        // already-disposed source.
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddD2MessagingRabbitMq(
@@ -55,13 +57,13 @@ public sealed class ConsumerHostedServiceTests
     [Fact]
     public async Task StartAsync_StartChannelsAsyncFaults_LogsHostStartupFaulted()
     {
-        // ConsumerHostedService.StartAsync kicks off Task.Run(StartChannelsAsync).
-        // A ContinueWith fires SubscriberLog.HostStartupFaulted on faulted
-        // background tasks — without it, the failure vanishes into
+        // ConsumerHostedService.StartAsync starts Task.Run(StartChannelsAsync).
+        // A ContinueWith logs SubscriberLog.HostStartupFaulted when the
+        // background task faults. Without it, the failure goes only to
         // TaskScheduler.UnobservedTaskException and consumers silently never
-        // start. Drive a fault by stubbing ITopologyDeclarer to throw —
-        // that throw bubbles up from StartChannelsAsync BEFORE any
-        // SubscriberChannel is constructed, so we don't need an IChannel stub.
+        // start. The test stubs ITopologyDeclarer to throw. That exception
+        // leaves StartChannelsAsync before any SubscriberChannel is
+        // constructed, so the test needs no IChannel stub.
         var declarer = new ThrowingTopologyDeclarer(
             new InvalidOperationException("declarer-blew-up"));
         var conn = new ImmediatelyReadyConnection();
@@ -73,10 +75,13 @@ public sealed class ConsumerHostedServiceTests
             conn,
             registry,
             sp.GetRequiredService<IServiceScopeFactory>(),
-            new HandlerDispatcherFactory(registry),
+            new HandlerDispatcherFactory(registry, MessagingCatalog.Default),
+            MessagingCatalog.Default,
             declarer,
             new NullLoggerFactory(),
-            logger);
+            logger,
+            Options.Create(new RabbitMqConnectionOptions()),
+            Options.Create(new RabbitMqSubscriberOptions()));
 
         await hosted.StartAsync(CancellationToken.None);
 
@@ -87,7 +92,7 @@ public sealed class ConsumerHostedServiceTests
         }
         catch
         {
-            // Expected — declarer throws inside StartChannelsAsync.
+            // Expected - declarer throws inside StartChannelsAsync.
         }
 
         await Task.Delay(50);
@@ -96,11 +101,12 @@ public sealed class ConsumerHostedServiceTests
             .Any(r => r.Level == LogLevel.Error && r.Exception is not null)
             .Should()
             .BeTrue("HostStartupFaulted must fire when StartChannelsAsync "
-                + "throws — without it, the failure vanishes into "
+                + "throws - without it, the failure vanishes into "
                 + "TaskScheduler.UnobservedTaskException and consumers "
                 + "silently never start");
 
-        // StopAsync rethrows the faulted background task — swallow it.
+        // StopAsync rethrows the exception of the faulted background task, so
+        // the test catches it.
         try
         {
             await hosted.StopAsync(CancellationToken.None);
@@ -164,7 +170,7 @@ public sealed class ConsumerHostedServiceTests
             CreateChannelOptions? options = null, CancellationToken ct = default)
             => throw new NotImplementedException(
                 "These tests fault at topology declaration BEFORE any "
-                + "channel is created — if this throws, the test design "
+                + "channel is created - if this throws, the test design "
                 + "has drifted.");
 
         public ValueTask DisposeAsync() => default;

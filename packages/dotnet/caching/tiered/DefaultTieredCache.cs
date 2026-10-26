@@ -14,13 +14,13 @@ using Microsoft.Extensions.Logging;
 /// Composes one <see cref="ILocalCache"/> (L1) and one
 /// <see cref="IDistributedCache"/> (L2) into a tiered cache. Reads check
 /// L1 first / fall through to L2 / populate L1 on L2 hit. Writes go
-/// L2-first — L1 only writes if L2 succeeded — so partial-write states
+/// L2-first - L1 only writes if L2 succeeded - so partial-write states
 /// are impossible. Atomic primitives route through L2 (the cluster source
 /// of truth) and invalidate L1 as a side effect. Optional
-/// <see cref="ICacheInvalidationBackplane"/> wires up cluster-wide L1
+/// <see cref="ICacheInvalidationBackplane"/> enables cluster-wide L1
 /// invalidation: this instance subscribes at construction and drops L1
-/// entries on every received invalidation (including its own, per the
-/// universal "everyone acts" rule).
+/// entries on every received invalidation (including its own, because every
+/// subscriber acts on every message).
 /// </summary>
 [MustDisposeResource(false)]
 public sealed class DefaultTieredCache : ITieredCache, IAsyncDisposable
@@ -55,9 +55,9 @@ public sealed class DefaultTieredCache : ITieredCache, IAsyncDisposable
 
         if (backplane is not null)
         {
-            // Capture into locals for the lambda closure to avoid an
-            // implicit `this` capture (subscription outlives the immediate
-            // ctor frame).
+            // Capture into locals so the lambda closure does not capture
+            // `this` implicitly (the subscription outlives the constructor
+            // call).
             var capturedLogger = logger;
             var capturedL1 = l1;
             r_subscription = backplane.Subscribe(async (key, ct) =>
@@ -83,10 +83,9 @@ public sealed class DefaultTieredCache : ITieredCache, IAsyncDisposable
         var l2 = await r_l2.GetAsync<T>(key, ct);
         if (!l2.IsOk) return l2;  // NotFound or backing-store failure; pass through.
 
-        // Populate L1. We don't have L2's remaining TTL atomically here;
-        // future optimization: GetWithTtl Lua script for one round-trip.
-        // For now: populate L1 with the local default TTL (caller's L1
-        // options govern). L2's actual TTL governs cluster freshness.
+        // Populate L1. L2's remaining TTL is not available atomically here,
+        // so L1 is populated with the local default TTL (the L1 options
+        // govern). L2's actual TTL governs cluster freshness.
         await r_l1.SetAsync(key, l2.Data, ct: ct);
         return l2;
     }
@@ -109,9 +108,9 @@ public sealed class DefaultTieredCache : ITieredCache, IAsyncDisposable
         var l2 = await r_l2.GetManyAsync<T>(missing, ct);
 
         // Distinguish L2 NotFound (legitimate "nothing more to find") from
-        // L2 failure (couldn't even ask). For failure, propagate it — the
-        // caller has the right to know L2 was unreachable, even if L1
-        // happened to have part of what they wanted.
+        // L2 failure (the query could not be made). A failure is propagated:
+        // the method returns the L2 failure result, even if L1 happened
+        // to have part of what was asked for.
         if (l2.IsNotFound)
         {
             return l1Hits.Count == 0
@@ -155,7 +154,7 @@ public sealed class DefaultTieredCache : ITieredCache, IAsyncDisposable
     public async ValueTask<D2Result<TimeSpan?>> GetTtlAsync(
         string key, CancellationToken ct = default)
     {
-        // L2 is the source of truth for TTL — local TTLs are an L1
+        // L2 is the source of truth for TTL - local TTLs are an L1
         // implementation detail, not what the cluster sees.
         return await r_l2.GetTtlAsync(key, ct);
     }
@@ -164,16 +163,15 @@ public sealed class DefaultTieredCache : ITieredCache, IAsyncDisposable
     public async ValueTask<D2Result> SetAsync<T>(
         string key, T value, TimeSpan? expiration = null, CancellationToken ct = default)
     {
-        // L2 first — if L2 fails, don't touch L1 (L2-first ordering means
+        // L2 first - if L2 fails, don't touch L1 (L2-first ordering means
         // partial-write states are impossible).
         var l2 = await r_l2.SetAsync(key, value, expiration, ct);
         if (!l2.IsOk) return l2;
 
-        // L1 is the optional layer (§18 graceful degradation): L2 has the
-        // canonical write; an L1 failure here just means this instance's
-        // L1 misses the warm-up. Log + return L2 success — never fail a
-        // write the cluster successfully accepted just because the local
-        // L1 sneeze.
+        // L1 is the optional layer (graceful degradation): L2 has the
+        // canonical write; an L1 failure here only means this instance's
+        // L1 misses the warm-up. Log it and return the L2 success - never
+        // fail a write the cluster accepted because the local L1 failed.
         var l1 = await r_l1.SetAsync(key, value, expiration, ct);
         if (!l1.IsOk)
         {
@@ -233,7 +231,7 @@ public sealed class DefaultTieredCache : ITieredCache, IAsyncDisposable
         return l2;
     }
 
-    // ----- ICacheAtomic — route through L2 (cluster source of truth) -----
+    // ----- ICacheAtomic - route through L2 (cluster source of truth) -----
 
     /// <inheritdoc />
     public async ValueTask<D2Result<bool>> SetNxAsync<T>(
@@ -243,15 +241,71 @@ public sealed class DefaultTieredCache : ITieredCache, IAsyncDisposable
         if (!l2.IsOk) return l2;
         if (l2.Data)
         {
-            // L2 took the write — populate L1 with the same value.
+            // L2 took the write - populate L1 with the same value.
             await r_l1.SetAsync(key, value, expiration, ct);
         }
         else
         {
-            // L2 already had it — drop our L1 in case it was stale; next
+            // L2 already had it - drop this instance's L1 in case it was stale; next
             // read will re-populate from L2's canonical value.
             await r_l1.RemoveAsync(key, ct);
         }
+
+        return l2;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<D2Result<bool>> SetIfEqualAsync<T>(
+        string key,
+        T expected,
+        T value,
+        TimeSpan? expiration = null,
+        CancellationToken ct = default)
+    {
+        var l2 = await r_l2.SetIfEqualAsync(key, expected, value, expiration, ct);
+
+        // L1 is dropped on every outcome, including the failure arm, and this
+        // is where the member differs from IncrementAsync. Populating L1 with
+        // the written value the way SetNxAsync does would reopen the race the
+        // conditional write exists to close: the backplane subscriber drops L1
+        // on its own task, so an invalidation applied between the L2 hop and
+        // the populate would be undone by the populate, and GetAsync returns an
+        // L1 hit without consulting L2. After a failed write the node cannot
+        // know whether its copy still matches the shared value either, so the
+        // member drops L1 rather than trusting a local copy.
+        var l1 = await r_l1.RemoveAsync(key, ct);
+
+        if (!l1.IsOk)
+        {
+            TieredCacheLog.L1DropFailed(
+                r_logger, "SetIfEqualAsync", key, l1.ErrorCode ?? "unknown");
+        }
+
+        await BroadcastConditionalWriteAsync("SetIfEqualAsync", key, l2, ct);
+
+        return l2;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<D2Result<bool>> RemoveIfEqualAsync<T>(
+        string key, T expected, CancellationToken ct = default)
+    {
+        var l2 = await r_l2.RemoveIfEqualAsync(key, expected, ct);
+
+        // L1 is dropped on every outcome, for the reason SetIfEqualAsync gives:
+        // the comparison holds for the shared value at the instant it ran and
+        // says nothing about a local copy a moment later. On the removed arm
+        // the local copy refers to an entry that is gone; on the other arms the
+        // node cannot know whether its copy still matches the shared value.
+        var l1 = await r_l1.RemoveAsync(key, ct);
+
+        if (!l1.IsOk)
+        {
+            TieredCacheLog.L1DropFailed(
+                r_logger, "RemoveIfEqualAsync", key, l1.ErrorCode ?? "unknown");
+        }
+
+        await BroadcastConditionalWriteAsync("RemoveIfEqualAsync", key, l2, ct);
 
         return l2;
     }
@@ -264,11 +318,24 @@ public sealed class DefaultTieredCache : ITieredCache, IAsyncDisposable
         if (!l2.IsOk) return l2;
 
         // Counter values held in L1 would diverge from L2 immediately as
-        // other instances increment. Safer: invalidate L1 so the next
+        // other instances increment, so L1 is invalidated and the next
         // read on this instance fetches the canonical value from L2.
         await r_l1.RemoveAsync(key, ct);
         return l2;
     }
+
+    /// <inheritdoc />
+    // Pure delegation; the bucket state belongs to the shared store. An L1 copy
+    // would describe this node rather than the cluster, which defeats the
+    // purpose of a shared budget.
+    public ValueTask<D2Result<TokenBucketDecision>> ConsumeTokenAsync(
+        string key,
+        long refillTokens,
+        TimeSpan refillInterval,
+        long burst,
+        long cost = 1,
+        CancellationToken ct = default)
+        => r_l2.ConsumeTokenAsync(key, refillTokens, refillInterval, burst, cost, ct);
 
     /// <inheritdoc />
     // Pure delegation; L1 not involved in lock state.
@@ -282,7 +349,7 @@ public sealed class DefaultTieredCache : ITieredCache, IAsyncDisposable
         string key, string lockId, CancellationToken ct = default)
         => r_l2.ReleaseLockAsync(key, lockId, ct);
 
-    // ----- ICacheBroadcast — broadcast variants delegate to L2 (which owns the backplane) -----
+    // ----- ICacheBroadcast - broadcast variants delegate to L2 (which owns the backplane) -----
 
     /// <inheritdoc />
     public async ValueTask<D2Result> SetAndBroadcastAsync<T>(
@@ -329,6 +396,49 @@ public sealed class DefaultTieredCache : ITieredCache, IAsyncDisposable
         _disposed = true;
         if (r_subscription is not null)
             await r_subscription.DisposeAsync();
+    }
+
+    /// <summary>
+    /// Invalidates the other instances' L1 copies of a key a conditional write
+    /// replaced or removed at L2.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The plain writes leave the broadcast to the caller, which picks
+    /// <c>SetAndBroadcastAsync</c> or <c>SetAsync</c>. A conditional write has no
+    /// such pair. On the arm where the write succeeded, the comparison succeeded
+    /// against the shared value and the write replaced it, so every other
+    /// instance now holds a copy of the value this write superseded. The publish
+    /// runs on that arm alone: a comparison that lost changed nothing at L2, so
+    /// the other instances' copies are still valid.
+    /// </para>
+    /// <para>
+    /// It runs only where the host registered a backplane, and a publish that
+    /// fails is logged rather than returned. This member returns whether the
+    /// conditional write succeeded, and a failed invalidation does not change
+    /// that.
+    /// The other instances then serve their local copies until those entries
+    /// expire.
+    /// </para>
+    /// </remarks>
+    /// <param name="operation">The member publishing, for the log line.</param>
+    /// <param name="key">The key that was written.</param>
+    /// <param name="write">The result L2 returned.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A task that completes when the publish has been attempted.</returns>
+    private async ValueTask BroadcastConditionalWriteAsync(
+        string operation, string key, D2Result<bool> write, CancellationToken ct)
+    {
+        if (r_backplane is null || !write.IsOk || !write.Data)
+            return;
+
+        var published = await r_backplane.PublishInvalidationAsync(key, ct);
+
+        if (!published.IsOk)
+        {
+            TieredCacheLog.InvalidationPublishFailed(
+                r_logger, operation, key, published.ErrorCode ?? "unknown");
+        }
     }
 
     private async ValueTask<D2Result> PublishAsync(string key, CancellationToken ct)

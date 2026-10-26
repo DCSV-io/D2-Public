@@ -16,9 +16,9 @@ public sealed class EnumerableExtensionsTests
     // Truthy / Falsey
     // ----------------------------------------------------------------------
 
-    // Concrete-array variable typing (vs IEnumerable<T>?) signals to R# that
-    // re-enumeration is safe — no PossibleMultipleEnumeration warnings on the
-    // symmetric Truthy/Falsey assertions.
+    // The input variables have concrete array types rather than IEnumerable<T>?, so
+    // ReSharper reports no PossibleMultipleEnumeration warning for the paired
+    // Truthy and Falsey assertions on one input.
 
     [Fact]
     public void Falsey_OnNull_IsTrue()
@@ -56,11 +56,11 @@ public sealed class EnumerableExtensionsTests
     }
 
     // ----------------------------------------------------------------------
-    // Clean — empty input handling (3 behaviors × null input)
+    // Clean - empty input handling (each CleanEnumEmptyBehavior value x null input)
     //
-    // NOTE: Clean's signature `Func<T, T?>` only resolves T? to a nullable
-    // form for reference types — for value types T? collapses back to T
-    // (unconstrained generic). Tests therefore exercise reference-type T.
+    // Clean's signature `Func<T, T?>` resolves T? to a nullable form only for
+    // reference types; for value types T? collapses back to T (unconstrained
+    // generic). The tests therefore use a reference-type T.
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -95,7 +95,7 @@ public sealed class EnumerableExtensionsTests
     }
 
     // ----------------------------------------------------------------------
-    // Clean — empty input via empty array (covers the path before cleaner)
+    // Clean - empty input via empty array (covers the path before cleaner)
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -109,7 +109,7 @@ public sealed class EnumerableExtensionsTests
     }
 
     // ----------------------------------------------------------------------
-    // Clean — cleaner-returns-null branch (2 behaviors)
+    // Clean - cleaner-returns-null branch (each CleanValueNullBehavior value)
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -138,7 +138,8 @@ public sealed class EnumerableExtensionsTests
     }
 
     // ----------------------------------------------------------------------
-    // Clean — all values cleaned to null (post-clean empty list, 3 behaviors)
+    // Clean - all values cleaned to null
+    // (post-clean empty list; ReturnNull, ReturnEmpty and Throw)
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -177,7 +178,7 @@ public sealed class EnumerableExtensionsTests
     }
 
     // ----------------------------------------------------------------------
-    // Clean — happy path
+    // Clean - happy path
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -193,8 +194,8 @@ public sealed class EnumerableExtensionsTests
     [Fact]
     public void Clean_MaterializesUpstreamOnce()
     {
-        // Adversarial: a generator-backed enumerable with side effects must
-        // only be enumerated once (the implementation calls .ToList() upfront).
+        // A generator-backed enumerable with side effects must be enumerated
+        // only once (the implementation calls .ToList() up front).
         var enumerationCount = 0;
         IEnumerable<string> Source()
         {

@@ -26,7 +26,8 @@ using Xunit;
 /// per-transport catalogs must contain ONLY entries with applicability for
 /// that transport; the Common catalog must contain exactly the cross-transport
 /// subset (applicability count >= 2). These tests are the single source of
-/// proof that codegen across the 4 catalogs is internally consistent.
+/// proof that codegen across the Common, HTTP, AMQP and gRPC catalogs is
+/// internally consistent.
 /// </summary>
 public sealed class HeaderCatalogConsistencyTests
 {

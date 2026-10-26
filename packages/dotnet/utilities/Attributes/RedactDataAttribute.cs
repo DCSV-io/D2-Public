@@ -11,8 +11,8 @@ using JetBrains.Annotations;
 
 /// <summary>
 /// Marker attribute indicating that a type, property, or field should be
-/// redacted from logging or other telemetry. Consumed reflectively by the
-/// observability layer (Serilog destructuring policy / OTel enrichers).
+/// redacted from logging or other telemetry. The attribute holds the
+/// redaction reason and is read through reflection.
 /// </summary>
 [AttributeUsage(AttributeTargets.All)]
 public sealed class RedactDataAttribute : Attribute

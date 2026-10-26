@@ -10,8 +10,9 @@ using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// <c>LoggerMessage</c> delegates for <see cref="EncryptionSourceStartupCheck"/>.
-/// Emit only the domain name + the source classification — never key material,
-/// and never an <see cref="System.Exception"/> parameter (rules.md §3.1).
+/// The delegates emit only the domain name and the source classification. They
+/// never emit key material and never take an <see cref="System.Exception"/>
+/// parameter, because its message can contain key material or caller input.
 /// </summary>
 internal static partial class EncryptionSourceStartupCheckLog
 {
@@ -27,7 +28,7 @@ internal static partial class EncryptionSourceStartupCheckLog
         Level = LogLevel.Warning,
         Message = "Encryption domain {ServiceKey} is backed by a static key source " +
             "({Source}). Allowed only because the host is in the Development " +
-            "environment — this configuration would crash a non-Development host.")]
+            "environment - this configuration would crash a non-Development host.")]
     public static partial void StaticSourceInDevelopment(
         ILogger logger, string serviceKey, EncryptionKeyringSource source);
 
@@ -35,6 +36,6 @@ internal static partial class EncryptionSourceStartupCheckLog
         EventId = 3,
         Level = LogLevel.Information,
         Message = "Encryption domain {ServiceKey} passed the source-provenance check " +
-            "(KeyCustodian-sourced).")]
+            "(managed source).")]
     public static partial void SourceCheckPassed(ILogger logger, string serviceKey);
 }

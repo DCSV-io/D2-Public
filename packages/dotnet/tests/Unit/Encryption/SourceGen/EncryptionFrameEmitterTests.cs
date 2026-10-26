@@ -12,8 +12,9 @@ using DcsvIo.D2.EncryptionFrame.SourceGen;
 using Xunit;
 
 /// <summary>
-/// Pure-logic tests for the EncryptionFrame emitter. §1.20 fail-path
-/// proof + version + GCM-spec value pins.
+/// Pure-logic tests for the EncryptionFrame emitter: the deliberate-drift
+/// tests, which feed the emitter a broken spec and assert the diagnostic it
+/// emits, plus version and GCM-spec value pins.
 /// </summary>
 public sealed class EncryptionFrameEmitterTests
 {
@@ -41,7 +42,8 @@ public sealed class EncryptionFrameEmitterTests
     }
 
     // ---------------------------------------------------------------
-    // §1.20 fail-path proof — 3 deliberate drift cases.
+    // Deliberate-drift tests: invalid version, duplicate
+    // field name and overlapping fields.
     // ---------------------------------------------------------------
 
     [Fact]

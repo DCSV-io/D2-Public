@@ -7334,6 +7334,7 @@ static readonly DcsvIo.D2.Geo.Default.Timezones.America.Ojinaga -> DcsvIo.D2.Geo
 static readonly DcsvIo.D2.Geo.Default.Timezones.America.Panama -> DcsvIo.D2.Geo.Abstractions.TimezoneCode
 static readonly DcsvIo.D2.Geo.Default.Timezones.America.Paramaribo -> DcsvIo.D2.Geo.Abstractions.TimezoneCode
 static readonly DcsvIo.D2.Geo.Default.Timezones.America.Phoenix -> DcsvIo.D2.Geo.Abstractions.TimezoneCode
+static readonly DcsvIo.D2.Geo.Default.Timezones.America.Port_au_Prince -> DcsvIo.D2.Geo.Abstractions.TimezoneCode
 static readonly DcsvIo.D2.Geo.Default.Timezones.America.Porto_Velho -> DcsvIo.D2.Geo.Abstractions.TimezoneCode
 static readonly DcsvIo.D2.Geo.Default.Timezones.America.Puerto_Rico -> DcsvIo.D2.Geo.Abstractions.TimezoneCode
 static readonly DcsvIo.D2.Geo.Default.Timezones.America.Punta_Arenas -> DcsvIo.D2.Geo.Abstractions.TimezoneCode
@@ -7434,6 +7435,7 @@ static readonly DcsvIo.D2.Geo.Default.Timezones.Asia.Tokyo -> DcsvIo.D2.Geo.Abst
 static readonly DcsvIo.D2.Geo.Default.Timezones.Asia.Tomsk -> DcsvIo.D2.Geo.Abstractions.TimezoneCode
 static readonly DcsvIo.D2.Geo.Default.Timezones.Asia.Ulaanbaatar -> DcsvIo.D2.Geo.Abstractions.TimezoneCode
 static readonly DcsvIo.D2.Geo.Default.Timezones.Asia.Urumqi -> DcsvIo.D2.Geo.Abstractions.TimezoneCode
+static readonly DcsvIo.D2.Geo.Default.Timezones.Asia.Ust_Nera -> DcsvIo.D2.Geo.Abstractions.TimezoneCode
 static readonly DcsvIo.D2.Geo.Default.Timezones.Asia.Vladivostok -> DcsvIo.D2.Geo.Abstractions.TimezoneCode
 static readonly DcsvIo.D2.Geo.Default.Timezones.Asia.Yakutsk -> DcsvIo.D2.Geo.Abstractions.TimezoneCode
 static readonly DcsvIo.D2.Geo.Default.Timezones.Asia.Yangon -> DcsvIo.D2.Geo.Abstractions.TimezoneCode

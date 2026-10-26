@@ -11,16 +11,16 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 /// <summary>
 /// Registration helpers for the sealed-encryption startup self-check
-/// machinery — the sealed sibling of
+/// machinery - the sealed sibling of
 /// <see cref="EncryptionSourceServiceCollectionExtensions"/>. This is a
-/// building-block seam a registration SOURCE composes (the KeyCustodian-backed
-/// <c>AddD2SealedEncryptionViaKeyCustodian</c> single call in the KC client
-/// package, or the in-process twin), NOT the surface a consumer remembers: the
-/// caller separately registers the keyed <see cref="IPayloadSealer"/> and/or
-/// <see cref="IPayloadOpener"/> under the same recipient service id, and this
+/// building-block seam that a registration source composes (a
+/// managed single call, or the in-process twin). A service does not
+/// call it directly; it composes one spec-driven registration call. The keyed
+/// <see cref="IPayloadSealer"/> and/or <see cref="IPayloadOpener"/> are
+/// registered separately under the same recipient service id, and this
 /// method records the recipient so the hosted self-check verifies whichever
-/// sides exist. Public because those cross-assembly sources call it; a service
-/// composes ONE spec-driven registration call rather than this directly.
+/// sides exist. It is public so that cross-assembly registration sources can
+/// call it.
 /// </summary>
 public static class SealedEncryptionServiceCollectionExtensions
 {
@@ -30,9 +30,9 @@ public static class SealedEncryptionServiceCollectionExtensions
         /// <summary>
         /// Records a sealed recipient for startup verification and ensures
         /// the hosted <see cref="SealedEncryptionStartupCheck"/> is
-        /// registered. The caller separately registers the keyed
-        /// <see cref="IPayloadSealer"/> and/or <see cref="IPayloadOpener"/>
-        /// under <paramref name="recipientServiceId"/> — the check resolves
+        /// registered. The keyed <see cref="IPayloadSealer"/> and/or
+        /// <see cref="IPayloadOpener"/> are registered separately under
+        /// <paramref name="recipientServiceId"/> - the check resolves
         /// whichever sides exist.
         /// </summary>
         /// <param name="recipientServiceId">
@@ -53,7 +53,7 @@ public static class SealedEncryptionServiceCollectionExtensions
         /// <summary>
         /// Registers <see cref="SealedEncryptionStartupCheck"/>, the hosted
         /// service that verifies every registered sealed recipient at host
-        /// startup. Idempotent — the hosted service and the registry are
+        /// startup. Idempotent - the hosted service and the registry are
         /// each registered exactly once.
         /// </summary>
         /// <returns>The same <paramref name="services"/> instance for chaining.</returns>
@@ -70,9 +70,9 @@ public static class SealedEncryptionServiceCollectionExtensions
         /// <summary>
         /// Registers <see cref="SealedEncryptionSourceStartupCheck"/>, the hosted service that
         /// enforces sealed-keyring provenance deny-by-default at host startup (a static /
-        /// unmarked sealed recipient is rejected outside a Development host). Called by the
-        /// KeyCustodian-backed sealing source, which also marks each registration's provenance
-        /// KeyCustodian. Idempotent — the hosted service is registered exactly once.
+        /// unmarked sealed recipient is rejected outside a Development host). A recipient passes
+        /// when it has at least one marker and every marker under its id is <see cref="EncryptionKeyringSource.Managed"/>.
+        /// Idempotent - the hosted service is registered exactly once.
         /// </summary>
         /// <returns>The same <paramref name="services"/> instance for chaining.</returns>
         public IServiceCollection AddD2SealedEncryptionSourceCheck()

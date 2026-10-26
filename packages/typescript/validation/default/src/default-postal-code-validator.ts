@@ -13,7 +13,7 @@ import {
 import { falsey } from "@dcsv-io/d2-utilities";
 import type { IPostalCodeValidator } from "@dcsv-io/d2-validation-abstractions";
 
-// long import path — cannot wrap
+// long import path - cannot wrap
 import postalCodeRegexes from "../../../../../contracts/validation/postal-code-regexes.json" with { type: "json" };
 
 /**
@@ -21,7 +21,7 @@ import postalCodeRegexes from "../../../../../contracts/validation/postal-code-r
  * ISO 3166-1 alpha-2 country codes; each value is the anchored pattern from
  * the shared dataset, compiled with the `"i"` flag to mirror the .NET side's
  * `RegexOptions.IgnoreCase`. The `$comment` metadata key in the JSON is
- * skipped — it is documentation, not a country entry.
+ * skipped because it is documentation, not a country entry.
  *
  * Sourced from `contracts/validation/postal-code-regexes.json`, the SINGLE
  * cross-runtime source of truth (the .NET `DcsvIo.D2.Validation` embeds the
@@ -36,7 +36,7 @@ const COUNTRY_REGEXES: ReadonlyMap<string, RegExp> = new Map(
 
 /**
  * Default `IPostalCodeValidator` implementation. Mirrors the .NET
- * `DcsvIo.D2.Validation.DefaultPostalCodeValidator` — both compile the SAME
+ * `DcsvIo.D2.Validation.DefaultPostalCodeValidator`: both compile the SAME
  * per-country patterns from `contracts/validation/postal-code-regexes.json`,
  * run a country-aware structural check, and normalize to trimmed + uppercased
  * form. An unknown / absent country fails closed (ValidationFailed, never a
@@ -51,11 +51,11 @@ export class DefaultPostalCodeValidator implements IPostalCodeValidator {
    * @param postalCode - The postal code to validate (may be `undefined`,
    *   empty, or whitespace).
    * @param countryCode - Optional country whose postal-code format governs
-   *   validation. An unknown / unsupported country fails closed.
+   *   validation. An omitted, unknown or unsupported country fails closed.
    * @returns `ok` wrapping the trimmed + uppercased postal code on success;
    *   `validationFailed` keyed `"postalCode"` with `POSTAL_CODE_INVALID` on
-   *   `undefined`, empty, whitespace, structurally invalid, or
-   *   unknown-country input.
+   *   `undefined`, empty, whitespace, structurally invalid, omitted-country
+   *   or unknown-country input.
    */
   validate(
     postalCode: string | undefined,
@@ -63,10 +63,10 @@ export class DefaultPostalCodeValidator implements IPostalCodeValidator {
   ): D2Result<string> {
     if (falsey(postalCode)) return DefaultPostalCodeValidator.invalid();
 
-    // Fail closed when no country is supplied — an absent country cannot
+    // Fail closed when no country is supplied: an absent country cannot
     // select a per-country format, so there is nothing to validate against.
     // This mirrors the .NET `DefaultPostalCodeValidator`, which returns
-    // `ValidationFailed` for a null country. There is deliberately NO
+    // `ValidationFailed` for a null country. There is NO
     // permissive country-agnostic fallback (e.g. the `"INTL"` pattern): an
     // unknown / absent country always fails closed on both runtimes.
     if (countryCode === undefined) return DefaultPostalCodeValidator.invalid();

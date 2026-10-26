@@ -21,54 +21,57 @@ namespace DcsvIo.D2.Result;
 /// <remarks>
 /// Generated from the spec file - cross-language drift between the .NET
 /// constants and the TS-side @dcsv-io/d2-result catalog is structurally impossible
-/// (the TS emitter consumes the same spec via tools/ts-codegen).
+/// (the TS emitter consumes the same spec).
 /// </remarks>
 public static class ErrorCodes
 {
     /// <summary>Indicates that the requested resource was not found.</summary>
-    public const string NOT_FOUND = "NOT_FOUND";
+    public const string GEN_NOT_FOUND = "GEN_NOT_FOUND";
 
     /// <summary>Indicates that the action is forbidden due to insufficient permissions.</summary>
-    public const string FORBIDDEN = "FORBIDDEN";
+    public const string GEN_FORBIDDEN = "GEN_FORBIDDEN";
 
     /// <summary>Indicates that the user is unauthorized to perform the action (e.g., not authenticated).</summary>
-    public const string UNAUTHORIZED = "UNAUTHORIZED";
+    public const string GEN_UNAUTHORIZED = "GEN_UNAUTHORIZED";
 
     /// <summary>Indicates that the input validation has failed.</summary>
-    public const string VALIDATION_FAILED = "VALIDATION_FAILED";
+    public const string GEN_VALIDATION_FAILED = "GEN_VALIDATION_FAILED";
 
     /// <summary>Indicates that a conflict occurred, such as a resource already existing.</summary>
-    public const string CONFLICT = "CONFLICT";
+    public const string GEN_CONFLICT = "GEN_CONFLICT";
 
     /// <summary>Indicates that an unhandled exception has occurred.</summary>
-    public const string UNHANDLED_EXCEPTION = "UNHANDLED_EXCEPTION";
+    public const string GEN_UNHANDLED_EXCEPTION = "GEN_UNHANDLED_EXCEPTION";
 
     /// <summary>Indicates that the data could not be serialized.</summary>
-    public const string COULD_NOT_BE_SERIALIZED = "COULD_NOT_BE_SERIALIZED";
+    public const string GEN_COULD_NOT_BE_SERIALIZED = "GEN_COULD_NOT_BE_SERIALIZED";
 
     /// <summary>Indicates that the data could not be deserialized.</summary>
-    public const string COULD_NOT_BE_DESERIALIZED = "COULD_NOT_BE_DESERIALIZED";
+    public const string GEN_COULD_NOT_BE_DESERIALIZED = "GEN_COULD_NOT_BE_DESERIALIZED";
 
     /// <summary>Indicates that the service is currently unavailable.</summary>
-    public const string SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE";
+    public const string GEN_SERVICE_UNAVAILABLE = "GEN_SERVICE_UNAVAILABLE";
 
     /// <summary>Indicates that some items were found in a query operation but not all.</summary>
-    public const string SOME_FOUND = "SOME_FOUND";
+    public const string GEN_SOME_FOUND = "GEN_SOME_FOUND";
 
-    /// <summary>Indicates that a multi-target write operation succeeded against some targets but not all (e.g. tiered cache wrote L1 but not L2). D2Result.Success stays true - the operation did succeed in part. Callers inspect IsPartialSuccess + the result data to decide what to do about the failed target(s).</summary>
-    public const string PARTIAL_SUCCESS = "PARTIAL_SUCCESS";
+    /// <summary>Indicates that a multi-target write operation applied to some targets and not others (e.g. a tiered cache wrote L1 but not L2). D2Result.Success is false: anything short of every target is returned as a failure, so a caller that only asks Failed treats the operation as not done. A caller that may accept a partial outcome tests IsPartialSuccess and reads the result data to see which targets were left. The status is 503 rather than a 2xx because the operation is not done and the caller should retry. The error code distinguishes it from GEN_SERVICE_UNAVAILABLE, where no target was written at all.</summary>
+    public const string GEN_PARTIAL_SUCCESS = "GEN_PARTIAL_SUCCESS";
 
     /// <summary>Indicates that the request has been rate limited.</summary>
-    public const string RATE_LIMITED = "RATE_LIMITED";
+    public const string GEN_RATE_LIMITED = "GEN_RATE_LIMITED";
 
     /// <summary>Indicates that an idempotent request is already being processed (in-flight).</summary>
-    public const string IDEMPOTENCY_IN_FLIGHT = "IDEMPOTENCY_IN_FLIGHT";
+    public const string GEN_IDEMPOTENCY_IN_FLIGHT = "GEN_IDEMPOTENCY_IN_FLIGHT";
 
     /// <summary>Indicates that the request payload exceeds the maximum allowed size.</summary>
-    public const string PAYLOAD_TOO_LARGE = "PAYLOAD_TOO_LARGE";
+    public const string GEN_PAYLOAD_TOO_LARGE = "GEN_PAYLOAD_TOO_LARGE";
 
     /// <summary>Indicates that the operation was canceled (client or server cancellation).</summary>
-    public const string CANCELED = "CANCELED";
+    public const string GEN_CANCELED = "GEN_CANCELED";
+
+    /// <summary>A cookie-borne request that did not prove it came from this origin: the fetch-metadata headers identified another site or were absent with no matching Origin, or the forgery token was absent, stale or forged. One code covers every arm, so the rejection does not reveal which check failed. The response re-issues the token cookie when a session resolved, and a same-origin client retries once.</summary>
+    public const string GEN_FORGERY_REFUSED = "GEN_FORGERY_REFUSED";
 
     /// <summary>
     /// All declared error codes in spec order. Useful for telemetry
@@ -78,21 +81,22 @@ public static class ErrorCodes
 
     private static readonly IReadOnlyList<string> sr_allCodes = new string[]
     {
-        "NOT_FOUND",
-        "FORBIDDEN",
-        "UNAUTHORIZED",
-        "VALIDATION_FAILED",
-        "CONFLICT",
-        "UNHANDLED_EXCEPTION",
-        "COULD_NOT_BE_SERIALIZED",
-        "COULD_NOT_BE_DESERIALIZED",
-        "SERVICE_UNAVAILABLE",
-        "SOME_FOUND",
-        "PARTIAL_SUCCESS",
-        "RATE_LIMITED",
-        "IDEMPOTENCY_IN_FLIGHT",
-        "PAYLOAD_TOO_LARGE",
-        "CANCELED",
+        "GEN_NOT_FOUND",
+        "GEN_FORBIDDEN",
+        "GEN_UNAUTHORIZED",
+        "GEN_VALIDATION_FAILED",
+        "GEN_CONFLICT",
+        "GEN_UNHANDLED_EXCEPTION",
+        "GEN_COULD_NOT_BE_SERIALIZED",
+        "GEN_COULD_NOT_BE_DESERIALIZED",
+        "GEN_SERVICE_UNAVAILABLE",
+        "GEN_SOME_FOUND",
+        "GEN_PARTIAL_SUCCESS",
+        "GEN_RATE_LIMITED",
+        "GEN_IDEMPOTENCY_IN_FLIGHT",
+        "GEN_PAYLOAD_TOO_LARGE",
+        "GEN_CANCELED",
+        "GEN_FORGERY_REFUSED",
     };
 
     /// <summary>
@@ -104,21 +108,22 @@ public static class ErrorCodes
     /// <returns>The HTTP status code.</returns>
     public static int GetHttpStatus(string errorCode) => errorCode switch
     {
-        "NOT_FOUND" => 404,
-        "FORBIDDEN" => 403,
-        "UNAUTHORIZED" => 401,
-        "VALIDATION_FAILED" => 400,
-        "CONFLICT" => 409,
-        "UNHANDLED_EXCEPTION" => 500,
-        "COULD_NOT_BE_SERIALIZED" => 500,
-        "COULD_NOT_BE_DESERIALIZED" => 500,
-        "SERVICE_UNAVAILABLE" => 503,
-        "SOME_FOUND" => 206,
-        "PARTIAL_SUCCESS" => 207,
-        "RATE_LIMITED" => 429,
-        "IDEMPOTENCY_IN_FLIGHT" => 409,
-        "PAYLOAD_TOO_LARGE" => 413,
-        "CANCELED" => 400,
+        "GEN_NOT_FOUND" => 404,
+        "GEN_FORBIDDEN" => 403,
+        "GEN_UNAUTHORIZED" => 401,
+        "GEN_VALIDATION_FAILED" => 400,
+        "GEN_CONFLICT" => 409,
+        "GEN_UNHANDLED_EXCEPTION" => 500,
+        "GEN_COULD_NOT_BE_SERIALIZED" => 500,
+        "GEN_COULD_NOT_BE_DESERIALIZED" => 500,
+        "GEN_SERVICE_UNAVAILABLE" => 503,
+        "GEN_SOME_FOUND" => 206,
+        "GEN_PARTIAL_SUCCESS" => 503,
+        "GEN_RATE_LIMITED" => 429,
+        "GEN_IDEMPOTENCY_IN_FLIGHT" => 409,
+        "GEN_PAYLOAD_TOO_LARGE" => 413,
+        "GEN_CANCELED" => 400,
+        "GEN_FORGERY_REFUSED" => 403,
         _ => 500,
     };
 }

@@ -71,7 +71,7 @@ public sealed class DataGovernanceServiceCollectionExtensionsTests
         var config = BuildConfig(new Dictionary<string, string?>
         {
             [
-                "DATA_GOVERNANCE:BatchSize"
+                "LIB_DATA_GOVERNANCE:BatchSize"
             ] = expected_batch_size.ToString(CultureInfo.InvariantCulture),
         });
 
@@ -95,7 +95,7 @@ public sealed class DataGovernanceServiceCollectionExtensionsTests
         var config = BuildEmptyConfig();
 
         services.AddD2DataGovernance(config);
-        services.AddD2DataGovernance(config); // second call — must be no-op
+        services.AddD2DataGovernance(config); // second call - must be no-op
 
         var engineDescriptors = services
             .Where(d => d.ServiceType == typeof(IAnonymizationEngine))
@@ -123,7 +123,7 @@ public sealed class DataGovernanceServiceCollectionExtensionsTests
     }
 
     // =========================================================================
-    // MaxConcurrencyRetries binding (L-2)
+    // MaxConcurrencyRetries binding
     // =========================================================================
 
     [Fact]
@@ -135,7 +135,7 @@ public sealed class DataGovernanceServiceCollectionExtensionsTests
         var config = BuildConfig(new Dictionary<string, string?>
         {
             [
-                "DATA_GOVERNANCE:MaxConcurrencyRetries"
+                "LIB_DATA_GOVERNANCE:MaxConcurrencyRetries"
             ] = expected_retries.ToString(System.Globalization.CultureInfo.InvariantCulture),
         });
 
@@ -158,7 +158,7 @@ public sealed class DataGovernanceServiceCollectionExtensionsTests
         var services = new ServiceCollection();
         var config = BuildConfig(new Dictionary<string, string?>
         {
-            { "DATA_GOVERNANCE:BatchSize", "100" },
+            { "LIB_DATA_GOVERNANCE:BatchSize", "100" },
         });
 
         const int expected_batch_size = 999;
@@ -184,7 +184,7 @@ public sealed class DataGovernanceServiceCollectionExtensionsTests
         var services = new ServiceCollection();
         var config = BuildConfig(new Dictionary<string, string?>
         {
-            { "DATA_GOVERNANCE:SkipModelValidation", "true" },
+            { "LIB_DATA_GOVERNANCE:SkipModelValidation", "true" },
         });
 
         services.AddD2DataGovernance(config);
@@ -278,7 +278,7 @@ public sealed class DataGovernanceServiceCollectionExtensionsTests
     private static IConfiguration BuildConfig(Dictionary<string, string?> data) =>
         new ConfigurationBuilder().AddInMemoryCollection(data).Build();
 
-    // Minimal DbContext for engine resolution tests — no entity types needed.
+    // Minimal DbContext for engine resolution tests - no entity types needed.
     private sealed class DummyContext : DbContext
     {
         private DummyContext(DbContextOptions<DummyContext> options)

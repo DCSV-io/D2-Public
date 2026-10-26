@@ -15,10 +15,9 @@ using DcsvIo.D2.SourceGen;
 using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
-/// Pure logic for emitting (a) the <c>DlqFailureMetadataFields</c> static
-/// class carrying property-name constants AND (b) the partial-class
-/// JsonPropertyName-attribute half decorating <c>DlqFailureMetadata</c>'s
-/// properties. Both target <c>DcsvIo.D2.Messaging.Abstractions</c>.
+/// Pure logic for emitting the <c>DlqFailureMetadataFields</c> static class,
+/// which holds the property-name constants for the <c>DlqFailureMetadata</c>
+/// wire shape. The class targets <c>DcsvIo.D2.Messaging.Abstractions</c>.
 /// </summary>
 internal static class DlqFieldsEmitter
 {

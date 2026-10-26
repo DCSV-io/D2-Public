@@ -6,38 +6,40 @@
 
 namespace DcsvIo.D2.Tests.Unit.Auth.SourceGen;
 
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using AwesomeAssertions;
 using DcsvIo.D2.Auth.Audiences.SourceGen;
+using DcsvIo.D2.Tests.Unit.SourceGen.Fixtures;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using Xunit;
 
 /// <summary>
-/// IIncrementalGenerator integration tests — drive <see cref="AudiencesGenerator"/>
-/// via a synthetic <see cref="CSharpGeneratorDriver"/> rather than the build
-/// pipeline. Asserts assembly-name gating, AdditionalFiles wiring, missing-spec
-/// + malformed-spec degradation paths, and cache stability.
+/// IIncrementalGenerator integration tests that drive <see cref="AudiencesGenerator"/>
+/// through a synthetic <see cref="CSharpGeneratorDriver"/> and not the build
+/// pipeline. They assert assembly-name gating, AdditionalFiles wiring, the
+/// missing-spec and malformed-spec degradation paths, and cache stability.
 /// </summary>
 public sealed class AudiencesGeneratorTests
 {
     private const string _SAMPLE_SPEC = """
     {
       "audiences": [
-        { "name": "Files", "url": "https://files.internal" },
-        { "name": "Notifications", "url": "https://notifications.internal" }
+        { "name": "Catalog", "url": "https://catalog.example.internal" },
+        { "name": "Shipping", "url": "https://shipping.example.internal" }
       ]
     }
     """;
 
-    private const string _PRIVATE_SPEC = """
+    private const string _EXTENSION_SPEC = """
     {
       "audiences": [
-        { "name": "Courier", "url": "https://courier.internal" },
-        { "name": "Audit", "url": "https://audit.internal" }
+        { "name": "Inventory", "url": "https://inventory.example.internal" },
+        { "name": "Orders", "url": "https://orders.example.internal" }
       ]
     }
     """;
@@ -57,8 +59,8 @@ public sealed class AudiencesGeneratorTests
 
         var src = generated.ToString();
         src.Should().Contain("public static partial class Audiences");
-        src.Should().Contain("\"https://files.internal\"");
-        src.Should().Contain("\"https://notifications.internal\"");
+        src.Should().Contain("\"https://catalog.example.internal\"");
+        src.Should().Contain("\"https://shipping.example.internal\"");
     }
 
     [Fact]
@@ -70,14 +72,16 @@ public sealed class AudiencesGeneratorTests
 
         var result = driver.GetRunResult();
 
-        // Generator no-ops for non-target assemblies — no Audiences.g.cs produced.
+        // The generator does nothing for a non-target assembly, so it produces
+        // no Audiences.g.cs.
         result.GeneratedTrees.Should().BeEmpty();
     }
 
     [Fact]
     public void Generator_TargetAssemblyButNoSpec_EmitsMissingSpecFileDiagnostic()
     {
-        // No AdditionalText supplied — generator must fire D2AUD006 (MissingSpecFile).
+        // No AdditionalText is supplied, so the generator must report D2AUD006
+        // (MissingSpecFile).
         var driver = RunGenerator(
             assemblyName: "DcsvIo.D2.Auth.Abstractions",
             specJson: null);
@@ -88,8 +92,9 @@ public sealed class AudiencesGeneratorTests
         diagnostics.Should()
             .Contain(d => d.Id == DiagnosticIds.MissingSpecFile);
 
-        // Even on missing spec, an empty shell file is emitted so downstream
-        // compilation can still see the Audiences type (avoids cascade errors).
+        // The generator emits an empty shell file even when the spec is
+        // missing, so downstream compilation can still see the Audiences type,
+        // which avoids cascade errors.
         result.GeneratedTrees.Should().HaveCount(1);
     }
 
@@ -105,16 +110,17 @@ public sealed class AudiencesGeneratorTests
         result.Diagnostics.Should()
             .Contain(d => d.Id == DiagnosticIds.MalformedSpec);
 
-        // Empty shell still emitted on malformed input so downstream consumers
-        // don't see "type does not exist" errors masking the real diagnostic.
+        // The generator still emits an empty shell on malformed input, so
+        // downstream compilation does not report "type does not exist" errors
+        // that mask the real diagnostic.
         result.GeneratedTrees.Should().HaveCount(1);
     }
 
     [Fact]
     public void Generator_RunTwice_SameInputs_ProducesIdenticalOutput()
     {
-        // Cache stability — identical inputs must produce identical generator
-        // output (otherwise downstream incremental builds re-run unnecessarily).
+        // Cache stability: identical inputs must produce identical generator
+        // output, otherwise downstream incremental builds re-run unnecessarily.
         var first = RunGenerator(
                 assemblyName: "DcsvIo.D2.Auth.Abstractions",
                 specJson: _SAMPLE_SPEC)
@@ -129,32 +135,38 @@ public sealed class AudiencesGeneratorTests
     }
 
     // ----------------------------------------------------------------------
-    // Dual-target / multi-spec merge (private Auth.Abstractions.Extensions host)
+    // Extension target / multi-spec merge (an assembly that sets the
+    // extension properties and merges several specs)
     // ----------------------------------------------------------------------
 
     [Fact]
-    public void Generator_PrivateAuthAbstractionsExtensions_MultiSpec_EmitsProductAudiencesUnion()
+    public void Generator_ExtensionTarget_MultiSpec_EmitsPrefixedAudiencesUnion()
     {
         var driver = RunGenerator(
-            assemblyName: "DcsvIo.D2.Private.Auth.Abstractions.Extensions",
+            assemblyName: "Fixture.Audiences.Host",
             specJson: null,
             multiSpecs:
             [
                 ("public/audiences.spec.json", _SAMPLE_SPEC),
-                ("private/audiences.spec.json", _PRIVATE_SPEC),
-            ]);
+                ("private/audiences.spec.json", _EXTENSION_SPEC),
+            ],
+            buildProperties: new Dictionary<string, string>
+            {
+                ["D2AudiencesExtensionNamespace"] = "Example.Ext",
+                ["D2AudiencesExtensionClassPrefix"] = "Sample",
+            });
 
         var result = driver.GetRunResult();
         result.GeneratedTrees.Should().HaveCount(1);
         Path.GetFileName(result.GeneratedTrees.Single().FilePath)
-            .Should().Be("ProductAudiences.g.cs");
+            .Should().Be("SampleAudiences.g.cs");
 
         var src = result.GeneratedTrees.Single().ToString();
-        src.Should().Contain("namespace DcsvIo.D2.Private.Auth;");
-        src.Should().Contain("public static partial class ProductAudiences");
-        src.Should().Contain("\"https://files.internal\"");
-        src.Should().Contain("\"https://courier.internal\"");
-        src.Should().Contain("\"https://audit.internal\"");
+        src.Should().Contain("namespace Example.Ext;");
+        src.Should().Contain("public static partial class SampleAudiences");
+        src.Should().Contain("\"https://catalog.example.internal\"");
+        src.Should().Contain("\"https://inventory.example.internal\"");
+        src.Should().Contain("\"https://orders.example.internal\"");
         src.Should().NotContain("public static partial class Audiences");
     }
 
@@ -167,7 +179,7 @@ public sealed class AudiencesGeneratorTests
             multiSpecs:
             [
                 ("public/audiences.spec.json", _SAMPLE_SPEC),
-                ("private/audiences.spec.json", _PRIVATE_SPEC),
+                ("private/audiences.spec.json", _EXTENSION_SPEC),
             ]);
 
         driver.GetRunResult().GeneratedTrees.Should().BeEmpty();
@@ -176,7 +188,8 @@ public sealed class AudiencesGeneratorTests
     private static GeneratorDriver RunGenerator(
         string assemblyName,
         string? specJson,
-        (string Path, string Content)[]? multiSpecs = null)
+        (string Path, string Content)[]? multiSpecs = null,
+        IReadOnlyDictionary<string, string>? buildProperties = null)
     {
         var compilation = CSharpCompilation.Create(
             assemblyName: assemblyName,
@@ -207,7 +220,9 @@ public sealed class AudiencesGeneratorTests
 
         var driver = CSharpGeneratorDriver.Create(
             generators: [generator],
-            additionalTexts: additionalTexts);
+            additionalTexts: additionalTexts,
+            optionsProvider: FixtureAnalyzerConfigOptionsProvider.FromBuildProperties(
+                buildProperties ?? new Dictionary<string, string>()));
 
         return driver.RunGenerators(compilation);
     }
@@ -215,8 +230,8 @@ public sealed class AudiencesGeneratorTests
     private static string Normalize(string s) => s.Replace("\r\n", "\n").Trim();
 
     /// <summary>
-    /// Minimal AdditionalText shim for synthesizing AdditionalFiles in
-    /// generator tests without filesystem I/O.
+    /// Minimal AdditionalText implementation that synthesizes AdditionalFiles
+    /// in generator tests without file system I/O.
     /// </summary>
     private sealed class InMemoryAdditionalText : AdditionalText
     {

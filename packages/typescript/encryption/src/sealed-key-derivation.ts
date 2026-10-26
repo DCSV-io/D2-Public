@@ -6,18 +6,18 @@ import { hkdfSha256 } from "./subtle.js";
 
 /**
  * The frozen key-derivation and AEAD-binding conventions of the sealed
- * (ECDH-ES hybrid) encryption mode — the byte-for-byte twin of .NET
+ * (ECDH-ES hybrid) encryption mode; the byte-for-byte twin of .NET
  * `DcsvIo.D2.Encryption.SealedKeyDerivation`. Both the sealer and the opener
  * derive through this single module so producer and consumer can never
  * disagree.
  *
- * WIRE-PERMANENT — do not change. Every value here is baked into the
+ * WIRE-PERMANENT: do not change. Every value here is part of the
  * content-encryption-key derivation of every sealed frame ever produced. The
- * conventions (all anchored on the RECIPIENT SERVICE, never the message
+ * conventions (all anchored on the recipient service, never the message
  * domain):
  *
  * - HKDF `info` = `"d2-seal-v1"` ‖ len16BE(serviceId) ‖ UTF-8(serviceId) ‖
- *   len16BE(ephSPKI) ‖ ephSPKI — each variable component length-prefixed so
+ *   len16BE(ephSPKI) ‖ ephSPKI - each variable component length-prefixed so
  *   boundaries are unambiguous by construction.
  * - HKDF `salt` = UTF-8(serviceId).
  * - AES-GCM `aad` = UTF-8(serviceId).
@@ -39,7 +39,7 @@ const _utf8 = new TextEncoder();
 
 /**
  * Encodes the recipient service id to the exact bytes used as the HKDF salt
- * AND the AES-GCM additional authenticated data.
+ * and the AES-GCM additional authenticated data.
  *
  * @param recipientServiceId The validated recipient service id.
  * @returns UTF-8 bytes of the service id.
@@ -87,7 +87,7 @@ export function buildInfo(
 
 /**
  * Derives the per-message AES-256-GCM content-encryption key from the raw ECDH
- * shared secret via HKDF-SHA256 under the frozen salt + info conventions.
+ * shared secret via HKDF-SHA256 under the frozen salt and info conventions.
  *
  * @param sharedSecret The raw ECDH agreement output.
  * @param serviceId UTF-8 bytes of the recipient service id (the salt).

@@ -20,7 +20,7 @@ using Xunit;
 /// Adversarial coverage for
 /// <see cref="MutableRequestContext.FromClaims"/>. The factory consumes a
 /// <see cref="ClaimsPrincipal"/> already validated by the AspNetCore auth
-/// middleware — so it does not re-validate, but malformed individual claim
+/// middleware - so it does not re-validate, but malformed individual claim
 /// VALUES (a non-Guid org id, an unknown enum value, etc.) must yield a
 /// null property, NOT bubble an exception.
 /// </summary>
@@ -31,7 +31,7 @@ public sealed class MutableRequestContextFromClaimsTests
     private const string _ORG_GUID = "33333333-3333-3333-3333-333333333333";
 
     // ------------------------------------------------------------------
-    // Happy path — full claim set round-trips
+    // Happy path - full claim set round-trips
     // ------------------------------------------------------------------
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed class MutableRequestContextFromClaimsTests
     [Fact]
     public void FromClaims_MultipleAudClaims_PopulatesListAudience()
     {
-        // RFC 7519 §4.1.3: aud may be a JSON array. ClaimsPrincipal stores those
+        // RFC 7519 section 4.1.3: aud may be a JSON array. ClaimsPrincipal stores those
         // as multiple Claim instances with type "aud".
         var claims = new (string Type, string Value)[]
         {
@@ -109,14 +109,14 @@ public sealed class MutableRequestContextFromClaimsTests
     }
 
     // ------------------------------------------------------------------
-    // Trinary auth bool — not-authenticated principal
+    // Trinary auth bool - not-authenticated principal
     // ------------------------------------------------------------------
 
     [Fact]
     public void FromClaims_UnauthenticatedPrincipal_IsAuthenticatedFalse()
     {
         // FromClaims sets IsAuthenticated = principal.Identity?.IsAuthenticated ?? false.
-        // Unauthenticated identity → false (NOT null — middleware has confirmed).
+        // Unauthenticated identity -> false (NOT null - middleware has confirmed).
         var claims = new (string Type, string Value)[]
         {
             ("sub", _USER_GUID),
@@ -140,7 +140,7 @@ public sealed class MutableRequestContextFromClaimsTests
     }
 
     // ------------------------------------------------------------------
-    // Adversarial — malformed individual claim values yield null, not throw
+    // Adversarial - malformed individual claim values yield null, not throw
     // ------------------------------------------------------------------
 
     [Fact]
@@ -162,7 +162,7 @@ public sealed class MutableRequestContextFromClaimsTests
     [Fact]
     public void FromClaims_NonGuidSub_LeavesUserIdNull_ButSubjectPreserved()
     {
-        // Pure service-identity tokens (RFC 6749 §4.4) carry sub = client_id.
+        // Pure service-identity tokens (RFC 6749 section 4.4) carry sub = client_id.
         // UserId stays null; Subject preserves the raw value.
         var claims = new (string Type, string Value)[]
         {
@@ -179,7 +179,7 @@ public sealed class MutableRequestContextFromClaimsTests
     [Fact]
     public void FromClaims_EmptyGuidSub_LeavesUserIdNull()
     {
-        // Adversarial: Guid.Empty is "falsey" — TryParseTruthyNull returns false
+        // Adversarial: Guid.Empty is "falsey" - TryParseTruthyNull returns false
         // for the all-zeros GUID even though it parses.
         var claims = new (string Type, string Value)[]
         {
@@ -276,7 +276,7 @@ public sealed class MutableRequestContextFromClaimsTests
     [Fact]
     public void FromClaims_EmptyStringClaim_TreatedAsAbsent()
     {
-        // No-empty-strings invariant: ToNullIfEmpty() collapses "" → null.
+        // No-empty-strings invariant: ToNullIfEmpty() collapses "" -> null.
         var claims = new (string Type, string Value)[]
         {
             ("sub", _USER_GUID),
@@ -311,7 +311,7 @@ public sealed class MutableRequestContextFromClaimsTests
     }
 
     // ------------------------------------------------------------------
-    // Actor chain claim — round-trips through ActorChainParser
+    // Actor chain claim - round-trips through ActorChainParser
     // ------------------------------------------------------------------
 
     [Fact]
@@ -335,7 +335,7 @@ public sealed class MutableRequestContextFromClaimsTests
     [Fact]
     public void FromClaims_MalformedActClaim_PropagatesParserException()
     {
-        // Adversarial: FromClaims doesn't catch MalformedActorChainException —
+        // Adversarial: FromClaims doesn't catch MalformedActorChainException -
         // a malformed act claim from a "validated" principal indicates upstream
         // mint bug; auth middleware MUST handle it (per parser contract).
         var claims = new (string Type, string Value)[]
@@ -351,8 +351,8 @@ public sealed class MutableRequestContextFromClaimsTests
     }
 
     // ------------------------------------------------------------------
-    // LastStepUpAt — temporal adversarial tests (§1.2 / §25.12 / §1.22)
-    // Category 2 — past UTC instant; parsed from d2_step_up_at JWT claim.
+    // LastStepUpAt - temporal adversarial tests
+    // Category 1 - past UTC instant; parsed from d2_step_up_at JWT claim.
     // ------------------------------------------------------------------
 
     [Fact]
@@ -370,7 +370,7 @@ public sealed class MutableRequestContextFromClaimsTests
     [Fact]
     public void FromClaims_LastStepUpAt_ParsedFromUnixEpoch()
     {
-        // Unix epoch (long) form — the primary JWT wire format.
+        // Unix epoch (long) form - the primary JWT wire format.
         // 2026-01-15T12:00:00Z = 1768550400 unix seconds.
         var claims = new (string Type, string Value)[]
         {
@@ -405,7 +405,7 @@ public sealed class MutableRequestContextFromClaimsTests
     public void FromClaims_LastStepUpAt_NonZeroOffset_RoundTrips()
     {
         // UTC-normalized deserialization: non-zero offset is preserved by
-        // DateTimeOffset.TryParse — the offset is carried in the string form.
+        // DateTimeOffset.TryParse - the offset is carried in the string form.
         var withOffset = new DateTimeOffset(2026, 5, 15, 9, 0, 0, TimeSpan.FromHours(-5));
         var claims = new (string Type, string Value)[]
         {
@@ -512,6 +512,120 @@ public sealed class MutableRequestContextFromClaimsTests
         var ctx = MutableRequestContext.FromClaims(principal);
 
         ctx.LastStepUpAt.Should().BeNull();
+    }
+
+    // ------------------------------------------------------------------
+    // Reach claim - a verbatim set, so every element survives the read
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public void FromClaims_MultiElementReachClaim_CarriesEveryElement()
+    {
+        // A JSON array claim reaches a ClaimsPrincipal as one Claim per element.
+        // Reading only the first would hand the reach conversion a set silently
+        // narrowed to one organization, which is fail-closed and so invisible.
+        var claims = new (string Type, string Value)[]
+        {
+            ("d2_accessible_org_ids", _ORG_GUID),
+            ("d2_accessible_org_ids", _SESSION_GUID),
+            ("d2_accessible_org_ids", _USER_GUID),
+        };
+
+        var ctx = MutableRequestContext.FromClaims(BuildPrincipal(true, claims));
+
+        ctx.AccessibleOrgIds.Should().BeEquivalentTo([_ORG_GUID, _SESSION_GUID, _USER_GUID]);
+    }
+
+    [Fact]
+    public void FromClaims_ReachClaimElementThatIsNotAnIdentifier_ReachesTheConsumerUnchanged()
+    {
+        // The element is kept rather than dropped so the conversion that owns
+        // the invariant can refuse the whole set. Dropping it here would leave a
+        // well-formed smaller set that no later reader could tell from a correct
+        // one.
+        var claims = new (string Type, string Value)[]
+        {
+            ("d2_accessible_org_ids", _ORG_GUID),
+            ("d2_accessible_org_ids", "   "),
+        };
+
+        var ctx = MutableRequestContext.FromClaims(BuildPrincipal(true, claims));
+
+        ctx.AccessibleOrgIds.Should().BeEquivalentTo([_ORG_GUID, "   "]);
+    }
+
+    [Fact]
+    public void FromClaims_ReachClaimHoldingASerializedArray_StaysOneUnreadableElement()
+    {
+        // One claim carrying the serialized array is not the declared wire form.
+        // It arrives as a single element no identifier grammar accepts, so the
+        // conversion refuses the whole set instead of taking a first member.
+        var serialized = $"[\"{_ORG_GUID}\",\"{_SESSION_GUID}\"]";
+        var claims = new (string Type, string Value)[]
+        {
+            ("d2_accessible_org_ids", serialized),
+        };
+
+        var ctx = MutableRequestContext.FromClaims(BuildPrincipal(true, claims));
+
+        ctx.AccessibleOrgIds.Should().ContainSingle().Which.Should().Be(serialized);
+    }
+
+    [Fact]
+    public void FromClaims_AbsentReachClaim_LeavesTheSetEmpty()
+    {
+        var ctx = MutableRequestContext.FromClaims(
+            BuildPrincipal(true, [("sub", _USER_GUID)]));
+
+        ctx.AccessibleOrgIds.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void FromClaims_ScopeClaimWithSeveralTokens_StillSplitsOnSpace()
+    {
+        // The reach claim's verbatim reading must not have changed how the
+        // RFC 6749 section 3.3 scope claim is read.
+        var ctx = MutableRequestContext.FromClaims(
+            BuildPrincipal(true, [("scope", "self.read self.write orders.order.list")]));
+
+        ctx.Scopes.Should().BeEquivalentTo(["self.read", "self.write", "orders.order.list"]);
+    }
+
+    [Fact]
+    public void FromClaims_TwoAmrClaims_JoinsBothIntoAuthMethod()
+    {
+        // ASP.NET expands the amr array into one claim per element.
+        var principal = BuildPrincipal(
+            authenticated: true,
+            [("sub", _USER_GUID), ("amr", "pwd"), ("amr", "mfa")]);
+
+        var ctx = MutableRequestContext.FromClaims(principal);
+
+        ctx.AuthMethod.Should().Be("pwd mfa");
+    }
+
+    [Fact]
+    public void FromClaims_OneAmrClaim_ReadsItAsItIs()
+    {
+        var principal = BuildPrincipal(
+            authenticated: true,
+            [("sub", _USER_GUID), ("amr", "pwd")]);
+
+        var ctx = MutableRequestContext.FromClaims(principal);
+
+        ctx.AuthMethod.Should().Be("pwd");
+    }
+
+    [Fact]
+    public void FromClaims_OnlyBlankAmrClaims_LeavesAuthMethodNull()
+    {
+        var principal = BuildPrincipal(
+            authenticated: true,
+            [("sub", _USER_GUID), ("amr", " "), ("amr", string.Empty)]);
+
+        var ctx = MutableRequestContext.FromClaims(principal);
+
+        ctx.AuthMethod.Should().BeNull();
     }
 
     // ------------------------------------------------------------------

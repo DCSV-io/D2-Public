@@ -1,0 +1,43 @@
+<!--
+Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>DcsvIo.D2.Pagination.EntityFrameworkCore.Postgres</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    The PostgreSQL package for list search: the trigram dialect, the generated
+    search-blob column and its index. These are provider-specific by nature, so
+    they sit here and not in DcsvIo.D2.Pagination.EntityFrameworkCore, which
+    stays provider-neutral.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\entity-framework-core\DcsvIo.D2.Pagination.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\DcsvIo.D2.Pagination.csproj" />
+    <ProjectReference Include="..\..\result\core\DcsvIo.D2.Result.csproj" />
+    <ProjectReference Include="..\..\utilities\DcsvIo.D2.Utilities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DcsvIo.D2.Tests" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <Version>0.3.23</Version>
+    <PackageId>DcsvIo.D2.Pagination.EntityFrameworkCore.Postgres</PackageId>
+    <Description>PostgreSQL trigram list-search helpers for D2 - the search dialect, the generated search-blob column and its index.</Description>
+    <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>

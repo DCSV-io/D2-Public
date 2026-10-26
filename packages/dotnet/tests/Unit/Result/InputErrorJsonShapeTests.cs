@@ -16,10 +16,10 @@ using Xunit;
 /// <summary>
 /// Pins the wire shape of <see cref="InputError"/> against the spec-driven
 /// <see cref="InputErrorWireShape"/> catalog. Mirrors the
-/// <c>D2ResultJsonShapeTests</c> structural-guard pattern so any future
+/// <c>D2ResultJsonShapeTests</c> structural checks, so an
 /// auto-property added to the record without a <c>[JsonIgnore]</c> attribute
 /// (or any drift between the property's wire key and the spec catalog)
-/// surfaces as a test failure rather than a silent wire-shape change.
+/// fails a test instead of changing the wire shape unnoticed.
 /// </summary>
 public sealed class InputErrorJsonShapeTests
 {
@@ -42,8 +42,8 @@ public sealed class InputErrorJsonShapeTests
     public void Serialize_WireKeysSubsetOfCatalog()
     {
         // Every wire key emitted by a fully-populated InputError MUST be in
-        // the spec catalog. Pins against accidental leakage when a future
-        // auto-property is added without a [JsonIgnore] attribute.
+        // the spec catalog. An auto-property added later without a [JsonIgnore]
+        // attribute would add a wire key and fail this test.
         var inputError = new InputError(
             "email",
             [new TKMessage("common_validation_EMAIL_INVALID")]);
@@ -65,9 +65,9 @@ public sealed class InputErrorJsonShapeTests
     {
         // Default JsonSerializerOptions has NO PropertyNamingPolicy set, so a
         // typical record would round-trip as PascalCase. The
-        // [JsonPropertyName] attributes pin camelCase even under default
-        // options — confirms the wire shape is per-property explicit and does
-        // not depend on the caller setting JsonNamingPolicy.CamelCase.
+        // [JsonPropertyName] attributes fix camelCase even under default
+        // options. Each wire name is set on its property and does not depend on
+        // the serializer being configured with JsonNamingPolicy.CamelCase.
         var inputError = new InputError(
             "email",
             [new TKMessage("k")]);

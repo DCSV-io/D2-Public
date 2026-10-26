@@ -10,9 +10,9 @@ using DcsvIo.D2.Handler;
 using DcsvIo.D2.Result;
 
 /// <summary>
-/// Test handler. <see cref="HandlerDispatcherFactoryTests"/> uses this to
-/// verify the closed-generic dispatcher build path. The handler body is
-/// never invoked from those tests — they only assert dispatcher type.
+/// Test handler for the closed-generic dispatcher build path that
+/// <see cref="HandlerDispatcherFactoryTests"/> verifies. Nothing invokes the
+/// handler body, because those tests assert only the dispatcher type.
 /// </summary>
 public sealed class SampleAuditHandler : BaseHandler<SampleAuditHandler, SampleAuditEvent, Unit>
 {

@@ -7,10 +7,10 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   </PropertyGroup>
 
   <!--
-    PostgreSQL implementation of IDbExceptionClassifier. Plugs into
-    BaseRepoHandler via DI (services.AddD2Postgres()). Owns the SQLSTATE
-    matrix + the wrapping rules for DbUpdateException ↔ PostgresException
-    ↔ raw NpgsqlException. Sibling packages would provide the same
+    PostgreSQL implementation of IDbExceptionClassifier, registered through DI
+    (services.AddD2Postgres()). It defines the SQLSTATE mapping and the
+    unwrapping rules for DbUpdateException <- PostgresException
+    <- raw NpgsqlException. Sibling packages can provide the same
     interface for SQL Server, SQLite, MySQL, etc.
   -->
 
@@ -30,7 +30,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.1</Version>
+    <Version>0.1.18</Version>
     <PackageId>DcsvIo.D2.Handler.Repo.Postgres</PackageId>
     <Description>PostgreSQL IDbExceptionClassifier implementation for D2, plugging Npgsql failure classification into BaseRepoHandler.</Description>
     <IsPackable>true</IsPackable>

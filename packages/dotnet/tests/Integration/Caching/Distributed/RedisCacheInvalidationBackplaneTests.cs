@@ -17,7 +17,7 @@ using Xunit;
 /// <summary>
 /// End-to-end tests for the Redis-backed invalidation backplane.
 /// Verifies the universal "everyone acts" rule, multi-subscriber
-/// independence, error isolation, and dispose behavior — all against a
+/// independence, error isolation, and dispose behavior - all against a
 /// real Redis pub/sub channel.
 /// </summary>
 [Collection("Redis")]
@@ -71,7 +71,7 @@ public sealed class RedisCacheInvalidationBackplaneTests
         var gate = new TaskCompletionSource();
         var locker = new object();
 
-        var totalExpected = 6;  // 2 subs × 3 messages each
+        var totalExpected = 6;  // 2 subs x 3 messages each
         var totalReceived = 0;
 
         void Track(List<string> store, string key)

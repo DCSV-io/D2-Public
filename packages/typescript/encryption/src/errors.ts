@@ -3,17 +3,17 @@
 // -----------------------------------------------------------------------
 
 /**
- * Base type for every error raised by this lib's framing or keyring path —
+ * Base type for every error raised by this lib's framing or keyring path;
  * the behavioral twin of .NET `DcsvIo.D2.Encryption.EncryptionException`.
  * AEAD authentication failures surface as {@link AuthenticationTagMismatchError}
  * (the twin of the BCL `AuthenticationTagMismatchException`) and are kept a
- * distinct type from the framing errors: a tag mismatch is "tampering or wrong
- * AAD or wrong key for kid", a frame error is "garbage bytes that never came
- * from us".
+ * distinct type from the framing errors: a tag mismatch means "tampering or wrong
+ * AAD or wrong key for kid", a frame error means "garbage bytes that this lib
+ * never produced".
  */
 export abstract class EncryptionError extends Error {
   /**
-   * @param message Human-readable description. MUST NOT include any ciphertext,
+   * @param message Human-readable description. Must not include any ciphertext,
    *   key bytes, or frame bytes.
    * @param innerError The underlying cause, when one exists.
    */
@@ -27,9 +27,9 @@ export abstract class EncryptionError extends Error {
 }
 
 /**
- * Raised when a frame buffer is structurally invalid — too short for the
+ * Raised when a frame buffer is structurally invalid: it is too short for the
  * minimum, a declared length overruns the buffer, a kid is not valid UTF-8,
- * or a frame-borne key fails to import. The twin of .NET
+ * or a key read from the frame fails to import. The twin of .NET
  * `FrameMalformedException`. Distinct from {@link AuthenticationTagMismatchError}:
  * a malformed frame never reached the AEAD primitive.
  */
@@ -46,7 +46,7 @@ export class FrameMalformedError extends EncryptionError {
 /**
  * Raised when a frame's version byte is not the current version supported by
  * this lib. The twin of .NET `FrameVersionMismatchException`. There is no
- * "best effort" decode path — unrecognized versions are rejected so a future
+ * "best effort" decode path: unrecognized versions are rejected, so a future
  * format revision (or an attacker-crafted frame) can never be silently
  * misinterpreted.
  */
@@ -66,7 +66,7 @@ export class FrameVersionMismatchError extends EncryptionError {
  * The twin of .NET `KidNotInKeyringException`. On the encrypt/seal path this
  * signals programmer error (the keyring lost its declared active kid); on the
  * decrypt/open path it is the expected outcome for a frame encrypted under a
- * retired-and-removed key — the caller routes the message to a DLQ.
+ * retired and removed key, and the message can then be routed to a DLQ.
  */
 export class KidNotInKeyringError extends EncryptionError {
   /** The kid that was not found in the keyring. */
@@ -80,7 +80,7 @@ export class KidNotInKeyringError extends EncryptionError {
 }
 
 /**
- * Raised when AES-GCM authentication fails on decrypt/open — tampering, a
+ * Raised when AES-GCM authentication fails on decrypt/open: tampering, a
  * wrong-recipient frame (wrong AAD), or a mismatched key for the declared kid.
  * The typed twin of the BCL `AuthenticationTagMismatchException`: WebCrypto
  * surfaces the same condition as an opaque `OperationError`, which this lib
@@ -89,7 +89,7 @@ export class KidNotInKeyringError extends EncryptionError {
  */
 export class AuthenticationTagMismatchError extends EncryptionError {
   /**
-   * @param message Description (never carries plaintext, key, or tag bytes).
+   * @param message Description (never contains plaintext, key, or tag bytes).
    * @param innerError The underlying WebCrypto rejection.
    */
   constructor(

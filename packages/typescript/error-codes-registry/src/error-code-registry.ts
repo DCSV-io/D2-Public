@@ -5,36 +5,38 @@
 import { type ErrorCategory } from "@dcsv-io/d2-error-category";
 import type { TKMessage } from "@dcsv-io/d2-i18n-abstractions";
 
-// Re-export the relocated ErrorCategory so existing consumers that imported it
-// from this package (`import { type ErrorCategory } from "@dcsv-io/d2-error-codes-registry"`)
-// keep working unchanged.
+// Re-export the relocated ErrorCategory, so
+// `@dcsv-io/d2-error-codes-registry` still exports the `ErrorCategory` type.
 export { type ErrorCategory } from "@dcsv-io/d2-error-category";
 
 // ---------------------------------------------------------------------------
-// ErrorCodeInfo — the 8-field per-code metadata record. Generated entries
-// from `error-code-registry.g.ts` conform to this interface.
+// ErrorCodeInfo - the per-code metadata record. Generated entries from
+// `error-code-registry.g.ts` conform to this interface.
 //
-// Field alignment with the .NET runtime (must match exactly for the
-// cross-runtime parity test to pass):
-//   code            → string (SCREAMING_SNAKE wire-format code)
-//   httpStatus      → number (HTTP status integer)
-//   category        → ErrorCategory (9-value string-union from @dcsv-io/d2-error-category)
-//   userMessageKey  → TKMessage (typed TK constant from @dcsv-io/d2-i18n-keys)
-//   factoryName     → string (PascalCase factory symbol)
-//   factoryShape    → ErrorCodeFactoryShape (2-value string-union: standard / none)
-//   doc             → string (developer / JSDoc documentation text)
-//   domain          → string (derived from spec filename; "common" for generic)
+// Field alignment with the .NET runtime (must match exactly so the
+// cross-runtime parity test passes), listed in the .NET record's field
+// order:
+//   code            -> string (SCREAMING_SNAKE wire-format code)
+//   httpStatus      -> number (HTTP status integer)
+//   category        -> ErrorCategory (closed string-union from @dcsv-io/d2-error-category)
+//   userMessageKey  -> TKMessage (typed TK constant from @dcsv-io/d2-i18n-keys)
+//   factoryName     -> string (PascalCase factory symbol)
+//   factoryShape    -> ErrorCodeFactoryShape (standard / none)
+//   doc             -> string (developer / JSDoc documentation text)
+//   domain          -> string (business domain token; "common", "auth" and so on)
+//   owner           -> string (gen or lib in this registry)
+//   isDeprecated    -> boolean
 // ---------------------------------------------------------------------------
 
-// ErrorCategory is the relocated foundational @dcsv-io/d2-error-category leaf — the
-// nine-value closed union, generated from contracts/error-category/
+// ErrorCategory is the relocated foundational @dcsv-io/d2-error-category leaf:
+// the closed union generated from contracts/error-category/
 // error-category.spec.json (the cross-runtime source). Re-exported from this
 // package's barrel for backward compatibility.
 
 /**
  * Closed factory-shape classification. Mirrors the canonical schema enum
  * byte-for-byte: `standard` is the one universal error-factory shape
- * (messages?, inputErrors?, errorCode?, category?, traceId? — all optional);
+ * (messages?, inputErrors?, errorCode?, category?, traceId? - all optional);
  * `none` emits the constant + boolean only (no factory).
  */
 export type ErrorCodeFactoryShape = "standard" | "none";
@@ -42,16 +44,15 @@ export type ErrorCodeFactoryShape = "standard" | "none";
 /**
  * Full metadata record for one error code in the merged registry. Generated
  * from all `*-error-codes.spec.json` catalogs under `contracts/`. Mirrors the
- * .NET `ErrorCodeInfo` readonly record struct — 8 fields, same names, same
- * semantics. Cross-runtime parity is enforced by the contract-tests parity
- * fixture.
+ * .NET `ErrorCodeInfo` readonly record struct: same field names in the same
+ * order. A cross-runtime parity test enforces the parity.
  */
 export interface ErrorCodeInfo {
   /** Wire-format error code (SCREAMING_SNAKE). */
   readonly code: string;
   /** HTTP status mapping for transport. */
   readonly httpStatus: number;
-  /** Closed semantic/telemetry classification. */
+  /** Closed semantic and telemetry classification. */
   readonly category: ErrorCategory;
   /**
    * Translation-key reference as a typed `TKMessage` constant from
@@ -65,27 +66,34 @@ export interface ErrorCodeInfo {
   /** Developer documentation text. */
   readonly doc: string;
   /**
-   * Domain token derived from the spec filename. Generic catalog →
-   * `"common"`; per-domain catalogs use their prefix token in lowercase
-   * (e.g. `"auth"` for `auth-error-codes.spec.json`).
+   * Business domain token, decided by the catalog the code was generated
+   * from. The README lists the catalog-to-domain map this registry contains.
    */
   readonly domain: string;
+  /**
+   * Owner token, decided by the same catalog identity: `gen` for the generic
+   * catalog, `lib` for a framework-library catalog. The schema reserves
+   * further owner tokens for catalogs that ship outside this package.
+   */
+  readonly owner: string;
+  /** `true` when the spec entry carries `"deprecated": true`. */
+  readonly isDeprecated: boolean;
 }
 
 // ---------------------------------------------------------------------------
-// ErrorCodeRegistry — the resolution API. Backed by a frozen Map for O(1)
-// ordinal case-sensitive lookup. Static (no DI) — the data is compile-time-
-// frozen with no runtime config.
+// ErrorCodeRegistry - the resolution API. Backed by a frozen Map for O(1)
+// ordinal case-sensitive lookup. Static (no DI): the data is frozen at
+// compile time with no runtime config.
 //
 // Resolution semantics (hard not-found):
-//   resolve("UNKNOWN_CODE")  → undefined
-//   has("UNKNOWN_CODE")      → false
-//   Unknown codes are NOT synthesized — the caller owns the fallback.
+//   resolve("UNKNOWN_CODE")  -> undefined
+//   has("UNKNOWN_CODE")      -> false
+//   Unknown codes are not synthesized; the caller supplies any fallback.
 // ---------------------------------------------------------------------------
 
 /**
  * Merged error-code registry. Aggregates all `*-error-codes.spec.json` catalogs
- * from `contracts/` into a single frozen `code → ErrorCodeInfo` lookup table.
+ * from `contracts/` into a single frozen `code -> ErrorCodeInfo` lookup table.
  *
  * Use `resolve(code)` for single-code lookups. Use `has(code)` when only
  * membership is needed. Use `all` to iterate every registered code.
@@ -93,14 +101,14 @@ export interface ErrorCodeInfo {
 export interface ErrorCodeRegistry {
   /**
    * Resolve a wire error code to its full metadata.
-   * Returns `undefined` for any code not in the registry (hard not-found —
-   * the caller owns any fallback logic).
+   * Returns `undefined` for any code not in the registry (hard not-found;
+   * the caller supplies any fallback logic).
    */
   resolve(code: string): ErrorCodeInfo | undefined;
 
   /**
    * Returns `true` if `code` is present in the registry, `false` otherwise.
-   * Ordinal case-sensitive — `"not_found"` ≠ `"NOT_FOUND"`.
+   * Ordinal case-sensitive - `"not_found"` != `"GEN_NOT_FOUND"`.
    */
   has(code: string): boolean;
 
@@ -112,8 +120,8 @@ export interface ErrorCodeRegistry {
  * Build a frozen {@link ErrorCodeRegistry} from the generated entries array.
  * Called once at module load time in `error-code-registry.g.ts`.
  *
- * @internal — exported for the generated file only; consumers use
- *   `errorCodeRegistry` from `@dcsv-io/d2-error-codes-registry`.
+ * @internal - exported for the generated file only; use
+ *   `errorCodeRegistry` from `@dcsv-io/d2-error-codes-registry` instead.
  */
 export function buildRegistry(
   entries: readonly ErrorCodeInfo[],

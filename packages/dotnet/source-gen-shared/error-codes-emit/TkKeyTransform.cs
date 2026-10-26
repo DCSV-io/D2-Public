@@ -12,13 +12,13 @@ using System;
 /// Pure inverse of <c>DcsvIo.D2.I18n.SourceGen.KeyDecomposer.Decompose</c>:
 /// converts a <c>TK</c> symbol-path reference back to the snake_case key it
 /// was decomposed from, so a <c>userMessageKey</c> can be cross-checked
-/// against <c>contracts/messages/en-US.json</c> (the message source — NOT the
+/// against <c>contracts/messages/en-US.json</c> (the message source, not the
 /// generated <c>TK.g.cs</c>, which would be circular).
 /// </summary>
 /// <remarks>
 /// <para>
 /// <c>KeyDecomposer</c> splits a snake key into [domain, category,
-/// constant..N], PascalCasing only the FIRST char of the domain + category
+/// constant..N], PascalCasing only the first char of the domain + category
 /// segments (the constant segments are uppercased + joined). The TK path is
 /// <c>TK.&lt;Domain&gt;.&lt;Category&gt;.&lt;CONST&gt;</c>; the inverse
 /// lowercases only the first char of <c>&lt;Domain&gt;</c>/<c>&lt;Category&gt;</c>
@@ -37,7 +37,7 @@ internal static class TkKeyTransform
 
     /// <summary>
     /// Inverse-transforms a TK symbol-path reference to its snake_case key
-    /// (e.g. <c>TK.Auth.Errors.UNAUTHORIZED</c> →
+    /// (e.g. <c>TK.Auth.Errors.UNAUTHORIZED</c> ->
     /// <c>auth_errors_UNAUTHORIZED</c>). Returns <c>null</c> when the input
     /// does not have the expected <c>TK.&lt;Domain&gt;.&lt;Category&gt;.&lt;CONST&gt;</c>
     /// shape.

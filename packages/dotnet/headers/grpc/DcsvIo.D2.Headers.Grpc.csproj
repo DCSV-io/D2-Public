@@ -5,18 +5,19 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   <PropertyGroup>
     <RootNamespace>DcsvIo.D2.Headers.Grpc</RootNamespace>
 
-    <!-- Emit SourceGen output to <project-dir>/Generated/; this directory is
-         tracked in git so PR reviewers see codegen diffs without a local build. -->
+    <!-- Emit SourceGen output to <project-dir>/Generated/. Git tracks this
+         directory, so pull request reviewers see codegen diffs without a
+         local build. -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
     <!--
-      The SourceGen pipeline feeds the in-memory compiler with the same content
-      that lands on disk under Generated/. Without this Remove, the SDK-default
-      <Compile Include="**/*.cs" /> glob picks up the on-disk copy and the build
-      fails with duplicate-definition errors (CS0101 / CS0111). See:
+      The SourceGen pipeline gives the in-memory compiler the same content that
+      it writes to disk under Generated/. Without this Remove, the SDK-default
+      <Compile Include="**/*.cs" /> glob also picks up the on-disk copy, and the
+      build fails with duplicate-definition errors (CS0101 / CS0111). See:
       https://learn.microsoft.com/dotnet/core/project-sdk/msbuild-props#compilergeneratedfilesoutputpath
     -->
     <Compile Remove="$(CompilerGeneratedFilesOutputPath)\**\*.cs" />
@@ -46,7 +47,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.1</Version>
+    <Version>0.1.7</Version>
     <PackageId>DcsvIo.D2.Headers.Grpc</PackageId>
     <Description>D2 wire-protocol header constants applicable to the gRPC transport, code-generated from the shared headers spec.</Description>
     <IsPackable>true</IsPackable>

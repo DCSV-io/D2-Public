@@ -15,32 +15,16 @@ using Microsoft.CodeAnalysis.Text;
 
 /// <summary>
 /// Roslyn incremental source generator that emits the merged cross-catalog
-/// <c>ErrorCodeRegistry.g.cs</c> (the <c>ErrorCodeInfo</c> record and
-/// <c>ErrorCodeRegistry</c> static class) into
-/// <c>DcsvIo.D2.ErrorCodes.Registry</c>.
+/// <c>ErrorCodeRegistry.g.cs</c> into <c>DcsvIo.D2.ErrorCodes.Registry</c>
+/// (public GEN and public LIB catalogs only).
 /// </summary>
-/// <remarks>
-/// <para>
-/// The generator globs ALL error-code specs surfaced via
-/// <c>AdditionalFiles</c> — the generic <c>error-codes.spec.json</c> plus
-/// every <c>*-error-codes.spec.json</c> — aggregates them into a merged
-/// table, runs the cross-catalog collision check (<c>D2ERC004</c> /
-/// <c>D2ERC005</c>), and emits one merged file into the single target
-/// assembly <c>DcsvIo.D2.ErrorCodes.Registry</c>. Anything else →
-/// emit nothing.
-/// </para>
-/// <para>
-/// The generator intentionally does NOT modify the existing per-catalog
-/// generators or their emitted output, preserving byte-identity of the
-/// committed <c>*.g.cs</c> files.
-/// </para>
-/// </remarks>
 [Generator]
 public sealed class RegistryGenerator : IIncrementalGenerator
 {
-    private const string _TARGET_ASSEMBLY = "DcsvIo.D2.ErrorCodes.Registry";
     private const string _HINT_NAME = "ErrorCodeRegistry.g.cs";
     private const string _CATEGORY_SPEC_NAME = "error-category.spec.json";
+
+    private static readonly RegistryEmitConfig sr_config = RegistryEmitConfig.Public;
 
     /// <inheritdoc/>
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -60,16 +44,13 @@ public sealed class RegistryGenerator : IIncrementalGenerator
 
             if (!string.Equals(
                 compilation.AssemblyName,
-                _TARGET_ASSEMBLY,
+                sr_config.TargetAssemblyName,
                 StringComparison.Ordinal))
                 return;
 
             if (specFiles.IsDefaultOrEmpty)
                 return;
 
-            // Split the category spec out of the error-code specs; only the
-            // latter feed the registry table. The category spec defines the
-            // closed ErrorCategory set the membership check validates against.
             var categoryWireSet = ImmutableHashSet<string>.Empty
                 .WithComparer(StringComparer.Ordinal);
             var errorCodeSpecs = ImmutableArray.CreateBuilder<SpecFile>();
@@ -108,7 +89,7 @@ public sealed class RegistryGenerator : IIncrementalGenerator
             if (!categoryDiagnostics.IsEmpty)
                 return;
 
-            var source = RegistryEmitter.Emit(entries);
+            var source = RegistryEmitter.Emit(entries, sr_config);
             spc.AddSource(_HINT_NAME, SourceText.From(source, System.Text.Encoding.UTF8));
         });
     }
@@ -141,6 +122,8 @@ public sealed class RegistryGenerator : IIncrementalGenerator
             RegistryDiagnosticDescriptors.MalformedRegistrySpec,
         RegistryDiagnosticIds.UnknownCategory =>
             RegistryDiagnosticDescriptors.UnknownCategory,
+        RegistryDiagnosticIds.UnregisteredCatalog =>
+            RegistryDiagnosticDescriptors.UnregisteredCatalog,
         _ => throw new InvalidOperationException(
             $"Unknown registry diagnostic id '{id}'."),
     };

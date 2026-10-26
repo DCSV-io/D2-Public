@@ -6,11 +6,11 @@
 
 namespace DcsvIo.D2.Tests.Unit.Messaging.Subscribing;
 
+using System.Collections.Generic;
 using AwesomeAssertions;
 using DcsvIo.D2.Handler;
 using DcsvIo.D2.Messaging;
 using DcsvIo.D2.Messaging.RabbitMq.Connection;
-using DcsvIo.D2.Messaging.RabbitMq.Encryption;
 using DcsvIo.D2.Messaging.RabbitMq.Subscribing;
 using DcsvIo.D2.Messaging.RabbitMq.Topology;
 using DcsvIo.D2.Result;
@@ -21,24 +21,23 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 /// <summary>
-/// Unit pins for FanoutExclusiveAutoDelete re-declare on the consumer channel
-/// before BasicConsume, and for orphan-channel dispose when StartAsync fails
-/// after channel assignment.
+/// Unit tests that pin two behaviors: the re-declare of the
+/// FanoutExclusiveAutoDelete queue on the consumer channel before
+/// BasicConsume, and the dispose of an orphan channel when StartAsync fails
+/// after the channel was assigned.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Fail-without-fix (re-declare): remove the
+/// Fail-without-fix (re-declare): if the
 /// <c>FanoutExclusiveAutoDelete</c> branch in <see cref="SubscriberChannel.StartAsync"/>
-/// and the primary exclusive <c>QueueDeclare</c> call disappears before
-/// <c>BasicConsume</c> — this test asserts that ordering + exclusive flags.
-/// Fail-without-fix (orphan dispose): remove the catch dispose and
+/// is removed, the primary exclusive <c>QueueDeclare</c> call disappears before
+/// <c>BasicConsume</c>, and this test asserts that ordering and the exclusive flags.
+/// Fail-without-fix (orphan dispose): if the catch dispose is removed,
 /// <see cref="RecordingChannel.DisposeAsyncCallCount"/> stays 0 after a QoS throw.
 /// </para>
 /// <para>
-/// Deliberately does NOT call <see cref="MessageWireResolver.ClearCache"/>.
-/// Fixture types here are unique and only need <c>RegisterForTesting</c>
-/// overwrite. A global clear races parallel Integration tests that seed
-/// via <c>IntegrationMessageFixtures</c> (see KeyRotatedEventTests note).
+/// The descriptor of the fixture message type comes from a <see cref="MessagingCatalog"/>
+/// that each case builds and passes to the channel, so no case sees the catalog of another.
 /// </para>
 /// </remarks>
 public sealed class SubscriberChannelExclusiveRedeclareTests
@@ -48,16 +47,7 @@ public sealed class SubscriberChannelExclusiveRedeclareTests
     {
         const string queue = "fanout-exclusive-redeclare-q";
         const string exchange = "d2.test.fanout.exclusive";
-        MessageWireResolver.RegisterForTesting(
-            typeof(ExclusiveFixtureMessage),
-            new MqMessageDescriptor(
-                Constant: "ExclusiveFixture",
-                MessageTypeName: typeof(ExclusiveFixtureMessage).FullName!,
-                Exchange: exchange,
-                ExchangeType: "fanout",
-                Encryption: MqMessageDescriptor.PLAINTEXT,
-                EncryptionReason: "unit fixture",
-                DefaultRoutingKey: string.Empty));
+        var catalog = BuildCatalog(exchange, "fanout", string.Empty);
 
         var channel = new RecordingChannel();
         var conn = new SingleChannelConnection(channel);
@@ -71,9 +61,12 @@ public sealed class SubscriberChannelExclusiveRedeclareTests
         var sub = new SubscriberChannel(
             conn,
             sp.GetRequiredService<IServiceScopeFactory>(),
-            new HandlerDispatcherFactory(registry),
+            new HandlerDispatcherFactory(registry, catalog),
+            catalog,
             registration,
-            NullLogger<SubscriberChannel>.Instance);
+            NullLogger<SubscriberChannel>.Instance,
+            new RabbitMqConnectionOptions(),
+            new RabbitMqSubscriberOptions());
 
         await sub.StartAsync(CancellationToken.None);
 
@@ -84,7 +77,8 @@ public sealed class SubscriberChannelExclusiveRedeclareTests
         exclusive.Should().BeTrue();
         autoDelete.Should().BeTrue();
 
-        // Main exchange + DLX declared before primary queue (DefaultTopologyDeclarer order).
+        // The main exchange and the DLX are declared before the primary queue, in
+        // DefaultTopologyDeclarer order.
         var mainExchange = channel.ExchangeDeclares.Should().Contain(
             e => e.Exchange == exchange).Subject;
 
@@ -130,16 +124,7 @@ public sealed class SubscriberChannelExclusiveRedeclareTests
     public async Task StartAsync_CompetingConsumer_DoesNotRedeclareExclusiveQueue()
     {
         const string queue = "competing-no-redeclare-q";
-        MessageWireResolver.RegisterForTesting(
-            typeof(ExclusiveFixtureMessage),
-            new MqMessageDescriptor(
-                Constant: "ExclusiveFixture",
-                MessageTypeName: typeof(ExclusiveFixtureMessage).FullName!,
-                Exchange: "d2.test.topic",
-                ExchangeType: "topic",
-                Encryption: MqMessageDescriptor.PLAINTEXT,
-                EncryptionReason: "unit fixture",
-                DefaultRoutingKey: "#"));
+        var catalog = BuildCatalog("d2.test.topic", "topic", "#");
 
         var channel = new RecordingChannel();
         var conn = new SingleChannelConnection(channel);
@@ -153,9 +138,12 @@ public sealed class SubscriberChannelExclusiveRedeclareTests
         var sub = new SubscriberChannel(
             conn,
             sp.GetRequiredService<IServiceScopeFactory>(),
-            new HandlerDispatcherFactory(registry),
+            new HandlerDispatcherFactory(registry, catalog),
+            catalog,
             registration,
-            NullLogger<SubscriberChannel>.Instance);
+            NullLogger<SubscriberChannel>.Instance,
+            new RabbitMqConnectionOptions(),
+            new RabbitMqSubscriberOptions());
 
         await sub.StartAsync(CancellationToken.None);
 
@@ -177,16 +165,7 @@ public sealed class SubscriberChannelExclusiveRedeclareTests
         var registration = BuildRegistration(
             "orphan-qos-q", QueuePattern.CompetingConsumer, routingKey: "#");
 
-        MessageWireResolver.RegisterForTesting(
-            typeof(ExclusiveFixtureMessage),
-            new MqMessageDescriptor(
-                Constant: "ExclusiveFixture",
-                MessageTypeName: typeof(ExclusiveFixtureMessage).FullName!,
-                Exchange: "d2.test.topic",
-                ExchangeType: "topic",
-                Encryption: MqMessageDescriptor.PLAINTEXT,
-                EncryptionReason: "unit fixture",
-                DefaultRoutingKey: "#"));
+        var catalog = BuildCatalog("d2.test.topic", "topic", "#");
 
         var registry = new SubscriberRegistry([registration]);
         var sp = new ServiceCollection().BuildServiceProvider();
@@ -194,9 +173,12 @@ public sealed class SubscriberChannelExclusiveRedeclareTests
         var sub = new SubscriberChannel(
             conn,
             sp.GetRequiredService<IServiceScopeFactory>(),
-            new HandlerDispatcherFactory(registry),
+            new HandlerDispatcherFactory(registry, catalog),
+            catalog,
             registration,
-            NullLogger<SubscriberChannel>.Instance);
+            NullLogger<SubscriberChannel>.Instance,
+            new RabbitMqConnectionOptions(),
+            new RabbitMqSubscriberOptions());
 
         var act = async () => await sub.StartAsync(CancellationToken.None);
 
@@ -219,6 +201,21 @@ public sealed class SubscriberChannelExclusiveRedeclareTests
 
         return -1;
     }
+
+    private static MessagingCatalog BuildCatalog(
+        string exchange, string exchangeType, string defaultRoutingKey) => new(
+        new Dictionary<string, MqMessageDescriptor>(StringComparer.Ordinal)
+        {
+            [ExclusiveFixtureMessage.CONSTANT] = new MqMessageDescriptor(
+                Constant: ExclusiveFixtureMessage.CONSTANT,
+                MessageTypeName: typeof(ExclusiveFixtureMessage).FullName!,
+                Exchange: exchange,
+                ExchangeType: exchangeType,
+                Encryption: MqMessageDescriptor.PLAINTEXT,
+                EncryptionReason: "unit fixture",
+                DefaultRoutingKey: defaultRoutingKey),
+        },
+        new Dictionary<string, MqSubscriptionDescriptor>(StringComparer.Ordinal));
 
     private static SubscriberRegistration BuildRegistration(
         string queueName,
@@ -243,8 +240,11 @@ public sealed class SubscriberChannelExclusiveRedeclareTests
     }
 
     /// <summary>Fixture message type for wire resolution.</summary>
+    [MqPub(ExclusiveFixtureMessage.CONSTANT)]
     public sealed class ExclusiveFixtureMessage
     {
+        /// <summary>The constant the fixture catalog keys this type under.</summary>
+        public const string CONSTANT = "ExclusiveFixture";
     }
 
     /// <summary>Companion handler for <see cref="ExclusiveFixtureMessage"/>.</summary>
@@ -283,7 +283,8 @@ public sealed class SubscriberChannelExclusiveRedeclareTests
         public ValueTask DisposeAsync() => default;
     }
 
-    /// <summary>Records topology + consume calls for StartAsync assertions.</summary>
+    /// <summary>Records topology and consume calls so that StartAsync assertions
+    /// can check them.</summary>
     private sealed class RecordingChannel : IChannel
     {
         private readonly List<string> r_callLog = [];

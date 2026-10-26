@@ -12,20 +12,20 @@ using System.Text.Json.Serialization;
 /// <summary>
 /// A translatable message: a translation key plus an optional dictionary of
 /// parameters bound for substitution into the translated template at the
-/// translation boundary (typically the SvelteKit BFF / browser via Paraglide,
-/// or — for outbound notifications — the server-side <see cref="ITranslator"/>).
+/// translation boundary (typically a SvelteKit frontend using Paraglide,
+/// or - for outbound notifications - the server-side <see cref="ITranslator"/>).
 /// </summary>
 /// <remarks>
 /// <para>
 /// This is the structural primitive for ALL user-facing translatable strings
 /// across the codebase: <c>D2Result.Messages</c>, <c>InputError.Errors</c>,
 /// notification template references, etc. Producers construct
-/// <see cref="TKMessage"/> instances exclusively via the SrcGen-emitted
+/// <see cref="TKMessage"/> instances exclusively via the source-generated
 /// <c>TK</c> constants (e.g. <c>TK.Common.Errors.NOT_FOUND</c>) and bind
 /// parameters via <see cref="With(string, string)"/>.
 /// </para>
 /// <para>
-/// The constructor is <see langword="internal"/> — user code can never
+/// The constructor is <see langword="internal"/> - user code can never
 /// synthesize a <see cref="TKMessage"/> from a raw string. This makes
 /// "untranslated literal in <c>D2Result.Messages</c>" structurally
 /// unrepresentable.
@@ -35,7 +35,7 @@ using System.Text.Json.Serialization;
 /// for the no-params case, <c>{ "key": "...", "params": { ... } }</c> when
 /// parameters are bound. The same shape is used in code AND on the wire.
 /// The property names (<c>key</c>, <c>params</c>) come from the spec-derived
-/// <see cref="TkMessageWireShape"/> catalog —
+/// <see cref="TkMessageWireShape"/> catalog -
 /// <c>contracts/tk-message/tk-message.spec.json</c> drives both the .NET
 /// serializer and the TS-side parser, so cross-language wire drift on the
 /// property names is structurally impossible.
@@ -56,7 +56,7 @@ public sealed record TKMessage
     /// </param>
     /// <remarks>
     /// Internal so user code can only obtain a <see cref="TKMessage"/> via
-    /// the SrcGen-emitted <c>TK</c> constants. The <see cref="TKMessageJsonConverter"/>
+    /// the source-generated <c>TK</c> constants. The <see cref="TKMessageJsonConverter"/>
     /// uses this constructor on deserialization.
     /// </remarks>
     internal TKMessage(string key, IReadOnlyDictionary<string, string>? parameters = null)
@@ -138,7 +138,7 @@ public sealed record TKMessage
 
     /// <summary>
     /// Gets a hash code combining <see cref="Key"/> and the parameter bindings
-    /// (order-independent — sums each entry's combined hash).
+    /// (order-independent - sums each entry's combined hash).
     /// </summary>
     /// <returns>A hash code consistent with <see cref="Equals(TKMessage)"/>.</returns>
     public override int GetHashCode()

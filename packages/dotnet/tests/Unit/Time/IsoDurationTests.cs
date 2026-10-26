@@ -13,7 +13,7 @@ using NodaTime;
 using Xunit;
 
 /// <summary>
-/// Adversarial suite for the lossless ISO-8601 ↔ NodaTime
+/// Adversarial suite for the lossless ISO-8601 &lt;-&gt; NodaTime
 /// <see cref="Duration"/> bridge (<see cref="IsoDuration"/>). Exercises
 /// whole-unit + decimal-fraction (nanosecond) round-tripping, the canonical
 /// output form, the no-floating-point invariant, malformed-input fail-loud
@@ -22,7 +22,7 @@ using Xunit;
 public sealed class IsoDurationTests
 {
     // -------------------------------------------------------------------------
-    // Parse — whole-unit forms round-trip to the exact value
+    // Parse - whole-unit forms round-trip to the exact value
     // -------------------------------------------------------------------------
 
     [Theory]
@@ -45,9 +45,9 @@ public sealed class IsoDurationTests
     [Fact]
     public void Parse_UnbalancedComponents_AreAcceptedAndValueEquivalentToBalanced()
     {
-        // "PT90M" (the Temporal-emitted unbalanced form) MUST parse to the same
-        // value as its balanced "PT1H30M" rendering — value equality, not
-        // string identity, is the cross-language contract.
+        // "PT90M" (the unbalanced form that Temporal emits) MUST parse to the same
+        // value as its balanced "PT1H30M" rendering. The cross-language contract
+        // is value equality, not string identity.
         var unbalanced = IsoDuration.Parse("PT90M").Data;
         var balanced = IsoDuration.Parse("PT1H30M").Data;
 
@@ -55,8 +55,8 @@ public sealed class IsoDurationTests
     }
 
     // -------------------------------------------------------------------------
-    // Parse — sub-second decimal-fraction seconds to nanosecond precision
-    // (the load-bearing capability the NodaTime built-ins lack)
+    // Parse - sub-second decimal-fraction seconds to nanosecond precision
+    // (a capability the NodaTime built-ins lack)
     // -------------------------------------------------------------------------
 
     [Theory]
@@ -79,9 +79,9 @@ public sealed class IsoDurationTests
     [Fact]
     public void Parse_NanosecondFraction_EqualsFromNanosecondsConstruction()
     {
-        // The parse path must produce the SAME Duration as a direct nanosecond
-        // construction — proving the decimal-to-nanosecond conversion is exact
-        // integer math (a right-pad), not a float multiply.
+        // The parse path must produce the same Duration as a direct nanosecond
+        // construction, because the decimal-to-nanosecond conversion is exact
+        // integer math (a right-pad) and not a float multiply.
         var parsed = IsoDuration.Parse("PT0.123456789S").Data;
 
         parsed.Should().Be(Duration.FromNanoseconds(123_456_789L));
@@ -91,15 +91,15 @@ public sealed class IsoDurationTests
     public void Parse_ShortFraction_RightPadsToNanoseconds_NoFloatRounding()
     {
         // "0.1" seconds is exactly 100_000_000 ns. A float multiply
-        // (0.1 * 1e9) is representable here, but "0.123456789" is NOT exactly
-        // representable as a double — this case pins that the conversion does
-        // not route through a float at all.
+        // (0.1 * 1e9) gives an exact result here, but "0.123456789" is not exactly
+        // representable as a double. This case pins that the conversion does
+        // not use a float at all.
         IsoDuration.Parse("PT0.1S").Data.ToInt64Nanoseconds().Should().Be(100_000_000L);
         IsoDuration.Parse("PT0.123456789S").Data.ToInt64Nanoseconds().Should().Be(123_456_789L);
     }
 
     // -------------------------------------------------------------------------
-    // Parse — negative durations
+    // Parse - negative durations
     // -------------------------------------------------------------------------
 
     [Theory]
@@ -115,7 +115,7 @@ public sealed class IsoDurationTests
     }
 
     // -------------------------------------------------------------------------
-    // Format — canonical output
+    // Format - canonical output
     // -------------------------------------------------------------------------
 
     [Fact]
@@ -153,7 +153,7 @@ public sealed class IsoDurationTests
     }
 
     // -------------------------------------------------------------------------
-    // Round-trip — Parse ∘ Format and Format ∘ Parse
+    // Round-trip - Parse ∘ Format and Format ∘ Parse
     // -------------------------------------------------------------------------
 
     [Theory]
@@ -174,15 +174,15 @@ public sealed class IsoDurationTests
         var second = IsoDuration.Parse(formatted);
 
         second.Success.Should().BeTrue();
-        second.Data.Should().Be(first.Data, $"'{iso}' must survive a Parse→Format→Parse round-trip");
+        second.Data.Should().Be(first.Data, $"'{iso}' must survive a Parse->Format->Parse round-trip");
     }
 
     [Fact]
     public void RoundTrip_SubSecondDecimal_IsByteStable()
     {
         // The sub-second-only case has no larger unit to balance into, so the
-        // canonical Format output is byte-identical to the input — this is the
-        // exact lossless contract the flipped AD-9 cross-language test asserts.
+        // canonical Format output is byte-identical to the input. This is the
+        // lossless contract that the cross-language test asserts.
         const string iso = "PT0.123456789S";
 
         var parsed = IsoDuration.Parse(iso).Data;
@@ -208,7 +208,7 @@ public sealed class IsoDurationTests
     }
 
     // -------------------------------------------------------------------------
-    // Malformed input — fail-loud as error-as-value (NEVER a throw)
+    // Malformed input - fail-loud as error-as-value (NEVER a throw)
     // -------------------------------------------------------------------------
 
     [Theory]
@@ -240,7 +240,7 @@ public sealed class IsoDurationTests
     [InlineData("P1W")] // week designator unsupported
     [InlineData("P1YT1H")]
     [InlineData("PT1.S")] // decimal point with no fraction digits
-    [InlineData("PT0.1234567890S")] // 10 fraction digits — beyond nanosecond resolution
+    [InlineData("PT0.1234567890S")] // 10 fraction digits - beyond nanosecond resolution
     [InlineData("PT1H30M S")] // embedded whitespace
     [InlineData("PT+1H")] // sign on a component
     [InlineData("PT1.5H")] // fractional hours unsupported (only seconds may be fractional)
@@ -250,7 +250,7 @@ public sealed class IsoDurationTests
     public void Parse_Malformed_ReturnsValidationFailed_NotThrow(string iso)
     {
         // Error-as-value: a malformed wire string must surface a wrapped
-        // failure carrying INVALID_DURATION — never throw.
+        // failure carrying INVALID_DURATION - never throw.
         var act = () => IsoDuration.Parse(iso);
 
         var result = act.Should().NotThrow().Subject;
@@ -261,7 +261,7 @@ public sealed class IsoDurationTests
     }
 
     // -------------------------------------------------------------------------
-    // Overflow — out-of-range magnitudes fail-loud, no throw
+    // Overflow - out-of-range magnitudes fail-loud, no throw
     // -------------------------------------------------------------------------
 
     [Fact]
@@ -280,9 +280,10 @@ public sealed class IsoDurationTests
     [Fact]
     public void Parse_MaxRepresentableMagnitude_WithinInt64Nanoseconds_RoundTrips()
     {
-        // ~292 years is the Int64-nanosecond ceiling; a value just inside it
-        // round-trips losslessly (proves the int64 path is the lossless floor,
-        // not an artificial cap).
+        // long.MaxValue nanoseconds (about 292 years) is the Int64-nanosecond
+        // ceiling. A value at
+        // that ceiling round-trips losslessly, which shows that the int64 path is
+        // the lossless limit and not an artificial cap.
         var nearMax = Duration.FromNanoseconds(long.MaxValue);
 
         var formatted = IsoDuration.Format(nearMax);
@@ -293,7 +294,7 @@ public sealed class IsoDurationTests
     }
 
     // -------------------------------------------------------------------------
-    // No-float invariant — a value not exactly representable as a double
+    // No-float invariant - a value not exactly representable as a double
     // survives the full pipeline (would drift if any double math existed)
     // -------------------------------------------------------------------------
 
@@ -304,7 +305,7 @@ public sealed class IsoDurationTests
         // any step routed through a double the nanosecond count would drift off
         // 123_456_789. The integer (right-pad) path keeps it exact.
 
-        for (long ns = 100_000_000L; ns <= 999_999_999L; ns += 111_111_111L)
+        for (var ns = 100_000_000L; ns <= 999_999_999L; ns += 111_111_111L)
         {
             var iso = IsoDuration.Format(Duration.FromNanoseconds(ns));
             IsoDuration.Parse(iso).Data.ToInt64Nanoseconds().Should().Be(ns);

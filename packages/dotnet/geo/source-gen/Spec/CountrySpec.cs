@@ -9,11 +9,10 @@ namespace DcsvIo.D2.Geo.SourceGen.Spec;
 using System.Collections.Generic;
 
 /// <summary>
-/// One entry parsed from <c>countries.spec.json</c>. Carries every
-/// primary scalar plus the M:M-arity collections the codegen relies on.
+/// One entry parsed from <c>countries.spec.json</c>. Holds every primary
+/// scalar and the M:M collections.
 /// FK fields use the source-data naming convention
-/// (<c>*Iso{xxx}Code</c> / <c>*Iso{xxx}Codes</c>) recognized by
-/// <see cref="FkDetector"/>.
+/// (<c>*Iso{xxx}Code</c> / <c>*Iso{xxx}Codes</c>).
 /// </summary>
 /// <param name="Iso31661Alpha2Code">ISO 3166-1 alpha-2 code (e.g. <c>"US"</c>).</param>
 /// <param name="Iso31661Alpha3Code">ISO 3166-1 alpha-3 code (e.g. <c>"USA"</c>).</param>

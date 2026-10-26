@@ -1,0 +1,52 @@
+{
+  "defaults": { "republishMs": 5000, "cleanupMs": 1000 },
+  "outcomes": [
+    { "first": "confirmed", "later": "stopping", "expected": "confirmed" },
+    { "first": "unroutable", "later": "confirmed", "expected": "unroutable" },
+    {
+      "first": "transport-failure",
+      "later": "confirmed",
+      "expected": "transport-failure"
+    },
+    {
+      "first": "deadline-exceeded",
+      "later": "confirmed",
+      "expected": "deadline-exceeded"
+    },
+    { "first": "stopping", "later": "confirmed", "expected": "stopping" },
+    {
+      "first": "cleanup-pending",
+      "later": "confirmed",
+      "expected": "cleanup-pending"
+    }
+  ],
+  "deliveries": [
+    {
+      "name": "json-duplicate-keys",
+      "bodyHex": "207b20226b6579223a20312c20226b6579223a2032207d200a",
+      "messageId": null,
+      "contentType": "application/json",
+      "contentEncoding": null,
+      "correlationId": "original-correlation",
+      "header": "unchanged"
+    },
+    {
+      "name": "invalid-utf8",
+      "bodyHex": "61ffc328",
+      "messageId": "",
+      "contentType": "text/plain",
+      "contentEncoding": null,
+      "correlationId": "original-correlation",
+      "header": "unchanged"
+    },
+    {
+      "name": "binary-envelope",
+      "bodyHex": "01090008ff",
+      "messageId": "rejected:id",
+      "contentType": "application/octet-stream",
+      "contentEncoding": "binary",
+      "correlationId": "original-correlation",
+      "header": "unchanged"
+    }
+  ]
+}

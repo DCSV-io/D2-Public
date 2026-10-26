@@ -13,13 +13,25 @@ using RegistrySourceGen::DcsvIo.D2.ErrorCodes.Registry.SourceGen;
 using Xunit;
 
 /// <summary>
-/// Unit tests for <see cref="RegistryCollisionChecker"/> — the pure-logic
+/// Unit tests for <see cref="RegistryCollisionChecker"/> - the pure-logic
 /// cross-catalog safety gate. Tests run without a Roslyn driver, directly
 /// exercising the diagnostic-production logic over synthetic
 /// <see cref="RegistrySpecEntry"/> inputs.
 /// </summary>
 public sealed class RegistryCollisionCheckerTests
 {
+    // Synthetic catalogs are registered the way a host registers its own, so
+    // each carries a declared identity rather than one derived from its name.
+    private static readonly System.Collections.Generic.Dictionary<
+        string, RegistrySpecLoader.CatalogIdentity> sr_fixtureIdentities =
+        new(System.StringComparer.OrdinalIgnoreCase)
+        {
+            ["gen-error-codes.spec.json"] =
+                new RegistrySpecLoader.CatalogIdentity("lib", "gen", "GEN_"),
+            ["gen-sub-error-codes.spec.json"] =
+                new RegistrySpecLoader.CatalogIdentity("lib", "gen-sub", "GEN_SUB_"),
+        };
+
     // -----------------------------------------------------------------------
     // Cross-catalog collision (D2ERC004)
     // -----------------------------------------------------------------------
@@ -29,8 +41,8 @@ public sealed class RegistryCollisionCheckerTests
     {
         var entries = new[]
         {
-            MakeEntry("NOT_FOUND", "common", "error-codes.spec.json"),
-            MakeEntry("AUTH_BEARER_MISSING", "auth", "auth-error-codes.spec.json"),
+            MakeEntry("GEN_NOT_FOUND", "common", "error-codes.spec.json"),
+            MakeEntry("LIB_AUTH_BEARER_MISSING", "auth", "auth-error-codes.spec.json"),
         };
 
         var diagnostics = RegistryCollisionChecker.Check(entries);
@@ -44,8 +56,8 @@ public sealed class RegistryCollisionCheckerTests
     {
         var entries = new[]
         {
-            MakeEntry("NOT_FOUND", "common", "error-codes.spec.json"),
-            MakeEntry("NOT_FOUND", "auth", "auth-error-codes.spec.json"),
+            MakeEntry("GEN_NOT_FOUND", "common", "error-codes.spec.json"),
+            MakeEntry("GEN_NOT_FOUND", "auth", "auth-error-codes.spec.json"),
         };
 
         var diagnostics = RegistryCollisionChecker.Check(entries);
@@ -60,13 +72,13 @@ public sealed class RegistryCollisionCheckerTests
     {
         // Two entries with the same code from the same spec file. The
         // cross-catalog checker fires on any duplicated code in the aggregate
-        // set — intra-catalog duplication should have been caught by the
+        // set - intra-catalog duplication should have been caught by the
         // per-catalog emitter but is still surfaced here if it reaches the
         // registry.
         var entries = new[]
         {
-            MakeEntry("NOT_FOUND", "common", "error-codes.spec.json"),
-            MakeEntry("NOT_FOUND", "common", "error-codes.spec.json"),
+            MakeEntry("GEN_NOT_FOUND", "common", "error-codes.spec.json"),
+            MakeEntry("GEN_NOT_FOUND", "common", "error-codes.spec.json"),
         };
 
         var diagnostics = RegistryCollisionChecker.Check(entries);
@@ -92,9 +104,9 @@ public sealed class RegistryCollisionCheckerTests
     {
         var entries = new[]
         {
-            MakeEntry("NOT_FOUND", "common", "error-codes.spec.json"),
+            MakeEntry("GEN_NOT_FOUND", "common", "error-codes.spec.json"),
 
-            // UNPREFIXED_CODE has no AUTH_ prefix — violation in auth catalog.
+            // UNPREFIXED_CODE has no AUTH_ prefix - violation in auth catalog.
             MakeEntry("UNPREFIXED_CODE", "auth", "auth-error-codes.spec.json"),
         };
 
@@ -108,11 +120,11 @@ public sealed class RegistryCollisionCheckerTests
     [Fact]
     public void Check_PrefixedCodeInGenericSpec_EmitsD2ERC005()
     {
-        // AUTH_BEARER_MISSING in the generic (common) catalog — violation.
+        // AUTH_BEARER_MISSING in the generic (common) catalog - violation.
         var entries = new[]
         {
-            MakeEntry("AUTH_BEARER_MISSING", "common", "error-codes.spec.json"),
-            MakeEntry("AUTH_REAL_CODE", "auth", "auth-error-codes.spec.json"),
+            MakeEntry("LIB_AUTH_BEARER_MISSING", "common", "error-codes.spec.json"),
+            MakeEntry("LIB_AUTH_REAL_CODE", "auth", "auth-error-codes.spec.json"),
         };
 
         var diagnostics = RegistryCollisionChecker.Check(entries);
@@ -130,8 +142,8 @@ public sealed class RegistryCollisionCheckerTests
         // by definition. No D2ERC005 should fire.
         var entries = new[]
         {
-            MakeEntry("NOT_FOUND", "common", "error-codes.spec.json"),
-            MakeEntry("CONFLICT", "common", "error-codes.spec.json"),
+            MakeEntry("GEN_NOT_FOUND", "common", "error-codes.spec.json"),
+            MakeEntry("GEN_CONFLICT", "common", "error-codes.spec.json"),
         };
 
         var diagnostics = RegistryCollisionChecker.Check(entries);
@@ -145,8 +157,8 @@ public sealed class RegistryCollisionCheckerTests
     {
         var entries = new[]
         {
-            MakeEntry("NOT_FOUND", "common", "error-codes.spec.json"),
-            MakeEntry("AUTH_BEARER_MISSING", "auth", "auth-error-codes.spec.json"),
+            MakeEntry("GEN_NOT_FOUND", "common", "error-codes.spec.json"),
+            MakeEntry("LIB_AUTH_BEARER_MISSING", "auth", "auth-error-codes.spec.json"),
         };
 
         var diagnostics = RegistryCollisionChecker.Check(entries);
@@ -155,9 +167,52 @@ public sealed class RegistryCollisionCheckerTests
             d => d.DescriptorId == RegistryDiagnosticIds.ReservedNamespaceViolation);
     }
 
+    [Fact]
+    public void Check_ANonGenCatalogResolvingToTheGenPrefix_LeavesGenCodesClean()
+    {
+        // "gen-error-codes.spec.json" is registered under the owner "lib" with the
+        // prefix "GEN_", so GEN_ is added to the foreign-prefix set. Every code in
+        // the real gen catalog starts with GEN_, and none may be reported as
+        // having a foreign prefix for it.
+        var entries = new[]
+        {
+            MakeEntry("GEN_NOT_FOUND", "common", "error-codes.spec.json"),
+            MakeEntry("GEN_SYNTHETIC", "gen", "gen-error-codes.spec.json"),
+        };
+
+        var diagnostics = RegistryCollisionChecker.Check(entries);
+
+        diagnostics.Should().NotContain(
+            d => d.DescriptorId == RegistryDiagnosticIds.ReservedNamespaceViolation,
+            because: "a catalog whose own prefix is GEN_ does not make the gen "
+                + "catalog's own codes foreign-prefixed");
+    }
+
+    [Fact]
+    public void Check_AGenCodeCarryingALongerForeignPrefix_EmitsD2ERC005()
+    {
+        // The guard still reports the case it exists for: a foreign catalog whose
+        // prefix extends the gen one, and a gen code that starts with it.
+        var entries = new[]
+        {
+            MakeEntry("GEN_SUB_LEAKED", "common", "error-codes.spec.json"),
+            MakeEntry("GEN_SUB_REAL_CODE", "gen-sub", "gen-sub-error-codes.spec.json"),
+        };
+
+        var diagnostics = RegistryCollisionChecker.Check(entries);
+
+        diagnostics.Should().Contain(
+            d => d.DescriptorId == RegistryDiagnosticIds.ReservedNamespaceViolation
+                && Equals(d.Args[0], "GEN_SUB_LEAKED"),
+            because: "the gen catalog must not carry another catalog's full prefix");
+    }
+
     private static RegistrySpecEntry MakeEntry(
-        string code, string domain, string specFileName) =>
-        new(
+        string code, string domain, string specFileName)
+    {
+        var identity = RegistrySpecLoader.ResolveIdentity(specFileName, sr_fixtureIdentities);
+        identity.Should().NotBeNull(because: $"'{specFileName}' must be a registered catalog");
+        return new(
             Code: code,
             HttpStatus: 400,
             Category: "validation_failure",
@@ -165,6 +220,9 @@ public sealed class RegistryCollisionCheckerTests
             FactoryName: "TestFactory",
             FactoryShape: "standard",
             Doc: "Test.",
-            Domain: domain,
+            Domain: string.IsNullOrEmpty(domain) ? identity.DomainToken : domain,
+            Owner: identity.Owner,
+            DomainPrefix: identity.DomainPrefix,
             SpecFileName: specFileName);
+    }
 }

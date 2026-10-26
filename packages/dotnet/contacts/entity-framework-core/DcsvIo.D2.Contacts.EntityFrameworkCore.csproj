@@ -8,11 +8,11 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!--
     Per-VO complex-type and value-converter mapping helpers for the DcsvIo.D2.Contacts VOs.
-    Called from the host's IEntityTypeConfiguration<T> class — the domain aggregate holds
-    plain VO-typed properties and carries zero EF references. Helpers wire HasMaxLength from
+    Use the helpers in an IEntityTypeConfiguration<T> class - the domain aggregate holds
+    plain VO-typed properties and has no EF references. Helpers wire HasMaxLength from
     FieldConstraints, the Uri value converter, and the per-VO anonymize defaults via the
     fluent .Anonymize* API from DcsvIo.D2.DataGovernance.EntityFrameworkCore.
-    NO DbContext, NO migrations, NO DI engine — the host owns those.
+    No DbContext, no migrations, no DI engine - the host owns those.
     The generic CreateD2Index migration helper lives in DcsvIo.D2.EntityFrameworkCore;
     the Location-VO mapping helpers live in DcsvIo.D2.Location.EntityFrameworkCore.
   -->
@@ -24,10 +24,10 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <ItemGroup>
     <!--
-      Microsoft.EntityFrameworkCore.Relational — CPM-pinned in Directory.Packages.props.
+      Microsoft.EntityFrameworkCore.Relational - CPM-pinned in Directory.Packages.props.
       Provides EntityTypeBuilder<T>, ComplexPropertyBuilder<T>, ComplexTypePropertyBuilder<T>,
       PropertyBuilder<T>, HasMaxLength, HasConversion, ValueConverter<,>, and the relational
-      metadata APIs. Base EF Core flows transitively via Relational; do NOT add a separate
+      metadata APIs. Base EF Core flows transitively via Relational; do not add a separate
       base Microsoft.EntityFrameworkCore ref to avoid NU1510.
     -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
@@ -39,7 +39,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.1</Version>
+    <Version>0.1.32</Version>
     <PackageId>DcsvIo.D2.Contacts.EntityFrameworkCore</PackageId>
     <Description>Reusable Entity Framework Core mapping for the DcsvIo.D2.Contacts value objects, applied via infra IEntityTypeConfiguration.</Description>
     <IsPackable>true</IsPackable>

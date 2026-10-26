@@ -241,7 +241,7 @@ public sealed class FieldConstraintsSpecLoaderTests
     {
         // `backing` is schema-required and the only supported value is "byte"
         // (the emitter hardcodes `: byte`). A `backing: "int"` spec that the
-        // loader waved through would emit a `: byte` enum from an `int` spec —
+        // loader accepted would emit a `: byte` enum from an `int` spec -
         // a silent drift between the declared and emitted backing.
         var json = """
         {
@@ -312,7 +312,7 @@ public sealed class FieldConstraintsSpecLoaderTests
     public void Load_EnumBackingNotString_ReturnsDiagnostic()
     {
         // Drives the backingEl.ValueKind != JsonValueKind.String branch in
-        // ParseEnums — a numeric `"backing": 42` must be rejected.
+        // ParseEnums - a numeric `"backing": 42` must be rejected.
         var json = """
         {
           "constraints": [],
@@ -337,7 +337,7 @@ public sealed class FieldConstraintsSpecLoaderTests
     public void Load_EnumMemberEntryNotObject_ReturnsDiagnostic()
     {
         // Drives the element.ValueKind != JsonValueKind.Object branch inside
-        // ParseMembers — a member array element that is a raw string must be
+        // ParseMembers - a member array element that is a raw string must be
         // rejected with D2FC001 (malformed spec).
         var json = """
         {
@@ -380,7 +380,7 @@ public sealed class FieldConstraintsSpecLoaderTests
     [Fact]
     public void Load_EmptyArrays_ReturnsEmptySpec()
     {
-        // Loader does not enforce minItems - that's a higher-level concern.
+        // The loader does not enforce minItems; that is a higher-level concern.
         var result = FieldConstraintsSpecLoader.Load(
             _PATH, """{ "constraints": [], "enums": [] }""");
 

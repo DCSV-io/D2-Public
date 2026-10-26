@@ -18,8 +18,7 @@ namespace DcsvIo.D2.Validation.Abstractions;
 /// <remarks>
 /// Generated from the spec file - cross-language drift between the .NET
 /// constants and the TS-side @dcsv-io/d2-validation-abstractions catalog is
-/// structurally impossible (the TS emitter consumes the same spec via
-/// tools/ts-codegen).
+/// structurally impossible (the TS emitter consumes the same spec).
 /// </remarks>
 public static class FieldConstraints
 {

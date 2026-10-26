@@ -1,6 +1,11 @@
 {
   "name": "@dcsv-io/d2-validation",
-  "version": "0.1.2",
+  "version": "0.1.17",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DCSV-io/D2-Public.git",
+    "directory": "packages/typescript/validation/default"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

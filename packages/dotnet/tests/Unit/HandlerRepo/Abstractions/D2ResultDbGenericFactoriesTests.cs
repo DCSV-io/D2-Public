@@ -17,7 +17,7 @@ using Xunit;
 
 /// <summary>
 /// Adversarial coverage of the generic <see cref="D2Result{TData}"/> DB
-/// factories. Identical matrix to the non-generic factories — every factory
+/// factories. Identical matrix to the non-generic factories - every factory
 /// MUST produce a result whose <c>Data</c> is <see langword="default"/> (so
 /// callers don't accidentally read uninitialized state on failure).
 /// </summary>
@@ -267,7 +267,7 @@ public sealed class D2ResultDbGenericFactoriesTests
     }
 
     // ----------------------------------------------------------------------
-    // Adversarial — empty / large messages list
+    // Adversarial - empty / large messages list
     // ----------------------------------------------------------------------
 
     [Fact]

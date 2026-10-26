@@ -23,10 +23,12 @@ using Serilog.Events;
 /// Static helper that builds a fully wired AspNetCore test host suitable for
 /// driving the Serilog request-logging middleware end-to-end through
 /// <c>Microsoft.AspNetCore.TestHost</c>. Each call gets its own
-/// <see cref="InMemorySink"/> so xUnit-parallel test classes don't see each
-/// other's events; the host's local Serilog logger writes to the sink only
-/// (no Console sink, no <c>Log.Logger</c> mutation) so static-Logger races
-/// can't pollute these tests.
+/// <see cref="InMemorySink"/>, and the host's local Serilog logger writes to
+/// the sink only (no Console sink). The builder assigns that logger to the
+/// shared static <c>Log.Logger</c>, because the request-logging middleware
+/// writes through the static facade, so the test classes that use the builder
+/// run in one collection, <c>LogLoggerStaticState</c>, instead of running
+/// xUnit-parallel, and do not see each other's events.
 /// </summary>
 internal static class LoggingTestHostBuilder
 {
@@ -44,35 +46,30 @@ internal static class LoggingTestHostBuilder
     ///   <c>GET /.well-known/openid-configuration</c> (each returns "ok"
     ///   so test paths exercise the infrastructure-suppression contract).
     ///  </item>
-    ///  <item>An optional
-    ///   <c>GET /api/leak/{template}</c> endpoint that captures-and-logs
-    ///   a fixture instance using the supplied capture template (drives the
-    ///   redaction integration tests).</item>
     /// </list>
     /// </summary>
     /// <remarks>
     /// Tests that need to log redacted values resolve
     /// <see cref="ILogger{TCategoryName}"/> from
-    /// <see cref="IHost.Services"/> — never via static <c>Log.*</c> — so the
+    /// <see cref="IHost.Services"/> - never via static <c>Log.*</c> - so the
     /// host's local logger captures the events. Logging via
     /// <c>Log.Logger</c> would route to whatever the previous test left
     /// pinned on the global static, NOT to the sink.
     /// </remarks>
     /// <param name="extraServices">
     /// Optional services-collection mutator invoked after the standard
-    /// registrations — supports per-test overrides such as registering a
+    /// registrations - supports per-test overrides such as registering a
     /// scoped <c>IRequestContext</c>.
     /// </param>
     /// <param name="extraConfigure">
     /// Optional middleware-pipeline mutator invoked AFTER
-    /// <c>UseD2RequestLogging</c> and BEFORE <c>UseEndpoints</c> — supports
+    /// <c>UseD2RequestLogging</c> and BEFORE <c>UseEndpoints</c> - supports
     /// per-test middleware injection (e.g. a synthetic enricher that sets
     /// HttpContext.Items before the request-logging middleware records).
     /// </param>
     /// <param name="extraEndpoints">
     /// Optional endpoint-registration mutator invoked when the default
-    /// endpoints are mapped — supports per-test custom endpoints
-    /// (e.g. a leak endpoint that logs a fixture).
+    /// endpoints are mapped - supports per-test custom endpoints.
     /// </param>
     /// <returns>
     /// Tuple of the started <see cref="IHost"/> (caller disposes) and the
@@ -89,7 +86,7 @@ internal static class LoggingTestHostBuilder
         var localSink = sink;
 
         // The Serilog request-logging middleware writes via Log.Logger (the
-        // static facade) — see RequestLoggingMiddleware in Serilog.AspNetCore.
+        // static facade) - see RequestLoggingMiddleware in Serilog.AspNetCore.
         // To capture its events into our per-test sink, we MUST point
         // Log.Logger at our local logger for the duration of this host. The
         // [Collection("LogLoggerStaticState")] annotation on the integration

@@ -12,19 +12,20 @@ using DcsvIo.D2.Validation;
 using Xunit;
 
 /// <summary>
-/// Asserts the .NET <see cref="DefaultEmailValidator"/> produces the SAME
-/// verdict + normalized form as the hand-authored cross-language corpus at
+/// Asserts the .NET <see cref="DefaultEmailValidator"/> produces the same
+/// verdict and normalized form as the hand-authored cross-language corpus at
 /// <c>contracts/validation/fixtures/email.json</c>. The TypeScript
 /// <c>@dcsv-io/d2-validation</c> parity test asserts the identical corpus, so any
-/// behavioral drift between the two runtimes fails one side.
+/// behavioral drift between the .NET and TypeScript validators fails the test on
+/// one side.
 /// </summary>
 public sealed class EmailValidatorParityTests
 {
     /// <summary>
     /// The exact email-validation pattern literal. The TypeScript parity test
-    /// holds the identical string; a drift on EITHER side fails its test.
+    /// holds the identical string; a drift on either side fails its test.
     /// </summary>
-    // long regex literal — cannot wrap
+    // long regex literal - cannot wrap
     private const string _EXPECTED_EMAIL_PATTERN =
         @"^(?=.{1,254}$)[A-Z0-9._%+\-]{1,64}@[A-Z0-9](?:[A-Z0-9\-]{0,61}[A-Z0-9])?(?:\.[A-Z0-9](?:[A-Z0-9\-]{0,61}[A-Z0-9])?)+$";
 
@@ -36,7 +37,7 @@ public sealed class EmailValidatorParityTests
         if (sr_Corpus.Rows.Falsey())
         {
             throw new InvalidOperationException(
-                $"Email corpus loaded with zero rows — version='{sr_Corpus.Version}'.");
+                $"Email corpus loaded with zero rows - version='{sr_Corpus.Version}'.");
         }
 
         foreach (var row in sr_Corpus.Rows)
@@ -61,7 +62,7 @@ public sealed class EmailValidatorParityTests
         else
         {
             result.Success.Should().BeFalse(rowName);
-            result.ErrorCode.Should().Be("VALIDATION_FAILED", rowName);
+            result.ErrorCode.Should().Be("GEN_VALIDATION_FAILED", rowName);
             result.InputErrors.SelectMany(e => e.Errors).Select(m => m.Key)
                 .Should().Contain(row.ErrorKey, rowName);
         }

@@ -28,13 +28,13 @@ public static class EncryptionServiceCollectionExtensions
         /// The keyring factory runs once (singleton).
         /// </summary>
         /// <param name="serviceKey">
-        /// Discriminator for keyed resolution — typically the encryption
-        /// purpose name (e.g. <c>"audit"</c>, <c>"root"</c>). Consumers inject
-        /// with <c>[FromKeyedServices(serviceKey)] IPayloadCrypto crypto</c>.
+        /// Discriminator for keyed resolution - typically the encryption
+        /// purpose name (for example <c>"root"</c>). Inject with
+        /// <c>[FromKeyedServices(serviceKey)] IPayloadCrypto crypto</c>.
         /// </param>
         /// <param name="keyringFactory">
-        /// Builds the keyring from the service provider — typically resolves a
-        /// <c>KeyringClient</c> and asks for the active keyring for this purpose.
+        /// Builds the keyring from the service provider - typically resolves a
+        /// key-management client and asks it for the active keyring for this purpose.
         /// </param>
         /// <returns>The same <paramref name="services"/> instance for chaining.</returns>
         public IServiceCollection AddD2EncryptionFor(
@@ -55,11 +55,11 @@ public static class EncryptionServiceCollectionExtensions
             services.TryAddSingleton<EncryptionRegistry>();
             services.AddSingleton(new EncryptionRegistration(serviceKey));
 
-            // Deny-by-default provenance guard: the raw seam registers NO source
+            // Deny-by-default provenance guard: the raw seam registers no source
             // marker, so EncryptionSourceStartupCheck classifies this registration
-            // as a static factory and — outside a Development host — crashes the
-            // host. A KeyCustodian-sourced registration marks itself KeyCustodian
-            // and passes. Hooked here so no encryption host can dodge the check.
+            // as a static factory and, outside a Development host, crashes the
+            // host. A registration marked Managed passes. The check is registered
+            // here so every encryption host runs it.
             services.AddD2EncryptionSourceCheck();
 
             return services;
@@ -67,7 +67,7 @@ public static class EncryptionServiceCollectionExtensions
 
         /// <summary>
         /// Registers <see cref="EncryptionStartupCheck"/>, an
-        /// <see cref="IHostedService"/> that runs an encrypt → decrypt round-trip
+        /// <see cref="IHostedService"/> that runs an encrypt -> decrypt round-trip
         /// against every keyed <see cref="IPayloadCrypto"/> at host startup.
         /// Failures throw and prevent the host from accepting traffic.
         /// </summary>

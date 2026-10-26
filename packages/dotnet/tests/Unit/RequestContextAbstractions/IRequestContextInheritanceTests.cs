@@ -12,9 +12,9 @@ using DcsvIo.D2.Context.Abstractions;
 using Xunit;
 
 /// <summary>
-/// Inheritance contract — <see cref="IRequestContext"/> MUST extend
+/// Inheritance contract - <see cref="IRequestContext"/> MUST extend
 /// <see cref="IAuthContext"/>. The whole composition (auth + transport +
-/// network + WhoIs) hangs off this; if the spec's <c>extends</c> field were
+/// network + WhoIs) depends on this; if the spec's <c>extends</c> field were
 /// dropped, every handler that takes IRequestContext but reads auth fields
 /// would break at runtime.
 /// </summary>

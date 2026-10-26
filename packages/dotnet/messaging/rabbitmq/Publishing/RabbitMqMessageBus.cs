@@ -13,11 +13,13 @@ using DcsvIo.D2.I18n;
 using DcsvIo.D2.Messaging.RabbitMq.Channels;
 using DcsvIo.D2.Messaging.RabbitMq.Connection;
 using DcsvIo.D2.Messaging.RabbitMq.Encryption;
+using DcsvIo.D2.Messaging.RabbitMq.Errors;
 using DcsvIo.D2.Messaging.RabbitMq.Telemetry;
 using DcsvIo.D2.Resilience.Retry;
 using DcsvIo.D2.Result;
 using DcsvIo.D2.Utilities.Extensions;
 using global::RabbitMQ.Client;
+using global::RabbitMQ.Client.Exceptions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -31,15 +33,15 @@ using Microsoft.Extensions.Options;
 /// <remarks>
 /// <para>
 /// Thread-safe: relies on <see cref="IChannelPool"/> (semaphore-bounded) for
-/// concurrent channel access — multiple threads may call
+/// concurrent channel access - multiple threads may call
 /// <see cref="PublishAsync"/> simultaneously without external synchronization.
 /// </para>
 /// <para>
-/// The wire body is just the serialized message — there is no envelope wrapper.
-/// Encryption is about confidentiality of the message payload itself; cross-hop
-/// trace correlation rides in the W3C <c>traceparent</c> + <c>tracestate</c>
-/// AMQP headers. Caller-identity / org / scope fields a consumer needs go in
-/// the typed message body.
+/// The wire body is only the serialized message, with no envelope wrapper.
+/// Encryption protects the confidentiality of the message payload itself. The
+/// W3C <c>traceparent</c> and <c>tracestate</c> AMQP headers carry cross-hop
+/// trace correlation. A message that needs caller-identity, organization or
+/// scope fields carries them in its typed message body.
 /// </para>
 /// </remarks>
 internal sealed class RabbitMqMessageBus : IMessageBus
@@ -47,38 +49,44 @@ internal sealed class RabbitMqMessageBus : IMessageBus
     private readonly IChannelPool r_channelPool;
     private readonly IServiceScopeFactory r_scopeFactory;
     private readonly ID2Connection r_connection;
+    private readonly MessagingCatalog r_catalog;
     private readonly RabbitMqPublisherOptions r_options;
     private readonly ILogger<RabbitMqMessageBus> r_logger;
 
     /// <summary>Initializes the bus.</summary>
     /// <param name="channelPool">Bounded publisher channel pool.</param>
-    /// <param name="scopeFactory">Per-publish DI scope factory — resolves
-    /// per-domain <see cref="DcsvIo.D2.Encryption.IPayloadCrypto"/> via keyed
-    /// services for encrypted message types AND
+    /// <param name="scopeFactory">Per-publish DI scope factory. It resolves
+    /// the per-domain <see cref="DcsvIo.D2.Encryption.IPayloadCrypto"/> through
+    /// keyed services for encrypted message types, and
     /// <see cref="IRequestContext"/> for the propagated-context header. The
-    /// bus is a Singleton (every publish builds a transient ~µs-cost scope)
-    /// so background hosted services can publish without ceremony.</param>
-    /// <param name="connection">Underlying broker connection — exposes
-    /// <c>ReadyTask</c> for the <see cref="IMessageBus.WaitForReadyAsync"/>
-    /// startup-sync helper.</param>
+    /// bus is a singleton and every publish builds a transient scope that
+    /// costs microseconds, so background hosted services can publish without
+    /// creating a scope of their own.</param>
+    /// <param name="connection">Underlying broker connection. Its
+    /// <c>ReadyTask</c> backs <see cref="IMessageBus.WaitForReadyAsync"/>.</param>
+    /// <param name="catalog">The message descriptors this host publishes
+    /// against.</param>
     /// <param name="options">Transport-level publisher defaults.</param>
     /// <param name="logger">Logger.</param>
     public RabbitMqMessageBus(
         IChannelPool channelPool,
         IServiceScopeFactory scopeFactory,
         ID2Connection connection,
+        MessagingCatalog catalog,
         IOptions<RabbitMqPublisherOptions> options,
         ILogger<RabbitMqMessageBus> logger)
     {
         ArgumentNullException.ThrowIfNull(channelPool);
         ArgumentNullException.ThrowIfNull(scopeFactory);
         ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(catalog);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
 
         r_channelPool = channelPool;
         r_scopeFactory = scopeFactory;
         r_connection = connection;
+        r_catalog = catalog;
         r_options = options.Value;
         r_logger = logger;
 
@@ -97,40 +105,43 @@ internal sealed class RabbitMqMessageBus : IMessageBus
         CancellationToken ct = default)
         where TMessage : class
     {
-        // Defensive null check: callers ignoring nullable annotations should
-        // get a structured ValidationFailed, not an NRE deep inside compose.
+        // Defensive null check: a null message returns a structured
+        // ValidationFailed instead of a NullReferenceException deep inside
+        // compose.
         if ((object?)message is null)
             return MessagingFailures.Required(nameof(message));
 
-        // Resolve the message type's publisher contract from the codegen'd
-        // registry via [MqPub]. Throws InvalidOperationException for missing
-        // attribute / unknown constant / type-name mismatch — programmer
-        // errors, not runtime conditions, so let them surface without retry.
-        var descriptor = MessageWireResolver.Resolve(typeof(TMessage));
+        // Resolve the message type's publisher contract from the registered
+        // catalog via [MqPub]. Throws InvalidOperationException for missing
+        // attribute / unknown constant / type-name mismatch. These are
+        // programmer errors and not runtime conditions, so they surface
+        // without a retry.
+        var descriptor = MessageWireResolver.Resolve(r_catalog, typeof(TMessage));
         var route = ResolveRoute(descriptor, options);
 
-        // Build a transient scope per publish — bus is Singleton, so we need
-        // a scope to (a) resolve the keyed IPayloadCrypto and (b) snapshot
-        // any IRequestContext registered by the caller's scope. Cost is in
-        // the microseconds; lets background hosted services publish without
-        // creating their own scope each time.
+        // Build a transient scope per publish. The bus is a singleton, so a
+        // scope is needed to (a) resolve the keyed IPayloadCrypto and (b)
+        // snapshot any IRequestContext registered by the caller's scope. The
+        // scope costs microseconds, and the bus creates it whether or not a
+        // scope is already active.
         await using var scope = r_scopeFactory.CreateAsyncScope();
         var sp = scope.ServiceProvider;
 
-        // Compose body ONCE — body bytes are reused across retry attempts.
+        // Compose the body once; the body bytes are reused across retry
+        // attempts.
         var (body, kid) = EncryptedBodyComposer.Compose(message, descriptor, sp);
 
-        // Stable per-publish message-id — generated ONCE so retry attempts
-        // share it. Otherwise a retry of an already-broker-received-but-
-        // unconfirmed publish would land in the consumer with a fresh id and
-        // bypass the IMessageIdempotencyStore dedup window.
+        // Stable per-publish message id, generated once so retry attempts
+        // share it. With a new id per attempt, a retry of a publish that the
+        // broker received but did not confirm would reach the consumer with a
+        // fresh id and bypass the IMessageIdempotencyStore dedup window.
         var messageId = Guid.CreateVersion7().ToString();
 
         // Snapshot the propagated subset of IRequestContext (RequestId /
-        // RequestPath / fingerprints / WhoIs hash) ONCE. Encoded as a single
-        // base64url-of-JSON header value so the same shape works on every
-        // transport. Identity (UserId / OrgId / Scopes) is NOT included —
-        // it rebuilds at every hop from the JWT.
+        // RequestPath / fingerprints / WhoIs hash) once. It is encoded as a
+        // single base64url-of-JSON header value, so the same shape works on
+        // every transport. Identity (UserId / OrgId / Scopes) is not
+        // included; it is rebuilt at every hop from the JWT.
         var propagatedHeader = BuildPropagatedHeader(sp);
 
         var maxAttempts = options?.MaxAttempts ?? r_options.MaxAttempts;
@@ -175,16 +186,38 @@ internal sealed class RabbitMqMessageBus : IMessageBus
                         maxAttempts,
                         kid);
 
-                    await PublishOnceAsync(
-                        route,
-                        body,
-                        kid,
-                        messageId,
-                        propagatedHeader,
-                        typeof(TMessage),
-                        waitForConfirm,
-                        confirmTimeout,
-                        t);
+                    try
+                    {
+                        await PublishOnceAsync(
+                            route,
+                            body,
+                            kid,
+                            messageId,
+                            propagatedHeader,
+                            typeof(TMessage),
+                            waitForConfirm,
+                            confirmTimeout,
+                            t);
+                    }
+                    catch (PublishException pex) when (pex.IsReturn)
+                    {
+                        // Counted and logged here rather than in the transient
+                        // predicate, because RetryHelper only consults that
+                        // predicate while another attempt remains - the last
+                        // returned attempt would go uncounted.
+                        MessagingTelemetry.SR_PublishReturnsCounter.Add(1);
+                        var returned = pex as PublishReturnException;
+                        MessagingLog.PublishReturned(
+                            r_logger,
+                            route.Exchange,
+                            route.RoutingKey,
+                            attempt,
+                            maxAttempts,
+                            returned?.ReplyCode ?? 0,
+                            returned?.ReplyText ?? string.Empty);
+                        throw;
+                    }
+
                     return true;
                 },
                 new RetryOptions<bool>
@@ -234,9 +267,35 @@ internal sealed class RabbitMqMessageBus : IMessageBus
         catch (Exception ex)
         {
             stopwatch.Stop();
-            MessagingTelemetry.SR_PublishFailuresCounter.Add(1);
+
+            // An unroutable publish and an unreachable broker are different
+            // problems with different fixes, so this catch block returns
+            // PublishUnroutable for the first and ServiceUnavailable for the
+            // second.
+            var unroutable = ex is PublishException { IsReturn: true };
+
+            MessagingTelemetry.SR_PublishFailuresCounter.Add(
+                1,
+                new KeyValuePair<string, object?>(
+                    MessagingMetricTags.OUTCOME,
+                    unroutable
+                        ? MessagingMetricTags.PUBLISH_FAIL_UNROUTABLE
+                        : MessagingMetricTags.PUBLISH_FAIL_TRANSPORT));
             MessagingTelemetry.SR_PublishDurationHistogram.Record(
                 stopwatch.Elapsed.TotalMilliseconds);
+
+            if (unroutable)
+            {
+                MessagingLog.PublishUnroutableTerminal(
+                    r_logger,
+                    route.Exchange,
+                    route.RoutingKey,
+                    typeof(TMessage).FullName ?? "<unknown>",
+                    attemptsObserved);
+                activity?.SetStatus(ActivityStatusCode.Error, "unroutable");
+                return MessagingTransportFailures.PublishUnroutable();
+            }
+
             MessagingLog.PublishTerminalFailure(
                 r_logger,
                 route.Exchange,
@@ -302,8 +361,9 @@ internal sealed class RabbitMqMessageBus : IMessageBus
 
         if (kid.Truthy()) props.Headers[AmqpHeaders.ENCRYPTION_KID] = kid;
 
-        // Full W3C traceparent — not just trace-id — so the consumer can
-        // start a child span whose parent is THIS publish span. Format:
+        // Write the full W3C traceparent, not just the trace id, so the
+        // receiving side can start a child span whose parent is this publish
+        // span. Format:
         // {version}-{traceId}-{spanId}-{flags} per
         // https://www.w3.org/TR/trace-context.
         var current = Activity.Current;
@@ -320,12 +380,17 @@ internal sealed class RabbitMqMessageBus : IMessageBus
         if (propagatedHeader.Truthy())
             props.Headers[AmqpHeaders.PROPAGATED_CONTEXT] = propagatedHeader;
 
+        // mandatory: the broker returns a message it cannot route instead of
+        // dropping and confirming it, and confirmation tracking matches that
+        // return back to this publish by its own sequence number, so it
+        // surfaces below as a PublishException. See the README's
+        // "Routing is not optional".
         if (!waitForConfirm)
         {
             await lease.Channel.BasicPublishAsync(
                 exchange: route.Exchange,
                 routingKey: route.RoutingKey,
-                mandatory: false,
+                mandatory: true,
                 basicProperties: props,
                 body: body,
                 cancellationToken: ct);
@@ -333,8 +398,9 @@ internal sealed class RabbitMqMessageBus : IMessageBus
         }
 
         // BasicPublishAsync on a publisher-confirms-enabled channel returns
-        // when the broker acks. Wrap with a linked CTS for the confirm timeout
-        // so a slow / hung broker surfaces as a TimeoutException (transient).
+        // when the broker acks. Wrap the call with a linked
+        // CancellationTokenSource for the confirm timeout, so a slow or hung
+        // broker produces a TimeoutException (transient).
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
         linked.CancelAfter(confirmTimeout);
         try
@@ -342,7 +408,7 @@ internal sealed class RabbitMqMessageBus : IMessageBus
             await lease.Channel.BasicPublishAsync(
                 exchange: route.Exchange,
                 routingKey: route.RoutingKey,
-                mandatory: false,
+                mandatory: true,
                 basicProperties: props,
                 body: body,
                 cancellationToken: linked.Token);

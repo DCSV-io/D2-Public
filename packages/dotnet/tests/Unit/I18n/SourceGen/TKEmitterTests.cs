@@ -15,9 +15,10 @@ using Xunit;
 public sealed class TKEmitterTests
 {
     /// <summary>
-    /// Empty other-locales map — used to simplify call sites that only test the
-    /// en-US-only path. R# can't see that this is read-only-by-intent; the
-    /// suppression is correct because TKEmitter never mutates the supplied dict.
+    /// Empty map of the other locales, used by call sites that test only the
+    /// en-US path. ReSharper cannot tell that the dictionary is intentionally
+    /// never written. The suppression is valid because TKEmitter never mutates
+    /// the dictionary it receives.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "ReSharper",
@@ -26,7 +27,7 @@ public sealed class TKEmitterTests
     private static readonly Dictionary<string, string> sr_noOtherLocales = new();
 
     // ----------------------------------------------------------------------
-    // Snapshot — single small fixture
+    // Snapshot - one small fixture
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -47,31 +48,33 @@ public sealed class TKEmitterTests
     }
 
     [Fact]
-    public void Emit_ProductTKNamespaceAndClass_PinsPrivateDualTypeFqns()
+    public void Emit_ExtensionNamespaceAndClass_PinsExtensionTypeFqns()
     {
-        // Dual-type pin: private host emits ProductTK under DcsvIo.D2.Private.I18n —
-        // NEVER same-FQN DcsvIo.D2.I18n.TK (would cause CS0433).
-        const string single_key_json = @"{""keycustodian_errors_KID_INVALID"": ""Kid invalid.""}";
+        // The emitter writes the extension class under the namespace the
+        // caller passes and never writes a type with the same fully qualified
+        // name as DcsvIo.D2.I18n.TK, which would cause CS0433.
+        const string single_key_json = @"{""orders_errors_ORDER_INVALID"": ""Order invalid.""}";
 
         var result = TKEmitter.Emit(
             single_key_json,
             sr_noOtherLocales,
-            rootNamespace: "DcsvIo.D2.Private.I18n",
-            className: "ProductTK");
+            rootNamespace: "Example.I18n",
+            className: "SampleTK");
 
         result.Diagnostics.Should().BeEmpty();
-        result.GeneratedSource.Should().Contain("namespace DcsvIo.D2.Private.I18n;");
-        result.GeneratedSource.Should().Contain("public static partial class ProductTK");
+        result.GeneratedSource.Should().Contain("namespace Example.I18n;");
+        result.GeneratedSource.Should().Contain("public static partial class SampleTK");
         result.GeneratedSource.Should().NotContain("namespace DcsvIo.D2.I18n;");
         result.GeneratedSource.Should().NotContain("public static partial class TK");
         result.GeneratedSource.Should()
-            .Contain("public static readonly global::DcsvIo.D2.I18n.TKMessage KID_INVALID");
+            .Contain("public static readonly global::DcsvIo.D2.I18n.TKMessage ORDER_INVALID");
     }
 
     [Fact]
     public void Emit_SchemaKeyOnly_ProducesEmptyTk()
     {
-        // $schema is the JSON Schema reference — must be skipped (not a translation key).
+        // $schema is the JSON Schema reference and not a translation key, so
+        // the emitter skips it.
         const string schema_only = @"{""$schema"": ""./schema.json""}";
 
         var result = TKEmitter.Emit(schema_only, sr_noOtherLocales);
@@ -109,11 +112,11 @@ public sealed class TKEmitterTests
             .And.Contain("public static readonly global::DcsvIo.D2.I18n.TKMessage EMAIL_INVALID")
             .And.Contain("public static readonly global::DcsvIo.D2.I18n.TKMessage INVALID_ROLE");
 
-        // Both Common and Auth domain blocks present.
+        // The output contains both the Common and the Auth domain blocks.
         result.GeneratedSource.Should().Contain("public static partial class Common");
         result.GeneratedSource.Should().Contain("public static partial class Auth");
 
-        // Common has both Errors and Validation nested.
+        // Common contains both the Errors and the Validation categories.
         result.GeneratedSource.Should().Contain("public static partial class Errors");
         result.GeneratedSource.Should().Contain("public static partial class Validation");
     }
@@ -121,9 +124,9 @@ public sealed class TKEmitterTests
     [Fact]
     public void Emit_OutputIsDeterministic_RepeatedRunsProduceIdenticalSource()
     {
-        // Adversarial: incremental-generator caching depends on identical input
-        // producing identical output. SortedDictionary in the emitter guarantees
-        // this regardless of input JSON ordering — verify.
+        // Incremental-generator caching depends on identical input producing
+        // identical output. The emitter uses SortedDictionary, which gives the
+        // same output for any ordering of the input JSON.
         const string fixture = @"{
             ""z_z_LAST"": ""z"",
             ""a_a_FIRST"": ""a""
@@ -138,7 +141,8 @@ public sealed class TKEmitterTests
     [Fact]
     public void Emit_KeysInRandomOrder_ProducesAlphabeticalOutput()
     {
-        // Cache stability: emission order must be input-order-independent.
+        // The emission order does not depend on the input order, which keeps
+        // the incremental-generator cache stable.
         const string reverse_order = @"{
             ""z_z_X"": ""z"",
             ""m_m_X"": ""m"",
@@ -158,7 +162,7 @@ public sealed class TKEmitterTests
     }
 
     // ----------------------------------------------------------------------
-    // Diagnostics — invalid keys, collisions, malformed JSON
+    // Diagnostics - invalid keys, collisions, malformed JSON
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -175,10 +179,10 @@ public sealed class TKEmitterTests
         result.Diagnostics[0].DescriptorId.Should().Be("D2I18N001");
         result.Diagnostics[0].Args[0].Should().Be("bad_key");
 
-        // Valid key still emitted.
+        // The emitter still emits the valid key.
         result.GeneratedSource.Should().Contain("NOT_FOUND");
 
-        // Invalid key NOT emitted.
+        // The emitter does not emit the invalid key.
         result.GeneratedSource.Should().NotContain("bad_key");
     }
 
@@ -201,9 +205,9 @@ public sealed class TKEmitterTests
     public void Emit_TwoKeysCollideOnTKPath_EmitsD2I18N003AndKeepsFirst()
     {
         // common_errors_unknown and common_errors_UNKNOWN both decompose to
-        // TK.Common.Errors.UNKNOWN. Sort-order winner is the lowercase one
-        // (StringComparer.Ordinal: 'U' < '_' < 'u'? Actually _U comes first).
-        // Verify: ordinal-sorted order picks one; the other is reported.
+        // TK.Common.Errors.UNKNOWN. The emitter sorts the keys with
+        // StringComparer.Ordinal and keeps the first one, so one key is kept
+        // and the other is reported.
         const string colliding = @"{
             ""common_errors_unknown"": ""x"",
             ""common_errors_UNKNOWN"": ""y""
@@ -216,12 +220,14 @@ public sealed class TKEmitterTests
         var args = result.Diagnostics[0].Args;
         args[2].Should().Be("TK.Common.Errors.UNKNOWN");
 
-        // First-by-ordinal-sort is the kept key; report names winner + loser pair.
+        // The first key in ordinal sort order is kept. The diagnostic gives
+        // the kept key and the dropped key.
         args[0].Should().BeOneOf("common_errors_unknown", "common_errors_UNKNOWN");
         args[1].Should().BeOneOf("common_errors_unknown", "common_errors_UNKNOWN");
         args[0].Should().NotBe(args[1]);
 
-        // Only one constant emitted (substring count, no regex needed).
+        // The emitter writes only one constant. A substring count is enough
+        // to check this and needs no regex.
         var occurrences = CountSubstring(
             result.GeneratedSource,
             "static readonly global::DcsvIo.D2.I18n.TKMessage UNKNOWN");
@@ -229,7 +235,7 @@ public sealed class TKEmitterTests
     }
 
     // ----------------------------------------------------------------------
-    // Per-locale coverage — D2I18N002 (missing) and D2I18N004 (orphan)
+    // Per-locale coverage - D2I18N002 (missing) and D2I18N004 (orphan)
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -265,7 +271,7 @@ public sealed class TKEmitterTests
         orphan.Args[0].Should().Be("common_errors_ORPHAN");
         orphan.Args[1].Should().Be("fr-FR");
 
-        // Orphan must NOT appear in the generated TK.
+        // The orphan key does not appear in the generated TK.
         result.GeneratedSource.Should().NotContain("ORPHAN");
     }
 
@@ -286,7 +292,7 @@ public sealed class TKEmitterTests
     }
 
     // ----------------------------------------------------------------------
-    // Malformed JSON — D2I18N006
+    // Malformed JSON - D2I18N006
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -298,7 +304,7 @@ public sealed class TKEmitterTests
         result.Diagnostics[0].DescriptorId.Should().Be("D2I18N006");
         result.Diagnostics[0].Args[0].Should().Be("en-US.json");
 
-        // TK class still emitted, just empty.
+        // The emitter still writes the TK class, with no constants.
         result.GeneratedSource.Should().Contain("public static partial class TK");
     }
 
@@ -313,8 +319,8 @@ public sealed class TKEmitterTests
     [Fact]
     public void Emit_EnUsValueIsNotString_EmitsD2I18N006()
     {
-        // Adversarial: the catalog must be flat string→string. Numeric / object / array
-        // values are rejected as malformed.
+        // The catalog must be a flat string-to-string map. The emitter rejects
+        // numeric, object and array values as malformed.
         const string non_string_value = @"{""common_errors_NOT_FOUND"": 42}";
 
         var result = TKEmitter.Emit(non_string_value, sr_noOtherLocales);
@@ -338,11 +344,12 @@ public sealed class TKEmitterTests
         var malformed = result.Diagnostics.Single(d => d.DescriptorId == "D2I18N006");
         malformed.Args[0].Should().Be("fr-FR.json");
 
-        // de-DE was clean → no orphan / missing diagnostics for it.
+        // The de-DE catalog is well-formed, so the emitter reports no orphan
+        // or missing-key diagnostic for it.
         result.Diagnostics.Should().NotContain(d =>
             d.DescriptorId == "D2I18N002" || d.DescriptorId == "D2I18N004");
 
-        // en-US still emitted.
+        // The emitter still emits the en-US keys.
         result.GeneratedSource.Should().Contain("NOT_FOUND");
     }
 
@@ -353,9 +360,10 @@ public sealed class TKEmitterTests
     [Fact]
     public void Emit_ManyKeys_DoesNotDegrade()
     {
-        // Smoke: 200 synthetic valid keys across multiple domains/categories.
-        // No specific perf assertion — just verify output is well-formed and
-        // no diagnostics fire on a large clean input.
+        // Smoke test: 200 synthetic valid keys across several domains and
+        // categories. The test makes no performance assertion. It checks that
+        // the output is well-formed and that a large valid input raises no
+        // diagnostic.
         var sb = new System.Text.StringBuilder("{");
         for (var d = 0; d < 4; d++)
         {

@@ -13,20 +13,19 @@ using Xunit;
 
 /// <summary>
 /// Adversarial unit tests for the shared SPIFFE grammar
-/// <see cref="SpiffeWorkloadIdentity"/> — the issuance-side
+/// <see cref="SpiffeWorkloadIdentity"/> - the issuance-side
 /// <see cref="SpiffeWorkloadIdentity.Create"/> validation, the
 /// peer-validation-side <see cref="SpiffeWorkloadIdentity.Parse"/> SPIFFE grammar
 /// (default-deny), the computed <see cref="SpiffeWorkloadIdentity.Uri"/>
 /// round-trip, and <see cref="SpiffeWorkloadIdentity.FromTrusted"/>. The shared VO
-/// asserts the GENERIC <c>ValidationFailed</c> — domain-specific re-mapping (e.g.
-/// KeyCustodian's <c>KEYCUSTODIAN_INVALID_WORKLOAD_IDENTITY</c>) is the consumer's
-/// concern, covered by the KeyCustodian-side test.
+/// asserts the generic <c>ValidationFailed</c>; this type does not re-map the
+/// failure to a domain-specific error code.
 /// </summary>
 [Trait("Category", "Unit")]
 public sealed class SpiffeWorkloadIdentityTests
 {
     // -----------------------------------------------------------------------
-    // Create — valid input
+    // Create - valid input
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -67,7 +66,7 @@ public sealed class SpiffeWorkloadIdentityTests
     public void Create_MixedOrUpperCase_NormalizesToLowercase(string input, string expected)
     {
         // Uppercase is normalized (lowercased), not rejected. The charset check
-        // runs AFTER normalization.
+        // runs after normalization.
         var result = SpiffeWorkloadIdentity.Create(input);
 
         result.Success.Should().BeTrue();
@@ -75,7 +74,7 @@ public sealed class SpiffeWorkloadIdentityTests
     }
 
     // -----------------------------------------------------------------------
-    // Create — null / empty / whitespace / over-length → generic ValidationFailed
+    // Create - null / empty / whitespace / over-length -> generic ValidationFailed
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -100,7 +99,7 @@ public sealed class SpiffeWorkloadIdentityTests
     }
 
     // -----------------------------------------------------------------------
-    // Create — invalid charset (lowercase DNS-label only)
+    // Create - invalid charset (lowercase DNS-label only)
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -120,7 +119,7 @@ public sealed class SpiffeWorkloadIdentityTests
     }
 
     // -----------------------------------------------------------------------
-    // Uri — computed SPIFFE SAN
+    // Uri - computed SPIFFE SAN
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -143,7 +142,7 @@ public sealed class SpiffeWorkloadIdentityTests
     }
 
     // -----------------------------------------------------------------------
-    // Parse — valid SPIFFE URI
+    // Parse - valid SPIFFE URI
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -156,7 +155,7 @@ public sealed class SpiffeWorkloadIdentityTests
     }
 
     // -----------------------------------------------------------------------
-    // Parse — default-deny (the fail-open guard)
+    // Parse - default-deny (the fail-open guard)
     // -----------------------------------------------------------------------
 
     [Theory]

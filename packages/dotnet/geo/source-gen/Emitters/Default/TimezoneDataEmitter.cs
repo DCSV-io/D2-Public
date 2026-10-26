@@ -6,6 +6,7 @@
 
 namespace DcsvIo.D2.Geo.SourceGen.Emitters.Default;
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text;
@@ -14,20 +15,21 @@ using DcsvIo.D2.SourceGen;
 using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
-/// Emits the per-timezone DATA — single shape per entity + cycle-resolution
-/// via friend-assembly <c>internal set</c> + two-pass populate. Output:
+/// Emits the per-timezone data: one shape per entity, with reference cycles
+/// resolved through friend-assembly <c>internal set</c> and a two-pass
+/// populate. The output is:
 /// <list type="bullet">
 ///   <item><description>
-///     <c>TimezoneLookup.g.cs</c> — first pass constructs every
-///     <c>Timezone</c> record with scalars and code-rep fields populated
-///     and nav refs <c>null</c> / empty; wire-nav step mutates each
-///     record's <c>PrimaryCountry</c> + <c>CoApplicableCountries</c> via
-///     the friend-assembly <c>internal set</c> accessors.
+///     <c>TimezoneLookup.g.cs</c>: the first pass creates every
+///     <c>Timezone</c> record with scalars and code-rep fields populated and
+///     nav refs <c>null</c> or empty, and the wire-nav step sets each
+///     record's <c>PrimaryCountry</c> and <c>CoApplicableCountries</c>
+///     through the friend-assembly <c>internal set</c> accessors.
 ///   </description></item>
 ///   <item><description>
-///     <c>TimezonesNested.g.cs</c> — <c>Timezones.America.New_York</c>
-///     nested static-class hierarchy. Each leaf is a
-///     <c>TimezoneCode</c> constant.
+///     <c>TimezonesNested.g.cs</c>: the <c>Timezones.America.New_York</c>
+///     nested static-class hierarchy. Each leaf is a <c>TimezoneCode</c>
+///     constant.
 ///   </description></item>
 /// </list>
 /// </summary>
@@ -48,8 +50,8 @@ internal static class TimezoneDataEmitter
 
         var entries = SortByIana(timezonesEnv.Entries);
 
-        // Build the valid-CountryCode member set so we can defensively skip
-        // timezones referencing countries not in the catalog.
+        // Build the valid CountryCode member set so the emitter can skip
+        // timezones that reference countries not in the catalog.
         var validCountryMembers = new HashSet<string>(System.StringComparer.Ordinal);
         if (context.Countries is { } countriesEnv)
         {
@@ -222,7 +224,7 @@ internal static class TimezoneDataEmitter
             sb.Append("PrimaryCountryIso31661Alpha2Code = null, ");
         }
 
-        // CoApplicableCountryIso31661Alpha2Codes — required set (init).
+        // CoApplicableCountryIso31661Alpha2Codes - required set (init).
         var coCodes = new List<string>();
         foreach (var c in entry.CoApplicableCountryIso31661Alpha2Codes)
         {
@@ -276,9 +278,10 @@ internal static class TimezoneDataEmitter
 
     private static EmitResult EmitNested(IReadOnlyList<TimezoneSpec> entries)
     {
-        // Build trie over slash-separated IANA segments. Underscore characters
-        // inside segments (e.g. New_York) are preserved verbatim — already a
-        // valid C# identifier.
+        // Build a trie over slash-separated IANA segments. Underscores inside
+        // segments (e.g. New_York) are kept unchanged, because the segment is
+        // already a valid C# identifier. EmitTrieNode maps a hyphen to an
+        // underscore (Port-au-Prince -> Port_au_Prince).
         var root = new TrieNode();
         foreach (var entry in entries)
         {
@@ -312,30 +315,49 @@ internal static class TimezoneDataEmitter
         sb.AppendLine();
         sb.AppendLine("/// <summary>");
         sb.AppendLine(
-            "/// Strongly-typed nested-class hierarchy over the timezone catalog —");
+            "/// Strongly-typed nested-class hierarchy over the timezone catalog -");
         sb.AppendLine(
             "/// <c>Timezones.America.New_York</c> returns a <see cref=\"TimezoneCode\"/>.");
         sb.AppendLine("/// </summary>");
         sb.AppendLine("public static class Timezones");
         sb.AppendLine("{");
 
+        var diagnostics = ImmutableArray.CreateBuilder<EmitDiagnostic>();
+        var rootMembers = new HashSet<string>(StringComparer.Ordinal);
         foreach (var kvp in OrderedChildren(root))
-            EmitTrieNode(sb, kvp.Value, indent: 1);
+            EmitTrieNode(sb, kvp.Value, indent: 1, parentPath: null, rootMembers, diagnostics);
 
         sb.AppendLine("}");
 
         return new EmitResult(
             HintName: "TimezonesNested.g.cs",
             GeneratedSource: sb.ToString().LfNormalized(),
-            Diagnostics: ImmutableArray<EmitDiagnostic>.Empty);
+            Diagnostics: diagnostics.ToImmutable());
     }
 
-    private static void EmitTrieNode(StringBuilder sb, TrieNode node, int indent)
+    private static void EmitTrieNode(
+        StringBuilder sb,
+        TrieNode node,
+        int indent,
+        string? parentPath,
+        HashSet<string> siblingMembers,
+        ImmutableArray<EmitDiagnostic>.Builder diagnostics)
     {
         var pad = new string(' ', indent * 4);
-        var memberName = DefaultEmitterHelpers.CoerceToIdentifier(node.Segment ?? string.Empty);
-        if (memberName is null)
+        var segment = node.Segment ?? string.Empty;
+        var path = parentPath is null ? segment : parentPath + "/" + segment;
+        var memberName = ToMemberName(segment);
+
+        // A member name a sibling already has (Port-au-Prince beside
+        // Port_au_Prince) is reported and skipped like a segment that does
+        // not convert, because a second member of that name does not compile.
+        if (memberName is null || !siblingMembers.Add(memberName))
+        {
+            // The node and every time zone under it are left out of the
+            // Timezones class; TimezoneLookup still contains them.
+            diagnostics.Add(EmitDiagnostics.InvalidIdentifier(path, "Timezones"));
             return;
+        }
 
         if (node.Children.Count == 0 && node.LeafIana is not null)
         {
@@ -352,12 +374,24 @@ internal static class TimezoneDataEmitter
                 $"{pad}/// <summary>Timezone subtree under <c>{node.Segment}</c>.</summary>");
             sb.AppendLine($"{pad}public static class {memberName}");
             sb.AppendLine($"{pad}{{");
+            var childMembers = new HashSet<string>(StringComparer.Ordinal);
             foreach (var kvp in OrderedChildren(node))
-                EmitTrieNode(sb, kvp.Value, indent + 1);
+                EmitTrieNode(sb, kvp.Value, indent + 1, path, childMembers, diagnostics);
 
             sb.AppendLine($"{pad}}}");
         }
     }
+
+    /// <summary>
+    /// Converts one IANA segment to a member name. A hyphen becomes an
+    /// underscore, so <c>Port-au-Prince</c> emits as <c>Port_au_Prince</c>
+    /// and <c>Ust-Nera</c> as <c>Ust_Nera</c>; the rest follows
+    /// <see cref="DefaultEmitterHelpers.CoerceToIdentifier"/>.
+    /// </summary>
+    /// <param name="segment">The raw IANA segment.</param>
+    /// <returns>The member name, or <c>null</c> when the segment does not convert.</returns>
+    private static string? ToMemberName(string segment)
+        => DefaultEmitterHelpers.CoerceToIdentifier(segment.Replace('-', '_'));
 
     private static IEnumerable<KeyValuePair<string, TrieNode>> OrderedChildren(TrieNode node)
     {

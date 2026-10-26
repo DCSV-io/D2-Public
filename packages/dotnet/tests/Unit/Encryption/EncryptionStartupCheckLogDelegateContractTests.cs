@@ -19,8 +19,8 @@ using Xunit;
 /// <c>SealedEncryptionStartupCheckLog</c>). A logged exception from a crypto /
 /// registration path can embed key-adjacent material or configuration detail in
 /// <c>ex.Message</c>; callers pass <c>SanitizedExceptionRender.TypeName(ex)</c> as a
-/// separate string parameter instead (rules.md §3.1). Mirrors the enforcement pattern in
-/// <c>DcsvIo.D2.Tests.Unit.Mtls.MtlsLogDelegateContractTests</c>.
+/// separate string parameter instead. Follows the enforcement pattern of the
+/// other log-delegate contract tests.
 /// </summary>
 [Trait("Category", "Unit")]
 public sealed class EncryptionStartupCheckLogDelegateContractTests

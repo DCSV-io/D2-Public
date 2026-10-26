@@ -6,10 +6,10 @@ import type { TKMessage } from "@dcsv-io/d2-i18n-abstractions";
 
 /**
  * Locale-aware translator. Mirrors the .NET `DcsvIo.D2.I18n.ITranslator`
- * shape — `t(locale, message)` resolves a `TKMessage` to its rendered
- * string for the given BCP 47 locale, falling back to the configured
- * default locale on miss + finally returning the key verbatim if no
- * catalog entry exists. NEVER throws.
+ * shape: `t(locale, message)` resolves a `TKMessage` to its rendered
+ * string for the given BCP 47 locale, falls back to the configured
+ * default locale on a miss, and finally returns the key verbatim if no
+ * catalog entry exists. It never throws.
  */
 export interface ITranslator {
   /**

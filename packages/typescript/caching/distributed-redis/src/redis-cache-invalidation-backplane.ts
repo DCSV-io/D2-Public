@@ -16,7 +16,7 @@ import {
 } from "@dcsv-io/d2-result";
 
 /**
- * Closed-set backplane operation names for warn bindings (§21.11).
+ * Closed-set backplane operation names used in warning log entries.
  */
 export const BackplaneOp = {
   PUBLISH: "Backplane.Publish",
@@ -57,8 +57,8 @@ export class RedisCacheInvalidationBackplane implements ICacheInvalidationBackpl
 
   /**
    * Resolves when the owned-subscriber channel subscription is established.
-   * Hosts and integration tests await this before delivery-dependent
-   * publish/receive assertions. Construction stays synchronous.
+   * Await this before any publish or receive that depends on delivery.
+   * Construction stays synchronous.
    */
   readonly ready: Promise<void>;
 
@@ -103,14 +103,14 @@ export class RedisCacheInvalidationBackplane implements ICacheInvalidationBackpl
       }
     });
 
-    // Start channel subscribe without await in ctor - surface via ready.
+    // Start the channel subscribe without an await in the constructor; ready exposes it.
     this.ready = this.subscriber.subscribe(this.channel).then(() => {
       this.channelReady = true;
     });
   }
 
   /**
-   * Registers a handler. Sync (port contract) - not channel setup.
+   * Registers a handler. Synchronous (port contract); it does not set up the channel.
    *
    * @throws When the backplane is disposed or `handler` is nullish.
    */

@@ -13,7 +13,7 @@ describe("toUndefIfEmpty", () => {
     ["   ", undefined],
     ["  hello  ", "hello"],
     ["hello", "hello"],
-  ])("input %j → %j", (input, expected) => {
+  ])("input %j -> %j", (input, expected) => {
     expect(toUndefIfEmpty(input)).toBe(expected);
   });
 });

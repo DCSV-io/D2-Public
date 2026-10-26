@@ -12,13 +12,14 @@ using DcsvIo.D2.ErrorCodes.Category;
 using Xunit;
 
 /// <summary>
-/// Emits the cross-runtime parity fixture for the relocated
+/// Emits the cross-runtime parity fixture for the
 /// <see cref="ErrorCategory"/> enum. Reflects every enum member, maps it to its
 /// snake_case wire string via <see cref="ErrorCategoryWire.ToWire"/>, and writes
 /// a deterministic <c>mapping.json</c> fixture to
-/// <c>contract-tests/fixtures/error-category/</c>. The TS-side parity test reads
-/// this fixture and asserts the TS <c>ErrorCategory</c> union exposes an
-/// identical PascalCase-member → wire-string map.
+/// <c>fixtures/error-category/</c> in the fixture directory that the TypeScript
+/// contract tests read. The fixture is the
+/// PascalCase-member -> wire-string map of the enum, which the TypeScript
+/// <c>ErrorCategory</c> union exposes identically.
 /// </summary>
 public sealed class ErrorCategoryFixtureEmitter
 {
@@ -29,7 +30,7 @@ public sealed class ErrorCategoryFixtureEmitter
     public void Emit_Mapping()
     {
         var data = new SortedDictionary<string, object?>(StringComparer.Ordinal);
-        foreach (ErrorCategory category in Enum.GetValues<ErrorCategory>())
+        foreach (var category in Enum.GetValues<ErrorCategory>())
             data[category.ToString()] = category.ToWire();
 
         FixturePathHelpers.WriteFixture(_CATALOG, "mapping", data);

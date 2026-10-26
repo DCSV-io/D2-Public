@@ -2,18 +2,21 @@
 // Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 // -----------------------------------------------------------------------
 
-// Public surface — consumer AND publisher. The publisher ships with .NET's
-// structural publish/encrypt fusion mirrored at the type level: `createPublisher`
-// binds a compile-time type witness (an unwired encrypted domain is a COMPILE
-// error, no raw-bytes publish surface) plus a runtime default-deny second lock.
+// Public surface for consumer and publisher. The publisher mirrors .NET's
+// structural publish/encrypt fusion at the type level: `createPublisher`
+// binds a compile-time type witness (an unwired encrypted domain is a compile
+// error, and there is no raw-bytes publish surface) plus a second, runtime
+// default-deny check.
 
 // Connection.
 export {
-  type RabbitMqConnectionOptions,
+  RabbitMqConnectionOptions,
+  type RabbitMqConnectionOptionsInit,
   createConnection,
   redactAmqpUri,
 } from "./connection/connection-options.js";
-export type { Connection } from "rabbitmq-client";
+export type { D2Connection } from "./connection/managed-connection.js";
+export { UnencryptedTransportError } from "./connection/transport-admission.js";
 
 // Subscription.
 export {
@@ -26,6 +29,7 @@ export {
   type RepublishFn,
 } from "./subscribing/delivery-processor.js";
 export { type ConsumedMessage } from "./subscribing/consumed-message.js";
+export { type RabbitMqSubscriberOptions } from "./subscribing/subscriber-options.js";
 
 // Topology contract.
 export {
@@ -55,7 +59,7 @@ export {
 } from "./subscribing/crypto-body-opener.js";
 export { MessageBodyDecodeError } from "./subscribing/message-body-decode-error.js";
 
-// Publisher — the auto-encrypting publish/encrypt fusion.
+// Publisher: the auto-encrypting publish/encrypt fusion.
 export {
   createPublisher,
   publishVia,
@@ -71,13 +75,21 @@ export {
 } from "./publishing/body-composer.js";
 export {
   type DomainCryptoMap,
+  type DomainCryptoMapOf,
   type ComposerFor,
+  type ComposerForMode,
   type EncryptedDomain,
   type PublishableKey,
   type PublishableKeyOf,
   type CatalogEncryption,
 } from "./publishing/domain-crypto-map.js";
 export { readEncryptionKid } from "./publishing/encryption-kid.js";
+
+// Application-defined encryption-domain modes (publisher and consumer).
+export {
+  type ApplicationDomainModes,
+  resolveDomainModes,
+} from "./encryption-domain-modes.js";
 
 // Idempotency.
 export {

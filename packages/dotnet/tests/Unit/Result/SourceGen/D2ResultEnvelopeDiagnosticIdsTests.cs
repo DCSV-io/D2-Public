@@ -12,10 +12,10 @@ using Xunit;
 
 /// <summary>
 /// Pins the <c>D2DRE###</c> diagnostic IDs surfaced by the
-/// d2result-envelope source generator. Cross-language counterparts ride
-/// in <c>tools/ts-codegen/src/lib/diagnostics.ts</c> under <c>DRE_*</c>
-/// keys — identical IDs by spec since both sides describe the same
-/// predicate violations against the same spec source.
+/// d2result-envelope source generator. The TypeScript code generator
+/// declares the same IDs under <c>DRE_*</c> keys. The IDs are identical
+/// because both sides describe the same predicate violations against the same
+/// spec source.
 /// </summary>
 public sealed class D2ResultEnvelopeDiagnosticIdsTests
 {

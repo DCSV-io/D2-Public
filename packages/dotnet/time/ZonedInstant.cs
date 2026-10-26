@@ -14,15 +14,15 @@ using NodaTime;
 /// <summary>
 /// A Category-1 (past instant) timestamp that additionally preserves the
 /// original wall-clock time-zone context. Use this when you need to
-/// reconstruct the user's local time at the moment the event occurred — for
+/// reconstruct the user's local time at the moment the event occurred - for
 /// example, displaying "signed in at 9:42 AM Mountain" on an activity log.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Category 1 — Past instant with original context.</b><br />
+/// <b>Category 1 - Past instant with original context.</b><br />
 /// Storage: <c>event_at TIMESTAMPTZ</c> (from <see cref="Instant" />) +
 /// <c>event_at_zone TEXT NULL</c> (from <see cref="IANAIdentifier" />).<br />
-/// Sort/compare: always use <see cref="Instant" /> — zone-agnostic and
+/// Sort/compare: always use <see cref="Instant" /> - zone-agnostic and
 /// unambiguous.
 /// </para>
 /// <para>
@@ -33,7 +33,7 @@ using NodaTime;
 /// <para>
 /// <b>Construction</b>: smart-constructor pattern via the static
 /// <see cref="Create"/> factory. The private positional constructor enforces
-/// IANA validation + canonicalization at the entry point — deprecated aliases
+/// IANA validation + canonicalization at the entry point - deprecated aliases
 /// (e.g. <c>"US/Pacific"</c>) are normalized to their canonical TZDB names
 /// (<c>"America/Los_Angeles"</c>) on the way in, so record equality and
 /// downstream comparisons stay consistent regardless of which alias the
@@ -41,11 +41,10 @@ using NodaTime;
 /// </para>
 /// <para>
 /// <b>JSON serialization</b>: the private constructor makes this type
-/// incompatible with default <c>System.Text.Json</c> deserialization. v2
-/// D2 persists this type via Npgsql.NodaTime EF Core (column-based,
-/// not JSON), and no current consumer round-trips it through JSON. If a
-/// future consumer needs JSON support, that consumer writes a
-/// <c>JsonConverter&lt;ZonedInstant&gt;</c> that calls
+/// incompatible with default <c>System.Text.Json</c> deserialization. D2
+/// persists this type via Npgsql.NodaTime EF Core (column-based, not
+/// JSON), and nothing round-trips it through JSON. A
+/// <c>JsonConverter&lt;ZonedInstant&gt;</c> must call
 /// <see cref="Create"/> (surfacing the validation failure) rather than
 /// bypassing it.
 /// </para>
@@ -60,14 +59,14 @@ public sealed record ZonedInstant
 
     /// <summary>
     /// Gets the UTC instant at which the event occurred.
-    /// <b>Category 1 — Past instant.</b> Sort and compare on this value.
+    /// <b>Category 1 - Past instant.</b> Sort and compare on this value.
     /// </summary>
     public Instant Instant { get; }
 
     /// <summary>
     /// Gets the canonical IANA time-zone identifier in effect when the event
     /// occurred (e.g., <c>"America/Los_Angeles"</c>). Always the canonical
-    /// form — deprecated aliases passed to <see cref="Create"/> are
+    /// form - deprecated aliases passed to <see cref="Create"/> are
     /// normalized at construction time. Reconstruct the user's local
     /// wall-clock time by combining <see cref="Instant"/> with this
     /// identifier via NodaTime's
@@ -82,10 +81,10 @@ public sealed record ZonedInstant
     /// <param name="instant">The UTC instant (always valid; no validation).</param>
     /// <param name="ianaIdentifier">
     /// The IANA time-zone identifier. May be a canonical name
-    /// (<c>"America/Los_Angeles"</c>) OR a deprecated alias / renamed zone
-    /// (<c>"US/Pacific"</c>, <c>"Asia/Saigon"</c>) — normalized to canonical
+    /// (<c>"America/Los_Angeles"</c>) or a deprecated alias / renamed zone
+    /// (<c>"US/Pacific"</c>, <c>"Asia/Saigon"</c>) - normalized to canonical
     /// form. Fixed-offset notation (<c>"UTC+5"</c>, <c>"+05:00"</c>) is
-    /// REJECTED — IANA-only. <c>"Etc/GMT*"</c> zones ARE accepted because
+    /// rejected - IANA-only. <c>"Etc/GMT*"</c> zones are accepted because
     /// they are valid IANA TZDB entries.
     /// </param>
     /// <returns>

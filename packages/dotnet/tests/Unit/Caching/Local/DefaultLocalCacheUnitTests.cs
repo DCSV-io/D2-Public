@@ -15,13 +15,100 @@ using Microsoft.Extensions.Time.Testing;
 using Xunit;
 
 /// <summary>
-/// Surface tests for <see cref="DefaultLocalCache"/> — D2Result mapping,
+/// Surface tests for <see cref="DefaultLocalCache"/>: D2Result mapping,
 /// argument validation, key prefixing, idempotency. Real cache behaviors
 /// (eviction under capacity, TTL expiration timing, concurrent access)
-/// live in <c>Integration/Caching/Local/</c>.
+/// are tested in <c>DefaultLocalCacheBehaviorTests</c>.
 /// </summary>
 public sealed class DefaultLocalCacheUnitTests
 {
+    [Fact]
+    public async Task SetIfEqualAsync_PresentNullReference_ReplacesValue()
+    {
+        using var cache = NewCache();
+        await cache.SetAsync<string?>("nullable", null);
+
+        var result = await cache.SetIfEqualAsync("nullable", null, "replacement");
+
+        result.Data.Should().BeTrue();
+        (await cache.GetAsync<string>("nullable")).Data.Should().Be("replacement");
+    }
+
+    [Fact]
+    public async Task RemoveIfEqualAsync_PresentNullReference_RemovesValue()
+    {
+        using var cache = NewCache();
+        await cache.SetAsync<string?>("nullable", null);
+
+        var result = await cache.RemoveIfEqualAsync<string?>("nullable", null);
+
+        result.Data.Should().BeTrue();
+        (await cache.ExistsAsync("nullable")).Data.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SetIfEqualAsync_PresentNullableValueNull_ReplacesValue()
+    {
+        using var cache = NewCache();
+        await cache.SetAsync<int?>("nullable", null);
+
+        var result = await cache.SetIfEqualAsync<int?>("nullable", null, 42);
+
+        result.Data.Should().BeTrue();
+        (await cache.GetAsync<int?>("nullable")).Data.Should().Be(42);
+    }
+
+    [Fact]
+    public async Task RemoveIfEqualAsync_PresentNullableValueNull_RemovesValue()
+    {
+        using var cache = NewCache();
+        await cache.SetAsync<int?>("nullable", null);
+
+        var result = await cache.RemoveIfEqualAsync<int?>("nullable", null);
+
+        result.Data.Should().BeTrue();
+        (await cache.ExistsAsync("nullable")).Data.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ConditionalWrite_AbsentNull_DoesNotMatch(bool remove)
+    {
+        using var cache = NewCache();
+
+        var result = remove
+            ? await cache.RemoveIfEqualAsync<int?>("missing", null)
+            : await cache.SetIfEqualAsync<int?>("missing", null, 42);
+
+        result.Data.Should().BeFalse();
+        (await cache.ExistsAsync("missing")).Data.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(false, null, 1)]
+    [InlineData(true, null, 1)]
+    [InlineData(false, "different", null)]
+    [InlineData(true, "different", null)]
+    [InlineData(false, 1, 2)]
+    [InlineData(true, 1, 2)]
+    [InlineData(false, "1", 1)]
+    [InlineData(true, "1", 1)]
+    public async Task ConditionalWrite_MismatchedValue_DoesNotMutate(
+        bool remove, object? stored, int? expected)
+    {
+        using var cache = NewCache();
+        await cache.SetAsync("mismatch", stored);
+
+        var result = remove
+            ? await cache.RemoveIfEqualAsync("mismatch", expected)
+            : await cache.SetIfEqualAsync("mismatch", expected, 42);
+
+        result.Data.Should().BeFalse();
+        (await cache.ExistsAsync("mismatch")).Data.Should().BeTrue();
+        (await cache.GetAsync<object?>("mismatch")).Data.Should().Be(stored);
+    }
+
     [Fact]
     public async Task GetAsync_HitReturnsOk()
     {
@@ -247,8 +334,8 @@ public sealed class DefaultLocalCacheUnitTests
 
         await cache.SetAsync("counter", 5L, shortTtl);
 
-        // Advance the fake clock by 30 s — observable bleed in the remaining-TTL
-        // window without any real-time wait.
+        // Advance the fake clock by 30 s, which shortens the remaining TTL
+        // without any real-time wait.
         clock.Advance(TimeSpan.FromSeconds(30));
 
         await cache.IncrementAsync("counter");
@@ -257,24 +344,26 @@ public sealed class DefaultLocalCacheUnitTests
         ttlR.IsOk.Should().BeTrue();
         ttlR.Data.Should().NotBeNull();
 
-        // TTL must remain bounded by the original 2-minute window — not jump
-        // back up to the 1-hour default. After 30 s elapsed, TTL ≈ 90 s < 2 min.
+        // TTL must remain bounded by the original 2-minute window and must not
+        // jump back up to the 1-hour default. After 30 s elapsed, TTL ~= 90 s < 2 min.
         ttlR.Data!.Value.Should().BeLessThan(TimeSpan.FromMinutes(2));
     }
 
     [Fact]
     public async Task IncrementAsync_ExistingKeyWithoutTtl_StaysWithoutTtl()
     {
-        // Companion: existing-no-TTL must stay no-TTL after increment (don't
-        // accidentally introduce a TTL on the increment path either).
+        // Companion: a key written with the default expiration keeps a TTL
+        // bounded by that default after an increment, so the increment path
+        // does not extend or add a TTL.
         using var cache = NewCache();
 
-        await cache.SetAsync("counter", 5L); // null expiration → DefaultExpiration applied
+        await cache.SetAsync("counter", 5L); // null expiration -> DefaultExpiration applied
         await cache.IncrementAsync("counter");
 
         // The original DefaultExpiration is still applied from the initial Set;
-        // increment must NOT layer another TTL on top — verify TTL hasn't been
-        // re-extended by checking it's still bounded by the default window.
+        // increment must not layer another TTL on top. The check that the TTL
+        // has not been re-extended is that it is still bounded by the default
+        // window.
         var ttlR = await cache.GetTtlAsync("counter");
         ttlR.IsOk.Should().BeTrue();
         ttlR.Data.Should().NotBeNull();
@@ -284,10 +373,10 @@ public sealed class DefaultLocalCacheUnitTests
     [Fact]
     public async Task SetAsync_ZeroExpiration_ReturnsValidationFailed()
     {
-        // Regression: previously SetCore silently treated TimeSpan.Zero as
-        // "no expiration" — the worst possible behavior (cache slot kept
-        // forever despite caller signaling zero TTL). Now public surface
-        // validates and rejects.
+        // Regression: SetCore once silently treated TimeSpan.Zero as "no
+        // expiration", so the cache slot was kept forever although the call
+        // passed a zero TTL. The public surface now validates the expiration
+        // and rejects zero.
         using var cache = NewCache();
 
         var result = await cache.SetAsync("k", "value", TimeSpan.Zero);
@@ -310,9 +399,9 @@ public sealed class DefaultLocalCacheUnitTests
     [Fact]
     public async Task SetManyAsync_ContainsEmptyKey_ReturnsValidationFailed()
     {
-        // Regression: per-entry validation gap. Top-level dict was validated
-        // but individual keys weren't — empty-key entries silently merged
-        // into the prefix-only cache slot.
+        // Regression: per-entry validation gap. The top-level dictionary was
+        // validated but the individual keys were not, so empty-key entries
+        // silently merged into the prefix-only cache slot.
         using var cache = NewCache();
 
         var entries = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -409,7 +498,8 @@ public sealed class DefaultLocalCacheUnitTests
         var prefixedCache = NewCache(opts => opts.KeyPrefix = "test:");
         await prefixedCache.SetAsync("k", 42);
 
-        // The prefix is opaque to callers — they pass "k", lib stores under "test:k" internally.
+        // The cache applies the prefix internally: the test passes "k" and the
+        // library stores the entry under "test:k".
         var result = await prefixedCache.GetAsync<int>("k");
         result.IsOk.Should().BeTrue();
         result.Data.Should().Be(42);
@@ -466,7 +556,10 @@ public sealed class DefaultLocalCacheUnitTests
     [InlineData("RemoveAsync")]
     [InlineData("RemoveManyAsync")]
     [InlineData("SetNxAsync")]
+    [InlineData("SetIfEqualAsync")]
+    [InlineData("RemoveIfEqualAsync")]
     [InlineData("IncrementAsync")]
+    [InlineData("ConsumeTokenAsync")]
     [InlineData("AcquireLockAsync")]
     [InlineData("ReleaseLockAsync")]
     public async Task Dispose_EveryPublicOp_ThrowsObjectDisposedException(string opName)
@@ -475,7 +568,7 @@ public sealed class DefaultLocalCacheUnitTests
         cache.Dispose();
 
         // Do not capture a using-disposed local in the async lambda (inspectcode).
-        Func<Task> act = () => InvokePublicOpAsync(cache, opName);
+        var act = () => InvokePublicOpAsync(cache, opName);
         await act.Should().ThrowAsync<ObjectDisposedException>(because: opName);
     }
 
@@ -484,6 +577,263 @@ public sealed class DefaultLocalCacheUnitTests
     {
         var act = () => new DefaultLocalCache(null!);
         act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task SetIfEqualAsync_NullKey_ReturnsValidationFailed()
+    {
+        using var cache = NewCache();
+
+        var result = await cache.SetIfEqualAsync(null!, 1, 2);
+
+        result.IsValidationFailed.Should().BeTrue();
+        result.InputErrors.Should().ContainSingle(e => e.Field == "key");
+    }
+
+    [Fact]
+    public async Task SetIfEqualAsync_EmptyKey_ReturnsValidationFailed()
+    {
+        using var cache = NewCache();
+
+        var result = await cache.SetIfEqualAsync(string.Empty, 1, 2);
+
+        result.IsValidationFailed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SetIfEqualAsync_ZeroExpiration_ReturnsValidationFailed()
+    {
+        using var cache = NewCache();
+
+        var result = await cache.SetIfEqualAsync("k", 1, 2, TimeSpan.Zero);
+
+        result.IsValidationFailed.Should().BeTrue();
+        result.InputErrors.Should().ContainSingle(e => e.Field == "expiration");
+    }
+
+    [Fact]
+    public async Task SetIfEqualAsync_NegativeExpiration_ReturnsValidationFailed()
+    {
+        using var cache = NewCache();
+
+        var result = await cache.SetIfEqualAsync("k", 1, 2, TimeSpan.FromSeconds(-1));
+
+        result.IsValidationFailed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SetIfEqualAsync_AbsentKey_ReturnsOkFalse()
+    {
+        // Once the key is gone, a copy of what used to be stored has nothing to
+        // compare against, and writing anyway would overwrite whatever
+        // authoritative source the absence sends the next reader to.
+        using var cache = NewCache();
+
+        var result = await cache.SetIfEqualAsync("absent", 1, 2);
+
+        result.IsOk.Should().BeTrue();
+        result.Data.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SetIfEqualAsync_AbsentKey_WritesNothing()
+    {
+        using var cache = NewCache();
+
+        _ = await cache.SetIfEqualAsync("absent", 1, 2);
+
+        (await cache.GetAsync<int>("absent")).IsNotFound.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SetIfEqualAsync_TheStoredValue_ReturnsOkTrue()
+    {
+        using var cache = NewCache();
+        await cache.SetAsync("k", 1);
+
+        var result = await cache.SetIfEqualAsync("k", 1, 2);
+
+        result.IsOk.Should().BeTrue();
+        result.Data.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SetIfEqualAsync_TheStoredValue_ReplacesIt()
+    {
+        using var cache = NewCache();
+        await cache.SetAsync("k", 1);
+
+        _ = await cache.SetIfEqualAsync("k", 1, 2);
+
+        (await cache.GetAsync<int>("k")).Data.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task SetIfEqualAsync_AnotherValue_ReturnsOkFalse()
+    {
+        using var cache = NewCache();
+        await cache.SetAsync("k", 1);
+
+        var result = await cache.SetIfEqualAsync("k", 99, 2);
+
+        result.IsOk.Should().BeTrue();
+        result.Data.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SetIfEqualAsync_AnotherValue_LeavesTheStoredValueAlone()
+    {
+        using var cache = NewCache();
+        await cache.SetAsync("k", 1);
+
+        _ = await cache.SetIfEqualAsync("k", 99, 2);
+
+        (await cache.GetAsync<int>("k")).Data.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task SetIfEqualAsync_AValueOfAnotherType_ReturnsOkFalse()
+    {
+        // The stored object is not a T, so the expected value has nothing to be
+        // compared against and the write must not happen.
+        using var cache = NewCache();
+        await cache.SetAsync("k", "a string");
+
+        var result = await cache.SetIfEqualAsync("k", 1, 2);
+
+        result.IsOk.Should().BeTrue();
+        result.Data.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SetIfEqualAsync_AValueOfAnotherType_LeavesTheStoredValueAlone()
+    {
+        using var cache = NewCache();
+        await cache.SetAsync("k", "a string");
+
+        _ = await cache.SetIfEqualAsync("k", 1, 2);
+
+        (await cache.GetAsync<string>("k")).Data.Should().Be("a string");
+    }
+
+    [Fact]
+    public async Task SetIfEqualAsync_TheWrittenValue_TakesTheGivenExpiration()
+    {
+        using var cache = NewCache();
+        await cache.SetAsync("k", 1);
+
+        _ = await cache.SetIfEqualAsync("k", 1, 2, TimeSpan.FromMinutes(5));
+
+        (await cache.GetTtlAsync("k")).Data.Should().BeCloseTo(
+            TimeSpan.FromMinutes(5), TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public async Task RemoveIfEqualAsync_NullKey_ReturnsValidationFailed()
+    {
+        using var cache = NewCache();
+
+        var result = await cache.RemoveIfEqualAsync(null!, 1);
+
+        result.IsValidationFailed.Should().BeTrue();
+        result.InputErrors.Should().ContainSingle(e => e.Field == "key");
+    }
+
+    [Fact]
+    public async Task RemoveIfEqualAsync_EmptyKey_ReturnsValidationFailed()
+    {
+        using var cache = NewCache();
+
+        var result = await cache.RemoveIfEqualAsync(string.Empty, 1);
+
+        result.IsValidationFailed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RemoveIfEqualAsync_AbsentKey_ReturnsOkFalse()
+    {
+        // A false result tells the caller that the entry it held is not the
+        // entry stored now, the same result as when another writer replaced it.
+        using var cache = NewCache();
+
+        var result = await cache.RemoveIfEqualAsync("absent", 1);
+
+        result.IsOk.Should().BeTrue();
+        result.Data.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RemoveIfEqualAsync_TheStoredValue_ReturnsOkTrue()
+    {
+        using var cache = NewCache();
+        await cache.SetAsync("k", 1);
+
+        var result = await cache.RemoveIfEqualAsync("k", 1);
+
+        result.IsOk.Should().BeTrue();
+        result.Data.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RemoveIfEqualAsync_TheStoredValue_RemovesIt()
+    {
+        using var cache = NewCache();
+        await cache.SetAsync("k", 1);
+
+        _ = await cache.RemoveIfEqualAsync("k", 1);
+
+        (await cache.GetAsync<int>("k")).IsNotFound.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RemoveIfEqualAsync_AnotherValue_ReturnsOkFalse()
+    {
+        using var cache = NewCache();
+        await cache.SetAsync("k", 1);
+
+        var result = await cache.RemoveIfEqualAsync("k", 99);
+
+        result.IsOk.Should().BeTrue();
+        result.Data.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RemoveIfEqualAsync_AnotherValue_LeavesTheStoredValueAlone()
+    {
+        using var cache = NewCache();
+        await cache.SetAsync("k", 1);
+
+        _ = await cache.RemoveIfEqualAsync("k", 99);
+
+        (await cache.GetAsync<int>("k")).Data.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task RemoveIfEqualAsync_AValueOfAnotherType_LeavesTheStoredValueAlone()
+    {
+        // The stored object is not a T, so the expected value has nothing to be
+        // compared against and the removal must not happen.
+        using var cache = NewCache();
+        await cache.SetAsync("k", "a string");
+
+        var result = await cache.RemoveIfEqualAsync("k", 1);
+
+        result.Data.Should().BeFalse();
+        (await cache.GetAsync<string>("k")).Data.Should().Be("a string");
+    }
+
+    [Fact]
+    public async Task RemoveIfEqualAsync_TheRemovedKey_LosesItsExpiration()
+    {
+        // The cache stores the entry's lifetime separately from the entry, so a
+        // removal that left the lifetime behind would report a TTL for a key
+        // that is gone.
+        using var cache = NewCache();
+        await cache.SetAsync("k", 1, TimeSpan.FromMinutes(5));
+
+        _ = await cache.RemoveIfEqualAsync("k", 1);
+
+        (await cache.GetTtlAsync("k")).IsNotFound.Should().BeTrue();
     }
 
     private static DefaultLocalCache NewCache(
@@ -525,8 +875,17 @@ public sealed class DefaultLocalCacheUnitTests
             case "SetNxAsync":
                 await cache.SetNxAsync("k", 1);
                 break;
+            case "SetIfEqualAsync":
+                await cache.SetIfEqualAsync("k", 1, 2);
+                break;
+            case "RemoveIfEqualAsync":
+                await cache.RemoveIfEqualAsync("k", 1);
+                break;
             case "IncrementAsync":
                 await cache.IncrementAsync("k");
+                break;
+            case "ConsumeTokenAsync":
+                await cache.ConsumeTokenAsync("k", 1, TimeSpan.FromSeconds(1), 1);
                 break;
             case "AcquireLockAsync":
                 await cache.AcquireLockAsync("k", "lock-1", TimeSpan.FromSeconds(1));

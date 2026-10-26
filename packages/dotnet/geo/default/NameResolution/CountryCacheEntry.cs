@@ -9,11 +9,12 @@ namespace DcsvIo.D2.Geo.Default.NameResolution;
 using DcsvIo.D2.Geo.Abstractions;
 
 /// <summary>
-/// Single dictionary value for the country name cache. Carries either a
+/// Single dictionary value for the country name cache. Stores either a
 /// record reference (when the normalized key resolves to exactly one
 /// record) or an ambiguity sentinel (when two or more records share the
-/// normalized key). The two fields publish atomically because they
-/// inhabit one struct value — one dictionary write is one atomic publish.
+/// normalized key). The record and the flag are one struct value, and the cache
+/// publishes the finished dictionary once, so a reader sees both fields of
+/// an entry together.
 /// </summary>
 /// <param name="Record">
 /// The matched country record, or <c>null</c> on ambiguity.

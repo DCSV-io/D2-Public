@@ -26,12 +26,19 @@ public sealed class D2CorsOptionsTests
         var opts = new D2CorsOptions();
         opts.AllowedHeaders.Should()
             .Contain("Content-Type")
-            .And.Contain(HttpHeaders.AUTHORIZATION)
             .And.Contain(HttpHeaders.CORRELATION_ID)
             .And.Contain(HttpHeaders.IDEMPOTENCY_KEY)
             .And.Contain("X-Forwarded-For")
             .And.Contain("X-Real-IP")
             .And.Contain("CF-Connecting-IP");
+    }
+
+    [Fact]
+    public void Defaults_AllowedHeadersOmitsAuthorization()
+    {
+        var opts = new D2CorsOptions();
+
+        opts.AllowedHeaders.Should().NotContain(HttpHeaders.AUTHORIZATION);
     }
 
     [Fact]
@@ -82,9 +89,9 @@ public sealed class D2CorsOptionsTests
             AllowCredentials = true,
         };
 
-        // Records compare by reference for IReadOnlyList — explicit equality
-        // check via SequenceEqual + property-by-property is the operational
-        // semantic.
+        // A record compares an IReadOnlyList property by reference, so the
+        // assertions below compare the properties one by one, and compare
+        // Origins with BeEquivalentTo.
         a.AllowCredentials.Should().Be(b.AllowCredentials);
         a.PreflightMaxAgeSeconds.Should().Be(b.PreflightMaxAgeSeconds);
         a.Origins.Should().BeEquivalentTo(b.Origins);

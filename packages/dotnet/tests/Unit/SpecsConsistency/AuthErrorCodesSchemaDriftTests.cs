@@ -19,12 +19,12 @@ using Xunit;
 /// Drift guard for the auth error-codes schema. The auth
 /// <c>contracts/auth-error-codes/schema.json</c> is a domain-specialized COPY
 /// of <c>contracts/error-codes/error-codes.canonical.schema.json</c> (NOT a
-/// <c>$ref</c> — auth legitimately narrows the canonical's <c>code</c>
+/// <c>$ref</c> - auth legitimately narrows the canonical's <c>code</c>
 /// prefix / <c>httpStatus</c> / <c>category</c> constraints, which a
 /// <c>$ref</c> would discard). This test asserts the copy stays field-aligned
 /// with the canonical (same <c>errorCode</c> field-set + required-list +
 /// <c>factoryShape</c> enum) so a canonical field addition that the auth copy
-/// misses surfaces as a red test, and that every auth spec entry carries a
+/// misses fails this test, and that every auth spec entry has a
 /// valid <c>factoryShape</c>.
 /// </summary>
 public sealed class AuthErrorCodesSchemaDriftTests
@@ -70,7 +70,7 @@ public sealed class AuthErrorCodesSchemaDriftTests
             .GetProperty("definitions").GetProperty("errorCode").GetProperty("properties");
 
         props.GetProperty("code").GetProperty("pattern").GetString()
-            .Should().Be("^AUTH_[A-Z][A-Z0-9_]*$");
+            .Should().Be("^LIB_AUTH_[A-Z][A-Z0-9_]*$");
 
         var statuses = props.GetProperty("httpStatus").GetProperty("enum")
             .EnumerateArray().Select(e => e.GetInt32()).ToList();

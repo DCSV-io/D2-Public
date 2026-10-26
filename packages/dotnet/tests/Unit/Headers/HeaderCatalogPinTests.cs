@@ -15,10 +15,10 @@ using DcsvIo.D2.Headers.Http;
 using Xunit;
 
 /// <summary>
-/// Per-VALUE pin against every emitted header constant across all four
-/// per-transport catalogs (Common / Http / Amqp / Grpc). One catalog-spanning
-/// pin set anchored on the codegen output — drift between the spec and any
-/// emitted catalog surfaces here.
+/// Pins the value of every emitted header constant in the Common, Http, Amqp
+/// and Grpc catalogs. One pin set spans the catalogs and is anchored on the
+/// codegen output, so a difference between the spec and any emitted catalog
+/// fails a test here.
 /// </summary>
 public sealed class HeaderCatalogPinTests
 {

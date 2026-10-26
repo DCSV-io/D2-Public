@@ -19,7 +19,7 @@ namespace DcsvIo.D2.WireShapes.SourceGen;
 /// <param name="Value">
 /// Wire-format JSON property name emitted on the catalog's JSON object
 /// (e.g. <c>key</c>, <c>params</c>, <c>field</c>, <c>errors</c>). The
-/// literal IS the wire format.
+/// literal is the wire format.
 /// </param>
 /// <param name="Doc">
 /// XML <c>summary</c> text rendered on the emitted constant.

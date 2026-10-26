@@ -15,7 +15,7 @@ using DcsvIo.D2.Messaging.RabbitMq.Subscribing;
 using Xunit;
 
 /// <summary>
-/// Emits the DLQ failure-metadata catalogs as two fixtures —
+/// Emits the DLQ failure-metadata catalogs as the fixtures
 /// <c>fields.json</c> (property-name catalog) and <c>causes.json</c>
 /// (closed-enum cause-string catalog).
 /// </summary>

@@ -20,12 +20,12 @@ using Xunit;
 
 /// <summary>
 /// Host-builder boot tests for <c>AnonymizationModelValidator</c>. Builds a minimal host
-/// (no DB connection opened — model-build-only contexts) and asserts that
+/// (no DB connection opened - model-build-only contexts) and asserts that
 /// <see cref="IHost.StartAsync"/> throws on a bad model, succeeds on a good model, and
 /// respects the <c>SkipModelValidation</c> opt-out.
 /// </summary>
 /// <remarks>
-/// These tests exercise the full hosted-service lifecycle end-to-end — the validator is
+/// These tests exercise the full hosted-service lifecycle end-to-end - the validator is
 /// registered via <c>AddD2DataGovernance</c>, resolved through real DI, and invoked by the
 /// generic host's <c>StartAsync</c>. No network or database connection is opened.
 /// Serialized with the other <c>AnonymizationClassifier*</c> test classes because they all
@@ -100,7 +100,7 @@ public sealed class AnonymizationModelValidatorBootTests
                 new Dictionary<string, string?>
                 {
                     {
-                        "DATA_GOVERNANCE:SkipModelValidation",
+                        "LIB_DATA_GOVERNANCE:SkipModelValidation",
                         skipValidation ? "true" : "false"
                     },
                 })

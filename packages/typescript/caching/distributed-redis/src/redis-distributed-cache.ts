@@ -7,6 +7,7 @@ import {
   type ICacheInvalidationBackplane,
   type ICacheSerializer,
   type IDistributedCache,
+  type TokenBucketDecision,
 } from "@dcsv-io/d2-caching-abstractions";
 import type { ILogger } from "@dcsv-io/d2-logging";
 import { sanitizedErrorRender } from "@dcsv-io/d2-logging";
@@ -25,9 +26,12 @@ import type Redis from "ioredis";
 
 import type { RedisCacheOptions } from "./redis-cache-options.js";
 import {
+  CONSUME_TOKEN,
   INCREMENT_WITH_OPTIONAL_TTL,
   RELEASE_LOCK_IF_OWNER,
+  REMOVE_IF_EQUAL,
   SET_ADD_WITH_OPTIONAL_TTL,
+  SET_IF_EQUAL,
 } from "./redis-lua-scripts.js";
 import {
   createRedisCacheCounters,
@@ -40,8 +44,8 @@ export const BACKPLANE_NOT_REGISTERED_MESSAGE =
   "(no broadcast), or pass a backplane to RedisDistributedCache.";
 
 /**
- * Closed-set operation names for redis cache warn bindings (§21.11).
- * Single SoT for every `su` / `suVoid` / `logRedisOp` emit site.
+ * Closed-set operation names used in redis cache warning log entries.
+ * This package defines these names nowhere else.
  */
 export const RedisCacheOp = {
   GET: "get",
@@ -53,6 +57,9 @@ export const RedisCacheOp = {
   REMOVE: "remove",
   REMOVE_MANY: "removeMany",
   SET_NX: "setNx",
+  SET_IF_EQUAL: "setIfEqual",
+  REMOVE_IF_EQUAL: "removeIfEqual",
+  CONSUME_TOKEN: "consumeToken",
   INCREMENT: "increment",
   ACQUIRE_LOCK: "acquireLock",
   RELEASE_LOCK: "releaseLock",
@@ -81,10 +88,10 @@ export interface RedisDistributedCacheDeps {
 
 /**
  * ioredis-backed implementation of {@link IDistributedCache}. Implements
- * Basic + Atomic + Broadcast + Set over a host-owned **command** Redis
+ * Basic, Atomic, Broadcast and Set over a host-owned **command** Redis
  * client. Does not own or dispose the connection.
  *
- * Redis/connection errors map to `serviceUnavailable`. Increment on a
+ * Redis and connection errors map to `serviceUnavailable`. Increment on a
  * non-numeric key maps to `conflict` (WRONGTYPE / not-an-integer).
  * Whole-op serializer failures use `bubbleFail` on get / set / setMany /
  * setNx / broadcast wrappers; `getMany` skips per-entry deserialize
@@ -348,8 +355,9 @@ export class RedisDistributedCache implements IDistributedCache {
       }
 
       // ioredis Pipeline.exec resolves with [err, result][] (does not throw
-      // on per-command failure). Surface any command error as SU — match
-      // .NET Task.WhenAll failure on batch StringSet tasks.
+      // on per-command failure). Return any command error as
+      // serviceUnavailable, matching the .NET Task.WhenAll failure on batch
+      // StringSet tasks.
       const results = await pipeline.exec();
 
       if (results == null || results.length === 0) {
@@ -469,6 +477,175 @@ export class RedisDistributedCache implements IDistributedCache {
   }
 
   /** @inheritdoc */
+  async setIfEqual<T>(
+    key: string,
+    expected: T,
+    value: T,
+    expirationMs?: number,
+    signal?: AbortSignal,
+  ): Promise<D2Result<boolean>> {
+    if (isAborted(signal)) {
+      return canceled();
+    }
+
+    if (falsey(key)) {
+      return InputFailures.required<boolean>("key");
+    }
+
+    const expCheck = validateOptionalExpirationMs(expirationMs);
+
+    if (expCheck !== undefined) {
+      return expCheck as D2Result<boolean>;
+    }
+
+    try {
+      // The comparison is against the bytes this store holds, so `expected`
+      // is re-serialized with the same serializer that wrote them.
+      const serializedExpected = this.serializer.serialize(expected);
+
+      if (!serializedExpected.success) {
+        return bubbleFail(serializedExpected);
+      }
+
+      const serializedValue = this.serializer.serialize(value);
+
+      if (!serializedValue.success) {
+        return bubbleFail(serializedValue);
+      }
+
+      // A non-positive lifetime would write an entry Redis never expires, and
+      // Redis persists to disk and to backups. The .NET flavor refuses the same
+      // argument, so both runtimes return the same result for it. The explicit
+      // argument is already refused above; this covers a host configuring
+      // defaultExpirationMs at zero.
+      const effective = this.effectiveTtl(expirationMs);
+
+      if (effective <= 0) {
+        return InputFailures.invalid<boolean>("expirationMs");
+      }
+
+      const ttlMs = String(effective);
+
+      const result = await this.redis.eval(
+        SET_IF_EQUAL,
+        1,
+        this.prefixed(key),
+        toUtf8(serializedExpected.data!),
+        toUtf8(serializedValue.data!),
+        ttlMs,
+      );
+
+      const written = Number(result) === 1;
+
+      if (written) {
+        this.counters.sets.add(1);
+      }
+
+      return ok(written);
+    } catch (err) {
+      return this.su<boolean>(err, RedisCacheOp.SET_IF_EQUAL, key);
+    }
+  }
+
+  /** @inheritdoc */
+  async removeIfEqual<T>(
+    key: string,
+    expected: T,
+    signal?: AbortSignal,
+  ): Promise<D2Result<boolean>> {
+    if (isAborted(signal)) {
+      return canceled();
+    }
+
+    if (falsey(key)) {
+      return InputFailures.required<boolean>("key");
+    }
+
+    try {
+      // The comparison is against the bytes this store holds, so `expected`
+      // is re-serialized with the same serializer that wrote them.
+      const serializedExpected = this.serializer.serialize(expected);
+
+      if (!serializedExpected.success) {
+        return bubbleFail(serializedExpected);
+      }
+
+      const result = await this.redis.eval(
+        REMOVE_IF_EQUAL,
+        1,
+        this.prefixed(key),
+        toUtf8(serializedExpected.data!),
+      );
+
+      const removed = Number(result) === 1;
+
+      if (removed) {
+        this.counters.removes.add(1);
+      }
+
+      return ok(removed);
+    } catch (err) {
+      return this.su<boolean>(err, RedisCacheOp.REMOVE_IF_EQUAL, key);
+    }
+  }
+
+  /** @inheritdoc */
+  async consumeToken(
+    key: string,
+    refillTokens: number,
+    refillIntervalMs: number,
+    burst: number,
+    cost = 1,
+    signal?: AbortSignal,
+  ): Promise<D2Result<TokenBucketDecision>> {
+    if (isAborted(signal)) {
+      return canceled();
+    }
+
+    const invalid = InputFailures.tokenBucket(
+      key,
+      refillTokens,
+      refillIntervalMs,
+      burst,
+      cost,
+    );
+
+    if (invalid !== undefined) {
+      return invalid;
+    }
+
+    try {
+      const result = (await this.redis.eval(
+        CONSUME_TOKEN,
+        1,
+        this.prefixed(key),
+        String(refillTokens),
+        String(refillIntervalMs),
+        String(burst),
+        String(cost),
+      )) as [number, number];
+
+      const admitted = Number(result[0]) === 1;
+
+      if (admitted) {
+        this.counters.sets.add(1);
+      }
+
+      return ok({ admitted, retryAfterMs: Number(result[1]) });
+    } catch (err) {
+      // The bucket is a hash, so a key already holding something else returns
+      // WRONGTYPE. That is a type collision rather than a store fault, and the
+      // in-process flavors return conflict for it, so every flavor returns the
+      // same result for the same state.
+      if (isTypeConflict(err)) {
+        return conflict<TokenBucketDecision>();
+      }
+
+      return this.su<TokenBucketDecision>(err, RedisCacheOp.CONSUME_TOKEN, key);
+    }
+  }
+
+  /** @inheritdoc */
   async increment(
     key: string,
     amount?: number,
@@ -498,8 +675,9 @@ export class RedisDistributedCache implements IDistributedCache {
     const prefixed = this.prefixed(key);
 
     try {
-      // Bounds + reverse are atomic in INCREMENT_WITH_OPTIONAL_TTL (twin of
-      // .NET RedisLuaScripts) — no client-side GET/DECRBY race window.
+      // The bounds check and the reverse are atomic inside
+      // INCREMENT_WITH_OPTIONAL_TTL (twin of .NET RedisLuaScripts), so there is
+      // no client-side GET/DECRBY race window.
       const result = await this.redis.eval(
         INCREMENT_WITH_OPTIONAL_TTL,
         1,
@@ -919,7 +1097,10 @@ function isTypeConflict(err: unknown): boolean {
   return msg.includes("WRONGTYPE") || msg.includes("not an integer");
 }
 
-/** Dual-runtime Lua reverse + error for out-of-JS-safe-integer INCRBY. */
+/**
+ * True for the dual-runtime Lua reverse-and-error reply to an INCRBY outside
+ * the JS safe-integer range.
+ */
 function isSafeIntegerOverflow(err: unknown): boolean {
   if (!(err instanceof Error)) {
     return false;

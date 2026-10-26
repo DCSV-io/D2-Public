@@ -13,15 +13,15 @@ using DcsvIo.D2.Location.ValueObjects;
 using Xunit;
 
 /// <summary>
-/// Adversarial test coverage for <see cref="ComposeLocationHash"/> per
-/// §7.1 matrix: all-null → null, all 7 combinations of present/absent
-/// components, slot-ordering matters, inner v1. prefix participates,
-/// determinism + idempotency.
+/// Adversarial test coverage for <see cref="ComposeLocationHash"/>:
+/// all-null -> null, every non-empty combination of present and absent
+/// components, the order of the slots, the inner v1. prefix as part of the
+/// hash, determinism and idempotency.
 /// </summary>
 public sealed class ComposeLocationHashTests
 {
     // -----------------------------------------------------------------------
-    // All-null → null
+    // All-null -> null
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -96,14 +96,14 @@ public sealed class ComposeLocationHashTests
     }
 
     // -----------------------------------------------------------------------
-    // Slot-ordering matters
+    // The order of the slots changes the hash
     // -----------------------------------------------------------------------
 
     [Fact]
     public void Compose_SameComponent_InDifferentSlots_ProducesDifferentHash()
     {
-        // Coords-only vs street-only vs admin-only — each is a positionally
-        // distinct hash input ("X||" vs "|X|" vs "||X").
+        // Coords-only, street-only and admin-only inputs differ by position
+        // ("X||", "|X|" and "||X"), so each gives a different hash input.
         var hash1 = ComposeLocationHash.Compose(Coord(), null, null);
         var hash2 = ComposeLocationHash.Compose(null, Street(), null);
         var hash3 = ComposeLocationHash.Compose(null, null, Admin());
@@ -127,13 +127,13 @@ public sealed class ComposeLocationHashTests
     }
 
     // -----------------------------------------------------------------------
-    // Inner "v1." prefix participates in the hash
+    // The inner "v1." prefix is part of the hash
     // -----------------------------------------------------------------------
 
     [Fact]
     public void Compose_InnerV1Prefix_ParticipatesInHash()
     {
-        // Sanity test: changing the inner HashId must change the outer.
+        // Changing the inner HashId changes the outer hash.
         var coord1 = Coordinates.Create(40.0, -74.0).Data!;
         var coord2 = Coordinates.Create(41.0, -74.0).Data!;
 

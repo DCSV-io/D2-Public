@@ -19,10 +19,10 @@ public sealed class HandlerDispatcherFactoryTests
     public void GetForQueue_KnownQueue_BuildsTypedDispatcher()
     {
         var registry = BuildRegistry(
-            BuildRegistration<SampleAuditHandler, SampleAuditEvent>("audit.q"));
-        var factory = new HandlerDispatcherFactory(registry);
+            BuildRegistration<SampleAuditHandler, SampleAuditEvent>("orders.q"));
+        var factory = new HandlerDispatcherFactory(registry, MessagingCatalog.Default);
 
-        var dispatcher = factory.GetForQueue("audit.q");
+        var dispatcher = factory.GetForQueue("orders.q");
         dispatcher.Should().NotBeNull();
         dispatcher.Should()
             .BeOfType<TypedHandlerDispatcher<SampleAuditHandler, SampleAuditEvent>>();
@@ -32,11 +32,11 @@ public sealed class HandlerDispatcherFactoryTests
     public void GetForQueue_RepeatedCall_ReturnsCachedInstance()
     {
         var registry = BuildRegistry(
-            BuildRegistration<SampleAuditHandler, SampleAuditEvent>("audit.q"));
-        var factory = new HandlerDispatcherFactory(registry);
+            BuildRegistration<SampleAuditHandler, SampleAuditEvent>("orders.q"));
+        var factory = new HandlerDispatcherFactory(registry, MessagingCatalog.Default);
 
-        var first = factory.GetForQueue("audit.q");
-        var second = factory.GetForQueue("audit.q");
+        var first = factory.GetForQueue("orders.q");
+        var second = factory.GetForQueue("orders.q");
         ReferenceEquals(first, second).Should().BeTrue();
     }
 
@@ -44,8 +44,8 @@ public sealed class HandlerDispatcherFactoryTests
     public void GetForQueue_UnknownQueue_Throws()
     {
         var registry = BuildRegistry(
-            BuildRegistration<SampleAuditHandler, SampleAuditEvent>("audit.q"));
-        var factory = new HandlerDispatcherFactory(registry);
+            BuildRegistration<SampleAuditHandler, SampleAuditEvent>("orders.q"));
+        var factory = new HandlerDispatcherFactory(registry, MessagingCatalog.Default);
 
         var act = () => factory.GetForQueue("missing.q");
         act.Should().Throw<InvalidOperationException>()
@@ -55,18 +55,30 @@ public sealed class HandlerDispatcherFactoryTests
     [Fact]
     public void Ctor_NullRegistry_Throws()
     {
-        var act = () => new HandlerDispatcherFactory(null!);
+        var act = () => new HandlerDispatcherFactory(null!, MessagingCatalog.Default);
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void Ctor_NullCatalog_Throws()
+    {
+        var registry = BuildRegistry(
+            BuildRegistration<SampleAuditHandler, SampleAuditEvent>("orders.q"));
+
+        var act = () => new HandlerDispatcherFactory(registry, null!);
         act.Should().Throw<ArgumentNullException>();
     }
 
     [Fact]
     public void GetForQueue_HandlerDoesNotSatisfyBaseHandlerConstraint_Throws()
     {
-        // Reg with HandlerType=string (does NOT derive from BaseHandler<,,>) —
-        // MakeGenericType throws ArgumentException because TypedHandlerDispatcher's
-        // where-clauses are unsatisfied. The factory has no try/catch around
-        // MakeGenericType, so the ArgumentException surfaces directly. Verifies
-        // the misconfiguration fails LOUD at first dispatch, not silently.
+        // The registration has HandlerType=string, which does not derive from
+        // BaseHandler<,,>. MakeGenericType throws ArgumentException because the
+        // where-clauses of TypedHandlerDispatcher are not satisfied. The
+        // factory has no try/catch around MakeGenericType, so the
+        // ArgumentException reaches the caller. The test verifies that the
+        // misconfiguration fails with an exception at the first dispatch and
+        // is not hidden.
         var bad = new TestRegistration(
             HandlerType: typeof(string),
             MessageType: typeof(string),
@@ -81,7 +93,7 @@ public sealed class HandlerDispatcherFactoryTests
                 TieredRetry: null),
             ResolvedQueueName: "bad.q");
         var registry = BuildRegistry(bad);
-        var factory = new HandlerDispatcherFactory(registry);
+        var factory = new HandlerDispatcherFactory(registry, MessagingCatalog.Default);
 
         var act = () => factory.GetForQueue("bad.q");
         act.Should().Throw<ArgumentException>(

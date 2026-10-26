@@ -23,7 +23,7 @@ export interface QueueDeclareParams {
   readonly arguments?: Readonly<Record<string, unknown>>;
 }
 
-/** Queue↔exchange binding parameters (structurally the rabbitmq-client shape). */
+/** Queue<->exchange binding parameters (structurally the rabbitmq-client shape). */
 export interface QueueBindParams {
   readonly queue: string;
   readonly exchange: string;
@@ -31,12 +31,13 @@ export interface QueueBindParams {
 }
 
 /**
- * A fully-resolved topology declaration set for one subscription. The three
- * ordered lists reproduce the exact declaration set the .NET
- * `DefaultTopologyDeclarer` emits for the same descriptor — every exchange,
- * queue (incl. `{q}.dlx` DLX + `{q}.dlq` DLQ + optional retry tiers), and
- * binding with the same arguments. `primaryQueue` is broken out so the
- * consumer's own auto-redeclare (on reconnect) uses byte-identical args.
+ * A fully resolved topology declaration set for one subscription. The
+ * ordered `exchanges`, `queues` and `bindings` lists reproduce the exact
+ * declaration set the .NET `DefaultTopologyDeclarer` emits for the same
+ * descriptor: every exchange, queue (including `{q}.dlx` DLX + `{q}.dlq` DLQ +
+ * optional retry tiers), and binding, with the same arguments. `primaryQueue`
+ * is listed separately so the consumer's own auto-redeclare (on reconnect) uses
+ * byte-identical args.
  */
 export interface TopologyPlan {
   readonly exchanges: readonly ExchangeDeclareParams[];
@@ -46,11 +47,11 @@ export interface TopologyPlan {
 }
 
 /**
- * Plans the complete broker topology for one subscription — the pure mirror
- * of `DefaultTopologyDeclarer.DeclareForSubscriberAsync` +
- * `DeclareTieredRetryAsync`. Declaration order matches .NET exactly:
- * primary exchange → DLX → DLQ → DLQ↔DLX bind → primary queue (with DLX args)
- * → primary↔exchange bind → (optional) retry-return exchange + tier
+ * Plans the complete broker topology for one subscription. It is the pure
+ * mirror of `DefaultTopologyDeclarer.DeclareForSubscriberAsync` +
+ * `DeclareTieredRetryAsync`, and its declaration order matches .NET exactly:
+ * primary exchange -> DLX -> DLQ -> DLQ<->DLX bind -> primary queue (with DLX args)
+ * -> primary<->exchange bind -> (optional) retry-return exchange + tier
  * exchanges/queues/bindings.
  *
  * @param descriptor The subscription contract.
@@ -76,7 +77,7 @@ export function planTopology(
     autoDelete: false,
   });
 
-  // DLX (fanout — routing key irrelevant) → DLQ.
+  // DLX (fanout - routing key irrelevant) -> DLQ.
   exchanges.push({
     exchange: dlxName,
     type: "fanout",

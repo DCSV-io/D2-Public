@@ -9,7 +9,7 @@ namespace DcsvIo.D2.Tests.Integration.Messaging;
 using DcsvIo.D2.Handler;
 using DcsvIo.D2.Result;
 
-/// <summary>Handler that returns a non-Ok result — drives DLQ-on-result scenarios.</summary>
+/// <summary>Handler that returns a non-Ok result - drives DLQ-on-result scenarios.</summary>
 public sealed class AlwaysFailsHandler
     : BaseHandler<AlwaysFailsHandler, IntegrationAuditEvent, Unit>
 {

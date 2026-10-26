@@ -11,13 +11,15 @@ using DcsvIo.D2.Messaging;
 using Xunit;
 
 /// <summary>
-/// Argument-validation coverage for the <see cref="MqPubAttribute"/> /
-/// <see cref="MqSubAttribute"/> declarative annotations. Both attributes
-/// take a single <c>constant</c> string sourced from the codegen-emitted
-/// <c>MqMessages</c> / <c>MqSubscriptions</c> registry — null / empty /
-/// whitespace must hard-fail at attribute construction so a typo at the
-/// declaration site surfaces immediately, not at first publish.
+/// Argument-validation tests for the <see cref="MqPubAttribute"/> and
+/// <see cref="MqSubAttribute"/> annotations. A null, empty or whitespace value
+/// throws when the attribute is constructed, so a typo at the declaration site
+/// fails immediately and not at the first publish.
 /// </summary>
+/// <remarks>
+/// Both attributes take a single <c>constant</c> string from the generated
+/// <c>MqMessages</c> and <c>MqSubscriptions</c> registries.
+/// </remarks>
 public sealed class MqAttributeTests
 {
     [Fact]

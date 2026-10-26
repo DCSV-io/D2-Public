@@ -9,7 +9,7 @@ namespace DcsvIo.D2.Result;
 /// <summary>
 /// Monadic instance methods on <see cref="D2Result{TData}"/> for composing pipelines
 /// where state flows step-to-step. Use these for genuine linear flows (sign-in, file
-/// processing, risk scoring); for the workhorse "guard against failure and continue
+/// processing, risk scoring); for the common "guard against failure and continue
 /// with locals" pattern, prefer <c>BubbleOnFailure</c> from
 /// <see cref="D2ResultGuardExtensions"/>.
 /// </summary>
@@ -18,8 +18,8 @@ public sealed partial class D2Result<TData>
     /// <summary>
     /// Monadic bind. If this result is successful, invokes <paramref name="next"/>
     /// with <see cref="Data"/> and returns its result. If this result failed, returns
-    /// a <see cref="BubbleFail"/> of this result with the new payload type —
-    /// <paramref name="next"/> is NOT invoked (short-circuits).
+    /// a <see cref="BubbleFail"/> of this result with the new payload type -
+    /// <paramref name="next"/> is not invoked (short-circuits).
     /// </summary>
     ///
     /// <typeparam name="TNext">
@@ -34,8 +34,8 @@ public sealed partial class D2Result<TData>
     /// <summary>
     /// Functor map. If this result is successful, projects <see cref="Data"/> through
     /// <paramref name="projection"/> and wraps it in a new <c>D2Result&lt;TNext&gt;.Ok</c>.
-    /// If this result failed, returns a <see cref="BubbleFail"/> of this result —
-    /// <paramref name="projection"/> is NOT invoked.
+    /// If this result failed, returns a <see cref="BubbleFail"/> of this result -
+    /// <paramref name="projection"/> is not invoked.
     /// </summary>
     ///
     /// <typeparam name="TNext">

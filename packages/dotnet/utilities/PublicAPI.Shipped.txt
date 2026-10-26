@@ -6,7 +6,7 @@ DcsvIo.D2.Utilities.Attributes.RedactDataAttribute.Reason.get -> DcsvIo.D2.Utili
 DcsvIo.D2.Utilities.Attributes.RedactDataAttribute.Reason.init -> void
 DcsvIo.D2.Utilities.Attributes.RedactDataAttribute.RedactDataAttribute() -> void
 DcsvIo.D2.Utilities.Configuration.ConnectionStringHelper
-DcsvIo.D2.Utilities.Configuration.D2Env
+DcsvIo.D2.Utilities.Configuration.TimeSpanRangeBounds
 DcsvIo.D2.Utilities.Diagnostics.SanitizedExceptionRender
 DcsvIo.D2.Utilities.Enums.IsolationLevel
 DcsvIo.D2.Utilities.Enums.IsolationLevel.ReadCommitted = 0 -> DcsvIo.D2.Utilities.Enums.IsolationLevel
@@ -66,12 +66,12 @@ DcsvIo.D2.Utilities.Extensions.StringExtensions.extension(string?).TryParsePhone
 DcsvIo.D2.Utilities.Extensions.StringExtensions.extension(string?[]!)
 DcsvIo.D2.Utilities.Extensions.StringExtensions.extension(string?[]!).GetNormalizedStrForHashing() -> string!
 DcsvIo.D2.Utilities.Serialization.SerializerOptions
+const DcsvIo.D2.Utilities.Configuration.TimeSpanRangeBounds.NO_CEILING = "10675199.02:48:05.4775807" -> string!
 static DcsvIo.D2.Utilities.Configuration.ConnectionStringHelper.GetPostgres(string! envVar) -> string!
 static DcsvIo.D2.Utilities.Configuration.ConnectionStringHelper.GetRabbitMq() -> string!
 static DcsvIo.D2.Utilities.Configuration.ConnectionStringHelper.GetRedis() -> string!
 static DcsvIo.D2.Utilities.Configuration.ConnectionStringHelper.ParsePostgresUri(string! value) -> string!
 static DcsvIo.D2.Utilities.Configuration.ConnectionStringHelper.ParseRedisUri(string! value) -> string!
-static DcsvIo.D2.Utilities.Configuration.D2Env.Load(params string![]! fileNames) -> void
 static DcsvIo.D2.Utilities.Diagnostics.SanitizedExceptionRender.FirstFrame(System.Exception! ex) -> string!
 static DcsvIo.D2.Utilities.Diagnostics.SanitizedExceptionRender.TypeName(System.Exception! ex) -> string!
 static DcsvIo.D2.Utilities.Extensions.EnumExtensions.TryParseTruthyNull<TEnum>(this string? input, out TEnum? value) -> bool

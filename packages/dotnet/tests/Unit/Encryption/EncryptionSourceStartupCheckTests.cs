@@ -23,26 +23,26 @@ using Xunit;
 /// <summary>
 /// Deny-by-default matrix for the encryption-source provenance guard: a
 /// static-factory (or unmarked) keyring crashes a non-Development host; a
-/// KeyCustodian-sourced keyring passes everywhere; a static source only warns
+/// keyring marked Managed passes everywhere; a static source only warns
 /// in Development.
 /// </summary>
 public sealed class EncryptionSourceStartupCheckTests
 {
-    private const string _AUDIT = "audit";
-    private const string _COURIER = "courier";
+    private const string _ORDERS = "orders";
+    private const string _INVENTORY = "inventory";
 
     [Fact]
     public async Task UnmarkedRegistration_ProductionEnvironment_TreatedAsStaticAndThrows()
     {
         using var sp = BuildProvider(
             Environments.Production,
-            services => services.AddD2EncryptionFor(_AUDIT, _ => TestKeyrings.AuditSingleKey()));
+            services => services.AddD2EncryptionFor(_ORDERS, _ => TestKeyrings.OrdersSingleKey()));
 
         var check = CheckOver(sp);
         var act = () => check.StartAsync(default);
 
         (await act.Should().ThrowAsync<InvalidOperationException>())
-            .WithMessage($"*{_AUDIT}*");
+            .WithMessage($"*{_ORDERS}*");
     }
 
     [Fact]
@@ -52,8 +52,8 @@ public sealed class EncryptionSourceStartupCheckTests
             Environments.Production,
             services =>
             {
-                services.AddD2EncryptionFor(_AUDIT, _ => TestKeyrings.AuditSingleKey());
-                services.MarkD2EncryptionSource(_AUDIT, EncryptionKeyringSource.StaticFactory);
+                services.AddD2EncryptionFor(_ORDERS, _ => TestKeyrings.OrdersSingleKey());
+                services.MarkD2EncryptionSource(_ORDERS, EncryptionKeyringSource.StaticFactory);
             });
 
         var check = CheckOver(sp);
@@ -67,7 +67,7 @@ public sealed class EncryptionSourceStartupCheckTests
     {
         using var sp = BuildProvider(
             Environments.Development,
-            services => services.AddD2EncryptionFor(_AUDIT, _ => TestKeyrings.AuditSingleKey()));
+            services => services.AddD2EncryptionFor(_ORDERS, _ => TestKeyrings.OrdersSingleKey()));
 
         var logger = new TestLogger<EncryptionSourceStartupCheck>();
 
@@ -76,19 +76,20 @@ public sealed class EncryptionSourceStartupCheckTests
 
         await act.Should().NotThrowAsync();
         logger.Entries.Should().Contain(
-            e => e.Level == LogLevel.Warning && e.Message.Contains(_AUDIT, StringComparison.Ordinal),
+            e => e.Level == LogLevel.Warning
+                && e.Message.Contains(_ORDERS, StringComparison.Ordinal),
             "the Development warning must name the offending domain");
     }
 
     [Fact]
-    public async Task KeyCustodianSource_ProductionEnvironment_Passes()
+    public async Task ManagedSource_ProductionEnvironment_Passes()
     {
         using var sp = BuildProvider(
             Environments.Production,
             services =>
             {
-                services.AddD2EncryptionFor(_AUDIT, _ => TestKeyrings.AuditSingleKey());
-                services.MarkD2EncryptionSource(_AUDIT, EncryptionKeyringSource.KeyCustodian);
+                services.AddD2EncryptionFor(_ORDERS, _ => TestKeyrings.OrdersSingleKey());
+                services.MarkD2EncryptionSource(_ORDERS, EncryptionKeyringSource.Managed);
             });
 
         var check = CheckOver(sp);
@@ -98,20 +99,71 @@ public sealed class EncryptionSourceStartupCheckTests
     }
 
     [Fact]
-    public async Task KeyCustodianSource_DevelopmentEnvironment_Passes()
+    public async Task ManagedSource_DevelopmentEnvironment_Passes()
     {
         using var sp = BuildProvider(
             Environments.Development,
             services =>
             {
-                services.AddD2EncryptionFor(_AUDIT, _ => TestKeyrings.AuditSingleKey());
-                services.MarkD2EncryptionSource(_AUDIT, EncryptionKeyringSource.KeyCustodian);
+                services.AddD2EncryptionFor(_ORDERS, _ => TestKeyrings.OrdersSingleKey());
+                services.MarkD2EncryptionSource(_ORDERS, EncryptionKeyringSource.Managed);
             });
 
         var check = CheckOver(sp);
         var act = () => check.StartAsync(default);
 
         await act.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task ManagedSource_ProductionEnvironment_LogsPassedEntry()
+    {
+        using var sp = BuildProvider(
+            Environments.Production,
+            services =>
+            {
+                services.AddD2EncryptionFor(_ORDERS, _ => TestKeyrings.OrdersSingleKey());
+                services.MarkD2EncryptionSource(_ORDERS, EncryptionKeyringSource.Managed);
+            });
+
+        var logger = new TestLogger<EncryptionSourceStartupCheck>();
+
+        await CheckOver(sp, logger).StartAsync(default);
+
+        logger.Entries.Should().ContainSingle(e => e.EventId.Id == 3)
+            .Which.Message.Should().Be(
+                $"Encryption domain {_ORDERS} passed the source-provenance check (managed source).");
+    }
+
+    [Fact]
+    public async Task StaticSource_ProductionEnvironment_ExceptionStatesManagedKeyringSource()
+    {
+        using var sp = BuildProvider(
+            Environments.Production,
+            services => services.AddD2EncryptionFor(_ORDERS, _ => TestKeyrings.OrdersSingleKey()));
+
+        var check = CheckOver(sp);
+        var act = () => check.StartAsync(default);
+
+        (await act.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage(
+                $"Encryption domain '{_ORDERS}' is backed by a static key source rather than a "
+                + "managed, rotation-aware keyring. Register it through a managed keyring source "
+                + "(or mark it via MarkD2EncryptionSource) before starting a "
+                + "non-Development host.");
+    }
+
+    [Fact]
+    public void EncryptionKeyringSource_MemberValues_AreFixed()
+    {
+        ((int)EncryptionKeyringSource.StaticFactory).Should().Be(0);
+        ((int)EncryptionKeyringSource.Managed).Should().Be(1);
+    }
+
+    [Fact]
+    public void EncryptionKeyringSource_MemberNames_AreStaticFactoryAndManaged()
+    {
+        Enum.GetNames<EncryptionKeyringSource>().Should().Equal("StaticFactory", "Managed");
     }
 
     [Fact]
@@ -121,21 +173,21 @@ public sealed class EncryptionSourceStartupCheckTests
             Environments.Production,
             services =>
             {
-                services.AddD2EncryptionFor(_AUDIT, _ => TestKeyrings.SingleKey("audit-kid", _AUDIT));
-                services.MarkD2EncryptionSource(_AUDIT, EncryptionKeyringSource.KeyCustodian);
+                services.AddD2EncryptionFor(_ORDERS, _ => TestKeyrings.SingleKey("orders-kid", _ORDERS));
+                services.MarkD2EncryptionSource(_ORDERS, EncryptionKeyringSource.Managed);
 
-                // courier is left unmarked → deny-by-default static.
+                // inventory is left unmarked -> deny-by-default static.
                 services.AddD2EncryptionFor(
-                    _COURIER, _ => TestKeyrings.SingleKey("courier-kid", _COURIER));
+                    _INVENTORY, _ => TestKeyrings.SingleKey("inventory-kid", _INVENTORY));
             });
 
         var check = CheckOver(sp);
         var act = () => check.StartAsync(default);
 
         (await act.Should().ThrowAsync<InvalidOperationException>())
-            .WithMessage($"*{_COURIER}*")
+            .WithMessage($"*{_INVENTORY}*")
             .Which.Message.Should().NotContain(
-                _AUDIT, "the KeyCustodian-sourced domain must not be the one flagged");
+                _ORDERS, "the domain marked Managed must not be the one flagged");
     }
 
     [Fact]
@@ -145,9 +197,9 @@ public sealed class EncryptionSourceStartupCheckTests
             Environments.Production,
             services =>
             {
-                services.AddD2EncryptionFor(_AUDIT, _ => TestKeyrings.AuditSingleKey());
-                services.MarkD2EncryptionSource(_AUDIT, EncryptionKeyringSource.KeyCustodian);
-                services.MarkD2EncryptionSource(_AUDIT, EncryptionKeyringSource.StaticFactory);
+                services.AddD2EncryptionFor(_ORDERS, _ => TestKeyrings.OrdersSingleKey());
+                services.MarkD2EncryptionSource(_ORDERS, EncryptionKeyringSource.Managed);
+                services.MarkD2EncryptionSource(_ORDERS, EncryptionKeyringSource.StaticFactory);
             });
 
         var check = CheckOver(sp);
@@ -173,10 +225,10 @@ public sealed class EncryptionSourceStartupCheckTests
     [Fact]
     public async Task MissingHostEnvironment_TreatedAsProduction_FailsClosed()
     {
-        // No IHostEnvironment registered — the fail-closed default is non-Development.
+        // No IHostEnvironment registered - the fail-closed default is non-Development.
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddD2EncryptionFor(_AUDIT, _ => TestKeyrings.AuditSingleKey());
+        services.AddD2EncryptionFor(_ORDERS, _ => TestKeyrings.OrdersSingleKey());
 
         using var sp = services.BuildServiceProvider();
 
@@ -191,7 +243,7 @@ public sealed class EncryptionSourceStartupCheckTests
     {
         using var sp = BuildProvider(
             Environments.Development,
-            services => services.AddD2EncryptionFor(_AUDIT, _ => TestKeyrings.AuditSingleKey()));
+            services => services.AddD2EncryptionFor(_ORDERS, _ => TestKeyrings.OrdersSingleKey()));
 
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
@@ -217,7 +269,7 @@ public sealed class EncryptionSourceStartupCheckTests
     public void AddD2EncryptionFor_HooksTheSourceCheck()
     {
         var services = new ServiceCollection();
-        services.AddD2EncryptionFor(_AUDIT, _ => TestKeyrings.AuditSingleKey());
+        services.AddD2EncryptionFor(_ORDERS, _ => TestKeyrings.OrdersSingleKey());
 
         HostedCheckDescriptorCount(services).Should().Be(1);
     }
@@ -239,13 +291,14 @@ public sealed class EncryptionSourceStartupCheckTests
             Environments.Production,
             services =>
             {
-                services.AddD2EncryptionFor(_AUDIT, _ => TestKeyrings.AuditSingleKey());
-                services.MarkD2EncryptionSource(_AUDIT, EncryptionKeyringSource.KeyCustodian);
+                services.AddD2EncryptionFor(_ORDERS, _ => TestKeyrings.OrdersSingleKey());
+                services.MarkD2EncryptionSource(_ORDERS, EncryptionKeyringSource.Managed);
             });
 
-        // Every new DI seam resolves (rules.md §1.3 — descriptor presence is not resolvability).
+        // Each DI seam resolves. A registered descriptor does not guarantee that
+        // the seam resolves, so the test resolves each one.
         sp.GetRequiredService<EncryptionRegistry>().Should().NotBeNull();
-        sp.GetKeyedService<EncryptionSourceMarker>(_AUDIT).Should().NotBeNull();
+        sp.GetKeyedService<EncryptionSourceMarker>(_ORDERS).Should().NotBeNull();
         sp.GetServices<IHostedService>()
             .OfType<EncryptionSourceStartupCheck>()
             .Should().ContainSingle();
@@ -255,7 +308,7 @@ public sealed class EncryptionSourceStartupCheckTests
     public void MarkD2EncryptionSource_NullServices_Throws()
     {
         var act = () => EncryptionSourceServiceCollectionExtensions.MarkD2EncryptionSource(
-            null!, _AUDIT, EncryptionKeyringSource.KeyCustodian);
+            null!, _ORDERS, EncryptionKeyringSource.Managed);
 
         act.Should().Throw<ArgumentNullException>();
     }
@@ -266,7 +319,7 @@ public sealed class EncryptionSourceStartupCheckTests
         var services = new ServiceCollection();
 
         var act = () => services.MarkD2EncryptionSource(
-            null!, EncryptionKeyringSource.KeyCustodian);
+            null!, EncryptionKeyringSource.Managed);
 
         act.Should().Throw<ArgumentNullException>();
     }
@@ -277,7 +330,7 @@ public sealed class EncryptionSourceStartupCheckTests
         var services = new ServiceCollection();
 
         var act = () => services.MarkD2EncryptionSource(
-            "   ", EncryptionKeyringSource.KeyCustodian);
+            "   ", EncryptionKeyringSource.Managed);
 
         act.Should().Throw<ArgumentException>();
     }
@@ -294,7 +347,7 @@ public sealed class EncryptionSourceStartupCheckTests
     [Fact]
     public void EncryptionSourceMarker_NullServiceKey_Throws()
     {
-        var act = () => new EncryptionSourceMarker(null!, EncryptionKeyringSource.KeyCustodian);
+        var act = () => new EncryptionSourceMarker(null!, EncryptionKeyringSource.Managed);
 
         act.Should().Throw<ArgumentNullException>();
     }
@@ -302,10 +355,10 @@ public sealed class EncryptionSourceStartupCheckTests
     [Fact]
     public void EncryptionSourceMarker_RetainsServiceKeyAndSource()
     {
-        var marker = new EncryptionSourceMarker(_AUDIT, EncryptionKeyringSource.KeyCustodian);
+        var marker = new EncryptionSourceMarker(_ORDERS, EncryptionKeyringSource.Managed);
 
-        marker.ServiceKey.Should().Be(_AUDIT);
-        marker.Source.Should().Be(EncryptionKeyringSource.KeyCustodian);
+        marker.ServiceKey.Should().Be(_ORDERS);
+        marker.Source.Should().Be(EncryptionKeyringSource.Managed);
     }
 
     private static ServiceProvider BuildProvider(

@@ -10,16 +10,16 @@ using System.Buffers.Binary;
 using System.Text;
 
 /// <summary>
-/// Internal codec for the on-wire SEALED (version-2, asymmetric) encryption
+/// Internal codec for the on-wire sealed (version-2, asymmetric) encryption
 /// frame. Layout:
 /// <c>[version=2:1][recipient_kid_len:1][recipient_kid:UTF-8 N][eph_pub_len:2 BE][eph_pub:SPKI M][nonce:12][ciphertext+tag:K]</c>.
-/// Sibling of <see cref="EncryptionFrame"/> (the symmetric version-1 codec) —
+/// Sibling of <see cref="EncryptionFrame"/> (the symmetric version-1 codec) -
 /// version dispatch is structural: each codec hard-rejects the other family's
-/// version byte, so the two formats can never cross-parse.
+/// version byte, so the symmetric and sealed formats can never cross-parse.
 /// </summary>
 internal static class SealedFrame
 {
-    // Strict decoder: an invalid UTF-8 recipient kid must THROW (surface as
+    // Strict decoder: an invalid UTF-8 recipient kid must throw (surface as
     // FrameMalformedException), never silently decode to U+FFFD replacement
     // characters that would then fail keyring lookup with a misleading kid.
     private static readonly UTF8Encoding sr_strictUtf8 = new(
@@ -161,7 +161,7 @@ internal static class SealedFrame
         if (ephLength < 1)
         {
             throw new FrameMalformedException(
-                "Sealed frame eph_pub_len is zero — an empty ephemeral public key " +
+                "Sealed frame eph_pub_len is zero - an empty ephemeral public key " +
                 "cannot exist in a valid frame.");
         }
 
@@ -180,7 +180,7 @@ internal static class SealedFrame
         {
             throw new FrameMalformedException(
                 $"Sealed frame too short for declared eph_pub_len={ephLength}: " +
-                $"have {framed.Length}, need ≥ " +
+                $"have {framed.Length}, need >= " +
                 $"{ciphertextOffset + SealedFrameLayout.CONSTRAINT_TAG_LENGTH}.");
         }
 

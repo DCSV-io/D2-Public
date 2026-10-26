@@ -11,7 +11,7 @@ using DcsvIo.D2.Encryption;
 
 /// <summary>
 /// Test helpers for the sealed encryption mode. Keypairs are real P-256
-/// material generated per call — tests exercise the real ECDH + HKDF +
+/// material generated per call - tests exercise the real ECDH + HKDF +
 /// AES-GCM path, never doubles.
 /// </summary>
 internal static class SealedTestKeys

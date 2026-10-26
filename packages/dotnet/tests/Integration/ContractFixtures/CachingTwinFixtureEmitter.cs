@@ -18,22 +18,23 @@ using Xunit;
 /// One scenario (<c>constants</c>) pins local defaults, local meter + instruments,
 /// Redis defaults, Redis meter + instruments, Lua script bodies (normalized),
 /// and tiered semantic markers (registration message prefix, EventIds, log levels,
-/// binding field names, errorCode binding presence). TS parity asserts field-by-field
-/// against the committed fixture under
-/// host twin fixture directory (consumed by TS contract-tests Vitest).
+/// binding field names, errorCode binding presence). The fixture is written to
+/// <c>fixtures/caching-twin/constants.json</c> at the path that
+/// <see cref="FixturePathHelpers.FixturePath"/> returns, and the TypeScript side
+/// asserts the committed fixture field by field.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Lua bodies are normalized with <see cref="NormalizeLua"/> (CRLF→LF + trim)
-/// so they match the TS <c>.trim()</c> script constants. Instrument tuples are
-/// hard-coded to match TS <c>LOCAL_CACHE_INSTRUMENTS</c> /
-/// <c>REDIS_CACHE_INSTRUMENTS</c> and .NET <see cref="LocalCacheTelemetry"/> /
-/// <see cref="RedisCacheTelemetry"/> Counter registrations (name/unit/description
-/// are not reflectable from Counter&lt;T&gt;). When changing either runtime meter,
-/// update this emitter + both telemetry files in lockstep.
+/// <see cref="NormalizeLua"/> (CRLF->LF + trim) makes the Lua bodies match the TS
+/// <c>.trim()</c> script constants. The instrument tuples are hard-coded to equal
+/// the TS <c>LOCAL_CACHE_INSTRUMENTS</c> / <c>REDIS_CACHE_INSTRUMENTS</c> and the
+/// .NET <see cref="LocalCacheTelemetry"/> / <see cref="RedisCacheTelemetry"/>
+/// Counter registrations, because name/unit/description are not reflectable from
+/// Counter&lt;T&gt;. A change to either runtime meter requires updating this
+/// emitter and both telemetry files together.
 /// </para>
 /// <para>
-/// Tiered log message templates intentionally diverge across runtimes — the fixture
+/// Tiered log message templates intentionally diverge across runtimes - the fixture
 /// records EventIds + binding field names + Warning levels only, not template text.
 /// </para>
 /// </remarks>
@@ -104,29 +105,47 @@ public sealed class CachingTwinFixtureEmitter
             },
             ["luaScripts"] = new SortedDictionary<string, object?>(StringComparer.Ordinal)
             {
+                ["CONSUME_TOKEN"] =
+                    NormalizeLua(RedisLuaScripts.CONSUME_TOKEN),
                 ["INCREMENT_WITH_OPTIONAL_TTL"] =
                     NormalizeLua(RedisLuaScripts.INCREMENT_WITH_OPTIONAL_TTL),
                 ["RELEASE_LOCK_IF_OWNER"] =
                     NormalizeLua(RedisLuaScripts.RELEASE_LOCK_IF_OWNER),
+                ["REMOVE_IF_EQUAL"] =
+                    NormalizeLua(RedisLuaScripts.REMOVE_IF_EQUAL),
                 ["SET_ADD_WITH_OPTIONAL_TTL"] =
                     NormalizeLua(RedisLuaScripts.SET_ADD_WITH_OPTIONAL_TTL),
+                ["SET_IF_EQUAL"] =
+                    NormalizeLua(RedisLuaScripts.SET_IF_EQUAL),
             },
             ["tieredSemantics"] = new SortedDictionary<string, object?>(StringComparer.Ordinal)
             {
-                // Full .NET vs TS registration messages intentionally differ —
+                // Full .NET vs TS registration messages intentionally differ -
                 // parity asserts only this shared prefix (contains).
                 ["backplaneNotRegisteredMessagePrefix"] =
                     "ICacheInvalidationBackplane is not registered",
-                ["eventIds"] = new object[] { 1, 2 },
-                ["logLevels"] = new object[] { "Warning", "Warning" },
+                ["eventIds"] = new object[] { 1, 2, 3 },
+                ["logLevels"] = new object[] { "Warning", "Warning", "Warning" },
+
+                // The closed set of write-path operation names the L1-fail
+                // warnings bind, which the TypeScript twin exports as
+                // TieredCacheOp. Emitted so a member added on one runtime only
+                // fails here rather than passing on both sides separately.
+                ["tieredOps"] = new object[]
+                {
+                    "remove", "removeIfEqual", "removeMany", "set", "setIfEqual",
+                    "setMany",
+                },
 
                 // .NET LoggerMessage binding field names (not template text).
-                // EventId 1 = L1InvalidationFailed; EventId 2 = L1WriteFailedAfterL2Success.
+                // EventId 1 = L1InvalidationFailed; EventId 2 =
+                // L1WriteFailedAfterL2Success; EventId 3 = L1DropFailed.
                 ["dotnetBindingFields"] = new SortedDictionary<string, object?>(
                     StringComparer.Ordinal)
                 {
                     ["event1"] = new object[] { "Key", "ErrorCode" },
                     ["event2"] = new object[] { "Operation", "KeyOrCount", "ErrorCode" },
+                    ["event3"] = new object[] { "Operation", "Key", "ErrorCode" },
                 },
                 ["errorCodeBindingPresent"] = true,
             },
@@ -152,7 +171,7 @@ public sealed class CachingTwinFixtureEmitter
     }
 
     /// <summary>
-    /// Normalizes a Lua script body for dual-runtime compare: CRLF → LF, then
+    /// Normalizes a Lua script body for dual-runtime compare: CRLF -> LF, then
     /// <see cref="string.Trim()"/>. Matches the TS side's template-literal +
     /// <c>.trim()</c> constants so trailing newlines from C# raw-string literals
     /// do not produce false drift.

@@ -64,7 +64,7 @@ describe("v1 encryption frame codec", () => {
 
   it("decode rejects a declared kid_length that overruns the buffer", () => {
     const frame = encodeFrame("k1", nonce12, ctWithTag);
-    // Claim a kid far longer than the buffer can hold.
+    // Set kid_length to a value far larger than the buffer can hold.
     frame[EncryptionFrame.KID_LENGTH_OFFSET] = 250;
 
     expect(() => decodeFrame(frame)).toThrow(FrameMalformedError);
@@ -76,7 +76,7 @@ describe("v1 encryption frame codec", () => {
     frame[EncryptionFrame.KID_OFFSET] = 0xff;
     const view = decodeFrame(frame);
 
-    expect(view.kid).toBe("�");
+    expect(view.kid).toBe("\ufffd");
   });
 });
 
@@ -136,8 +136,8 @@ describe("v2 sealed frame codec", () => {
   });
 
   it("decode rejects a kid_length whose eph_pub length prefix overruns", () => {
-    // A short-but-valid frame minimum, then claim a kid that pushes the eph_len
-    // prefix past the end.
+    // Start from a short, valid frame, then set kid_length so that the eph_len
+    // prefix falls past the end of the buffer.
     const frame = encodeSealedFrame("rk-1", eph, nonce12, ctWithTag);
     frame[SealedFrame.RECIPIENT_KID_LENGTH_OFFSET] = 64;
     const truncated = frame.subarray(0, SealedFrame.RECIPIENT_KID_OFFSET + 64);

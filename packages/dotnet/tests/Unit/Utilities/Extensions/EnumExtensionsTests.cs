@@ -15,9 +15,9 @@ using Xunit;
 
 public sealed class EnumExtensionsTests
 {
-    // Test fixtures. Public so xUnit Theory + InlineData(TestColor.Red) can bind
-    // them from outside the test class scope (CS0051 otherwise — InlineData
-    // arguments compile against the test method's parameter types).
+    // Test fixtures. They are public so an xUnit Theory with InlineData(TestColor.Red)
+    // can bind them from outside the test class scope (CS0051 otherwise): InlineData
+    // arguments compile against the test method's parameter types.
 
     /// <summary>Test enum with three named members.</summary>
     public enum TestColor
@@ -33,7 +33,7 @@ public sealed class EnumExtensionsTests
     }
 
     /// <summary>
-    /// Test enum with no members — verifies "no defined value can match" handling.
+    /// Test enum with no members - verifies "no defined value can match" handling.
     /// </summary>
     public enum EmptyTest
     {
@@ -57,7 +57,7 @@ public sealed class EnumExtensionsTests
     }
 
     // ----------------------------------------------------------------------
-    // null / empty / whitespace inputs → false + null
+    // null / empty / whitespace inputs -> false + null
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -115,7 +115,7 @@ public sealed class EnumExtensionsTests
     }
 
     // ----------------------------------------------------------------------
-    // invalid names → false + null
+    // invalid names -> false + null
     // ----------------------------------------------------------------------
 
     [Theory]
@@ -134,10 +134,10 @@ public sealed class EnumExtensionsTests
     [Fact]
     public void TryParseTruthyNull_OnCommaSeparatedNames_NonFlagsEnum_StillSucceeds()
     {
-        // Adversarial: Enum.TryParse accepts comma-separated names even on a NON-[Flags]
-        // enum — the underlying int values are bitwise-OR'd. "Red,Green" → 0|1 = 1 = Green.
-        // The wrapper inherits this. Calling code that wants strict single-name parsing
-        // must validate separately (e.g. reject inputs containing ',').
+        // Enum.TryParse accepts comma-separated names even on an enum without [Flags]:
+        // it combines the underlying integer values with bitwise OR, so "Red,Green"
+        // is 0|1 = 1 = Green. The wrapper inherits this. Strict single-name parsing
+        // needs a separate check, for example rejecting input that contains ','.
         const string comma_separated = "Red,Green";
 
         var ok = comma_separated.TryParseTruthyNull<TestColor>(out var value);
@@ -147,13 +147,13 @@ public sealed class EnumExtensionsTests
     }
 
     // ----------------------------------------------------------------------
-    // empty enum — no member can match
+    // empty enum - no member can match
     // ----------------------------------------------------------------------
 
     [Fact]
     public void TryParseTruthyNull_OnEmptyEnumWithAnyName_ReturnsFalseAndNull()
     {
-        // Adversarial: an enum with no defined members should reject every name.
+        // An enum with no defined members rejects every name.
         const string anything = "Anything";
 
         var ok = anything.TryParseTruthyNull<EmptyTest>(out var value);
@@ -163,9 +163,9 @@ public sealed class EnumExtensionsTests
     }
 
     // ----------------------------------------------------------------------
-    // Numeric-string behavior — Enum.TryParse accepts numeric strings BY DEFAULT,
-    // even when the integer is NOT a defined enum member. Document the wrapper's
-    // pass-through behavior so a future tightening surfaces here.
+    // Numeric-string behavior - Enum.TryParse accepts numeric strings by default,
+    // even when the integer is not a defined enum member. These tests pin the
+    // wrapper's pass-through behavior, so a change that tightens it fails here.
     // ----------------------------------------------------------------------
 
     [Theory]
@@ -176,9 +176,8 @@ public sealed class EnumExtensionsTests
         string input,
         TestColor expected)
     {
-        // Adversarial: the underlying Enum.TryParse accepts numeric strings; the
-        // wrapper passes that through. Calling code that wants name-only parsing
-        // must validate separately or use Enum.IsDefined.
+        // Enum.TryParse accepts numeric strings and the wrapper passes that through.
+        // Name-only parsing needs a separate check, such as Enum.IsDefined.
         var ok = input.TryParseTruthyNull<TestColor>(out var value);
 
         ok.Should().BeTrue();
@@ -188,10 +187,10 @@ public sealed class EnumExtensionsTests
     [Fact]
     public void TryParseTruthyNull_OnUndefinedNumericValue_ReturnsTrueWithIntegerValue()
     {
-        // Adversarial: Enum.TryParse with a numeric string accepts ANY integer
-        // representable as the underlying type — even when no enum member matches.
-        // The wrapper does NOT call Enum.IsDefined, so "999" parses to a TestColor
-        // value of 999 with no error. Document the pass-through.
+        // Enum.TryParse with a numeric string accepts any integer that the underlying
+        // type can represent, even when no enum member matches. The wrapper does not
+        // call Enum.IsDefined, so "999" parses to a TestColor value of 999 with no
+        // error.
         const string undefined_int = "999";
 
         var ok = undefined_int.TryParseTruthyNull<TestColor>(out var value);
@@ -204,7 +203,7 @@ public sealed class EnumExtensionsTests
     [Fact]
     public void TryParseTruthyNull_OnNegativeNumericString_ReturnsTrueWithUndefinedValue()
     {
-        // Adversarial: same pass-through for negative ints.
+        // Negative integers pass through in the same way.
         const string negative = "-1";
 
         var ok = negative.TryParseTruthyNull<TestColor>(out var value);
@@ -220,8 +219,8 @@ public sealed class EnumExtensionsTests
     [InlineData("0x01")]
     public void TryParseTruthyNull_OnMalformedNumericString_ReturnsFalse(string input)
     {
-        // Adversarial: anything that's neither a defined name nor a parseable
-        // signed integer of the underlying type must fail.
+        // A string that is neither a defined name nor a signed integer that parses
+        // as the underlying type must fail.
         var ok = input.TryParseTruthyNull<TestColor>(out var value);
 
         ok.Should().BeFalse();
@@ -229,14 +228,14 @@ public sealed class EnumExtensionsTests
     }
 
     // ----------------------------------------------------------------------
-    // [Flags] enums — Enum.TryParse natively supports comma-separated names.
-    // Document behavior so it's not relied on by accident downstream.
+    // [Flags] enums - Enum.TryParse supports comma-separated names. The test below
+    // pins that behavior so that nothing depends on it by accident.
     // ----------------------------------------------------------------------
 
     [Fact]
     public void TryParseTruthyNull_OnFlagsCommaSeparated_ReturnsTrueWithCombinedFlags()
     {
-        // Adversarial: Enum.TryParse handles `[Flags]` comma syntax. The wrapper
+        // Enum.TryParse handles the comma syntax of a `[Flags]` enum. The wrapper
         // inherits that.
         const string combined = "Read, Write";
 
@@ -247,7 +246,7 @@ public sealed class EnumExtensionsTests
     }
 
     // ----------------------------------------------------------------------
-    // Adversarial — oversized input
+    // Adversarial - oversized input
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -268,7 +267,7 @@ public sealed class EnumExtensionsTests
     [Fact]
     public void TryParseTruthyNull_OnFullEmojiInput_ReturnsFalseNoThrow()
     {
-        // Adversarial: surrogate pairs must not crash.
+        // Surrogate pairs must not crash the parse.
         const string emoji = "😀😁😂";
 
         Action act = () => emoji.TryParseTruthyNull<TestColor>(out _);
@@ -279,16 +278,16 @@ public sealed class EnumExtensionsTests
     }
 
     // ----------------------------------------------------------------------
-    // Generic constraint — TEnum : struct, Enum is enforced at compile time.
-    // We can't write a runtime test that invokes the method with a non-enum type
-    // (the compiler rejects it), so verify the constraint via reflection.
+    // Generic constraint - TEnum : struct, Enum is enforced at compile time.
+    // A runtime test cannot invoke the method with a non-enum type (the compiler
+    // rejects it), so the test verifies the constraint with reflection.
     // ----------------------------------------------------------------------
 
     [Fact]
     public void TryParseTruthyNull_GenericConstraint_IsStructAndEnum()
     {
         // The extension is emitted as a static method on a generated host class.
-        // Locate it by name + by `string?` first parameter + 1 generic argument.
+        // Locate it by name, as a generic method definition with 1 generic argument.
         var method = typeof(EnumExtensions)
             .GetTypeInfo()
             .DeclaredNestedTypes

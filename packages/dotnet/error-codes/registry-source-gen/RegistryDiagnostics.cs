@@ -11,8 +11,8 @@ using DcsvIo.D2.SourceGen;
 /// <summary>
 /// Factory helpers producing <see cref="EmitDiagnostic"/> instances for the
 /// cross-catalog registry diagnostics declared in
-/// <see cref="RegistryDiagnosticIds"/>. Pure-logic callers use these
-/// factories without pulling <c>Microsoft.CodeAnalysis</c>.
+/// <see cref="RegistryDiagnosticIds"/>. These factories do not
+/// reference <c>Microsoft.CodeAnalysis</c>.
 /// </summary>
 internal static class RegistryDiagnostics
 {
@@ -61,4 +61,13 @@ internal static class RegistryDiagnostics
     public static EmitDiagnostic UnknownCategory(
         string code, string catalog, string category) =>
         new(RegistryDiagnosticIds.UnknownCategory, [code, catalog, category]);
+
+    /// <summary>
+    /// Constructs a <see cref="RegistryDiagnosticDescriptors.UnregisteredCatalog"/>
+    /// diagnostic.
+    /// </summary>
+    /// <param name="specFileName">The spec file name (without path) that no identity map contains.</param>
+    /// <returns>A new <see cref="EmitDiagnostic"/>.</returns>
+    public static EmitDiagnostic UnregisteredCatalog(string specFileName) =>
+        new(RegistryDiagnosticIds.UnregisteredCatalog, [specFileName]);
 }

@@ -12,42 +12,42 @@ using System.Text;
 using DcsvIo.D2.SourceGen;
 
 /// <summary>
-/// Shared logic for emitting a per-domain catalog's DELEGATING failure
+/// Shared logic for emitting a per-domain catalog's delegating failure
 /// classes (<see cref="FactoryHost.Domain"/>) from a parsed
-/// <see cref="ErrorCodesSpec"/> + a <see cref="CatalogConfig"/>. Emits BOTH
-/// the non-generic <c>&lt;Domain&gt;Failures</c> class (→ <c>D2Result</c>) and
-/// the generic <c>&lt;Domain&gt;Failures&lt;T&gt;</c> class (→
+/// <see cref="ErrorCodesSpec"/> + a <see cref="CatalogConfig"/>. Emits both
+/// the non-generic <c>&lt;Domain&gt;Failures</c> class (-> <c>D2Result</c>) and
+/// the generic <c>&lt;Domain&gt;Failures&lt;T&gt;</c> class (->
 /// <c>D2Result&lt;T&gt;</c>), both carrying identical method names. Stateless
-/// and unit-testable in isolation. Validation happens upstream in
-/// <see cref="ConstantsEmitter.Validate"/>; this emitter consumes the same
+/// and testable in isolation. Validation happens upstream in
+/// <see cref="ConstantsEmitter.Validate"/>; this emitter uses the same
 /// valid-entry walk so the constants + failures files agree.
 /// </summary>
 /// <remarks>
 /// <para>
 /// The base <c>D2Result</c> factory is selected by <c>httpStatus</c>
-/// (401 → <c>Unauthorized</c>, 503 → <c>ServiceUnavailable</c>, …) per the
-/// canonical status→factory delegation map. The call SIGNATURE is driven by
-/// <c>factoryShape</c> (<c>standard</c> → an optional
+/// (401 -> <c>Unauthorized</c>, 503 -> <c>ServiceUnavailable</c>, ...) per the
+/// canonical status->factory delegation map. The call signature is driven by
+/// <c>factoryShape</c> (<c>standard</c> -> an optional
 /// <c>IReadOnlyList&lt;TKMessage&gt;? messages = null</c> override that, when
 /// omitted, defaults to the spec's <c>userMessageKey</c>; when supplied,
-/// replaces it — so a caller can bind the offending argument via
-/// <c>TKMessage.With(...)</c>; <c>none</c> → constant + boolean only, no
+/// replaces it - so a caller can bind the offending argument via
+/// <c>TKMessage.With(...)</c>; <c>none</c> -> constant + boolean only, no
 /// factory emitted).
 /// </para>
 /// <para>
 /// Both the non-generic <c>&lt;Domain&gt;Failures</c> method and its generic
 /// <c>&lt;Domain&gt;Failures&lt;T&gt;</c> twin are emitted for every
-/// factory-bearing entry — the non-generic delegates to <c>D2Result.X(...)</c>,
+/// factory-bearing entry - the non-generic delegates to <c>D2Result.X(...)</c>,
 /// the generic delegates to the typed <c>D2Result&lt;T&gt;.X(...)</c> base
 /// factory (the constructing <c>&lt;TData&gt;</c> twin the generic catalog's
-/// base-mode pass emits). The two classes are distinct types (arity differs),
+/// base-mode pass emits). Both classes are distinct types (arity differs),
 /// exactly as <c>D2Result</c> / <c>D2Result&lt;TData&gt;</c> coexist.
 /// </para>
 /// <para>
 /// The delegating path emits the universal <c>standard</c> shape (every domain
 /// catalog's entire set) and skips <c>none</c>. Any other (malformed /
 /// unknown) <c>factoryShape</c> value produces a
-/// <see cref="EngineDiagnosticIds.UnsupportedFactoryShape"/> error — the schema
+/// <see cref="EngineDiagnosticIds.UnsupportedFactoryShape"/> error - the schema
 /// constrains <c>factoryShape</c> to <c>standard</c> / <c>none</c>, so this
 /// guard only fires on a hand-malformed spec.
 /// </para>
@@ -80,11 +80,11 @@ internal static class FailuresEmitter
     }
 
     /// <summary>
-    /// Emits the generic <c>&lt;Domain&gt;Failures&lt;T&gt;</c> class source —
+    /// Emits the generic <c>&lt;Domain&gt;Failures&lt;T&gt;</c> class source -
     /// the typed twin of <see cref="Emit"/>. Same method names, delegating to
     /// the typed <c>D2Result&lt;T&gt;</c> base factories. Diagnostics are
     /// suppressed here (the non-generic <see cref="Emit"/> already surfaced any
-    /// unsupported-shape error for the same entry set — emitting it twice would
+    /// unsupported-shape error for the same entry set - emitting it twice would
     /// double-report).
     /// </summary>
     /// <param name="spec">Parsed error-codes spec.</param>
@@ -101,8 +101,7 @@ internal static class FailuresEmitter
 
     /// <summary>
     /// The canonical base <c>D2Result</c> delegation factory for an HTTP
-    /// status. Auth uses only 401/503 today; the map covers the full
-    /// per-domain delegation set so future per-domain catalogs reuse it.
+    /// status. The map covers the full per-domain delegation set.
     /// </summary>
     /// <param name="httpStatus">The HTTP status from the spec entry.</param>
     /// <returns>The <c>D2Result</c> factory method name to delegate to.</returns>
@@ -156,7 +155,7 @@ internal static class FailuresEmitter
         sb.AppendLine("using DcsvIo.D2.Result;");
 
         // TKMessage lives on the public Abstractions assembly; keep a type alias
-        // when the message-key host namespace is the private ProductTK package.
+        // when the message-key host namespace is not the public one.
         if (!string.Equals(
                 config.MessageKeyUsingNamespace,
                 "DcsvIo.D2.I18n",
@@ -174,8 +173,8 @@ internal static class FailuresEmitter
 
         foreach (var entry in entries)
         {
-            // factoryShape "none" → constant + boolean only; no factory emitted.
-            // Any other (malformed) value → unsupported on the delegating path
+            // factoryShape "none" -> constant + boolean only; no factory emitted.
+            // Any other (malformed) value -> unsupported on the delegating path
             // (D2ERC003 reported in Emit); skip to avoid emitting malformed source.
             if (entry.FactoryShape != _SHAPE_STANDARD)
                 continue;
@@ -188,10 +187,11 @@ internal static class FailuresEmitter
             sb.AppendLine();
 
             // The non-generic class additionally carries the legacy typed <T>
-            // overload on 503 entries (the non-generic factory surface) so existing
-            // callers of e.g. AuthFailures.JwksUnavailable<T>() keep compiling.
+            // overload on 503 entries (the non-generic factory surface), so that
+            // existing calls such as AuthFailures.JwksUnavailable<T>() keep
+            // compiling.
             // The generic <Domain>Failures<T> class needs no such per-entry
-            // overload — the class itself is generic.
+            // overload - the class itself is generic.
             if (!generic && entry.HttpStatus == _HTTP_SERVICE_UNAVAILABLE)
             {
                 EmitTypedFactory(sb, entry, config);
@@ -302,8 +302,8 @@ internal static class FailuresEmitter
     /// <summary>
     /// Appends a newline-delimited config block one line at a time via
     /// <see cref="StringBuilder.AppendLine()"/>. Every emitted line is later
-    /// collapsed to a bare LF at the source funnel (<see cref="EmitSource"/>'s
-    /// <c>LfNormalized()</c> return), so the generated source is LF-only
+    /// collapsed to a bare LF when <see cref="EmitSource"/> returns
+    /// <c>LfNormalized()</c>, so the generated source is LF-only
     /// regardless of the build host's <c>Environment.NewLine</c>.
     /// </summary>
     private static void EmitBlock(StringBuilder sb, string block)
@@ -325,7 +325,8 @@ internal static class FailuresEmitter
     private static string MapUserMessageKey(string? userMessageKey, CatalogConfig config)
     {
         // Specs keep TK.* paths for inverse-resolve against snake message keys.
-        // Private product catalogs emit ProductTK.* (dual-type).
+        // A catalog that sets its own MessageKeyClassName emits that class
+        // name in place of TK.
         if (userMessageKey is null)
             return string.Empty;
 

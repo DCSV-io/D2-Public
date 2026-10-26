@@ -18,10 +18,10 @@ using Xunit;
 
 /// <summary>
 /// IIncrementalGenerator integration tests for the SealedFrame source-gen
-/// arm — drives <see cref="SealedFrameGenerator"/> via a synthetic
+/// arm - drives <see cref="SealedFrameGenerator"/> via a synthetic
 /// <see cref="CSharpGeneratorDriver"/> rather than the build pipeline, and
-/// pins that the sealed generator never reads the symmetric spec (and vice
-/// versa — different file-name filters).
+/// pins that the sealed generator never reads the symmetric spec (the two
+/// generators use different file-name filters).
 /// </summary>
 public sealed class SealedFrameGeneratorTests
 {
@@ -89,7 +89,7 @@ public sealed class SealedFrameGeneratorTests
     [Fact]
     public void Generator_SymmetricSpecFileNameOnly_EmitsNothing()
     {
-        // The sealed generator filters on the SEALED spec file name — the
+        // The sealed generator filters on the SEALED spec file name - the
         // symmetric catalog must never feed it.
         var driver = RunGenerator(
             assemblyName: "DcsvIo.D2.Encryption",

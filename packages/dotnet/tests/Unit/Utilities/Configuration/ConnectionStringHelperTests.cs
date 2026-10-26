@@ -14,7 +14,7 @@ using Xunit;
 public sealed class ConnectionStringHelperTests
 {
     // ----------------------------------------------------------------------
-    // ParseRedisUri — pass-through paths
+    // ParseRedisUri - pass-through paths
     // ----------------------------------------------------------------------
 
     [Theory]
@@ -27,13 +27,13 @@ public sealed class ConnectionStringHelperTests
     }
 
     // ----------------------------------------------------------------------
-    // ParseRedisUri — URI conversion
+    // ParseRedisUri - URI conversion
     // ----------------------------------------------------------------------
 
     [Theory]
     [InlineData("redis://:secret@host:6380", "host:6380,password=secret")]
-    [InlineData("REDIS://:secret@host:6380", "host:6380,password=secret")] // case-insens. scheme
-    [InlineData("redis://:secret@host", "host:6379,password=secret")] // default port
+    [InlineData("REDIS://:secret@host:6380", "host:6380,password=secret")] // scheme is case-insensitive
+    [InlineData("redis://:secret@host", "host:6379,password=secret")] // no port: defaults to 6379
     public void ParseRedisUri_PasswordOnlyUri_ParsesPasswordAndHost(string uri, string expected)
     {
         ConnectionStringHelper.ParseRedisUri(uri).Should().Be(expected);
@@ -42,7 +42,7 @@ public sealed class ConnectionStringHelperTests
     [Fact]
     public void ParseRedisUri_UserAndPasswordUri_DiscardsUserKeepsPassword()
     {
-        // StackExchange.Redis only supports `password=`; user is discarded.
+        // StackExchange.Redis supports only `password=`, so the helper discards the user.
         ConnectionStringHelper.ParseRedisUri("redis://user:secret@host:6380")
             .Should().Be("host:6380,password=secret");
     }
@@ -64,14 +64,14 @@ public sealed class ConnectionStringHelperTests
     [Fact]
     public void ParseRedisUri_UserInfoWithoutColon_TreatedAsPassword()
     {
-        // Edge: "redis://onlytoken@host" — no ':', the entire userinfo is the
-        // "password" per current behavior.
+        // "redis://onlytoken@host" has no ':', so the helper takes the entire
+        // userinfo as the password.
         ConnectionStringHelper.ParseRedisUri("redis://onlytoken@host:6380")
             .Should().Be("host:6380,password=onlytoken");
     }
 
     // ----------------------------------------------------------------------
-    // ParsePostgresUri — pass-through paths
+    // ParsePostgresUri - pass-through paths
     // ----------------------------------------------------------------------
 
     [Theory]
@@ -83,13 +83,13 @@ public sealed class ConnectionStringHelperTests
     }
 
     // ----------------------------------------------------------------------
-    // ParsePostgresUri — URI conversion
+    // ParsePostgresUri - URI conversion
     // ----------------------------------------------------------------------
 
     [Theory]
     [InlineData("postgresql://u:p@host:5433/db")]
-    [InlineData("postgres://u:p@host:5433/db")] // both schemes
-    [InlineData("POSTGRESQL://u:p@host:5433/db")] // case-insens. scheme
+    [InlineData("postgres://u:p@host:5433/db")] // both schemes are accepted
+    [InlineData("POSTGRESQL://u:p@host:5433/db")] // scheme is case-insensitive
     public void ParsePostgresUri_FullUri_ProducesAdoNetForm(string uri)
     {
         ConnectionStringHelper.ParsePostgresUri(uri)
@@ -113,8 +113,8 @@ public sealed class ConnectionStringHelperTests
     [Fact]
     public void ParsePostgresUri_NoUserInfo_OmitsCredentials()
     {
-        // .NET's Uri parses "postgresql://host:5432/db" successfully — no
-        // userinfo present, so the helper omits Username/Password.
+        // "postgresql://host:5432/db" has no userinfo, so the helper omits
+        // Username and Password.
         ConnectionStringHelper.ParsePostgresUri("postgresql://host:5432/db")
             .Should().Be("Host=host;Port=5432;Database=db");
     }
@@ -122,8 +122,8 @@ public sealed class ConnectionStringHelperTests
     [Fact]
     public void ParsePostgresUri_NoUserInfoAndNoPort_DefaultsTo5432()
     {
-        // Coverage: the no-userinfo branch combined with the no-port branch
-        // (uri.Port < 0 → falls back to 5432).
+        // No userinfo and no port: the helper omits the credentials and falls
+        // back to port 5432 because uri.Port is not above 0.
         ConnectionStringHelper.ParsePostgresUri("postgresql://host/db")
             .Should().Be("Host=host;Port=5432;Database=db");
     }
@@ -136,7 +136,7 @@ public sealed class ConnectionStringHelperTests
     }
 
     // ----------------------------------------------------------------------
-    // GetRedis / GetPostgres / GetRabbitMq — env var resolution
+    // GetRedis / GetPostgres / GetRabbitMq - env var resolution
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -173,7 +173,7 @@ public sealed class ConnectionStringHelperTests
     [Fact]
     public void GetPostgres_EnvVarMissing_Throws()
     {
-        // No EnvVar wrapper — variable simply doesn't exist.
+        // No EnvVar wrapper: the variable is not set.
         const string env_var_name = "D2_TEST_PG_URL_DOES_NOT_EXIST";
 
         var act = () => ConnectionStringHelper.GetPostgres(env_var_name);
@@ -203,8 +203,9 @@ public sealed class ConnectionStringHelperTests
     }
 
     /// <summary>
-    /// Test helper: sets an env var on construction, restores the prior value
-    /// (or clears it) on disposal. Use with <c>using var envVar = new EnvVar(...)</c>.
+    /// Test helper that sets an environment variable on construction and, on
+    /// disposal, restores the previous value or clears the variable when there
+    /// was none. Create it with <c>using var envVar = new EnvVar(...)</c>.
     /// </summary>
     private sealed class EnvVar : IDisposable
     {

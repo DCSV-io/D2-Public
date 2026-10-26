@@ -30,19 +30,19 @@ public static class GrpcHeaders
     public const string AUTHORIZATION = "Authorization";
 
     /// <summary>
-    /// Base64url-of-JSON encoded PropagatedContext — small set of cross-hop fields a downstream consumer can't recompute (request id, original request path, fingerprints, WhoIs hash). Same header name + encoding on AMQP / gRPC / HTTP. Identity fields are NEVER in here — they rebuild from the JWT at every hop.
+    /// Base64url-of-JSON encoded PropagatedContext - small set of cross-hop fields a downstream consumer cannot recompute (request id, original request path, fingerprints, WhoIs hash). Same header name + encoding on AMQP / gRPC / HTTP. Identity fields are NEVER in here - they rebuild from the JWT at every hop.
     /// </summary>
     /// <remarks>Convention: <c>d2</c>. Applicability: <c>amqp, grpc, http</c>.</remarks>
     public const string PROPAGATED_CONTEXT = "x-d2-context";
 
     /// <summary>
-    /// W3C traceparent header — full {version}-{traceId}-{spanId}-{flags} string per https://www.w3.org/TR/trace-context. Consumers parse it to start a child span whose parent is the producer's span, so cross-hop trace assembly works in any OTel backend without bespoke linking.
+    /// W3C traceparent header - full {version}-{traceId}-{spanId}-{flags} string per https://www.w3.org/TR/trace-context. Consumers parse it to start a child span whose parent is the producer's span, so cross-hop trace assembly works in any OTel backend without bespoke linking.
     /// </summary>
     /// <remarks>Convention: <c>w3c</c>. Applicability: <c>amqp, grpc, http</c>.</remarks>
     public const string TRACEPARENT = "traceparent";
 
     /// <summary>
-    /// W3C tracestate header (vendor-specific tracing context that rides alongside traceparent). Forwarded as-is so non-D2 tracing systems chained through us don't lose state.
+    /// W3C tracestate header (vendor-specific tracing context that travels alongside traceparent). Forwarded as-is so non-D2 tracing systems in the call path do not lose state.
     /// </summary>
     /// <remarks>Convention: <c>w3c</c>. Applicability: <c>amqp, grpc, http</c>.</remarks>
     public const string TRACESTATE = "tracestate";

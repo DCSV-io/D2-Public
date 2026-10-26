@@ -7,20 +7,16 @@
 namespace DcsvIo.D2.AspNetCore;
 
 /// <summary>
-/// Public constants exposed by <see cref="DcsvIo.D2.AspNetCore"/> — endpoint
+/// Public constants exposed by <see cref="DcsvIo.D2.AspNetCore"/> - endpoint
 /// route paths, header names, configuration keys, and the canonical
-/// infrastructure-path list shared with consumers
-/// (<see cref="DcsvIo.D2.AspNetCore.InfrastructurePathMatcher"/>'s default
-/// path set, the <c>UseD2InfrastructureBypass</c> default, the
-/// <c>DcsvIo.D2.Logging</c> request-logging middleware default, and the
-/// <c>DcsvIo.D2.Telemetry</c> AspNetCore-instrumentation filter default).
+/// infrastructure-path list, <see cref="DEFAULT_INFRASTRUCTURE_PATHS"/>.
 /// </summary>
 /// <remarks>
-/// Consumers that want to reference the canonical infrastructure paths or
-/// header / config-key strings by symbol (per the codebase's
-/// nameof-discipline rule for codegen / wire-format member references) read
-/// from this class so a literal-value drift surfaces as a compile break + a
-/// spec-pinning test failure rather than a silent operational regression.
+/// Referencing the canonical infrastructure paths or header / config-key
+/// strings by symbol from this class, rather than repeating the literal values,
+/// makes a literal-value
+/// drift surface as a compile break + a spec-pinning test failure rather
+/// than a silent operational regression.
 /// </remarks>
 public static class D2AspNetCoreConstants
 {
@@ -47,7 +43,7 @@ public static class D2AspNetCoreConstants
     public const string METRICS_ENDPOINT_PATH = "/metrics";
 
     /// <summary>
-    /// Canonical well-known-doc prefix — covers OIDC discovery
+    /// Canonical well-known-doc prefix - covers OIDC discovery
     /// (<c>/.well-known/openid-configuration</c>), JWKS
     /// (<c>/.well-known/jwks.json</c>), security.txt, etc.
     /// </summary>
@@ -58,8 +54,8 @@ public static class D2AspNetCoreConstants
     /// liveness probe (<see cref="ALIVE_ENDPOINT_PATH"/>). The
     /// <c>"self"</c> check registered by
     /// <see cref="HealthEndpointsServiceCollectionExtensions.AddD2HealthChecks"/>
-    /// carries this tag; per-service infrastructure layers can register
-    /// additional liveness-relevant checks under the same tag.
+    /// has this tag; additional liveness-relevant checks can be registered
+    /// under the same tag.
     /// </summary>
     public const string LIVE_HEALTH_TAG = "live";
 
@@ -102,20 +98,17 @@ public static class D2AspNetCoreConstants
     /// HttpContext.Items key set by the
     /// <see cref="InfrastructureBypassApplicationBuilderExtensions.UseD2InfrastructureBypass"/>
     /// middleware to <c>true</c> for requests whose path matches the
-    /// infrastructure-path list. Downstream business middleware can read
-    /// the flag to no-op early (rate limiting, idempotency, request
-    /// enrichment, etc.). Public so consumers reference the key by symbol.
+    /// infrastructure-path list. Business middleware registered after the
+    /// bypass can read the flag to no-op early (rate limiting, idempotency,
+    /// request enrichment, etc.). The constant is public so the key is
+    /// referenced by symbol.
     /// </summary>
     public const string INFRASTRUCTURE_HTTP_CONTEXT_ITEM_KEY = "D2.IsInfrastructure";
 
     /// <summary>
-    /// Default infrastructure-path prefix list — consumed by
-    /// <see cref="InfrastructurePathMatcher"/>, by
-    /// <see cref="D2InfrastructureBypassOptions.InfrastructurePaths"/>'s
-    /// default, by the <c>DcsvIo.D2.Logging</c> request-logging middleware
-    /// default, and by the <c>DcsvIo.D2.Telemetry</c>
-    /// AspNetCore-instrumentation filter default. Single source of truth so
-    /// the four consumers stay aligned without per-lib duplication.
+    /// Default infrastructure-path prefix list. It is the single declaration of
+    /// the default prefixes, so every default set built from it is the same
+    /// list and no library declares its own copy.
     /// </summary>
     public static readonly IReadOnlyList<string> DEFAULT_INFRASTRUCTURE_PATHS =
     [

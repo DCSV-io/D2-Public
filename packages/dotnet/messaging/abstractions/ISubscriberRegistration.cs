@@ -11,15 +11,14 @@ namespace DcsvIo.D2.Messaging;
 /// <c>services.AddD2SubscribersFromAssembly(...)</c> (the scanner finds
 /// classes carrying <see cref="MqSubAttribute"/>) or by the explicit
 /// programmatic helper <c>services.AddD2Subscriber&lt;TSub, TIn&gt;(...)</c>.
-/// Held by the DI-singleton <see cref="SubscriberRegistry"/>; the transport's
-/// consumer host reads the registry at startup to declare topology and open
-/// consumer channels.
+/// Held by the DI-singleton <see cref="SubscriberRegistry"/>, which supplies the
+/// data a transport needs to declare topology and open consumer channels.
 /// </summary>
 /// <remarks>
-/// Carries the resolved <see cref="MqSubscriptionDescriptor"/> + the
+/// Contains the resolved <see cref="MqSubscriptionDescriptor"/> + the
 /// resolved per-replica queue name (already suffixed for fanout-exclusive
-/// patterns). The registration is transport-agnostic — exactly the same data
-/// shape works for a Kafka / NATS impl.
+/// patterns). The registration is transport-agnostic - the same data shape
+/// suits a Kafka / NATS implementation.
 /// </remarks>
 public interface ISubscriberRegistration
 {
@@ -34,7 +33,7 @@ public interface ISubscriberRegistration
     /// <summary>Gets the resolved subscription descriptor from the spec.</summary>
     MqSubscriptionDescriptor Descriptor { get; }
 
-    /// <summary>Gets the EFFECTIVE queue name — same as
+    /// <summary>Gets the EFFECTIVE queue name - same as
     /// <see cref="MqSubscriptionDescriptor.QueueName"/> for shared patterns;
     /// auto-suffixed with a per-process token for
     /// <see cref="QueuePattern.FanoutExclusiveAutoDelete"/> so multi-replica

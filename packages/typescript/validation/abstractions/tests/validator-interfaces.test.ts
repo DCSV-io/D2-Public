@@ -13,7 +13,7 @@ import type {
   IPostalCodeValidator,
 } from "../src/index.js";
 
-// Branded-string fixtures — mirrors the cast pattern the sibling
+// Branded-string fixtures - mirrors the cast pattern the sibling
 // `@dcsv-io/d2-validation` default-impl tests use to materialize `CountryCode`
 // values without importing the runtime catalog.
 const US = "US" as CountryCode;
@@ -21,15 +21,15 @@ const CA = "CA" as CountryCode;
 
 /**
  * Interface-shape coverage for the hand-written validator contracts. This is
- * a type-only package — there is no runtime behavior to exercise — so these
+ * a type-only package - there is no runtime behavior to exercise - so these
  * tests assert that a conforming implementation satisfies each interface's
  * surface (method arity, optional parameters, `D2Result` return) and that the
  * structural-typing contract holds. Behavioral parity with the .NET
  * `DcsvIo.D2.Validation.Abstractions` interfaces is covered by the
- * `@dcsv-io/d2-validation` default-impl + contract-tests parity suites.
+ * `@dcsv-io/d2-validation` default-impl + cross-language parity suites.
  *
  * The package ships these tests (rather than `passWithNoTests`) to mirror the
- * sibling `@dcsv-io/d2-geo-abstractions` package, which carries real test files; this
+ * sibling `@dcsv-io/d2-geo-abstractions` package, which has real test files; this
  * also keeps `vitest run` exiting 0 in CI.
  */
 
@@ -83,7 +83,7 @@ describe("IPhoneValidator contract", () => {
 describe("IPostalCodeValidator contract", () => {
   // The optional `countryCode` parameter is `CountryCode | undefined`; a
   // conforming impl fails closed when it is omitted (no country-agnostic
-  // fallback — mirrors the .NET contract).
+  // fallback - mirrors the .NET contract).
   const stub: IPostalCodeValidator = {
     validate(postalCode, countryCode) {
       return falsey(postalCode) || countryCode === undefined

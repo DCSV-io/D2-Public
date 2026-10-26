@@ -16,14 +16,16 @@ using DcsvIo.D2.SourceGen;
 using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
-/// Enforces catalog-uniqueness as a build-time safety gate: every catalog
-/// must have unique normalized names across all matchable name fields per
-/// entity. The check normalizes each name field (NFD + strip Mn + invariant
-/// casefold + collapse whitespace) and asserts no two entities in the same
-/// catalog share the same normalized form. Surfaces
-/// <see cref="DiagnosticIds.DuplicateNormalizedName"/> on collisions; build
-/// fails on the diagnostic. Eliminates the "first match wins" determinism
-/// risk in <c>IGeoNameResolver</c> at the source.
+/// Enforces catalog uniqueness as a build-time check on the countries
+/// catalog and, per country, the subdivisions catalog: the matchable name
+/// fields of an entity must not normalize to the same form as those of another
+/// entity in the same catalog. The check normalizes each name field (NFD,
+/// strip Mn, invariant casefold, collapse whitespace). It reports
+/// <see cref="DiagnosticIds.DuplicateNormalizedName"/> on each collision, and
+/// the build fails on that diagnostic when it is enabled (it is disabled by
+/// default). The runtime name resolver is what fails closed (NotFound) on a
+/// collision instead of letting the first match win in
+/// <c>IGeoNameResolver</c>.
 /// </summary>
 internal static class CatalogUniquenessChecker
 {
@@ -47,7 +49,7 @@ internal static class CatalogUniquenessChecker
 
         if (context.Subdivisions is { } subdivisions)
         {
-            // Per-country bucketed check — "Georgia" is both US-GA and the
+            // Per-country bucketed check - "Georgia" is both US-GA and the
             // country GE, "Northern Province" is a legitimate name in several
             // countries. Resolver scope is mandatory per-country (see
             // IGeoNameResolver.TryResolveSubdivisionByName), so collisions are
@@ -55,13 +57,12 @@ internal static class CatalogUniquenessChecker
             CheckSubdivisionsPerCountry(subdivisions.Entries, diagnostics);
         }
 
-        // The name-resolver covers Country + Subdivision only — the other
-        // catalogs are addressable solely by their typed code, so duplicate
-        // display names within them carry no resolver-determinism risk.
-        // Running the uniqueness check only on resolver-bearing catalogs
-        // also avoids false-triggering on legitimate cross-language locale-
-        // name overlaps (e.g. "Afar" as Locale on multiple regional
-        // variants).
+        // The name resolver covers countries and subdivisions only. The
+        // other catalogs are addressable solely by their typed code, so
+        // duplicate display names within them cannot make the resolver
+        // pick between two matches. Skipping them also avoids reporting
+        // legitimate cross-language locale name overlaps (for example
+        // "Afar" as the name of several regional locale variants).
         _ = context.Currencies;
         _ = context.Languages;
         _ = context.Locales;
@@ -85,7 +86,7 @@ internal static class CatalogUniquenessChecker
                 continue;
 
             // Deduplicate per-entity (some entities have the same name in
-            // multiple fields — DisplayName == OfficialName is common).
+            // multiple fields - DisplayName == OfficialName is common).
             var perEntitySeen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var name in names)
             {
@@ -114,8 +115,8 @@ internal static class CatalogUniquenessChecker
             if (kvp.Value.Count < 2)
                 continue;
 
-            // Stable-sort the colliding entity ids for deterministic
-            // diagnostic output across runs.
+            // Sort the colliding entity ids so the diagnostic text is the same
+            // on every run.
             kvp.Value.Sort(StringComparer.Ordinal);
             diagnostics.Add(EmitDiagnostics.DuplicateNormalizedName(
                 specName, kvp.Key, string.Join(", ", kvp.Value)));
@@ -133,9 +134,9 @@ internal static class CatalogUniquenessChecker
 
     private static IEnumerable<string> NamesOf(CountrySpec entry)
     {
-        // Display-form names only — codes (alpha-2 / alpha-3) are addressable
-        // by their typed identifiers, never typed free-form into a resolver
-        // query.
+        // Display-form names only. Codes (alpha-2 / alpha-3) are addressable
+        // by their typed identifiers and are never typed free-form into a
+        // resolver query.
         yield return entry.DisplayName;
         yield return entry.OfficialName;
         if (entry.EndonymDisplayName.Truthy())
@@ -185,9 +186,9 @@ internal static class CatalogUniquenessChecker
 
     private static IEnumerable<string> NamesOf(SubdivisionSpec entry)
     {
-        // Display-form names only — ShortCode + Iso31662Code are addressable
-        // by their typed identifiers, never typed free-form into a resolver
-        // query.
+        // Display-form names only. ShortCode and Iso31662Code are addressable
+        // by their typed identifiers and are never typed free-form into a
+        // resolver query.
         yield return entry.DisplayName;
         yield return entry.OfficialName;
         if (entry.EndonymDisplayName.Truthy())

@@ -18,7 +18,7 @@ using Xunit;
 
 /// <summary>
 /// IIncrementalGenerator integration tests for the d2result-envelope SrcGen
-/// — drive <see cref="D2ResultEnvelopeGenerator"/> via a synthetic
+/// - drive <see cref="D2ResultEnvelopeGenerator"/> via a synthetic
 /// <see cref="CSharpGeneratorDriver"/> rather than the build pipeline.
 /// Asserts the single-target dispatch behavior: DcsvIo.D2.Result gets
 /// D2ResultEnvelopeFieldNames from d2result-envelope.spec.json; anything
@@ -74,12 +74,11 @@ public sealed class D2ResultEnvelopeGeneratorTests
     [Fact]
     public void Generator_TargetAssemblyButNoSpec_EmitsNothing()
     {
-        // Loader silently exits on no spec — unlike WireShapesGenerator,
-        // this single-target generator doesn't fire MissingSpec because
-        // the spec might legitimately be absent during partial-build
-        // scenarios. The hand-written D2Result.cs gives a clear compile
-        // error referencing D2ResultEnvelopeFieldNames if the spec is
-        // somehow missing.
+        // The loader returns without a diagnostic when there is no spec. Unlike
+        // WireShapesGenerator, this single-target generator does not report
+        // MissingSpec, because the spec can be absent during a partial build.
+        // If the spec is missing, the hand-written D2Result.cs fails to compile
+        // with an error that refers to D2ResultEnvelopeFieldNames.
         var driver = RunGenerator(
             assemblyName: _TARGET_ASSEMBLY,
             specs: System.Array.Empty<(string, string)>());

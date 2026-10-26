@@ -35,22 +35,22 @@ using Microsoft.Extensions.Options;
 /// <strong>Tier routing:</strong>
 /// <list type="bullet">
 ///   <item>
-///     <strong>Tier A</strong> — constant/null/empty-rule columns on scalar, table-split-owned,
+///     <strong>Tier A</strong> - constant/null/empty-rule columns on scalar, table-split-owned,
 ///     or complex-property shapes are anonymized via a single <c>ExecuteUpdateAsync</c> per
 ///     entity type. No rows are materialized. Compiled setter delegates are cached per entity
 ///     type and reused across sweeps.
 ///   </item>
 ///   <item>
-///     <strong>Tier B</strong> — any entity type carrying at least one
+///     <strong>Tier B</strong> - any entity type carrying at least one
 ///     <see cref="AnonymizeKind.Template"/> rule. Rows are materialized in chunks of
 ///     <see cref="AnonymizationEngineOptions.BatchSize"/>, mutated in CLR, and persisted via
 ///     <c>SaveChangesAsync</c>. Each chunk commits independently (no single long transaction
 ///     spanning all chunks). Concurrency conflicts trigger a bounded reload-retry
 ///     (see <see cref="AnonymizationEngineOptions.MaxConcurrencyRetries"/>). Partial
-///     progress from committed chunks is idempotent — a re-run skips already-anonymized rows.
+///     progress from committed chunks is idempotent - a re-run skips already-anonymized rows.
 ///   </item>
 ///   <item>
-///     <strong>Tier C</strong> — a Tier-C entity reaching the engine at runtime is a
+///     <strong>Tier C</strong> - a Tier-C entity reaching the engine at runtime is a
 ///     deploy-integrity failure (the startup guard should have blocked it at host-build time).
 ///     The engine returns <see cref="D2Result{TData}.UnhandledException"/> immediately and
 ///     performs no further writes for that subject.
@@ -64,8 +64,8 @@ using Microsoft.Extensions.Options;
 /// </para>
 /// <para>
 /// <strong>Fail-closed:</strong> if any entity type fails, the method returns a failure
-/// result — never <c>Ok</c> with a partial count. The caller must treat a non-Ok result
-/// as a partial anonymization and retry.
+/// result - never <c>Ok</c> with a partial count. A non-Ok result means the anonymization
+/// may be partial, and the sweep must be retried.
 /// </para>
 /// <para>
 /// <strong>PII safety:</strong> the subject id is never logged. A fresh <c>sweepId</c>
@@ -105,7 +105,7 @@ internal sealed class AnonymizationEngine : IAnonymizationEngine
     private readonly int r_maxConcurrencyRetries;
     private readonly ILogger<AnonymizationEngine> r_logger;
 
-    // Static constructor — validates that the open generic MethodInfos resolved correctly.
+    // Static constructor - validates that the open generic MethodInfos resolved correctly.
     static AnonymizationEngine()
     {
         Debug.Assert(
@@ -137,17 +137,18 @@ internal sealed class AnonymizationEngine : IAnonymizationEngine
         r_db = db;
         r_batchSize = options.Value.BatchSize;
 
-        // Clamp negative values to 0 — negative is treated as "no retry" (same as 0).
+        // Clamp negative values to 0 - negative is treated as "no retry" (same as 0).
         r_maxConcurrencyRetries = Math.Max(0, options.Value.MaxConcurrencyRetries);
         r_logger = logger;
     }
 
     /// <summary>
     /// Gets or sets a test seam invoked inside <c>SaveChunkWithRetryAsync</c> just before
-    /// <c>SaveChangesAsync</c> on the first attempt. Tests install an action here to simulate
-    /// a concurrent writer bumping a concurrency token, forcing
+    /// <c>SaveChangesAsync</c> on the first attempt, then cleared after the first
+    /// invocation. An action installed here can simulate a concurrent writer bumping a
+    /// concurrency token, which forces
     /// <see cref="Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException"/> on the first
-    /// save and exercising the reload-retry path. Cleared after first invocation.
+    /// save and exercises the reload-retry path.
     /// </summary>
     internal Action? OnBeforeFirstSave { get; set; }
 
@@ -267,7 +268,7 @@ internal sealed class AnonymizationEngine : IAnonymizationEngine
         if (propertyInfo is null)
             return SetterCallResult.Skip();
 
-        // M-1: SetNull on a non-nullable value type is a misconfiguration — fail-closed.
+        // SetNull on a non-nullable value type is a misconfiguration, so the setter fails closed.
         if (value is null
             && propertyClrType.IsValueType
             && Nullable.GetUnderlyingType(propertyClrType) is null)
@@ -313,15 +314,15 @@ internal sealed class AnonymizationEngine : IAnonymizationEngine
     /// Builds the ordered list of CLR navigation <see cref="PropertyInfo"/> values from the
     /// entity root down to the container that directly declares <paramref name="property"/>.
     /// Returns an empty list when the property is declared directly on the root entity type.
-    /// Handles two nesting shapes:
+    /// Handles these nesting shapes:
     /// <list type="bullet">
     ///   <item>
-    ///     <strong>Complex properties</strong> (e.g. <c>Invoice.BillingAddress.City</c>):
-    ///     walks up via <c>IProperty.DeclaringType → IComplexType.ComplexProperty →
+    ///     <strong>Complex properties</strong> (for example <c>Invoice.BillingAddress.City</c>):
+    ///     walks up via <c>IProperty.DeclaringType -> IComplexType.ComplexProperty ->
     ///     IComplexProperty.DeclaringType</c>. Because each step follows the EF model
-    ///     navigation (not the CLR type), two navigations to the SAME complex-VO CLR type
-    ///     (e.g. <c>BillingAddress</c> and <c>ShippingAddress</c>) resolve to their correct,
-    ///     distinct <see cref="PropertyInfo"/> values.
+    ///     navigation and not the CLR type, navigations to the same complex-VO CLR type
+    ///     (for example <c>BillingAddress</c> and <c>ShippingAddress</c>) resolve to their
+    ///     own distinct <see cref="PropertyInfo"/> values.
     ///   </item>
     ///   <item>
     ///     <strong>Owned entities (table-split OwnsOne)</strong>: when
@@ -334,7 +335,7 @@ internal sealed class AnonymizationEngine : IAnonymizationEngine
     private static IReadOnlyList<PropertyInfo> BuildNavigationChain(IProperty property)
     {
         var reversed = new List<PropertyInfo>();
-        ITypeBase current = property.DeclaringType;
+        var current = property.DeclaringType;
 
         while (true)
         {
@@ -353,8 +354,9 @@ internal sealed class AnonymizationEngine : IAnonymizationEngine
                 // Owned-entity nesting: follow the ownership FK upward from the dependent
                 // (owned) type to the principal (owner) type.
                 var ownership = ownedEntityType.FindOwnership();
+
                 if (ownership is null)
-                    break; // root entity — stop
+                    break; // root entity - stop
 
                 // PrincipalToDependent is the navigation from the owner to the owned type
                 // (e.g. TierAUser.Address), which is the PropertyInfo we need to build the
@@ -509,12 +511,12 @@ internal sealed class AnonymizationEngine : IAnonymizationEngine
         if (targetType == value.GetType() || targetType.IsAssignableFrom(value.GetType()))
             return value;
 
-        // Value-converter path: for value-converted properties (e.g. EmailAddress ↔ string)
-        // the template resolver returns the provider-side type (string). Use the EF Core
-        // type mapping's ConvertFromProviderExpression to convert back to the CLR type
-        // (e.g. EmailAddress?). This is the correct inverse of the store→CLR direction
-        // that EF applies on materialization, and avoids Convert.ChangeType which has no
-        // knowledge of custom value converters.
+        // Value-converter path: for value-converted properties (for example
+        // EmailAddress <-> string) the template resolver returns the provider-side type
+        // (string). Use the EF Core type mapping's ConvertFromProviderExpression to convert
+        // back to the CLR type (for example EmailAddress?). This inverts the store->CLR
+        // direction that EF applies on materialization, and avoids Convert.ChangeType,
+        // which does not apply custom value converters.
         if (property is not null)
         {
             var converter = property.GetTypeMapping().Converter;
@@ -530,7 +532,7 @@ internal sealed class AnonymizationEngine : IAnonymizationEngine
                 }
                 catch (Exception)
                 {
-                    // Converter threw — fall through to Convert.ChangeType.
+                    // Converter threw - fall through to Convert.ChangeType.
                 }
             }
         }
@@ -871,8 +873,8 @@ internal sealed class AnonymizationEngine : IAnonymizationEngine
                     isAnonymizedPropInfo?.SetValue(instance, true);
                 }
 
-                // Fire the test hook exactly once (first attempt only) to allow tests to
-                // simulate a concurrent writer bumping the concurrency token before our save.
+                // Fire the test hook exactly once (first attempt only). The hook can
+                // simulate a concurrent writer bumping the concurrency token before this save.
                 if (attempt == 1 && OnBeforeFirstSave is not null)
                 {
                     var hook = OnBeforeFirstSave;

@@ -8,22 +8,22 @@ import { importPublicP256 } from "./ecdh-p256.js";
 import { validateKid, validateServiceId } from "./sealed-keyring-validation.js";
 
 /**
- * Immutable keyring holding a recipient service's PUBLIC sealing keys (active +
- * any retiring) — the producer side of the sealed encryption mode, the twin of
- * .NET `RecipientPublicKeyring`. Carries the recipient service id that anchors
- * the AEAD binding, so producers never pass an AAD by hand.
+ * Immutable keyring containing a recipient service's public sealing keys
+ * (active and any retiring); the producer side of the sealed encryption mode,
+ * and the twin of .NET `RecipientPublicKeyring`. Contains the recipient service
+ * id that anchors the AEAD binding, so producers never pass an AAD by hand.
  *
- * Public keys are wire-public by design — NOT zeroize-sensitive, so this type
- * is not disposable. Key material is still never rendered by `toString` (the
- * no-key-bytes-in-logs invariant is uniform across every keyring type).
- * Constructed through the async {@link create} factory, which validates every
- * entry imports as a P-256 public key — a wrong-curve or garbage key fails loud
- * at the construction boundary, not at first seal.
+ * Public keys are wire-public by design and are not sensitive to zeroization,
+ * so this type is not disposable. Key material is still never rendered by
+ * `toString` (the no-key-bytes-in-logs invariant is uniform across every
+ * keyring type). Constructed through the async {@link create} factory, which
+ * validates that every entry imports as a P-256 public key: a wrong-curve or
+ * garbage key throws at the construction boundary, not at the first seal.
  */
 export class RecipientPublicKeyring {
   readonly #publicKeys: ReadonlyMap<string, Uint8Array>;
 
-  /** The recipient service id the AEAD binding + key derivation anchor on. */
+  /** The recipient service id that the AEAD binding and key derivation anchor on. */
   readonly recipientServiceId: string;
 
   /** The recipient kid used for new seals. Always present in the keyring. */
@@ -81,8 +81,8 @@ export class RecipientPublicKeyring {
         );
       }
 
-      // Fail loud at the boundary: the SPKI must import as a P-256 public key
-      // (WebCrypto validates DER structure + on-curve point).
+      // Throw at the boundary: the SPKI must import as a P-256 public key
+      // (WebCrypto validates the DER structure and that the point is on the curve).
       try {
         await importPublicP256(spki);
       } catch (err) {
@@ -92,7 +92,7 @@ export class RecipientPublicKeyring {
         );
       }
 
-      // Defensive copy — caller may mutate their original.
+      // Defensive copy: the caller may mutate the original.
       copies.set(kid, Uint8Array.from(spki));
     }
 
@@ -102,14 +102,14 @@ export class RecipientPublicKeyring {
   /**
    * Resolves a recipient kid to its public key bytes (SPKI DER).
    *
-   * @param kid The kid to look up (a null/undefined kid returns undefined).
+   * @param kid The kid to look up (a null or undefined kid returns undefined).
    * @returns The public key bytes when present; undefined otherwise.
    */
   tryGetPublicKey(kid: string | undefined): Uint8Array | undefined {
     return kid === undefined ? undefined : this.#publicKeys.get(kid);
   }
 
-  /** Returns a redacted string — never includes key bytes. */
+  /** Returns a redacted string that never includes key bytes. */
   toString(): string {
     return (
       `RecipientPublicKeyring(recipientServiceId=${this.recipientServiceId}, ` +

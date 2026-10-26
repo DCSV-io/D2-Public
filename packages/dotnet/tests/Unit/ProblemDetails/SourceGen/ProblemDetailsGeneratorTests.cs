@@ -17,8 +17,8 @@ using Microsoft.CodeAnalysis.Text;
 using Xunit;
 
 /// <summary>
-/// IIncrementalGenerator integration tests for the ProblemDetails SrcGen —
-/// drive <see cref="ProblemDetailsGenerator"/> via a synthetic
+/// IIncrementalGenerator integration tests for the ProblemDetails SrcGen. They
+/// drive <see cref="ProblemDetailsGenerator"/> through a synthetic
 /// <see cref="CSharpGeneratorDriver"/> rather than the build pipeline.
 /// </summary>
 public sealed class ProblemDetailsGeneratorTests
@@ -38,7 +38,7 @@ public sealed class ProblemDetailsGeneratorTests
       ],
       "titles": [
         {
-          "constName": "UNAUTHORIZED",
+          "constName": "GEN_UNAUTHORIZED",
           "httpStatus": 401,
           "value": "Unauthorized",
           "doc": "401."
@@ -81,9 +81,9 @@ public sealed class ProblemDetailsGeneratorTests
     [Fact]
     public void Generator_AuthHttpAssembly_EmitsNothing()
     {
-        // Routing β regression: prior implementation single-targeted on
-        // DcsvIo.D2.Auth.Http; new shape targets the abstractions csproj
-        // so this assembly name now produces no output.
+        // Regression: the generator used to target only DcsvIo.D2.Auth.Http.
+        // It now targets the abstractions csproj, so this assembly name
+        // produces no output.
         var driver = RunGenerator(
             assemblyName: "DcsvIo.D2.Auth.Http",
             specJson: _SAMPLE_SPEC);
@@ -96,7 +96,7 @@ public sealed class ProblemDetailsGeneratorTests
     [Fact]
     public void Generator_TargetAssemblyButNoSpec_EmitsNothing()
     {
-        // No AdditionalText supplied — generator silently no-ops.
+        // No AdditionalText is supplied, so the generator silently does nothing.
         var driver = RunGenerator(
             assemblyName: _TARGET_ASSEMBLY,
             specJson: null);

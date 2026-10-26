@@ -35,7 +35,7 @@
     },
     {
       "wire": "partial_success",
-      "doc": "A multi-target operation succeeded against some targets but not all — the read-partial SOME_FOUND (206) and write-partial PARTIAL_SUCCESS (207) codes. Not a failure; data is carried alongside the result."
+      "doc": "A multi-target operation applied to some targets and not others - the read-partial SOME_FOUND and write-partial PARTIAL_SUCCESS codes. Both are failures, and both carry data that lists the targets reached, so a caller that may accept a partial outcome opts in by testing the code and not the success flag."
     }
   ]
 }

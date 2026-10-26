@@ -7,7 +7,7 @@
 namespace DcsvIo.D2.Caching.Local.Default;
 
 /// <summary>
-/// Internal record for tracking an in-process lock — the holder's
+/// Internal record for tracking an in-process lock - the holder's
 /// caller-supplied identifier plus the absolute expiration time.
 /// </summary>
 internal sealed record LockEntry(string LockId, DateTimeOffset ExpiresAt);

@@ -17,11 +17,11 @@ using Microsoft.CodeAnalysis.Text;
 using Xunit;
 
 /// <summary>
-/// IIncrementalGenerator integration tests for the DlqFailureMetadata SrcGen
-/// — drives <see cref="DlqFailureMetadataGenerator"/> via a synthetic
-/// <see cref="CSharpGeneratorDriver"/> rather than the build pipeline.
-/// Multi-target dispatch: assembly name determines whether the Fields half
-/// or the Causes half emits.
+/// IIncrementalGenerator integration tests for the DlqFailureMetadata source
+/// generator. The tests run <see cref="DlqFailureMetadataGenerator"/> through a
+/// synthetic <see cref="CSharpGeneratorDriver"/> and not through the build
+/// pipeline. The generator has several targets, and the assembly name decides
+/// whether the Fields half or the Causes half emits.
 /// </summary>
 public sealed class DlqFailureMetadataGeneratorTests
 {

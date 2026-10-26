@@ -21,20 +21,21 @@ using Npgsql;
 /// <para>
 /// Opens a <strong>dedicated</strong> <see cref="NpgsqlConnection"/>; every acquired lock
 /// lives on that connection for the duration of the scope. Session advisory locks are
-/// automatically released when the connection is closed or dropped — no explicit unlock
+/// automatically released when the connection is closed or dropped - no explicit unlock
 /// is required, but <see cref="DisposeAsync"/> sends an explicit <c>pg_advisory_unlock</c>
-/// as belt-and-suspenders.
+/// as an extra safeguard.
 /// </para>
 /// <para>
-/// <strong>Do NOT use <c>EnableRetryOnFailure</c></strong> alongside session advisory
+/// <strong>Do not use <c>EnableRetryOnFailure</c></strong> alongside session advisory
 /// locks. An execution-strategy reconnect silently drops the session lock, leaving the
 /// caller believing it still holds the critical section. Session advisory locks depend on
-/// connection lifetime continuity — reconnect = lock lost.
+/// connection lifetime continuity - reconnect = lock lost.
 /// </para>
 /// <para>
 /// Keys are caller-supplied <see cref="long"/> values. Use domain-owned
 /// generated <c>AdvisoryLocks.*</c> constants (emitted into the owning module
-/// assembly from <c>contracts/advisory-locks/</c>) to avoid raw literals.
+/// assembly by locks-source-gen from a host-supplied catalog) to avoid raw
+/// literals.
 /// </para>
 /// </remarks>
 [MustDisposeResource]
@@ -80,8 +81,8 @@ public sealed class PgAdvisoryLock : IAsyncDisposable
         // DisposeAsync, releasing the session advisory lock deterministically regardless
         // of the No Reset On Close connection-string option. If that option is active,
         // Npgsql suppresses the pool-return DISCARD ALL that would otherwise release
-        // a held lock — meaning the next pool borrower could inherit a live lock.
-        // Disabling pooling eliminates that footgun entirely.
+        // a held lock - meaning the next pool borrower could inherit a live lock.
+        // Disabling pooling removes that risk.
         var connection = new NpgsqlConnection(AsUnpooled(connectionString));
         var handle = new PgAdvisoryLock(connection, key);
 
@@ -180,7 +181,7 @@ public sealed class PgAdvisoryLock : IAsyncDisposable
 
     /// <summary>
     /// Drops the underlying connection without releasing the advisory lock, simulating
-    /// a connection failure. Tests use this to verify PostgreSQL server-side auto-release
+    /// a connection failure so that PostgreSQL server-side auto-release can be verified
     /// (session advisory locks are automatically released when the connection is dropped).
     /// Because connections are created with <c>Pooling=false</c>, <c>CloseAsync</c> here
     /// terminates the physical TCP session and the server releases the lock immediately.
@@ -198,10 +199,10 @@ public sealed class PgAdvisoryLock : IAsyncDisposable
     /// releases the session advisory lock deterministically. Without this, the
     /// <c>No Reset On Close</c> connection-string option (when set) suppresses
     /// Npgsql's pool-return <c>DISCARD ALL</c>, which would otherwise release the
-    /// lock — leaking a held lock to the next pool borrower.
+    /// lock - leaking a held lock to the next pool borrower.
     /// The override applies only to the copy of the connection string used for this
     /// helper's dedicated lock connection; the caller's original string is not mutated
-    /// and their application or DbContext pooled connections are unaffected.
+    /// and the caller's application or DbContext pooled connections are unaffected.
     /// </summary>
     private static string AsUnpooled(string connectionString)
     {

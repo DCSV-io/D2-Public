@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import { readAttemptCount } from "../src/subscribing/attempt-count.js";
 
-describe("readAttemptCount — mirrors SubscriberChannel.ReadAttemptCount", () => {
+describe("readAttemptCount - mirrors SubscriberChannel.ReadAttemptCount", () => {
   it("returns 0 for absent headers / missing x-death / non-array x-death", () => {
     expect(readAttemptCount(undefined)).toBe(0);
     expect(readAttemptCount({})).toBe(0);
@@ -18,7 +18,7 @@ describe("readAttemptCount — mirrors SubscriberChannel.ReadAttemptCount", () =
       "x-death": [
         { reason: "expired", count: 2 },
         { reason: "rejected", count: 1 },
-        { reason: "maxlen", count: 9 }, // ignored — broker flow control
+        { reason: "maxlen", count: 9 }, // ignored - broker flow control
         { reason: "delivery_limit", count: 7 }, // ignored
       ],
     };
@@ -39,7 +39,7 @@ describe("readAttemptCount — mirrors SubscriberChannel.ReadAttemptCount", () =
         { count: 5 }, // no reason
         { reason: 123, count: 5 }, // non-string reason
         { reason: "expired" }, // no count
-        { reason: "expired", count: "3" }, // non-number count → 0
+        { reason: "expired", count: "3" }, // non-number count -> 0
         { reason: "expired", count: 6 }, // the only counted entry
       ],
     };

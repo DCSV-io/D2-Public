@@ -12,6 +12,12 @@ import {
 } from "@testcontainers/rabbitmq";
 import { Connection } from "rabbitmq-client";
 import type { ILogger } from "@dcsv-io/d2-logging";
+import {
+  RecordingLogger,
+  waitForSettled,
+  waitForValue,
+  waitUntil,
+} from "../helpers.js";
 import { fail, ok } from "@dcsv-io/d2-result";
 import { AmqpHeaders } from "@dcsv-io/d2-headers-amqp";
 import {
@@ -21,6 +27,9 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
+  createConnection,
+  RabbitMqConnectionOptions,
+  type D2Connection,
   type ConsumeContext,
   DlqNaming,
   InMemoryMessageIdempotencyStore,
@@ -31,9 +40,9 @@ import {
 } from "../../src/index.js";
 
 // -----------------------------------------------------------------------
-// .NET-emitted golden loading (D11). The goldens are emitted by
-// public/packages/dotnet/tests/Integration/ContractFixtures/MqGoldenMessageFixtureEmitter
-// into contract-tests/fixtures/mq-messages-golden/.
+// Loading of the goldens that .NET emits. A .NET test emitter writes them into
+// the contract-tests/fixtures/mq-consumer-golden/ directory that loadGolden
+// reads.
 // -----------------------------------------------------------------------
 
 interface GoldenData {
@@ -43,6 +52,7 @@ interface GoldenData {
   readonly routingKey?: string;
   readonly expectedDecoded?: Readonly<Record<string, unknown>>;
   readonly expectedRequestId?: string;
+  readonly expectedRequestPath?: string;
   readonly producerTraceId?: string;
 }
 
@@ -58,17 +68,20 @@ function findRepoRoot(startDir: string): string {
 
 function loadGolden(scenario: string): GoldenData {
   const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
-  // Twin-suite goldens live under the monorepo contract-tests package when present.
-  const path = join(
+  // The monorepo keeps the package tree under public/; the public clone keeps
+  // it at the root.
+  const monorepoFixtures = join(
     root,
-    "private",
+    "public",
     "packages",
     "typescript",
     "contract-tests",
     "fixtures",
-    "mq-messages-golden",
-    `${scenario}.json`,
   );
+  const fixtures = existsSync(monorepoFixtures)
+    ? monorepoFixtures
+    : join(root, "packages", "typescript", "contract-tests", "fixtures");
+  const path = join(fixtures, "mq-consumer-golden", `${scenario}.json`);
   const raw = JSON.parse(readFileSync(path, "utf8")) as { data: GoldenData };
   return raw.data;
 }
@@ -91,23 +104,40 @@ function unique(prefix: string): string {
   return `${prefix}.${Date.now().toString(36)}.${uniqueCounter}`;
 }
 
-describe("@dcsv-io/d2-messaging-rabbitmq consumer — Testcontainer wire-contract proof", () => {
+describe("@dcsv-io/d2-messaging-rabbitmq consumer - Testcontainer wire-contract proof", () => {
   let container: StartedRabbitMQContainer;
   let connection: Connection;
+  let managedConnection: D2Connection;
 
   beforeAll(async () => {
-    container = await new RabbitMQContainer("rabbitmq:3.13-management").start();
+    container = await new RabbitMQContainer(
+      "rabbitmq:4.1.7-management",
+    ).start();
     // getAmqpUrl() omits credentials; the container's default user is guest/guest.
     const url = container
       .getAmqpUrl()
       .replace("amqp://", "amqp://guest:guest@");
     connection = new Connection(url);
+    managedConnection = createConnection(
+      new RabbitMqConnectionOptions({
+        connectionUri: url,
+        allowUnencryptedTransport: true,
+      }),
+      new RecordingLogger(),
+    );
     await connection.onConnect();
   }, 180_000);
 
   afterAll(async () => {
-    await connection?.close();
-    await container?.stop();
+    try {
+      await managedConnection?.close();
+    } finally {
+      try {
+        await connection?.close();
+      } finally {
+        await container?.stop();
+      }
+    }
   });
 
   function makeDescriptor(
@@ -159,38 +189,29 @@ describe("@dcsv-io/d2-messaging-rabbitmq consumer — Testcontainer wire-contrac
     }
   }
 
-  async function readDlq(
-    dlqName: string,
-    timeoutMs = 15_000,
-  ): Promise<Record<string, unknown>> {
-    const deadline = Date.now() + timeoutMs;
-    for (;;) {
-      const msg = await connection.basicGet({ queue: dlqName, noAck: true });
-      if (msg !== undefined) {
-        const reason = msg.headers?.[AmqpHeaders.FAILURE_REASON];
-        const reasonStr =
-          typeof reason === "string"
-            ? reason
-            : Buffer.from(reason as Uint8Array).toString("utf8");
-        return {
-          metadata: JSON.parse(reasonStr) as Record<string, unknown>,
-          body: msg.body as Buffer,
-          headers: msg.headers ?? {},
-        };
-      }
-      if (Date.now() >= deadline)
-        throw new Error(`no DLQ message on ${dlqName}`);
-      await delay(200);
-    }
+  async function readDlq(dlqName: string): Promise<Record<string, unknown>> {
+    const msg = await waitForValue(() =>
+      connection.basicGet({ queue: dlqName, noAck: true }),
+    );
+    const reason = msg.headers?.[AmqpHeaders.FAILURE_REASON];
+    const reasonStr =
+      typeof reason === "string"
+        ? reason
+        : Buffer.from(reason as Uint8Array).toString("utf8");
+    return {
+      metadata: JSON.parse(reasonStr) as Record<string, unknown>,
+      body: msg.body as Buffer,
+      headers: msg.headers ?? {},
+    };
   }
 
-  it("replays a real .NET KeyRotatedEvent golden: decodes the body + establishes context", async () => {
-    const golden = loadGolden("auth-key-rotated-plaintext");
+  it("replays a real .NET plaintext golden: decodes the body + establishes context", async () => {
+    const golden = loadGolden("plaintext-message");
     const descriptor = makeDescriptor();
     const received = deferred<{ message: unknown; ctx: ConsumeContext }>();
 
     const sub = subscribe({
-      connection,
+      connection: managedConnection,
       descriptor,
       logger: silentLogger(),
       handler: (message, ctx) => {
@@ -201,13 +222,13 @@ describe("@dcsv-io/d2-messaging-rabbitmq consumer — Testcontainer wire-contrac
     await sub.ready;
 
     await publishTo(descriptor.exchange, golden);
-    const { message, ctx } = await withTimeout(received.promise, 15_000);
+    const { message, ctx } = await waitForSettled(received.promise);
 
     // The camelCase .NET body decodes to the expected object.
     expect(message).toEqual(golden.expectedDecoded);
     // The base64url x-d2-context establishes the per-message context.
     expect(ctx.propagated.requestId).toBe(golden.expectedRequestId);
-    expect(ctx.propagated.requestPath).toBe("/v2/keys/rotate");
+    expect(ctx.propagated.requestPath).toBe(golden.expectedRequestPath);
 
     await sub.close();
   });
@@ -217,7 +238,7 @@ describe("@dcsv-io/d2-messaging-rabbitmq consumer — Testcontainer wire-contrac
     const descriptor = makeDescriptor();
 
     const sub = subscribe({
-      connection,
+      connection: managedConnection,
       descriptor,
       logger: silentLogger(),
       handler: () => ok(),
@@ -239,14 +260,14 @@ describe("@dcsv-io/d2-messaging-rabbitmq consumer — Testcontainer wire-contrac
   });
 
   it("dead-letters a handler failure with metadata + carries producer headers forward", async () => {
-    const golden = loadGolden("auth-key-rotated-plaintext");
+    const golden = loadGolden("plaintext-message");
     const descriptor = makeDescriptor();
 
     const sub = subscribe({
-      connection,
+      connection: managedConnection,
       descriptor,
       logger: silentLogger(),
-      handler: () => fail({ errorCode: "KEYCUSTODIAN_SEAL_KEY_UNAVAILABLE" }),
+      handler: () => fail({ errorCode: "DOM_SAMPLE_ORDER_UNAVAILABLE" }),
     });
     await sub.ready;
 
@@ -257,13 +278,13 @@ describe("@dcsv-io/d2-messaging-rabbitmq consumer — Testcontainer wire-contrac
       DlqFailureCauses.HANDLER_RESULT_FAILURE,
     );
     expect(meta[DlqFailureMetadataFields.ERROR_CODE]).toBe(
-      "KEYCUSTODIAN_SEAL_KEY_UNAVAILABLE",
+      "DOM_SAMPLE_ORDER_UNAVAILABLE",
     );
     expect(meta[DlqFailureMetadataFields.TRACE_ID]).toBe(
       golden.producerTraceId,
     );
 
-    // Producer headers ride forward on the DLQ copy.
+    // The DLQ copy keeps the producer headers.
     const dlqHeaders = dlq.headers as Record<string, unknown>;
     expect(headerString(dlqHeaders, AmqpHeaders.TRACEPARENT)).toBe(
       golden.headers[AmqpHeaders.TRACEPARENT],
@@ -276,12 +297,12 @@ describe("@dcsv-io/d2-messaging-rabbitmq consumer — Testcontainer wire-contrac
   });
 
   it("deduplicates a repeated message-id (ack-and-skip, handler invoked once)", async () => {
-    const golden = loadGolden("auth-key-rotated-plaintext");
+    const golden = loadGolden("plaintext-message");
     const descriptor = makeDescriptor({ idempotency: true });
     let calls = 0;
 
     const sub = subscribe({
-      connection,
+      connection: managedConnection,
       descriptor,
       logger: silentLogger(),
       store: new InMemoryMessageIdempotencyStore(),
@@ -294,7 +315,7 @@ describe("@dcsv-io/d2-messaging-rabbitmq consumer — Testcontainer wire-contrac
 
     const id = "dedup-0192f8c1-1111-7000-8000-0000000000cc";
     await publishTo(descriptor.exchange, golden, id);
-    await waitFor(() => calls === 1, 15_000);
+    await waitUntil(() => calls === 1);
     await publishTo(descriptor.exchange, golden, id);
     await delay(1500); // give the duplicate time to be ack-skipped
 
@@ -304,15 +325,15 @@ describe("@dcsv-io/d2-messaging-rabbitmq consumer — Testcontainer wire-contrac
 
   it("splits deliveries across competing consumers (each message processed once)", async () => {
     const descriptor = makeDescriptor();
-    const golden = loadGolden("auth-key-rotated-plaintext");
+    const golden = loadGolden("plaintext-message");
     let total = 0;
 
     const subs: Subscription[] = [];
     for (let i = 0; i < 2; i++) {
       subs.push(
         subscribe({
-          connection,
-          descriptor, // SAME queueName → competing consumers on one queue
+          connection: managedConnection,
+          descriptor, // SAME queueName -> competing consumers on one queue
           logger: silentLogger(),
           handler: () => {
             total += 1;
@@ -327,7 +348,7 @@ describe("@dcsv-io/d2-messaging-rabbitmq consumer — Testcontainer wire-contrac
     for (let i = 0; i < count; i++)
       await publishTo(descriptor.exchange, golden, `${unique("m")}`);
 
-    await waitFor(() => total === count, 20_000);
+    await waitUntil(() => total === count);
     expect(total).toBe(count);
 
     await Promise.all(subs.map((s) => s.close()));
@@ -342,23 +363,6 @@ function headerString(
   if (typeof raw === "string") return raw;
   if (raw instanceof Uint8Array) return Buffer.from(raw).toString("utf8");
   return undefined;
-}
-
-async function waitFor(cond: () => boolean, timeoutMs: number): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  while (!cond()) {
-    if (Date.now() >= deadline) throw new Error("waitFor timed out");
-    await delay(100);
-  }
-}
-
-async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    p,
-    new Promise<T>((_r, reject) =>
-      setTimeout(() => reject(new Error("timeout")), ms),
-    ),
-  ]);
 }
 
 function silentLogger(): ILogger {

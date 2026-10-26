@@ -34,12 +34,12 @@
     {
       "constName": "MESSAGING_OPERATION_TYPE",
       "value": "messaging.operation.type",
-      "doc": "OTel semantic-convention attribute classifying the messaging operation. Closed enum on the OTel side: 'publish' / 'receive' / 'process' / 'settle'. D2 emits 'publish' on publisher spans and 'receive' on consumer spans. NOTE: this is the OTel-canonical attribute name; an earlier version of the consumer code used 'messaging.operation' (no '.type' suffix) which is non-standard — spec-driving structurally fixes that drift. https://opentelemetry.io/docs/specs/semconv/messaging/messaging-spans/#messaging-attributes"
+      "doc": "OTel semantic-convention attribute classifying the messaging operation. Closed enum on the OTel side: 'publish' / 'receive' / 'process' / 'settle'. D2 emits 'publish' on publisher spans and 'receive' on consumer spans. NOTE: this is the OTel-canonical attribute name; 'messaging.operation' (no '.type' suffix) is non-standard. https://opentelemetry.io/docs/specs/semconv/messaging/messaging-spans/#messaging-attributes"
     },
     {
       "constName": "D2_MESSAGE_TYPE",
       "value": "d2.message_type",
-      "doc": "D2-specific attribute carrying the .NET CLR FullName of the published message type. Publisher-side only — keeps the consumer-side message type information in the message-type bound at registration (and visible via descriptor lookup), so the consumer span doesn't need to enumerate it."
+      "doc": "D2-specific attribute carrying the .NET CLR FullName of the published message type. Publisher-side only - keeps the consumer-side message type information in the message-type bound at registration (and visible via descriptor lookup), so the consumer span does not need to enumerate it."
     },
     {
       "constName": "D2_ENCRYPTION_KID",

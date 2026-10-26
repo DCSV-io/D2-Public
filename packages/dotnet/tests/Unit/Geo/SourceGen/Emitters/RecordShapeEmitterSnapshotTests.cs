@@ -18,7 +18,7 @@ using Xunit;
 /// <c>DcsvIo.D2.Geo.SourceGen.Emitters.Default</c>. Each test invokes
 /// the emitter against a small synthetic <see cref="GeoSpecContext"/>
 /// and asserts canonical shape markers in the emitted source string
-/// — single source file per catalog, namespace declaration,
+/// - single source file per catalog, namespace declaration,
 /// public lookup class, dictionary initialization, wire-nav method.
 /// String-equality "key markers present" snapshots are used in place
 /// of a snapshot-engine because the emitted output is large (~600KB
@@ -34,7 +34,7 @@ public sealed class RecordShapeEmitterSnapshotTests
         IsGenerated: true,
         Source: "synthetic-test");
 
-    // §1.2 category: Domain-specific — Country emitter shape.
+    // Category: Domain-specific - Country emitter shape.
     [Fact]
     public void CountryDataEmitter_TwoEntries_EmitsLookupAndAccessor()
     {
@@ -64,7 +64,7 @@ public sealed class RecordShapeEmitterSnapshotTests
         results.Should().BeEmpty();
     }
 
-    // §1.2 category: Domain-specific — Subdivision emitter shape.
+    // Category: Domain-specific - Subdivision emitter shape.
     [Fact]
     public void SubdivisionDataEmitter_OneSubdivision_EmitsLookupAndByCountryIndex()
     {
@@ -82,7 +82,7 @@ public sealed class RecordShapeEmitterSnapshotTests
         combined.Should().Contain("US-CA");
     }
 
-    // §1.2 category: Domain-specific — Currency emitter shape.
+    // Category: Domain-specific - Currency emitter shape.
     [Fact]
     public void CurrencyDataEmitter_OneCurrency_EmitsLookupAndAccessor()
     {
@@ -98,7 +98,7 @@ public sealed class RecordShapeEmitterSnapshotTests
         src.Should().Contain("internal static void WireNav()");
     }
 
-    // §1.2 category: Domain-specific — Language emitter shape.
+    // Category: Domain-specific - Language emitter shape.
     [Fact]
     public void LanguageDataEmitter_OneLanguage_EmitsLookupAndAccessor()
     {
@@ -113,7 +113,7 @@ public sealed class RecordShapeEmitterSnapshotTests
         src.Should().Contain("internal static void WireNav()");
     }
 
-    // §1.2 category: Domain-specific — Locale emitter shape.
+    // Category: Domain-specific - Locale emitter shape.
     [Fact]
     public void LocaleDataEmitter_OneLocale_EmitsLookupAndNestedAccessor()
     {
@@ -130,7 +130,7 @@ public sealed class RecordShapeEmitterSnapshotTests
         combined.Should().Contain("en-US");
     }
 
-    // §1.2 category: Domain-specific — Timezone emitter shape.
+    // Category: Domain-specific - Timezone emitter shape.
     [Fact]
     public void TimezoneDataEmitter_OneZone_EmitsLookupAndAccessor()
     {
@@ -146,7 +146,7 @@ public sealed class RecordShapeEmitterSnapshotTests
         combined.Should().Contain("America/New_York");
     }
 
-    // §1.2 category: Domain-specific — GeopoliticalEntity emitter shape.
+    // Category: Domain-specific - GeopoliticalEntity emitter shape.
     [Fact]
     public void GeopoliticalEntityDataEmitter_OneEntity_EmitsLookupAndMembership()
     {
@@ -165,7 +165,7 @@ public sealed class RecordShapeEmitterSnapshotTests
         src.Should().Contain("internal static void WireNav()");
     }
 
-    // §1.2 category: State-lifecycle — GeoDataInitializer emitter shape.
+    // Category: State-lifecycle - GeoDataInitializer emitter shape.
     [Fact]
     public void GeoDataInitializerEmitter_EmptyContext_EmitsCoordinatorWithGuardFlag()
     {
@@ -199,7 +199,7 @@ public sealed class RecordShapeEmitterSnapshotTests
     [Fact]
     public void GeoDataInitializerEmitter_IdenticalInputs_ProduceIdenticalSource()
     {
-        // Determinism — re-runs with the same input produce the same output
+        // Determinism - re-runs with the same input produce the same output
         // so the incremental-generator cache stays warm.
         var spec = BuildContext();
 
@@ -222,7 +222,7 @@ public sealed class RecordShapeEmitterSnapshotTests
     }
 
     // ----------------------------------------------------------------------
-    // Synthetic-spec builders — minimal shapes that exercise the emitter
+    // Synthetic-spec builders - minimal shapes that exercise the emitter
     // path end-to-end without requiring the real ~250-country catalog.
     // ----------------------------------------------------------------------
 

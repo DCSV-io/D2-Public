@@ -13,19 +13,18 @@ using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 /// <summary>
-/// Pins the DI lifetimes that the messaging stack publishes — operators
-/// rely on these to know whether a service can be resolved from the root
-/// provider, whether scope is required, whether per-call cleanup matters.
+/// Pins the DI lifetimes that the messaging stack registers. A lifetime decides
+/// whether a service can be resolved from the root provider, whether a scope is
+/// required, and whether per-call cleanup matters.
 /// </summary>
 public sealed class MessagingServiceLifetimeTests
 {
     [Fact]
     public void IMessageBus_RegisteredAsSingleton()
     {
-        // IMessageBus must be Singleton so background hosted services can
-        // publish without creating their own scope; the bus internally
-        // builds a transient scope per PublishAsync to resolve scoped
-        // dependencies (keyed crypto, IRequestContext).
+        // IMessageBus is a Singleton, so it resolves from the root provider
+        // without a scope. The bus builds a transient scope per PublishAsync
+        // to resolve scoped dependencies (keyed crypto, IRequestContext).
         var services = new ServiceCollection();
         services.AddD2MessagingRabbitMq(
             configureConnection: o => o.ConnectionUri = "amqp://localhost");

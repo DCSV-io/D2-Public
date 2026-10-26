@@ -8,6 +8,7 @@ namespace DcsvIo.D2.Tests.Unit.Telemetry;
 
 using AwesomeAssertions;
 using DcsvIo.D2.Telemetry;
+using DcsvIo.D2.Telemetry.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,9 +19,10 @@ using Xunit;
 
 /// <summary>
 /// OTel SDK builds singleton <c>MeterProvider</c> / <c>TracerProvider</c>
-/// per process, and the OTEL_SDK_DISABLED env var influences what
-/// AddD2Telemetry registers — pin into a dedicated collection that
-/// serializes against integration tests touching the same surface.
+/// per process, so these cases run in a dedicated collection that serializes
+/// against integration tests touching the same surface. The OTEL_SDK_DISABLED
+/// gate that decides what AddD2Telemetry registers is pinned per test rather
+/// than read from the process environment.
 /// </summary>
 [Collection("LogLoggerStaticState")]
 public sealed class TelemetryServiceCollectionExtensionsTests
@@ -357,7 +359,7 @@ public sealed class TelemetryServiceCollectionExtensionsTests
                 var t = opts.GetType();
                 var prop = t.GetProperty(
                     nameof(D2TelemetryOptions.AdditionalActivitySources))!;
-                prop.SetValue(opts, new[] { "DcsvIo.D2.Private.Edge", "  " });
+                prop.SetValue(opts, new[] { "Example.Orders", "  " });
             });
 
             var act = () =>
@@ -382,10 +384,8 @@ public sealed class TelemetryServiceCollectionExtensionsTests
             services.AddD2Telemetry(cfg, opts => opts.ServiceName = "x");
             services.PostConfigure<D2TelemetryOptions>(opts =>
             {
-                var t = opts.GetType();
-                var prop = t.GetProperty(
-                    nameof(D2TelemetryOptions.AdditionalMeters))!;
-                prop.SetValue(opts, new[] { "DcsvIo.D2.Private.Edge", string.Empty });
+                opts.AdditionalMeters.Add("Example.Orders");
+                opts.AdditionalMeters.Add(string.Empty);
             });
 
             var act = () =>
@@ -423,6 +423,70 @@ public sealed class TelemetryServiceCollectionExtensionsTests
         });
     }
 
+    // On Linux and macOS, Uri.TryCreate reads a rooted path such as
+    // "/v1/traces" as the absolute URI file:///v1/traces; on Windows it does
+    // not parse as absolute. The file: and ftp: rows parse as absolute on every OS.
+    [Theory]
+    [InlineData("traces", "/v1/traces")]
+    [InlineData("traces", "file:///v1/traces")]
+    [InlineData("traces", "ftp://otlp.example.com/v1/traces")]
+    [InlineData("metrics", "/v1/metrics")]
+    [InlineData("metrics", "file:///v1/metrics")]
+    [InlineData("logs", "/v1/logs")]
+    [InlineData("logs", "file:///v1/logs")]
+    public void AddD2Telemetry_OtlpEndpointThatIsNotAnHttpUrl_ValidationFails(
+        string signal,
+        string endpoint)
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IHostEnvironment>(new TestHostEnvironment());
+        IConfiguration cfg = new ConfigurationBuilder().Build();
+
+        WithCleanEnv(() =>
+        {
+            services.AddD2Telemetry(cfg, opts =>
+            {
+                opts.ServiceName = "x";
+                SetOtlpEndpoint(opts, signal, endpoint);
+            });
+
+            var act = () =>
+            {
+                using var sp = services.BuildServiceProvider();
+                return sp.GetRequiredService<IOptions<D2TelemetryOptions>>().Value;
+            };
+
+            act.Should().Throw<OptionsValidationException>()
+                .WithMessage($"*{OtlpEndpointPropertyName(signal)}*");
+        });
+    }
+
+    [Theory]
+    [InlineData("traces")]
+    [InlineData("metrics")]
+    [InlineData("logs")]
+    public void AddD2Telemetry_OtlpEndpointThatIsAnHttpUrl_PassesValidation(string signal)
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IHostEnvironment>(new TestHostEnvironment());
+        IConfiguration cfg = new ConfigurationBuilder().Build();
+        var endpoint = $"http://localhost:4318/v1/{signal}";
+
+        WithCleanEnv(() =>
+        {
+            services.AddD2Telemetry(cfg, opts =>
+            {
+                opts.ServiceName = "x";
+                SetOtlpEndpoint(opts, signal, endpoint);
+            });
+            using var sp = services.BuildServiceProvider();
+
+            var opts = sp.GetRequiredService<IOptions<D2TelemetryOptions>>().Value;
+
+            ReadOtlpEndpoint(opts, signal).Should().Be(endpoint);
+        });
+    }
+
     [Fact]
     public void AddD2Telemetry_OtelSdkDisabled_ShortCircuits_NoProviders()
     {
@@ -430,7 +494,7 @@ public sealed class TelemetryServiceCollectionExtensionsTests
         services.AddSingleton<IHostEnvironment>(new TestHostEnvironment());
         IConfiguration cfg = new ConfigurationBuilder().Build();
 
-        WithEnvVar(D2TelemetryConstants.OTEL_SDK_DISABLED_ENV_VAR, "true", () =>
+        WithGateValue("true", () =>
         {
             services.AddD2Telemetry(cfg);
             using var sp = services.BuildServiceProvider();
@@ -447,7 +511,7 @@ public sealed class TelemetryServiceCollectionExtensionsTests
         var services = new ServiceCollection();
         IConfiguration cfg = new ConfigurationBuilder().Build();
 
-        WithEnvVar(D2TelemetryConstants.OTEL_SDK_DISABLED_ENV_VAR, "true", () =>
+        WithGateValue("true", () =>
         {
             var ret = services.AddD2Telemetry(cfg);
 
@@ -497,21 +561,52 @@ public sealed class TelemetryServiceCollectionExtensionsTests
         });
     }
 
-    private static void WithCleanEnv(Action body) =>
-        WithEnvVar(D2TelemetryConstants.OTEL_SDK_DISABLED_ENV_VAR, null, body);
+    private static void WithCleanEnv(Action body) => WithGateValue(null, body);
 
-    private static void WithEnvVar(string name, string? value, Action body)
+    private static void SetOtlpEndpoint(D2TelemetryOptions opts, string signal, string endpoint)
     {
-        var prior = Environment.GetEnvironmentVariable(name);
-        try
+        switch (signal)
         {
-            Environment.SetEnvironmentVariable(name, value);
-            body();
+            case "traces":
+                opts.OtlpTracesEndpoint = endpoint;
+                break;
+            case "metrics":
+                opts.OtlpMetricsEndpoint = endpoint;
+                break;
+            case "logs":
+                opts.OtlpLogsEndpoint = endpoint;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(signal), signal, null);
         }
-        finally
-        {
-            Environment.SetEnvironmentVariable(name, prior);
-        }
+    }
+
+    private static string? ReadOtlpEndpoint(D2TelemetryOptions opts, string signal) => signal switch
+    {
+        "traces" => opts.OtlpTracesEndpoint,
+        "metrics" => opts.OtlpMetricsEndpoint,
+        "logs" => opts.OtlpLogsEndpoint,
+        _ => throw new ArgumentOutOfRangeException(nameof(signal), signal, null),
+    };
+
+    private static string OtlpEndpointPropertyName(string signal) => signal switch
+    {
+        "traces" => nameof(D2TelemetryOptions.OtlpTracesEndpoint),
+        "metrics" => nameof(D2TelemetryOptions.OtlpMetricsEndpoint),
+        "logs" => nameof(D2TelemetryOptions.OtlpLogsEndpoint),
+        _ => throw new ArgumentOutOfRangeException(nameof(signal), signal, null),
+    };
+
+    /// <summary>
+    /// Runs <paramref name="body"/> with the <c>OTEL_SDK_DISABLED</c> gate
+    /// reading <paramref name="raw"/> for this test's flow only, so the test
+    /// neither reads nor writes the process environment.
+    /// </summary>
+    private static void WithGateValue(string? raw, Action body)
+    {
+        using var pin = OtelSdkDisabledGate.Pin(raw);
+
+        body();
     }
 
     /// <summary>

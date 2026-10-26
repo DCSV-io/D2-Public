@@ -11,8 +11,8 @@ namespace DcsvIo.D2.Geo.Abstractions;
 /// entity (country, subdivision, currency, language, locale, timezone, or
 /// geopolitical entity). Applies uniformly across every entity, so it lives
 /// in this hand-written abstractions slice rather than being emitted per
-/// entity by the source generator. Carried on each record as an optional
-/// <c>Deprecation?</c> field — <c>null</c> means the entity is currently
+/// entity by the source generator. Each record holds it in an optional
+/// <c>Deprecation?</c> field - <c>null</c> means the entity is currently
 /// active.
 /// </summary>
 /// <remarks>
@@ -21,12 +21,12 @@ namespace DcsvIo.D2.Geo.Abstractions;
 /// like <c>YU</c> (Yugoslavia) or <c>SU</c> (Soviet Union) live forever in
 /// historical records and MUST remain resolvable for hash citations and
 /// audit replay. The lookup APIs therefore include deprecated entries by
-/// default; UI / selector code that wants to filter them out opts in
-/// explicitly via the <c>activeOnly: true</c> overload.
+/// default, and no lookup overload filters them out; a record whose
+/// <c>Deprecation</c> is <c>null</c> is active.
 /// </para>
 /// <para>
-/// <see cref="SupersededBy"/> is plural to cover splits — when one entity
-/// deprecates into multiple successors (e.g. <c>YU</c> → <c>RS, ME, HR, SI,
+/// <see cref="SupersededBy"/> is plural to cover splits - when one entity
+/// deprecates into multiple successors (e.g. <c>YU</c> -> <c>RS, ME, HR, SI,
 /// MK, BA, XK</c>). <see cref="SuccessorNote"/> is free-form prose for
 /// nuance the structured field can't capture (e.g. "successor list is
 /// approximate; political recognition of XK is partial").
@@ -45,7 +45,7 @@ public sealed record DeprecationInfo
     /// <summary>
     /// Gets a short human-readable explanation of why the entity was
     /// deprecated. Examples: "country dissolved", "currency replaced by
-    /// EUR", "tzdb rule consolidation". Not a translation key — this is
+    /// EUR", "tzdb rule consolidation". Not a translation key - this is
     /// reference-data metadata, not user-facing copy.
     /// </summary>
     public required string Reason { get; init; }
@@ -54,7 +54,7 @@ public sealed record DeprecationInfo
     /// Gets the canonical codes of the successor entities, or <c>null</c>
     /// when no successor is recorded. Plural to cover splits (one entity
     /// deprecating into several). The list is in the spec's natural order
-    /// — callers MUST NOT assume it is sorted alphabetically or by any
+    /// - callers MUST NOT assume it is sorted alphabetically or by any
     /// other criterion.
     /// </summary>
     public IReadOnlyList<string>? SupersededBy { get; init; }

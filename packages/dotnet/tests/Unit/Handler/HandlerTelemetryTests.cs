@@ -6,11 +6,13 @@
 
 namespace DcsvIo.D2.Tests.Unit.Handler;
 
+using System.Collections.Generic;
+using System.Diagnostics.Metrics;
 using AwesomeAssertions;
 using DcsvIo.D2.Handler;
 using Xunit;
 
-// Same serialization as BaseHandlerTests — both subscribe to the static
+// Same serialization as BaseHandlerTests - both subscribe to the static
 // HandlerTelemetry telemetry surfaces.
 [Collection("HandlerTelemetrySerial")]
 public sealed class HandlerTelemetryTests
@@ -34,9 +36,9 @@ public sealed class HandlerTelemetryTests
     }
 
     // ----------------------------------------------------------------------
-    // Instrument identity — name + unit + description. These ARE the public
-    // contract — dashboards / alerts key on these strings. A single typo is
-    // a silent prod incident; document each in a dedicated test.
+    // Instrument identity: name, unit and description. These strings are the
+    // public contract, because dashboards and alerts key on them, and a typo
+    // in one is a silent production incident. Each instrument has its own test.
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -75,8 +77,9 @@ public sealed class HandlerTelemetryTests
     }
 
     // ----------------------------------------------------------------------
-    // Listener wiring — verify each instrument is observable from the
-    // standard System.Diagnostics primitives, not just from our own code.
+    // Listener wiring: the activity source, the SR_Invoked counter and the
+    // SR_Duration histogram are observable through the standard
+    // System.Diagnostics listeners and not only through this library's own code.
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -84,7 +87,7 @@ public sealed class HandlerTelemetryTests
     {
         using var collector = new TestActivityCollector();
 
-        // ReSharper disable once ExplicitCallerInfoArgument — explicit name is the test contract
+        // ReSharper disable once ExplicitCallerInfoArgument - explicit name is the test contract
         using (var activity = HandlerTelemetry.SR_ActivitySource.StartActivity("TestActivity"))
         {
             activity.Should().NotBeNull();
@@ -92,6 +95,27 @@ public sealed class HandlerTelemetryTests
 
         collector.Activities.Should().NotBeEmpty();
         collector.Last!.OperationName.Should().Be("TestActivity");
+    }
+
+    [Fact]
+    public void ActivityListener_ActivitiesStoppedOnParallelThreads_CapturesEveryOne()
+    {
+        // ActivityStopped runs on whichever thread stopped the activity, so the
+        // collector's own store has to tolerate concurrent writers. A List loses
+        // entries or throws from inside the callback.
+        const int activity_count = 64;
+        const string operation_name = "ParallelTestActivity";
+        using var collector = new TestActivityCollector();
+
+        Parallel.For(0, activity_count, _ =>
+        {
+            // ReSharper disable once ExplicitCallerInfoArgument -- the name is the test contract
+            using var activity = HandlerTelemetry.SR_ActivitySource.StartActivity(operation_name);
+            activity.Should().NotBeNull();
+        });
+
+        collector.Activities.Count(a => a.OperationName == operation_name)
+            .Should().Be(activity_count);
     }
 
     [Fact]
@@ -115,20 +139,55 @@ public sealed class HandlerTelemetryTests
     }
 
     [Fact]
-    public void Instruments_AreSingletons_NotPerCallInstances()
+    public void TagKeyConstants_CarryTheEmittedKeyStrings()
     {
-        // Adversarial: per OTel guidance every static field MUST be a single
-        // instance reused for the lifetime of the process — re-creating
-        // counters at runtime breaks any subscribed MeterListener. Verify
-        // identity (not just equality) of each instrument.
-        var a = HandlerTelemetry.SR_Invoked;
-        var b = HandlerTelemetry.SR_Invoked;
+        // Dashboards and log queries key on these strings, and each is written
+        // at a span-tag site and again at a log-scope site in BaseHandler.
+        HandlerTelemetry.Tags.HANDLER_NAME.Should().Be("d2.handler.name");
+        HandlerTelemetry.Tags.TRACE_ID.Should().Be("d2.trace_id");
+        HandlerTelemetry.Tags.USER_ID.Should().Be("d2.user_id");
+        HandlerTelemetry.Tags.ORG_ID.Should().Be("d2.org_id");
+        HandlerTelemetry.Tags.ORG_TYPE.Should().Be("d2.org_type");
+        HandlerTelemetry.Tags.ORG_ROLE.Should().Be("d2.org_role");
+        HandlerTelemetry.Tags.IMPERSONATING.Should().Be("d2.impersonating");
+        HandlerTelemetry.Tags.IMPERSONATION_KIND.Should().Be("d2.impersonation_kind");
+        HandlerTelemetry.Tags.IMPERSONATOR_ID.Should().Be("d2.impersonator_id");
+        HandlerTelemetry.Tags.IMPERSONATOR_ORG_ID.Should().Be("d2.impersonator_org_id");
+        HandlerTelemetry.Tags.IMPERSONATOR_ORG_TYPE.Should().Be("d2.impersonator_org_type");
+        HandlerTelemetry.Tags.IMPERSONATOR_ORG_ROLE.Should().Be("d2.impersonator_org_role");
+    }
 
-        a.Should().BeSameAs(b);
-        HandlerTelemetry.SR_Succeeded.Should().BeSameAs(HandlerTelemetry.SR_Succeeded);
-        HandlerTelemetry.SR_Failed.Should().BeSameAs(HandlerTelemetry.SR_Failed);
-        HandlerTelemetry.SR_Duration.Should().BeSameAs(HandlerTelemetry.SR_Duration);
-        HandlerTelemetry.SR_ActivitySource.Should().BeSameAs(HandlerTelemetry.SR_ActivitySource);
-        HandlerTelemetry.SR_Meter.Should().BeSameAs(HandlerTelemetry.SR_Meter);
+    [Fact]
+    public void Meter_PublishesTheInstrumentFieldInstances()
+    {
+        // A MeterListener sees the instruments the handler meter created. Each one
+        // with a field's name must be the very instance that field holds, because
+        // an instrument created again at run time would not be the one a listener
+        // subscribed to. The meter is public, so the test counts no other
+        // instrument on it.
+        Instrument[] fields =
+        [
+            HandlerTelemetry.SR_Invoked,
+            HandlerTelemetry.SR_Succeeded,
+            HandlerTelemetry.SR_Failed,
+            HandlerTelemetry.SR_Duration,
+        ];
+
+        var published = new List<Instrument>();
+        using var listener = new MeterListener();
+        listener.InstrumentPublished = (instrument, _) =>
+        {
+            if (ReferenceEquals(instrument.Meter, HandlerTelemetry.SR_Meter))
+                published.Add(instrument);
+        };
+
+        listener.Start();
+
+        foreach (var field in fields)
+        {
+            published.Where(i => string.Equals(i.Name, field.Name, StringComparison.Ordinal))
+                .Should().ContainSingle()
+                .Which.Should().BeSameAs(field);
+        }
     }
 }

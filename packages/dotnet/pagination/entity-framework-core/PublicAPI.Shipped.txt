@@ -1,0 +1,93 @@
+#nullable enable
+DcsvIo.D2.Pagination.EntityFrameworkCore.IListPageDescriptor<TRow>
+DcsvIo.D2.Pagination.EntityFrameworkCore.IListPageDescriptor<TRow>.AllowedSortFields.get -> DcsvIo.D2.Pagination.SortFieldAllowSet!
+DcsvIo.D2.Pagination.EntityFrameworkCore.IListPageDescriptor<TRow>.Policy.get -> DcsvIo.D2.Pagination.ListPagingPolicy!
+DcsvIo.D2.Pagination.EntityFrameworkCore.IListPageDescriptor<TRow>.SortCatalog.get -> DcsvIo.D2.Pagination.EntityFrameworkCore.SortCatalog<TRow>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.ISearchDialect<TRow>
+DcsvIo.D2.Pagination.EntityFrameworkCore.ISearchDialect<TRow>.Filter(System.Linq.Expressions.Expression<System.Func<TRow, string!>!>! blob, DcsvIo.D2.Pagination.SearchQuery! query) -> System.Linq.Expressions.Expression<System.Func<TRow, bool>!>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.ISearchDialect<TRow>.Score(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>!>! rankFields, DcsvIo.D2.Pagination.SearchQuery! query) -> System.Linq.Expressions.Expression<System.Func<TRow, double>!>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.ISearchableListPageDescriptor<TRow>
+DcsvIo.D2.Pagination.EntityFrameworkCore.ISearchableListPageDescriptor<TRow>.SearchCatalog.get -> DcsvIo.D2.Pagination.EntityFrameworkCore.SearchCatalog<TRow>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.ISearchableListPageDescriptor<TRow>.SearchIndex.get -> DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor!
+DcsvIo.D2.Pagination.EntityFrameworkCore.ISearchableListPageDescriptor<TRow>.SearchPolicy.get -> DcsvIo.D2.Pagination.SearchPolicy!
+DcsvIo.D2.Pagination.EntityFrameworkCore.ListPageEf
+DcsvIo.D2.Pagination.EntityFrameworkCore.ListPageEf.extension<TRow>(System.Collections.Generic.IReadOnlyList<System.Linq.IQueryable<TRow>!>!)
+DcsvIo.D2.Pagination.EntityFrameworkCore.ListPageEf.extension<TRow>(System.Collections.Generic.IReadOnlyList<System.Linq.IQueryable<TRow>!>!).ToListPageOverArmsAsync(DcsvIo.D2.Pagination.PageRequest! request, DcsvIo.D2.Pagination.ListPagingPolicy! policy, DcsvIo.D2.Pagination.EntityFrameworkCore.SortCatalog<TRow>! catalog, DcsvIo.D2.Pagination.SortFieldAllowSet! allowedSortFields, DcsvIo.D2.Pagination.IKeysetCursorCodec? codec = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result<DcsvIo.D2.Pagination.PageResult<TRow>?>!>
+DcsvIo.D2.Pagination.EntityFrameworkCore.ListPageEf.extension<TRow>(System.Linq.IQueryable<TRow>!)
+DcsvIo.D2.Pagination.EntityFrameworkCore.ListPageEf.extension<TRow>(System.Linq.IQueryable<TRow>!).ToListPageAsync(DcsvIo.D2.Pagination.PageRequest! request, DcsvIo.D2.Pagination.ListPagingPolicy! policy, DcsvIo.D2.Pagination.EntityFrameworkCore.SortCatalog<TRow>! catalog, DcsvIo.D2.Pagination.SortFieldAllowSet! allowedSortFields, DcsvIo.D2.Pagination.IKeysetCursorCodec? codec = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result<DcsvIo.D2.Pagination.PageResult<TRow>?>!>
+DcsvIo.D2.Pagination.EntityFrameworkCore.Scored<TRow>
+DcsvIo.D2.Pagination.EntityFrameworkCore.Scored<TRow>.Row.get -> TRow
+DcsvIo.D2.Pagination.EntityFrameworkCore.Scored<TRow>.Row.set -> void
+DcsvIo.D2.Pagination.EntityFrameworkCore.Scored<TRow>.Score.get -> double
+DcsvIo.D2.Pagination.EntityFrameworkCore.Scored<TRow>.Score.set -> void
+DcsvIo.D2.Pagination.EntityFrameworkCore.Scored<TRow>.Scored() -> void
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchCatalog<TRow>
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchCatalog<TRow>.Blob.get -> System.Linq.Expressions.Expression<System.Func<TRow, string!>!>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchCatalog<TRow>.BuildRelevanceEntry() -> DcsvIo.D2.Pagination.EntityFrameworkCore.SortFieldEntry<DcsvIo.D2.Pagination.EntityFrameworkCore.Scored<TRow>!>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchCatalog<TRow>.Project(DcsvIo.D2.Pagination.EntityFrameworkCore.ISearchDialect<TRow>! dialect, DcsvIo.D2.Pagination.SearchQuery! query) -> System.Linq.Expressions.Expression<System.Func<TRow, DcsvIo.D2.Pagination.EntityFrameworkCore.Scored<TRow>!>!>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchCatalog<TRow>.RankFields.get -> System.Collections.Generic.IReadOnlyList<DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>!>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchCatalog<TRow>.TieBreak.get -> System.Linq.Expressions.Expression<System.Func<TRow, System.Guid>!>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchCatalogBuilder<TRow>
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchCatalogBuilder<TRow>.Blob(System.Linq.Expressions.Expression<System.Func<TRow, string!>!>! blob) -> DcsvIo.D2.Pagination.EntityFrameworkCore.SearchCatalogBuilder<TRow>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchCatalogBuilder<TRow>.Build() -> DcsvIo.D2.Pagination.EntityFrameworkCore.SearchCatalog<TRow>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchCatalogBuilder<TRow>.RankField(System.Linq.Expressions.Expression<System.Func<TRow, string!>!>! field, double weight) -> DcsvIo.D2.Pagination.EntityFrameworkCore.SearchCatalogBuilder<TRow>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchCatalogBuilder<TRow>.SearchCatalogBuilder() -> void
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchCatalogBuilder<TRow>.TieBreak(System.Linq.Expressions.Expression<System.Func<TRow, System.Guid>!>! tieBreak) -> DcsvIo.D2.Pagination.EntityFrameworkCore.SearchCatalogBuilder<TRow>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor.<Clone>$() -> DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor.BlobProperty.get -> string!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor.BlobProperty.init -> void
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor.Deconstruct(out string! BlobProperty, out System.Collections.Generic.IReadOnlyList<string!>! SourceProperties, out System.Collections.Generic.IReadOnlyList<double>! Weights) -> void
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor.Equals(DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor? other) -> bool
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor.SearchIndexDescriptor(string! BlobProperty, System.Collections.Generic.IReadOnlyList<string!>! SourceProperties, System.Collections.Generic.IReadOnlyList<double>! Weights) -> void
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor.SourceProperties.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor.SourceProperties.init -> void
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor.Weights.get -> System.Collections.Generic.IReadOnlyList<double>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor.Weights.init -> void
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchPageEf
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchPageEf.extension<TRow>(System.Linq.IQueryable<TRow>!)
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchPageEf.extension<TRow>(System.Linq.IQueryable<TRow>!).ToSearchPageAsync(DcsvIo.D2.Pagination.PageRequest! request, DcsvIo.D2.Pagination.EntityFrameworkCore.ISearchableListPageDescriptor<TRow>! descriptor, DcsvIo.D2.Pagination.EntityFrameworkCore.SearchReach<TRow>! reach, DcsvIo.D2.Pagination.EntityFrameworkCore.ISearchDialect<TRow>! dialect, DcsvIo.D2.Pagination.IKeysetCursorCodec? codec = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result<DcsvIo.D2.Pagination.PageResult<TRow>?>!>
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>.<Clone>$() -> DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>.Deconstruct(out System.Linq.Expressions.Expression<System.Func<TRow, string!>!>! Field, out double Weight) -> void
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>.Equals(DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>? other) -> bool
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>.Field.get -> System.Linq.Expressions.Expression<System.Func<TRow, string!>!>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>.Field.init -> void
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>.SearchRankField(System.Linq.Expressions.Expression<System.Func<TRow, string!>!>! Field, double Weight) -> void
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>.Weight.get -> double
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>.Weight.init -> void
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchReach<TRow>
+DcsvIo.D2.Pagination.EntityFrameworkCore.SearchReach<TRow>.Apply(System.Linq.IQueryable<TRow>! query) -> System.Linq.IQueryable<TRow>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SortCatalog<TRow>
+DcsvIo.D2.Pagination.EntityFrameworkCore.SortCatalog<TRow>.Contains(string! fieldWire) -> bool
+DcsvIo.D2.Pagination.EntityFrameworkCore.SortCatalog<TRow>.RegisterComparable<TPrimary>(string! fieldWire, System.Linq.Expressions.Expression<System.Func<TRow, TPrimary>!>! primary, System.Linq.Expressions.Expression<System.Func<TRow, System.Guid>!>! tieBreak, System.Func<TPrimary, string!>! encodePrimary, System.Func<string!, DcsvIo.D2.Result.D2Result<TPrimary>!>! decodePrimary) -> DcsvIo.D2.Pagination.EntityFrameworkCore.SortCatalog<TRow>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SortCatalog<TRow>.SortCatalog() -> void
+DcsvIo.D2.Pagination.EntityFrameworkCore.SortCatalog<TRow>.Text(System.Linq.Expressions.Expression<System.Func<TRow, string!>!>! primary, System.Linq.Expressions.Expression<System.Func<TRow, System.Guid>!>! tieBreak) -> DcsvIo.D2.Pagination.EntityFrameworkCore.SortCatalog<TRow>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SortCatalog<TRow>.Text(string! fieldWireConst, System.Linq.Expressions.Expression<System.Func<TRow, string!>!>! primary, System.Linq.Expressions.Expression<System.Func<TRow, System.Guid>!>! tieBreak) -> DcsvIo.D2.Pagination.EntityFrameworkCore.SortCatalog<TRow>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SortCatalog<TRow>.TryGet(string! fieldWire, out DcsvIo.D2.Pagination.EntityFrameworkCore.SortFieldEntry<TRow>! entry) -> bool
+DcsvIo.D2.Pagination.EntityFrameworkCore.SortCatalog<TRow>.WireFields.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SortFieldEntry<TRow>
+DcsvIo.D2.Pagination.EntityFrameworkCore.SortFieldEntry<TRow>.ApplyCursor(System.Linq.IQueryable<TRow>! query, string! primaryKeyWire, System.Guid tieBreakId, DcsvIo.D2.Pagination.SortDirection direction) -> DcsvIo.D2.Result.D2Result<System.Linq.IQueryable<TRow>?>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SortFieldEntry<TRow>.ApplyOrder(System.Linq.IQueryable<TRow>! query, DcsvIo.D2.Pagination.SortDirection direction) -> System.Linq.IQueryable<TRow>!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SortFieldEntry<TRow>.EncodePrimary(TRow row) -> string!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SortFieldEntry<TRow>.FieldWire.get -> string!
+DcsvIo.D2.Pagination.EntityFrameworkCore.SortFieldEntry<TRow>.TieBreakOf(TRow row) -> System.Guid
+override DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor.Equals(object? obj) -> bool
+override DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor.GetHashCode() -> int
+override DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor.ToString() -> string!
+override DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>.Equals(object? obj) -> bool
+override DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>.GetHashCode() -> int
+override DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>.ToString() -> string!
+static DcsvIo.D2.Pagination.EntityFrameworkCore.ListPageEf.DefaultCodec.get -> DcsvIo.D2.Pagination.IKeysetCursorCodec!
+static DcsvIo.D2.Pagination.EntityFrameworkCore.ListPageEf.ToListPageAsync<TRow>(this System.Linq.IQueryable<TRow>! query, DcsvIo.D2.Pagination.PageRequest! request, DcsvIo.D2.Pagination.ListPagingPolicy! policy, DcsvIo.D2.Pagination.EntityFrameworkCore.SortCatalog<TRow>! catalog, DcsvIo.D2.Pagination.SortFieldAllowSet! allowedSortFields, DcsvIo.D2.Pagination.IKeysetCursorCodec? codec = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result<DcsvIo.D2.Pagination.PageResult<TRow>?>!>
+static DcsvIo.D2.Pagination.EntityFrameworkCore.ListPageEf.ToListPageOverArmsAsync<TRow>(this System.Collections.Generic.IReadOnlyList<System.Linq.IQueryable<TRow>!>! arms, DcsvIo.D2.Pagination.PageRequest! request, DcsvIo.D2.Pagination.ListPagingPolicy! policy, DcsvIo.D2.Pagination.EntityFrameworkCore.SortCatalog<TRow>! catalog, DcsvIo.D2.Pagination.SortFieldAllowSet! allowedSortFields, DcsvIo.D2.Pagination.IKeysetCursorCodec? codec = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result<DcsvIo.D2.Pagination.PageResult<TRow>?>!>
+static DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor.operator !=(DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor? left, DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor? right) -> bool
+static DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor.operator ==(DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor? left, DcsvIo.D2.Pagination.EntityFrameworkCore.SearchIndexDescriptor? right) -> bool
+static DcsvIo.D2.Pagination.EntityFrameworkCore.SearchPageEf.ToSearchPageAsync<TRow>(this System.Linq.IQueryable<TRow>! query, DcsvIo.D2.Pagination.PageRequest! request, DcsvIo.D2.Pagination.EntityFrameworkCore.ISearchableListPageDescriptor<TRow>! descriptor, DcsvIo.D2.Pagination.EntityFrameworkCore.SearchReach<TRow>! reach, DcsvIo.D2.Pagination.EntityFrameworkCore.ISearchDialect<TRow>! dialect, DcsvIo.D2.Pagination.IKeysetCursorCodec? codec = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result<DcsvIo.D2.Pagination.PageResult<TRow>?>!>
+static DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>.operator !=(DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>? left, DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>? right) -> bool
+static DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>.operator ==(DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>? left, DcsvIo.D2.Pagination.EntityFrameworkCore.SearchRankField<TRow>? right) -> bool
+static DcsvIo.D2.Pagination.EntityFrameworkCore.SearchReach<TRow>.Restrict(System.Linq.Expressions.Expression<System.Func<TRow, bool>!>! predicate) -> DcsvIo.D2.Pagination.EntityFrameworkCore.SearchReach<TRow>!
+static DcsvIo.D2.Pagination.EntityFrameworkCore.SearchReach<TRow>.Unrestricted() -> DcsvIo.D2.Pagination.EntityFrameworkCore.SearchReach<TRow>!
+static DcsvIo.D2.Pagination.EntityFrameworkCore.SortCatalog<TRow>.DeriveCamelCase<TProp>(System.Linq.Expressions.Expression<System.Func<TRow, TProp>!>! expression) -> string!
+static DcsvIo.D2.Pagination.EntityFrameworkCore.SortFieldEntry<TRow>.CreateComparable<TPrimary>(string! fieldWire, System.Linq.Expressions.Expression<System.Func<TRow, TPrimary>!>! primary, System.Linq.Expressions.Expression<System.Func<TRow, System.Guid>!>! tieBreak, System.Func<TPrimary, string!>! encodePrimary, System.Func<string!, DcsvIo.D2.Result.D2Result<TPrimary>!>! decodePrimary) -> DcsvIo.D2.Pagination.EntityFrameworkCore.SortFieldEntry<TRow>!
+static DcsvIo.D2.Pagination.EntityFrameworkCore.SortFieldEntry<TRow>.CreateOrderedPrimary<TPrimary>(string! fieldWire, System.Linq.Expressions.Expression<System.Func<TRow, TPrimary>!>! primary, System.Linq.Expressions.Expression<System.Func<TRow, System.Guid>!>! tieBreak, System.Func<TPrimary, string!>! encodePrimary, System.Func<string!, DcsvIo.D2.Result.D2Result<TPrimary>!>! decodePrimary) -> DcsvIo.D2.Pagination.EntityFrameworkCore.SortFieldEntry<TRow>!

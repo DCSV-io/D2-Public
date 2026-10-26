@@ -16,7 +16,7 @@ using Serilog.AspNetCore;
 using Serilog.Events;
 
 /// <summary>
-/// ASP.NET Core middleware extensions for <see cref="DcsvIo.D2.Logging"/> —
+/// ASP.NET Core middleware extensions for <see cref="DcsvIo.D2.Logging"/> -
 /// installs the Serilog request-completion log middleware with infrastructure
 /// path suppression, conservative diagnostic-context enrichment, and
 /// <see cref="Microsoft.AspNetCore.Http.HttpContext"/>-derived
@@ -30,7 +30,7 @@ public static class WebApplicationLoggingExtensions
     {
         /// <summary>
         /// Installs the Serilog request-completion log middleware. Each
-        /// request emits one structured log event at request end carrying
+        /// request emits one structured log event at request end with
         /// status code, elapsed milliseconds, request path, request method,
         /// and a curated set of <see cref="HttpRequest"/>-derived properties
         /// (<c>RequestScheme</c>, <c>UserAgent</c>, <c>TraceId</c>,
@@ -44,37 +44,37 @@ public static class WebApplicationLoggingExtensions
         /// <see cref="D2LoggingOptions.InfrastructurePaths"/> are emitted at
         /// <see cref="LogEventLevel.Verbose"/> instead of
         /// <see cref="LogEventLevel.Information"/>, so the default
-        /// minimum-level gate filters them out — keeps health probes,
-        /// liveness probes, and metrics scrapes from drowning operators in
-        /// log noise.
+        /// minimum-level gate filters them out, so health probes,
+        /// liveness probes, and metrics scrapes do not fill the logs with
+        /// noise.
         /// </para>
         /// <para>
-        /// Network/IP enrichment is deliberately conservative — the middleware
-        /// does NOT log the request's connection-remote IP address (at internal
-        /// services it's the upstream Edge IP, not the user's; at Edge it's
-        /// PII). Geo / network-privacy / ASN fields are sourced from the
-        /// spec-driven
+        /// Network/IP enrichment is deliberately conservative - the middleware
+        /// does NOT log the request's connection-remote IP address (at a
+        /// service behind a gateway it is the gateway's IP, not the user's; at
+        /// the gateway it is PII). Geo / network-privacy / ASN fields are
+        /// sourced from the spec-driven
         /// <see cref="DcsvIo.D2.Context.Abstractions.IRequestContext"/> via
-        /// <see cref="D2RequestContextEnricher"/> — see the README's
-        /// "Network/IP enrichment design" section.
+        /// <see cref="D2RequestContextEnricher"/> - see the "Network and IP
+        /// enrichment" section of docs/field-policy.md in this package.
         /// </para>
         /// <para>
-        /// Callers can extend the diagnostic context with additional fields
-        /// via the <paramref name="configure"/> callback (e.g.
+        /// The <paramref name="configure"/> callback can extend the diagnostic
+        /// context with additional fields (e.g.
         /// <c>opts.EnrichDiagnosticContext += (diag, ctx) =&gt; diag.Set("X", x);</c>).
-        /// Caller-added structured fields BYPASS the
+        /// Structured fields added there BYPASS the
         /// <c>[RedactData]</c> destructuring policy (the diagnostic-context
-        /// path emits <c>ScalarValue</c>s directly), so callers MUST own PII
-        /// discipline for anything they add.
+        /// path emits <c>ScalarValue</c>s directly), so the code that adds a
+        /// field MUST keep PII out of it.
         /// </para>
         /// </remarks>
         /// <param name="configure">
         /// Optional <see cref="RequestLoggingOptions"/> customizer. Runs
-        /// AFTER the D² defaults have been applied, so callers can append
+        /// AFTER the D2 defaults have been applied, so it can append
         /// additional enrichers, override the level callback for specific
         /// paths, or supply a custom message template.
         /// </param>
-        /// <returns>The same <paramref name="app"/> for fluent chaining.</returns>
+        /// <returns>The same <paramref name="app"/>, for fluent chaining.</returns>
         /// <exception cref="ArgumentNullException">
         /// Thrown when <paramref name="app"/> is null.
         /// </exception>
@@ -83,7 +83,7 @@ public static class WebApplicationLoggingExtensions
         {
             ArgumentNullException.ThrowIfNull(app);
 
-            // Snapshot the configured infrastructure paths — the level
+            // Snapshot the configured infrastructure paths - the level
             // callback runs on every request and we don't want to re-resolve
             // IOptions on the hot path. Captured in a closure for the
             // callbacks below.

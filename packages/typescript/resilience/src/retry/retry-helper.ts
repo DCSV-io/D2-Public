@@ -37,8 +37,8 @@ function isCancellation(err: unknown): boolean {
 /**
  * Well-known fetch network-failure messages. A network-level `fetch` failure
  * throws a `TypeError` whose message is one of these (undici uses
- * `"fetch failed"`; browsers vary). Matched only as a SECONDARY signal — see
- * {@link defaultIsTransient} — so a plain programming `TypeError` (different
+ * `"fetch failed"`; browsers vary). Matched only as a SECONDARY signal (see
+ * {@link defaultIsTransient}), so a plain programming `TypeError` (different
  * message, no `cause`) is never misclassified as transient.
  */
 const sr_fetchNetworkMessages: ReadonlySet<string> = new Set([
@@ -49,28 +49,29 @@ const sr_fetchNetworkMessages: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Default transient-error classifier — the conservative whitelist used when a
+ * Default transient-error classifier: the conservative whitelist used when a
  * caller supplies NEITHER `shouldRetry` NOR `isTransient`. Mirrors the INTENT
- * of .NET `RetryHelper.IsTransientException` (HTTP ≥500/429/408,
+ * of .NET `RetryHelper.IsTransientException` (HTTP >=500/429/408,
  * `SocketException`, `TimeoutException`, `TaskCanceledException-from-timeout`,
  * `CircuitOpenException`): retry ONLY genuine transient / network / timeout
  * conditions, NEVER arbitrary programming bugs.
  *
  * The JS error taxonomy differs from .NET's (no `HttpRequestException` /
- * `SocketException` types), so the TS transient set — matched by error `name`
- * to stay robust across module-instance / structural-error boundaries, the
- * same convention as {@link isCancellation} — is:
+ * `SocketException` types). The TS transient set is matched by error `name`,
+ * so a match holds across module-instance / structural-error boundaries, the
+ * same convention as {@link isCancellation}. It is:
  *
  * - `TimeoutError` (our {@link import("../pipeline/timeout-layer.js").TimeoutError}'s
- *   `name`) — the per-attempt-timeout analogue of .NET's `TimeoutException`.
- * - `CircuitOpenError` (`name`) — mirrors .NET's `CircuitOpenException`
- *   (the retry-OUTSIDE-CB restart-recovery composition).
- * - A genuine fetch/undici NETWORK failure — a `TypeError` carrying a `cause`
+ *   `name`): the per-attempt-timeout analogue of .NET's `TimeoutException`.
+ * - `CircuitOpenError` (`name`): mirrors .NET's `CircuitOpenException`
+ *   (the composition with retry OUTSIDE the circuit breaker, for restart
+ *   recovery).
+ * - A genuine fetch/undici NETWORK failure: a `TypeError` with a `cause`
  *   (undici attaches a system error, e.g. `ECONNREFUSED` / `ENOTFOUND` /
  *   `ECONNRESET`) OR whose message is a well-known fetch network-failure
  *   string ({@link sr_fetchNetworkMessages}). A bare `TypeError` with neither
- *   signal is a programming bug → NOT transient.
- * - `name === "NetworkError"` — the DOM/whatwg network-error name.
+ *   signal is a programming bug -> NOT transient.
+ * - `name === "NetworkError"`: the DOM/whatwg network-error name.
  *
  * Everything else (plain `Error`, `RangeError`, assertion failures, a
  * programming `TypeError`) is NON-transient and is NOT retried by default.
@@ -83,7 +84,7 @@ export function defaultIsTransient(err: unknown): boolean {
   if (err.name === "CircuitOpenError") return true;
   if (err.name === "NetworkError") return true;
   if (err instanceof TypeError) {
-    // Network-level fetch failure — distinguished from a programming TypeError
+    // Network-level fetch failure, distinguished from a programming TypeError
     // by an attached `cause` (undici system error) or a known network message.
     if (err.cause !== undefined) return true;
     return sr_fetchNetworkMessages.has(err.message);
@@ -110,10 +111,10 @@ interface InternalCallOpts<T> {
 }
 
 /**
- * Retry helper. Mirrors .NET `RetryHelper`. Two entry points:
+ * Retry helper. Mirrors .NET `RetryHelper`. Entry points:
  * `retryAsync` (throw-based) and `retryD2ResultAsync`
- * (D2Result-aware — only retries when the failed result has the supplied
- * transient predicate satisfied).
+ * (D2Result-aware; it retries only when the failed result satisfies the
+ * supplied transient predicate).
  */
 export const RetryHelper = {
   /**
@@ -175,7 +176,7 @@ function shouldRetryError<T>(err: unknown, opts: RetryOptions<T>): boolean {
   if (isCancellation(err)) return false;
   if (opts.shouldRetry) return opts.shouldRetry(err);
   if (opts.isTransient) return opts.isTransient(err);
-  // No caller-supplied predicate → conservative default whitelist (mirrors
+  // No caller-supplied predicate -> conservative default whitelist (mirrors
   // .NET's `IsTransientException`): retry only genuine transient/network/
   // timeout conditions, never programming bugs.
   return defaultIsTransient(err);
@@ -200,7 +201,7 @@ async function runRetry<T>(
   ctx: InternalCallOpts<T>,
 ): Promise<T> {
   const { opts, signal, rng } = ctx;
-  if (opts.maxAttempts < 1) throw new RangeError("maxAttempts must be ≥ 1");
+  if (opts.maxAttempts < 1) throw new RangeError("maxAttempts must be >= 1");
   let attempt = 0;
   while (true) {
     attempt++;

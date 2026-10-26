@@ -14,10 +14,10 @@ using Microsoft.AspNetCore.TestHost;
 using Xunit;
 
 /// <summary>
-/// Pins the IP-allow-list contract on the Prometheus scraping endpoint:
-/// loopback → 200; RFC 1918 → 200; public IPv4 / IPv6 → 403.
-/// Spoofs <c>HttpContext.Connection.RemoteIpAddress</c> via custom
-/// middleware before the endpoint filter runs.
+/// Pins the IP-allow-list contract on the Prometheus scraping endpoint: loopback
+/// and RFC 1918 -> not 403; public IPv4 / IPv6 -> 403; no remote address -> 403.
+/// Spoofs <c>HttpContext.Connection.RemoteIpAddress</c> in a custom middleware
+/// that runs before the endpoint filter.
 /// </summary>
 [Collection("LogLoggerStaticState")]
 public sealed class PrometheusEndpointIpRestrictionTests
@@ -26,9 +26,9 @@ public sealed class PrometheusEndpointIpRestrictionTests
     public async Task LoopbackRequest_ReturnsSuccess()
     {
         // TestServer leaves Connection.RemoteIpAddress null by default.
-        // Spoof loopback explicitly so the IP filter sees a known-allowed
-        // remote — equivalent to running against a real loopback socket
-        // outside the in-process test harness.
+        // The test sets it to loopback so the IP filter sees an allowed
+        // remote, as it would on a real loopback socket outside the
+        // in-process test harness.
         await using var handle = await TelemetryTestHostBuilder.BuildAsync(
             extraConfigure: app => UseRemoteIpSpoof(app, "127.0.0.1"));
         var client = handle.Host.GetTestClient();
@@ -41,9 +41,9 @@ public sealed class PrometheusEndpointIpRestrictionTests
     [Fact]
     public async Task NullRemoteIp_ReturnsForbidden()
     {
-        // TestServer's default null RemoteIpAddress mirrors the
-        // "no connection IP available" production scenario the filter
-        // must reject (fail-closed).
+        // TestServer's default null RemoteIpAddress matches the production
+        // case of no connection IP being available, which the filter must
+        // reject (fail-closed).
         await using var handle = await TelemetryTestHostBuilder.BuildAsync();
         var client = handle.Host.GetTestClient();
 

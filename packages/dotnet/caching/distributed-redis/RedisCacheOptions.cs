@@ -60,7 +60,7 @@ public sealed class RedisCacheOptions
 
     /// <summary>
     /// Gets or sets a value indicating whether StackExchange.Redis should
-    /// abort on a failed initial connection. Default <c>false</c> —
+    /// abort on a failed initial connection. Default <c>false</c> -
     /// graceful degradation (cache calls fail with
     /// <c>ServiceUnavailable</c> until Redis comes back online).
     /// </summary>

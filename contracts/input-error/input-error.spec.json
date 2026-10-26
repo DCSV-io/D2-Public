@@ -9,7 +9,7 @@
     {
       "constName": "ERRORS",
       "value": "errors",
-      "doc": "JSON property name carrying the array of TKMessage objects describing what's wrong with the field. REQUIRED; one-or-more TKMessage entries per InputError — each TKMessage uses the spec-derived 'key'/'params' shape from contracts/tk-message."
+      "doc": "JSON property name carrying the array of TKMessage objects describing what's wrong with the field. REQUIRED; one-or-more TKMessage entries per InputError - each TKMessage uses the spec-derived 'key'/'params' shape from contracts/tk-message."
     }
   ]
 }

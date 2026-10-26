@@ -16,10 +16,9 @@ using Microsoft.Extensions.Options;
 /// <summary>
 /// Host wiring for mutual-TLS client-certificate require-and-validate. When
 /// <see cref="D2MutualTlsOptions.Enabled"/>, Kestrel's HTTPS endpoint is configured
-/// to REQUIRE a client certificate and to validate it with the default-deny
-/// <see cref="SpiffeSanPeerValidator"/>. The Kestrel-config LOGIC lives here in
-/// <c>DcsvIo.D2.AspNetCore</c>; hosts call it directly (or compose it from their
-/// own composition root).
+/// to require a client certificate and to validate it with the default-deny
+/// <see cref="SpiffeSanPeerValidator"/>. The Kestrel configuration logic lives
+/// here, in <c>DcsvIo.D2.AspNetCore</c>.
 /// </summary>
 public static class MutualTlsHostExtensions
 {
@@ -29,31 +28,36 @@ public static class MutualTlsHostExtensions
         /// <summary>
         /// Wires mutual-TLS client-certificate require-and-validate into the host's
         /// Kestrel HTTPS endpoint. When <see cref="D2MutualTlsOptions.Enabled"/>,
-        /// every HTTPS connection MUST present a client certificate that the
-        /// default-deny <see cref="SpiffeSanPeerValidator"/> accepts (chains to the
-        /// internal CA, SPIFFE trust domain matches, workload in the allowed set).
-        /// When disabled, no Kestrel client-certificate configuration is added.
+        /// every HTTPS connection must present a client certificate that the
+        /// default-deny <see cref="SpiffeSanPeerValidator"/> accepts (it chains to the
+        /// internal CA, the SPIFFE trust domain matches, and the workload is in the
+        /// allowed set). When disabled, no Kestrel client-certificate configuration
+        /// is added.
         /// </summary>
         /// <remarks>
         /// <para>
-        /// <b>Fail-loud, not fail-open.</b> The options are validated at host build
-        /// via <c>ValidateOnStart()</c>: when <see cref="D2MutualTlsOptions.Enabled"/>
-        /// is true, <see cref="D2MutualTlsOptions.AllowedWorkloads"/> MUST be
-        /// non-empty AND <see cref="D2MutualTlsOptions.TrustAnchorsProvider"/> MUST
-        /// be set, or the host throws rather than silently accepting (or rejecting)
-        /// every peer.
+        /// <b>An empty allowed set admits nobody.</b> The options are validated at
+        /// host build via <c>ValidateOnStart()</c>. When
+        /// <see cref="D2MutualTlsOptions.Enabled"/> is true,
+        /// <see cref="D2MutualTlsOptions.TrustAnchorsProvider"/> must be set, and
+        /// every entry of <see cref="D2MutualTlsOptions.AllowedWorkloads"/> must be
+        /// non-empty and canonical - lowercase, no whitespace - or the host throws,
+        /// and the exception message identifies each offending entry. An empty list
+        /// is valid: the host boots, the port keeps requiring a client certificate,
+        /// and the validator admits no peer.
         /// </para>
         /// <para>
-        /// <b>Connection-level concern.</b> Client-certificate validation fires at
-        /// the TLS handshake before any middleware, so the wiring is entirely
-        /// service-collection-phase via <see cref="KestrelServerOptions"/> — there
-        /// is no <c>IApplicationBuilder</c> pipeline step.
+        /// <b>Connection-level concern.</b> Client-certificate validation runs at
+        /// the TLS handshake before any middleware, so the wiring happens entirely
+        /// in the service-collection phase via <see cref="KestrelServerOptions"/> -
+        /// there is no <c>IApplicationBuilder</c> pipeline step.
         /// </para>
         /// <para>
-        /// <b>Compose, don't clobber.</b> The validation callback is set through an
-        /// <see cref="IConfigureOptions{TOptions}"/> for <see cref="KestrelServerOptions"/>
-        /// so it composes with the host's other HTTPS configuration; it never calls
-        /// <c>AllowAnyClientCertificate()</c> (which would discard the callback).
+        /// <b>Composes with other HTTPS configuration.</b> The validation callback is
+        /// set through an <see cref="IConfigureOptions{TOptions}"/> for
+        /// <see cref="KestrelServerOptions"/>, so it composes with the host's other
+        /// HTTPS configuration; it never calls <c>AllowAnyClientCertificate()</c>
+        /// (which would discard the callback).
         /// </para>
         /// </remarks>
         /// <param name="configure">Configuration delegate for <see cref="D2MutualTlsOptions"/>.</param>
@@ -68,24 +72,17 @@ public static class MutualTlsHostExtensions
 
             services.AddOptions<D2MutualTlsOptions>()
                 .Configure(configure)
-                .Validate(
-                    o => !o.Enabled || o.AllowedWorkloads.Truthy(),
-                    "D2MutualTlsOptions.AllowedWorkloads must contain at least one "
-                    + "workload when Enabled is true (a require-certificate host that "
-                    + "allows no workload accepts nobody — fail-loud config error).")
-                .Validate(
-                    o => !o.Enabled || o.AllowedWorkloads.All(w => w.Truthy()),
-                    "D2MutualTlsOptions.AllowedWorkloads entries must not be empty / "
-                    + "whitespace.")
-                .Validate(
-                    o => !o.Enabled || o.TrustAnchorsProvider is not null,
-                    "D2MutualTlsOptions.TrustAnchorsProvider must be set when Enabled "
-                    + "is true (the host supplies the public internal CA trust anchor "
-                    + "the peer certificate chains to).")
                 .ValidateOnStart();
 
-            // The validator is resolved per validation from the options snapshot.
-            // Singleton — stateless given the resolved options.
+            // One validator rather than a chain of predicates. The validator
+            // collects every offending entry, so the failure lists all of them
+            // and each message includes the entry it is about.
+            services.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<D2MutualTlsOptions>, MutualTlsOptionsValidator>());
+
+            // The validator is built from the options snapshot. It is a
+            // singleton because it is stateless given the resolved options.
             services.TryAddSingleton(sp =>
             {
                 var options = sp.GetRequiredService<IOptions<D2MutualTlsOptions>>().Value;
@@ -97,8 +94,8 @@ public static class MutualTlsHostExtensions
 
             // Configure Kestrel's HTTPS default at options-build time via an
             // IConfigureOptions so the validator + options resolve from DI. The
-            // callback only requires + validates a client cert when Enabled, so a
-            // disabled host's HTTPS endpoint is untouched (safe-by-default).
+            // callback requires and validates a client cert only when Enabled, so
+            // a disabled host's HTTPS endpoint is untouched (safe by default).
             services.AddSingleton<IConfigureOptions<KestrelServerOptions>, MutualTlsKestrelConfigure>();
 
             return services;
@@ -106,7 +103,70 @@ public static class MutualTlsHostExtensions
     }
 
     /// <summary>
-    /// Configures Kestrel's HTTPS defaults to require + validate a client
+    /// Validates <see cref="D2MutualTlsOptions"/> at host build. A disabled host
+    /// passes unconditionally; an enabled one must supply trust anchors and a
+    /// canonical allowed-workload list, which may be empty.
+    /// </summary>
+    private sealed class MutualTlsOptionsValidator : IValidateOptions<D2MutualTlsOptions>
+    {
+        public ValidateOptionsResult Validate(string? name, D2MutualTlsOptions options)
+        {
+            ArgumentNullException.ThrowIfNull(options);
+
+            if (!options.Enabled)
+                return ValidateOptionsResult.Success;
+
+            var failures = new List<string>();
+
+            for (var i = 0; i < options.AllowedWorkloads.Count; i++)
+            {
+                var workload = options.AllowedWorkloads[i];
+
+                if (workload.Falsey())
+                {
+                    failures.Add(
+                        $"D2MutualTlsOptions.AllowedWorkloads[{i}] is empty or whitespace.");
+
+                    continue;
+                }
+
+                if (!IsCanonical(workload))
+                {
+                    failures.Add(
+                        $"D2MutualTlsOptions.AllowedWorkloads[{i}] is '{workload}', which is not "
+                        + "canonical. An entry is lowercase and carries no whitespace, because "
+                        + "the peer validator compares it ordinally against a SPIFFE service id "
+                        + "that is already lowercase - this entry matches no peer.");
+                }
+            }
+
+            if (options.TrustAnchorsProvider is null)
+            {
+                failures.Add(
+                    "D2MutualTlsOptions.TrustAnchorsProvider must be set when Enabled is true "
+                    + "(the host supplies the public internal CA trust anchor the peer "
+                    + "certificate chains to).");
+            }
+
+            return failures.Count == 0
+                ? ValidateOptionsResult.Success
+                : ValidateOptionsResult.Fail(failures);
+        }
+
+        private static bool IsCanonical(string workload)
+        {
+            foreach (var character in workload)
+            {
+                if (char.IsWhiteSpace(character) || char.IsUpper(character))
+                    return false;
+            }
+
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Configures Kestrel's HTTPS defaults to require and validate a client
     /// certificate when mutual-TLS is enabled. Registered against
     /// <see cref="IConfigureOptions{TOptions}"/> for <see cref="KestrelServerOptions"/>
     /// so the resolved <see cref="D2MutualTlsOptions"/> + <see cref="SpiffeSanPeerValidator"/>
@@ -136,19 +196,20 @@ public static class MutualTlsHostExtensions
 
             options.ConfigureHttpsDefaults(https =>
             {
-                // RequireCertificate so a no-certificate connection is rejected at
-                // the handshake — the peer MUST present a client certificate.
+                // RequireCertificate so a connection without a certificate is
+                // rejected at the handshake - the peer must present a client
+                // certificate.
                 https.ClientCertificateMode = ClientCertificateMode.RequireCertificate;
 
-                // Default-deny: the callback returns true ONLY when the validator's
-                // result is Ok. The cert + chain are borrowed from Kestrel — never
-                // disposed here. The chain carries the peer-presented intermediate
-                // the validator seeds into its root-anchored rebuild. NEVER
-                // AllowAnyClientCertificate (it discards this callback).
-                // SslPolicyErrors is intentionally NOT consulted — the validator
-                // rebuilds the chain against OUR configured trust anchors with
-                // CustomRootTrust, which supersedes the machine-store result.
-                // A future maintainer must NOT restore the default-policy check.
+                // Default-deny: the callback returns true only when the validator's
+                // result is Ok. The cert + chain are borrowed from Kestrel and are
+                // never disposed here. The chain contains the peer-presented
+                // intermediate that the validator seeds into its root-anchored
+                // rebuild. Never use AllowAnyClientCertificate (it discards this
+                // callback). SslPolicyErrors is intentionally not consulted: the
+                // validator rebuilds the chain against the configured trust anchors
+                // with CustomRootTrust, which supersedes the machine-store result.
+                // Do not restore the default-policy check.
                 https.ClientCertificateValidation =
                     (cert, chain, _) => r_validator.Validate(cert, chain).Success;
             });

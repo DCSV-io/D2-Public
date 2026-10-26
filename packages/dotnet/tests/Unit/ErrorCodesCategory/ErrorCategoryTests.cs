@@ -11,17 +11,17 @@ using DcsvIo.D2.ErrorCodes.Category;
 using Xunit;
 
 /// <summary>
-/// Unit tests for the relocated <see cref="ErrorCategory"/> enum and its
+/// Unit tests for the <see cref="ErrorCategory"/> enum and its
 /// <see cref="ErrorCategoryWire"/> wire-mapping + <see cref="ErrorCategoryJsonConverter"/>,
 /// generated into <c>DcsvIo.D2.ErrorCodes.Category</c> from
-/// <c>contracts/error-category/error-category.spec.json</c>. Covers all nine
-/// closed members, the ToWire / TryFromWire round-trip, and the strict JSON
-/// converter (unknown wire → <see cref="System.Text.Json.JsonException"/>).
+/// <c>contracts/error-category/error-category.spec.json</c>. Covers every
+/// closed member, the ToWire / TryFromWire round-trip, and the strict JSON
+/// converter (unknown wire -> <see cref="System.Text.Json.JsonException"/>).
 /// </summary>
 public sealed class ErrorCategoryTests
 {
     // -----------------------------------------------------------------------
-    // ErrorCategoryWire — ToWire (all nine values)
+    // ErrorCategoryWire - ToWire, every member
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -51,7 +51,7 @@ public sealed class ErrorCategoryTests
     }
 
     // -----------------------------------------------------------------------
-    // ErrorCategoryWire — TryFromWire (all nine values + unknown)
+    // ErrorCategoryWire - TryFromWire, every member plus an unknown wire value
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -106,7 +106,7 @@ public sealed class ErrorCategoryTests
     }
 
     // -----------------------------------------------------------------------
-    // ErrorCategoryJsonConverter — serialize / deserialize
+    // ErrorCategoryJsonConverter - serialize / deserialize
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -174,7 +174,7 @@ public sealed class ErrorCategoryTests
     [Fact]
     public void JsonConverter_RoundTrip_AllNineValues_Preserved()
     {
-        foreach (ErrorCategory category in System.Enum.GetValues<ErrorCategory>())
+        foreach (var category in System.Enum.GetValues<ErrorCategory>())
         {
             var json = System.Text.Json.JsonSerializer.Serialize(category);
             var back = System.Text.Json.JsonSerializer.Deserialize<ErrorCategory>(json);
@@ -183,7 +183,7 @@ public sealed class ErrorCategoryTests
     }
 
     // -----------------------------------------------------------------------
-    // Closed-set completeness — exactly nine members, matching the spec.
+    // Closed-set completeness - exactly nine members, matching the spec.
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -195,7 +195,7 @@ public sealed class ErrorCategoryTests
     [Fact]
     public void EveryMember_HasAWireString_AndRoundTrips()
     {
-        foreach (ErrorCategory category in System.Enum.GetValues<ErrorCategory>())
+        foreach (var category in System.Enum.GetValues<ErrorCategory>())
         {
             var wire = category.ToWire();
             wire.Should().NotBeNullOrWhiteSpace();

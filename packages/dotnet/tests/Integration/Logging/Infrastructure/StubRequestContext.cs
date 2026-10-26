@@ -20,10 +20,10 @@ using DcsvIo.D2.Context.Abstractions;
 /// </para>
 /// <para>
 /// Adding a property to <see cref="IRequestContext"/> requires updating this
-/// stub — fail-to-compile surfaces forces a §3 PII review + an explicit add
-/// to either <c>D2RequestContextEnricher</c> (LOG-OK) or
-/// <c>RequestContextEnricherIntegrationTests</c> NOT-LOGGED contract. This
-/// is a feature, not a bug.
+/// stub, because the stub stops compiling. The compile failure makes a reviewer
+/// decide whether the new property is logged and add it to either
+/// <c>D2RequestContextEnricher</c> (LOG-OK) or the NOT-LOGGED contract of
+/// <c>RequestContextEnricherIntegrationTests</c>.
 /// </para>
 /// </remarks>
 internal sealed class StubRequestContext : IRequestContext
@@ -66,7 +66,11 @@ internal sealed class StubRequestContext : IRequestContext
 
     public int? RiskScore { get; init; }
 
-    // WhoIs — Admin Location
+    public string? DeviceKey { get; init; }
+
+    public string? DeviceConfidence { get; init; }
+
+    // WhoIs - Admin Location
     public string? WhoIsHashId { get; init; }
 
     public string? AdminLocationHashId { get; init; }
@@ -79,14 +83,14 @@ internal sealed class StubRequestContext : IRequestContext
 
     public string? PostalCode { get; init; }
 
-    // WhoIs — Coordinates
+    // WhoIs - Coordinates
     public double? Latitude { get; init; }
 
     public double? Longitude { get; init; }
 
     public string? Geohash { get; init; }
 
-    // WhoIs — Network Privacy
+    // WhoIs - Network Privacy
     public bool? IsVpn { get; init; }
 
     public bool? IsProxy { get; init; }
@@ -95,7 +99,7 @@ internal sealed class StubRequestContext : IRequestContext
 
     public bool? IsHosting { get; init; }
 
-    // WhoIs — ASN
+    // WhoIs - ASN
     public int? Asn { get; init; }
 
     public string? AsnName { get; init; }
@@ -109,7 +113,7 @@ internal sealed class StubRequestContext : IRequestContext
 
     public IReadOnlyList<CallPathEntry> CallPath { get; init; } = [];
 
-    // IAuthContext — Token + Trust
+    // IAuthContext - Token + Trust
     public bool? IsAuthenticated { get; init; }
 
     public IReadOnlyList<string> Audience { get; init; } = [];
@@ -126,7 +130,7 @@ internal sealed class StubRequestContext : IRequestContext
 
     public DateTimeOffset? LastStepUpAt { get; init; }
 
-    // IAuthContext — Identity
+    // IAuthContext - Identity
     public string? Subject { get; init; }
 
     public Guid? UserId { get; init; }
@@ -141,7 +145,7 @@ internal sealed class StubRequestContext : IRequestContext
 
     public bool? IsServiceIdentity { get; init; }
 
-    // IAuthContext — Organization
+    // IAuthContext - Organization
     public Guid? OrgId { get; init; }
 
     public string? OrgName { get; init; }
@@ -150,7 +154,12 @@ internal sealed class StubRequestContext : IRequestContext
 
     public Role? OrgRole { get; init; }
 
-    // IAuthContext — Impersonation
+    public Guid? RootOrgId { get; init; }
+
+    public IReadOnlySet<string> AccessibleOrgIds { get; init; } =
+        new HashSet<string>(StringComparer.Ordinal);
+
+    // IAuthContext - Impersonation
     public bool? IsImpersonating { get; init; }
 
     public ImpersonationKind? ImpersonationKind { get; init; }
@@ -167,6 +176,6 @@ internal sealed class StubRequestContext : IRequestContext
 
     public Role? ImpersonatorOrgRole { get; init; }
 
-    // IAuthContext — Scopes
+    // IAuthContext - Scopes
     public IReadOnlySet<string> Scopes { get; init; } = new HashSet<string>();
 }

@@ -12,25 +12,25 @@ using System.Text;
 using DcsvIo.D2.SourceGen;
 
 /// <summary>
-/// Emits the cross-hop <c>PropagatedContext</c> trio:
+/// Emits the cross-hop <c>PropagatedContext</c> files:
 /// <list type="bullet">
-///   <item><c>PropagatedContext.g.cs</c> — sealed record with the
+///   <item><c>PropagatedContext.g.cs</c> - sealed record with the
 ///   <c>propagate: true</c> field subset.</item>
-///   <item><c>PropagatedContextExtensions.g.cs</c> — projections
+///   <item><c>PropagatedContextExtensions.g.cs</c> - projections
 ///   (<c>ToPropagatedContext</c> on <c>IRequestContext</c>,
 ///   <c>ApplyPropagatedContext</c> on <c>MutableRequestContext</c>).</item>
-///   <item><c>PropagatedContextSerializer.g.cs</c> — base64url + JSON
+///   <item><c>PropagatedContextSerializer.g.cs</c> - base64url + JSON
 ///   encode/decode with per-field <c>maxLength</c> validation baked in
 ///   from the spec.</item>
 /// </list>
 /// </summary>
 /// <remarks>
-/// All three live in <c>DcsvIo.D2.Context.Abstractions</c> alongside the
-/// codegen-emitted interfaces + <c>MutableRequestContext</c>. The set of
+/// These files live in <c>DcsvIo.D2.Context.Abstractions</c> alongside the
+/// codegen-emitted interfaces and <c>MutableRequestContext</c>. The set of
 /// propagatable fields is whatever the spec marks <c>propagate: true</c>;
 /// per-field length caps come from the spec's <c>maxLength</c> on each
-/// propagatable string field. This is the wire-format primitive a future
-/// TS / Python / Go BFF would mirror from the same spec.
+/// propagatable string field. The TypeScript emitter derives the same wire format
+/// from the same spec.
 /// </remarks>
 internal static class PropagatedEmitter
 {
@@ -39,8 +39,8 @@ internal static class PropagatedEmitter
     private const string _EXTENSIONS_NAME = "PropagatedContextExtensions";
     private const string _SERIALIZER_NAME = "PropagatedContextSerializer";
 
-    /// <summary>Emits all three files based on the propagate-marked
-    /// properties from <paramref name="auth"/> + <paramref name="request"/>.
+    /// <summary>Emits every file listed on the class from the propagate-marked
+    /// properties of <paramref name="auth"/> and <paramref name="request"/>.
     /// Returns one <see cref="EmitResult"/> per file.</summary>
     /// <param name="auth">The auth-context spec.</param>
     /// <param name="request">The request-context spec.</param>
@@ -82,8 +82,8 @@ internal static class PropagatedEmitter
         EmitFileHeader(sb);
         sb.AppendLine();
 
-        // A propagated list-of-records field (CallPath) pulls in IReadOnlyList<T>
-        // and the record's home namespace; scalar-only specs stay byte-identical.
+        // A propagated list-of-records field (CallPath) requires the IReadOnlyList<T>
+        // using and the record's home namespace; scalar-only specs stay byte-identical.
         if (anyRecordList)
             sb.AppendLine("using System.Collections.Generic;");
 
@@ -107,11 +107,11 @@ internal static class PropagatedEmitter
         sb.AppendLine(
             "/// Carried as a single header (<c>x-d2-context</c>) on AMQP / gRPC /");
         sb.AppendLine(
-            "/// HTTP — same shape on every transport.");
+            "/// HTTP - same shape on every transport.");
         sb.AppendLine("/// </summary>");
         sb.AppendLine("/// <remarks>");
         sb.AppendLine(
-            "/// Field set is spec-driven — every property marked <c>propagate: true</c>");
+            "/// Field set is spec-driven - every property marked <c>propagate: true</c>");
         sb.AppendLine(
             "/// in <c>contracts/request-context/IRequestContext.spec.json</c> appears");
         sb.AppendLine(
@@ -129,16 +129,16 @@ internal static class PropagatedEmitter
             first = false;
             EmitXmlDocSummary(sb, prop.Doc ?? prop.Name, indent: 1);
 
-            // List fields carry the nullable annotation so an absent (empty) path
-            // omits cleanly under WhenWritingNull; scalar vocab types are already
-            // nullable (e.g. string?) so their declarations stay byte-identical.
+            // A list field gets the nullable annotation so an absent (empty) path
+            // is omitted under WhenWritingNull; scalar vocabulary types are already
+            // nullable (for example string?), so their declarations stay byte-identical.
             var fieldType = IsListType(prop.Type) ? $"{prop.Type}?" : prop.Type;
             sb.AppendLine($"    public {fieldType} {prop.Name} {{ get; init; }}");
         }
 
         sb.AppendLine();
         sb.AppendLine("    /// <summary>Gets a value indicating whether any propagated");
-        sb.AppendLine("    /// field is set — lets callers skip the encode/serialize round-");
+        sb.AppendLine("    /// field is set - lets callers skip the encode/serialize round-");
         sb.AppendLine("    /// trip when nothing meaningful is in the context.</summary>");
         sb.AppendLine("    [JsonIgnore]");
         sb.AppendLine("    public bool HasAnyField =>");
@@ -189,8 +189,8 @@ internal static class PropagatedEmitter
         {
             if (IsListType(prop.Type))
             {
-                // Null-when-empty: an empty path projects to null so it drops from
-                // the wire (the receiving hop then appends itself).
+                // Null when empty: an empty path projects to null, so it is omitted
+                // from the wire.
                 sb.AppendLine(
                     $"            {prop.Name} = context.{prop.Name} is {{ Count: > 0 }} "
                     + $"? context.{prop.Name} : null,");
@@ -205,7 +205,7 @@ internal static class PropagatedEmitter
         sb.AppendLine("    }");
         sb.AppendLine();
         sb.AppendLine("    /// <summary>Applies <paramref name=\"propagated\"/> onto a");
-        sb.AppendLine($"    /// <see cref=\"MutableRequestContext\"/> — copies every");
+        sb.AppendLine($"    /// <see cref=\"MutableRequestContext\"/> - copies every");
         sb.AppendLine("    /// non-null propagation field. No-op when arg is null.</summary>");
         sb.AppendLine("    /// <param name=\"context\">Mutable context to populate.</param>");
         sb.AppendLine("    /// <param name=\"propagated\">Decoded propagation record.</param>");
@@ -224,7 +224,7 @@ internal static class PropagatedEmitter
             sb.AppendLine();
         }
 
-        // Trim trailing blank line for cleanliness.
+        // Trim the trailing blank line.
         var src = sb.ToString().TrimEnd('\r', '\n', ' ');
         sb.Clear();
         sb.Append(src);
@@ -254,28 +254,28 @@ internal static class PropagatedEmitter
         sb.AppendLine(
             "/// Wire encode / decode for <see cref=\"" + _RECORD_NAME + "\"/> as a single");
         sb.AppendLine(
-            "/// header value. Identical encoding on every transport — AMQP header");
+            "/// header value. Identical encoding on every transport - AMQP header");
         sb.AppendLine(
-            "/// (<c>x-d2-context</c>), gRPC metadata, HTTP header — so transports");
+            "/// (<c>x-d2-context</c>), gRPC metadata, HTTP header - so transports");
         sb.AppendLine(
             "/// don't need transport-specific serialization logic.");
         sb.AppendLine("/// </summary>");
         sb.AppendLine("/// <remarks>");
         sb.AppendLine(
-            "/// Encoding: canonical-JSON (camelCase, omit-null, no whitespace) → UTF-8 →");
+            "/// Encoding: canonical-JSON (camelCase, omit-null, no whitespace) -> UTF-8 ->");
         sb.AppendLine(
             "/// base64url. Base64url is chosen over plain base64 to keep the value safe");
         sb.AppendLine(
             "/// in HTTP headers (no <c>+</c> / <c>/</c> / <c>=</c> meta-chars). Typical");
         sb.AppendLine(
-            "/// payload is ~150–300 bytes; well under any practical header limit.");
+            "/// payload is ~150-300 bytes; well under any practical header limit.");
         sb.AppendLine("/// </remarks>");
         sb.AppendLine($"public static class {_SERIALIZER_NAME}");
         sb.AppendLine("{");
         sb.AppendLine("    /// <summary>Hard cap on accepted header length. Defends downstream");
         sb.AppendLine(
             "    /// memory + parser cost from a hostile or accidentally-bloated header.");
-        sb.AppendLine("    /// 2 KiB base64url decodes to ~1.5 KiB of JSON — far above any");
+        sb.AppendLine("    /// 2 KiB base64url decodes to ~1.5 KiB of JSON - far above any");
         sb.AppendLine($"    /// legitimate <see cref=\"{_RECORD_NAME}\"/> payload.</summary>");
         sb.AppendLine("    public const int MAX_HEADER_LENGTH = 2048;");
         sb.AppendLine();
@@ -284,7 +284,7 @@ internal static class PropagatedEmitter
         {
             // Single source of the cap: the value is read from the record-list
             // field's spec-declared entryIdMaxLength (never hard-coded here or in
-            // the TS emitter — both derive it from the same spec field).
+            // the TS emitter; both derive it from the same spec field).
             var entryIdMax = ResolveCallPathEntryIdMax(propagated);
             sb.AppendLine("    /// <summary>Per-entry id length cap for a propagated call-path");
             sb.AppendLine("    /// entry. Bounds a single forged entry id so it cannot bloat log");
@@ -300,7 +300,7 @@ internal static class PropagatedEmitter
         sb.AppendLine("        WriteIndented = false,");
 
         // A record-list field carries enum members (CallPathKind); render them as
-        // human-readable strings rather than ordinals for log-grep-ability.
+        // human-readable strings rather than ordinals, so log lines can be searched by name.
         if (anyRecordList)
             sb.AppendLine("        Converters = { new JsonStringEnumConverter() },");
 
@@ -325,14 +325,14 @@ internal static class PropagatedEmitter
         sb.AppendLine("    /// (malformed base64, bad JSON, oversize wire payload, any single");
         sb.AppendLine("    /// field exceeding its <c>maxLength</c> spec cap): the consumer");
         sb.AppendLine(
-            "    /// then proceeds with a null context — propagation is "
+            "    /// then proceeds with a null context - propagation is "
             + "opportunistic,");
         sb.AppendLine("    /// never required.</summary>");
         sb.AppendLine("    /// <param name=\"encoded\">The encoded header value.</param>");
         sb.AppendLine($"    public static {_RECORD_NAME}? TryDecode(string? encoded)");
         sb.AppendLine("    {");
         sb.AppendLine("        if (encoded.Falsey()) return null;");
-        sb.AppendLine("        // null/empty/whitespace-only header → no propagation context.");
+        sb.AppendLine("        // null/empty/whitespace-only header -> no propagation context.");
         sb.AppendLine("        // Falsey()-returns-false implies non-null;");
         sb.AppendLine(
             "        // the ! is required because Falsey doesn't carry NotNullWhenAttribute.");
@@ -362,7 +362,7 @@ internal static class PropagatedEmitter
         sb.AppendLine("    /// blow up downstream log scope keys / DB columns / etc. with a");
         sb.AppendLine("    /// 1.5 KiB single field. Returning <c>false</c> drops the entire");
         sb.AppendLine(
-            "    /// context — propagation is opportunistic, never "
+            "    /// context - propagation is opportunistic, never "
             + "required.</summary>");
         sb.AppendLine($"    private static bool FieldsWithinBounds({_RECORD_NAME} ctx)");
         sb.AppendLine("    {");
@@ -461,23 +461,23 @@ internal static class PropagatedEmitter
         .Replace("<", "&lt;")
         .Replace(">", "&gt;");
 
-    /// <summary>True for a read-only list vocabulary type (e.g.
-    /// <c>IReadOnlyList&lt;CallPathEntry&gt;</c>); drives the count-shaped
-    /// nullable-field / projection / bound emission.</summary>
+    /// <summary>True for a read-only list vocabulary type (for example
+    /// <c>IReadOnlyList&lt;CallPathEntry&gt;</c>); selects the count-based
+    /// nullable-field, projection and bound emission.</summary>
     private static bool IsListType(string type) =>
         type.StartsWith("IReadOnlyList<", System.StringComparison.Ordinal);
 
     /// <summary>True for a propagated list-of-records vocabulary type that carries
-    /// per-entry ids (CallPath). Gates the per-entry-id cap loop + the
-    /// <c>JsonStringEnumConverter</c> + the record's import usings.</summary>
+    /// per-entry ids (CallPath). Selects the per-entry-id cap loop, the
+    /// <c>JsonStringEnumConverter</c> and the record's import usings.</summary>
     private static bool IsRecordListType(string type) =>
         string.Equals(type, TypeVocabulary.CallPathEntryList, System.StringComparison.Ordinal);
 
     /// <summary>Resolves the per-entry-id length cap for the propagated
     /// list-of-records field (CallPath) from its spec-declared
-    /// <c>entryIdMaxLength</c>. Single source of the cap — the emitted serializer
+    /// <c>entryIdMaxLength</c>. Single source of the cap: the emitted serializer
     /// never hard-codes the number. A record-list field with no declared cap is a
-    /// spec error (fail loud).</summary>
+    /// spec error, and this method throws <see cref="System.InvalidOperationException"/>.</summary>
     private static int ResolveCallPathEntryIdMax(IReadOnlyList<PropertySpec> propagated)
     {
         foreach (var prop in propagated)
@@ -491,9 +491,10 @@ internal static class PropagatedEmitter
             }
         }
 
-        // Unreachable in practice: the caller emits the const only when a record-list
-        // field exists (HasRecordListField), so the loop always returns above.
-        return 0;
+        // Reached only for a list with no list-of-records field.
+        throw new System.InvalidOperationException(
+            "ResolveCallPathEntryIdMax requires a propagated list-of-records field; "
+            + "the caller checks HasRecordListField first.");
     }
 
     /// <summary>True when any propagated field is a list-of-records (CallPath).</summary>

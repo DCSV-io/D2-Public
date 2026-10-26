@@ -64,7 +64,7 @@ public static class D2ResultDbBooleans
         /// <summary>
         /// Gets a value indicating whether this result is a deadlock /
         /// serialization failure (<see cref="DbErrorCodes.DB_DEADLOCK"/>).
-        /// Caller may safely retry the operation.
+        /// The operation may be retried safely.
         /// </summary>
         public bool IsDbDeadlock =>
             result.ErrorCode == DbErrorCodes.DB_DEADLOCK;
@@ -78,20 +78,20 @@ public static class D2ResultDbBooleans
 
         /// <summary>
         /// Gets a value indicating whether the result represents any
-        /// retryable DB failure — deadlock, timeout, or connection failure.
-        /// Concurrency conflicts are intentionally excluded — they require
+        /// retryable DB failure - deadlock, timeout, or connection failure.
+        /// Concurrency conflicts are intentionally excluded - they require
         /// reload-then-merge logic, not a blind retry.
         /// </summary>
         /// <remarks>
-        /// Distinct axis from the built-in <c>IsTransientRetryable</c>
+        /// This is a separate axis from the built-in <c>IsTransientRetryable</c>
         /// (<c>IsServiceUnavailable || IsRateLimited</c>) on
         /// <see cref="D2Result"/> in the result lib. A generic retry
-        /// policy that wants to catch BOTH HTTP-flavored and DB-flavored
-        /// transient failures should check the union:
+        /// policy that must catch BOTH HTTP-style and DB transient
+        /// failures checks the union:
         /// <c>result.IsTransientRetryable || result.IsTransientDbFailure</c>.
-        /// They live in separate libs because not every consumer of
-        /// <see cref="D2Result"/> deals with a database; the DB roll-up
-        /// only loads when the consumer references
+        /// They live in separate libs because not every use of
+        /// <see cref="D2Result"/> involves a database; the DB roll-up
+        /// is available only to code that references
         /// <c>DcsvIo.D2.Handler.Repo.Abstractions</c>.
         /// </remarks>
         public bool IsTransientDbFailure =>

@@ -12,21 +12,22 @@ using DcsvIo.D2.EncryptionDomains.SourceGen;
 using Xunit;
 
 /// <summary>
-/// Pure-logic tests for the EncryptionDomains emitter. §1.20 fail-path
-/// proof.
+/// Pure-logic tests for the EncryptionDomains emitter, including the
+/// deliberate-drift tests, each of which feeds the emitter a broken spec and
+/// asserts the diagnostic it emits.
 /// </summary>
 public sealed class EncryptionDomainsEmitterTests
 {
     [Fact]
     public void Emit_ValidSingleEntry_EmitsConstantAndAllDomains()
     {
-        var spec = MakeSpec(new EncryptionDomainEntry("AUDIT", "audit", "doc"));
+        var spec = MakeSpec(new EncryptionDomainEntry("ORDERS", "orders", "doc"));
 
         var result = EncryptionDomainsEmitter.Emit(spec);
 
         result.Diagnostics.Should().BeEmpty();
         result.GeneratedSource.Should()
-            .Contain("public const string AUDIT = \"audit\";");
+            .Contain("public const string ORDERS = \"orders\";");
         result.GeneratedSource.Should()
             .Contain("public static class EncryptionDomains");
         result.GeneratedSource.Should()
@@ -36,7 +37,7 @@ public sealed class EncryptionDomainsEmitterTests
     [Fact]
     public void Emit_Always_EmitsModeEnumAndModesClass()
     {
-        var spec = MakeSpec(new EncryptionDomainEntry("AUDIT", "audit", "doc"));
+        var spec = MakeSpec(new EncryptionDomainEntry("ORDERS", "orders", "doc"));
 
         var result = EncryptionDomainsEmitter.Emit(spec);
 
@@ -59,18 +60,18 @@ public sealed class EncryptionDomainsEmitterTests
     public void Emit_SealedEntry_MapsDomainToSealedAndConsumerService()
     {
         var spec = MakeSpec(
-            new EncryptionDomainEntry("AUDIT", "audit", "doc", "sealed", "audit"),
+            new EncryptionDomainEntry("ORDERS", "orders", "doc", "sealed", "orders"),
             new EncryptionDomainEntry("PLAINTEXT", "plaintext", "doc"));
 
         var result = EncryptionDomainsEmitter.Emit(spec);
 
         result.Diagnostics.Should().BeEmpty();
         result.GeneratedSource.Should()
-            .Contain("{ \"audit\", EncryptionDomainMode.Sealed },");
+            .Contain("{ \"orders\", EncryptionDomainMode.Sealed },");
         result.GeneratedSource.Should()
             .Contain("{ \"plaintext\", EncryptionDomainMode.Symmetric },");
         result.GeneratedSource.Should()
-            .Contain("{ \"audit\", \"audit\" },");
+            .Contain("{ \"orders\", \"orders\" },");
 
         // The symmetric/plaintext domain never appears in the consumer map.
         result.GeneratedSource.Should().NotContain("{ \"plaintext\", \"");
@@ -90,7 +91,8 @@ public sealed class EncryptionDomainsEmitterTests
     }
 
     // ---------------------------------------------------------------
-    // §1.20 fail-path proof — 3 deliberate drift cases.
+    // Deliberate-drift tests: duplicate constant name,
+    // duplicate value and invalid constant name.
     // ---------------------------------------------------------------
 
     [Fact]
@@ -131,7 +133,7 @@ public sealed class EncryptionDomainsEmitterTests
     }
 
     // ---------------------------------------------------------------
-    // Mode / consumerService fail-path proof (§1.20 / §26.15).
+    // Mode / consumerService fail paths.
     // ---------------------------------------------------------------
 
     [Fact]
@@ -171,7 +173,7 @@ public sealed class EncryptionDomainsEmitterTests
     }
 
     [Theory]
-    [InlineData("Audit")]
+    [InlineData("Orders")]
     [InlineData("has space")]
     [InlineData("under_score")]
     [InlineData("")]

@@ -14,9 +14,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 /// <summary>
-/// DI registration tests. The order-sensitivity of <c>TryAdd</c> is
-/// counter-intuitive — these tests pin both the documented behavior AND
-/// the trap (custom-classifier-after-AddD2Postgres LOSES).
+/// Dependency injection registration tests. The effect of <c>TryAdd</c>
+/// depends on registration order. Two of these tests pin the order cases: a
+/// custom classifier registered before <c>AddD2Postgres</c> is kept, and a
+/// custom classifier registered after it resolves instead of the Postgres one,
+/// because the last registration wins.
 /// </summary>
 public sealed class PostgresServiceCollectionExtensionsTests
 {
@@ -43,7 +45,7 @@ public sealed class PostgresServiceCollectionExtensionsTests
 
         using var sp = services.BuildServiceProvider();
 
-        // GetServices returns ALL registrations; should be a single one.
+        // GetServices returns every registration, and there is exactly one.
         var all = sp.GetServices<IDbExceptionClassifier>();
 
         all.Should().ContainSingle();
@@ -52,8 +54,9 @@ public sealed class PostgresServiceCollectionExtensionsTests
     [Fact]
     public void AddD2Postgres_CustomClassifierRegisteredFirst_CustomWins()
     {
-        // Documented behavior: TryAddSingleton sees an existing registration
-        // and bails. Custom impls registered BEFORE AddD2Postgres win.
+        // Documented behavior: TryAddSingleton finds an existing registration
+        // and does nothing, so a custom implementation registered before
+        // AddD2Postgres resolves.
         var services = new ServiceCollection();
         services.AddSingleton<IDbExceptionClassifier, CustomClassifier>();
 
@@ -68,19 +71,18 @@ public sealed class PostgresServiceCollectionExtensionsTests
     [Fact]
     public void AddD2Postgres_CustomClassifierRegisteredAfter_BclLastWinsResolvesCustom()
     {
-        // BCL ServiceProvider semantics: when multiple plain
-        // AddSingleton<I, X>() registrations exist for the same service type,
-        // GetRequiredService<I>() returns the LAST-registered impl. AddD2Postgres
-        // uses TryAddSingleton — so a custom IDbExceptionClassifier registered
-        // AFTER still wins because the AddSingleton append is a separate entry.
+        // BCL ServiceProvider semantics: when several plain
+        // AddSingleton<I, X>() registrations exist for one service type,
+        // GetRequiredService<I>() returns the last registered implementation.
+        // AddD2Postgres uses TryAddSingleton, and the later AddSingleton call
+        // appends a separate entry, so a custom IDbExceptionClassifier
+        // registered after AddD2Postgres resolves.
         //
-        // The trade-off this test pins: the earlier Postgres entry stays in
-        // the descriptor list as an orphaned singleton (constructed if anyone
-        // enumerates IEnumerable<IDbExceptionClassifier>). This is exactly
-        // why the docs steer users toward registering custom BEFORE the call
-        // (TryAdd-no-ops) or using keyed services for multi-classifier
-        // scenarios — both avoid leaving an unused-but-constructable orphan
-        // in the graph.
+        // The earlier Postgres entry stays in the descriptor list and is
+        // constructed if anything enumerates IEnumerable<IDbExceptionClassifier>.
+        // The docs therefore advise registering the custom classifier before
+        // the call, where TryAdd does nothing, or using keyed services for
+        // several classifiers. Both leave no unused entry in the graph.
         var services = new ServiceCollection();
 
         services.AddD2Postgres();
@@ -90,7 +92,7 @@ public sealed class PostgresServiceCollectionExtensionsTests
         var resolved = sp.GetRequiredService<IDbExceptionClassifier>();
 
         resolved.Should().BeOfType<CustomClassifier>(
-            "BCL ServiceProvider resolves the LAST-registered singleton — "
+            "BCL ServiceProvider resolves the LAST-registered singleton - "
             + "the custom registered AFTER wins (with the orphaned Postgres "
             + "entry as the tradeoff the docs warn against).");
     }

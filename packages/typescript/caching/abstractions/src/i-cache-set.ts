@@ -5,20 +5,19 @@
 import type { D2Result } from "@dcsv-io/d2-result";
 
 /**
- * Distributed-set primitives — add-to-set, cardinality, membership.
- * Maps to Redis SADD / SCARD / SREM / SISMEMBER. Only on
+ * Distributed-set primitives: add-to-set, cardinality, membership.
+ * Maps to Redis SADD / SCARD / SREM / SISMEMBER. Available only on
  * {@link IDistributedCache}; per-process set-cardinality has no
  * realistic use case (it's a single-instance counter that can't
  * aggregate across the cluster), and tiered composition would silently
  * hide the cluster-wide nature of the operation.
  *
- * The motivating use case is rate-limiting "fingerprint too common"
- * detection: track distinct IPs ever observed for a given fingerprint,
- * compare cardinality against a threshold to decide whether the
- * fingerprint is shared widely enough to be unreliable. Other
- * plausible uses include distinct-user counts per feature flag,
- * active-session tracking by org, and any bounded-cardinality
- * "have I seen X for Y" check.
+ * A typical use is "fingerprint too common" detection for rate limiting:
+ * track the distinct IPs ever observed for a given fingerprint and compare
+ * the cardinality against a threshold to decide whether the fingerprint is
+ * shared widely enough to be unreliable. Other uses include distinct-user
+ * counts per feature flag, active-session tracking by org, and any
+ * bounded-cardinality "have I seen X for Y" check.
  *
  * **Counter width:** `number` (not `bigint`) is an intentional TS
  * ergonomic delta vs .NET `long`. Implementations must stay within
@@ -46,14 +45,14 @@ export interface ICacheSet {
 
   /**
    * Returns the cardinality (number of distinct members) of the set at
-   * `key`. Absent set → `ok(0)`.
+   * `key`. Absent set -> `ok(0)`.
    *
    * @returns `ok(count)`. Failure on backing-store error.
    */
   setCardinality(key: string, signal?: AbortSignal): Promise<D2Result<number>>;
 
   /**
-   * Removes a member from the set at `key`. **Idempotent** — succeeds
+   * Removes a member from the set at `key`. **Idempotent** - succeeds
    * whether the member existed or not.
    *
    * @returns `ok(true)` if the member was present and removed.

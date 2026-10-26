@@ -94,7 +94,7 @@ public sealed class PropagatedContextSerializerTests
     [Fact]
     public void TryDecode_ValidBase64ButNotJson_ReturnsNull()
     {
-        // Base64-encoded "not json {{" — passes base64 decode, fails JSON parse.
+        // Base64-encoded "not json {{" - passes base64 decode, fails JSON parse.
         var raw = "not json {{"u8;
         var encoded = Convert.ToBase64String(raw)
             .TrimEnd('=').Replace('+', '-').Replace('/', '_');
@@ -104,7 +104,7 @@ public sealed class PropagatedContextSerializerTests
     [Fact]
     public void TryDecode_ValidJsonOfWrongShape_ReturnsRecordWithDefaults()
     {
-        // Base64 of `{}` — valid JSON, parses to an empty PropagatedContext.
+        // Base64 of `{}` - valid JSON, parses to an empty PropagatedContext.
         // Verifies we don't throw on a sparse / unknown-field payload.
         var encoded = Convert.ToBase64String("{}"u8)
             .TrimEnd('=').Replace('+', '-').Replace('/', '_');
@@ -154,7 +154,7 @@ public sealed class PropagatedContextSerializerTests
     {
         // A forged x-d2-context with a 3 KiB RequestPath would otherwise
         // pollute log scope keys. The decoder caps fields and drops the
-        // whole context if any field is over budget — and the wire-level
+        // whole context if any field is over budget - and the wire-level
         // header cap (MAX_HEADER_LENGTH = 2048) catches a 3 KB string
         // first since it base64-encodes to ~4 KB.
         var oversize = new string('x', 3000);
@@ -196,7 +196,7 @@ public sealed class PropagatedContextSerializerTests
     }
 
     // -------------------------------------------------------------------------
-    // Surface 3: propagation round-trips for the 7 new propagated fields
+    // Propagation round-trips for the new propagated fields
     // (RequestStartedAt / IdempotencyKey / EdgeNodeId / LocaleIetfBcp47Tag /
     // TimezoneIanaName / CurrencyIso4217Code / OrgPlanTier / FeatureFlagsCsv)
     // -------------------------------------------------------------------------
@@ -227,7 +227,7 @@ public sealed class PropagatedContextSerializerTests
     [Fact]
     public void Propagation_RoundtripsLocaleIetfBcp47Tag_WhenValueEmpty()
     {
-        // Empty string is distinct from null at the wire layer — the serializer
+        // Empty string is distinct from null at the wire layer - the serializer
         // preserves whatever string value is passed; validation lives in the
         // LocaleCode typed wrapper at the consumption site.
         var ctx = new PropagatedContext { LocaleIetfBcp47Tag = string.Empty };
@@ -430,8 +430,8 @@ public sealed class PropagatedContextSerializerTests
     }
 
     // -------------------------------------------------------------------------
-    // Surface 7: Temporal adversarial tests — RequestStartedAt (DateTimeOffset?)
-    // Category 2 — past UTC instant; per Plan §7 temporal enumeration.
+    // Temporal adversarial tests - RequestStartedAt (DateTimeOffset?)
+    // Category 1 - past UTC instant.
     // -------------------------------------------------------------------------
 
     [Fact]
@@ -448,7 +448,7 @@ public sealed class PropagatedContextSerializerTests
     [Fact]
     public void Propagation_RoundtripsRequestStartedAt_WhenValueNull()
     {
-        // NULL roundtrip: null must survive encode → decode without becoming
+        // NULL roundtrip: null must survive encode -> decode without becoming
         // a default value.
         var ctx = new PropagatedContext { RequestStartedAt = null };
         var decoded = PropagatedContextSerializer.TryDecode(
@@ -458,14 +458,14 @@ public sealed class PropagatedContextSerializerTests
     }
 
     [Fact]
-    public void Propagation_RoundtripsRequestStartedAt_NonZeroOffsetNormalizesToUtc()
+    public void Propagation_RoundtripsRequestStartedAt_NonZeroOffsetIsKept()
     {
-        // UTC-normalized deserialization: a DateTimeOffset with non-zero
-        // offset round-trips as UTC (offset preserved-as-UTC via .NET
-        // System.Text.Json's default DateTimeOffset serialization using the
-        // "O" round-trip format, which preserves the original offset).
-        // This test pins the contract: the offset in the payload must equal
-        // the offset passed in — not silently converted.
+        // A DateTimeOffset with a non-zero offset keeps that offset through the
+        // round trip: .NET System.Text.Json's default DateTimeOffset
+        // serialization uses the "O" round-trip format, which preserves the
+        // original offset. This test pins the contract: the offset in the
+        // payload must equal the offset passed in, and is not silently
+        // converted to UTC.
         var withOffset = new DateTimeOffset(2026, 5, 27, 9, 0, 0, TimeSpan.FromHours(-5));
         var ctx = new PropagatedContext { RequestStartedAt = withOffset };
         var decoded = PropagatedContextSerializer.TryDecode(
@@ -474,7 +474,7 @@ public sealed class PropagatedContextSerializerTests
 
         // .NET System.Text.Json "O" format round-trips the offset exactly;
         // two DateTimeOffset values with different offsets are equal iff they
-        // represent the same UTC instant — pin to the specific offset form.
+        // represent the same UTC instant - pin to the specific offset form.
         decoded.RequestStartedAt.Should().Be(withOffset);
         decoded.RequestStartedAt!.Value.Offset.Should().Be(TimeSpan.FromHours(-5));
     }
@@ -530,7 +530,7 @@ public sealed class PropagatedContextSerializerTests
     }
 
     // -------------------------------------------------------------------------
-    // Surface 3 (security): no script injection via wire payload
+    // Security: no script injection via wire payload
     // -------------------------------------------------------------------------
 
     [Fact]
@@ -550,24 +550,26 @@ public sealed class PropagatedContextSerializerTests
     public void Propagation_SecurityAdversarial_ScriptInjectionInWireValue_DoesNotEval()
     {
         // Security: confirms no eval / interpolation happens on wire data.
-        // The decoder must preserve the raw string — not execute it.
+        // The decoder must preserve the raw string - not execute it.
         const string attack = "<script>alert('xss')</script>";
         var ctx = new PropagatedContext { LocaleIetfBcp47Tag = attack };
         var decoded = PropagatedContextSerializer.TryDecode(
             PropagatedContextSerializer.Encode(ctx));
         Assert.NotNull(decoded);
 
-        // Value must come back as the literal attack string — no execution.
+        // Value must come back as the literal attack string - no execution.
         decoded.LocaleIetfBcp47Tag.Should().Be(attack);
     }
 
     [Fact]
     public void HasAnyField_NewPropagatedFieldsContributeToTrueResult()
     {
-        // Catalog-pin guard: all 7 new propagated fields register as "any
+        // Catalog-pin guard: each new propagated field registers as "any
         // field present" so a downstream caller can skip encode when the
-        // context is truly empty. Catches a future codegen slip where a new
-        // field is added to PropagatedContext but forgotten in HasAnyField.
+        // context is truly empty. The test checks only the fields listed below:
+        // a field added to PropagatedContext and HasAnyField must also be
+        // added to this list, or this test does not check it. A field added to
+        // PropagatedContext and left out of HasAnyField is not caught here.
         new PropagatedContext { RequestStartedAt = DateTimeOffset.UtcNow }
             .HasAnyField.Should().BeTrue();
         new PropagatedContext { IdempotencyKey = "key" }.HasAnyField.Should().BeTrue();
@@ -583,7 +585,7 @@ public sealed class PropagatedContextSerializerTests
     public void Encode_NewPropagatedFields_OmittedWhenNull()
     {
         // WhenWritingNull semantics: null values must NOT appear as
-        // "\"localeIetfBcp47Tag\":null" on the wire — they must be omitted.
+        // "\"localeIetfBcp47Tag\":null" on the wire - they must be omitted.
         var ctx = new PropagatedContext
         {
             LocaleIetfBcp47Tag = null,
@@ -615,8 +617,9 @@ public sealed class PropagatedContextSerializerTests
     [Fact]
     public void Encode_FullNewPropagatedContext_RoundtripsAllNewFields()
     {
-        // Full round-trip smoke covering all 13 propagated fields together
-        // to guard against cross-field JSON serialization interference.
+        // Full round-trip smoke covering the propagated fields set below together,
+        // to guard against cross-field JSON serialization interference. DeviceKey
+        // and CallPath are left unset.
         var original = new PropagatedContext
         {
             RequestId = "req-abc",
@@ -643,7 +646,7 @@ public sealed class PropagatedContextSerializerTests
     }
 
     // -------------------------------------------------------------------------
-    // Surface 7b: RequestStartedAt invalid-wire-input adversarial (§25.12 / §1.2)
+    // RequestStartedAt invalid-wire-input adversarial tests
     // Malformed date strings must produce null, not bubble an exception.
     // -------------------------------------------------------------------------
 
@@ -670,13 +673,13 @@ public sealed class PropagatedContextSerializerTests
 
         var decoded = PropagatedContextSerializer.TryDecode(padded);
 
-        // If the payload fits under the cap: field is null (malformed date → parse ignored).
+        // If the payload fits under the cap: field is null (malformed date -> parse ignored).
         if (decoded is not null)
             decoded.RequestStartedAt.Should().BeNull();
     }
 
     // -------------------------------------------------------------------------
-    // CallPath — the first propagated list-of-records field (OQ-1).
+    // CallPath - the first propagated list-of-records field.
     // Multi-entry round-trip, enum-as-string wire form, depth bound (max entry
     // count), per-entry-id cap, full-depth-under-header-cap, null omission.
     // -------------------------------------------------------------------------
@@ -688,8 +691,8 @@ public sealed class PropagatedContextSerializerTests
         var path = new[]
         {
             new CallPathEntry("edge", CallPathKind.Edge, ts),
-            new CallPathEntry("key-custodian", CallPathKind.WorkloadHop, ts.AddSeconds(1)),
-            new CallPathEntry("audit", CallPathKind.ModuleHop, ts.AddSeconds(2)),
+            new CallPathEntry("inventory", CallPathKind.WorkloadHop, ts.AddSeconds(1)),
+            new CallPathEntry("orders", CallPathKind.ModuleHop, ts.AddSeconds(2)),
         };
         var ctx = new PropagatedContext { CallPath = path };
 
@@ -704,7 +707,7 @@ public sealed class PropagatedContextSerializerTests
     [Fact]
     public void Encode_CallPath_RendersKindAsHumanReadableString()
     {
-        // CallPathKind serializes via JsonStringEnumConverter — the wire carries
+        // CallPathKind serializes via JsonStringEnumConverter - the wire carries
         // "WorkloadHop", not the ordinal 1, so logs stay grep-able.
         var ctx = new PropagatedContext
         {
@@ -759,7 +762,7 @@ public sealed class PropagatedContextSerializerTests
     public void Decode_CallPathExceedingDepthBound_DropsContext()
     {
         // 17 entries (> 16) fits under MAX_HEADER_LENGTH but trips the depth
-        // bound in FieldsWithinBounds → whole context dropped (returns null).
+        // bound in FieldsWithinBounds -> whole context dropped (returns null).
         var ctx = new PropagatedContext { CallPath = BuildCallPath(17) };
         var encoded = PropagatedContextSerializer.Encode(ctx);
 
@@ -814,7 +817,7 @@ public sealed class PropagatedContextSerializerTests
     }
 
     // -------------------------------------------------------------------------
-    // Structural catalog guard (§1.21): wire keys ⊆ PropagatedContext field catalog
+    // Structural catalog guard: wire keys subset PropagatedContext field catalog
     // Verifies the serializer never emits a key not in the spec-driven field set.
     // -------------------------------------------------------------------------
 
@@ -823,9 +826,9 @@ public sealed class PropagatedContextSerializerTests
     {
         // Canonical propagated-field catalog (spec-driven: every propagate:true
         // field in contracts/request-context/IRequestContext.spec.json).
-        // If a future field is added to PropagatedContext without being listed
-        // here, this test does NOT automatically fail — the intent is to verify
-        // no EXTRA (non-spec) keys leak onto the wire from the current implementation.
+        // A field added to PropagatedContext and left out of this list does
+        // not fail this test; the test verifies that no EXTRA (non-spec) keys
+        // reach the wire from the current implementation.
         // See sibling test Encode_NewPropagatedFields_OmittedWhenNull for null omission.
         var catalog = new HashSet<string>(StringComparer.Ordinal)
         {

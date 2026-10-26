@@ -12,10 +12,9 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Topology;
 /// retry topology.
 /// </summary>
 /// <remarks>
-/// The convention is uniform across all queues so ops tooling
-/// (<c>d2 msg decrypt --queue {q}.dlq</c>) and dashboards can rely on a
-/// fixed shape. The lib does not allow overriding these names — they're
-/// derived from the queue name, full stop.
+/// The convention is the same for every queue, so operator tooling
+/// and dashboards can rely on a fixed shape. The library does not allow
+/// overriding these names; they are derived from the queue name.
 /// </remarks>
 internal static class DlqNaming
 {
@@ -39,8 +38,9 @@ internal static class DlqNaming
     public static string RetryTierQueueFor(string queueName, int tierIndex)
         => $"{queueName}.retry.{tierIndex}";
 
-    /// <summary>Returns the return exchange name — retry queues dead-letter
-    /// here on TTL expiry; binding routes back to the primary queue.</summary>
+    /// <summary>Returns the return exchange name. Retry queues dead-letter
+    /// here on TTL expiry, and the binding routes back to the primary
+    /// queue.</summary>
     /// <param name="queueName">Primary queue name.</param>
     public static string RetryReturnExchangeFor(string queueName)
         => $"{queueName}.retry.return";

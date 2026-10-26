@@ -22,38 +22,38 @@ using DcsvIo.D2.Utilities.Extensions;
 /// <para>
 /// <b>Why replay verbatim.</b> A hop that rebuilt a token from the claims it
 /// parsed would produce a different, unsigned-by-the-issuer token that every
-/// downstream hop would reject — so a hop that forwards MUST keep the original
+/// downstream hop would reject - so a hop that forwards must keep the original
 /// bearer bytes. Keeping a live credential in-process is a logging-leak hazard,
-/// which this wrapper contains through four reinforcing layers:
+/// which this wrapper contains through the layers listed here:
 /// </para>
 /// <list type="number">
 ///   <item><b>Self-redacting.</b> <see cref="ToString"/> and any default
 ///     serialization yield <see cref="REDACTION_PLACEHOLDER"/>, never the bytes;
-///     the type carries <c>[RedactData]</c> so the Serilog destructuring policy
+///     the type has <c>[RedactData]</c> so the Serilog destructuring policy
 ///     masks the structural (<c>{@x}</c>) capture path; and the raw bytes live
-///     in a PRIVATE field, not a public property — the destructuring policy
-///     reflects only public instance PROPERTIES, so the bytes are invisible to
+///     in a private field, not a public property - the destructuring policy
+///     reflects only public instance properties, so the bytes are invisible to
 ///     structural logging even before <c>[RedactData]</c> fires. The explicit
 ///     <see cref="ToString"/> is required in addition because a plain
 ///     (<c>{x}</c>) capture calls <see cref="ToString"/> and bypasses the
 ///     policy entirely.</item>
 ///   <item><b>Single reveal seam.</b> The raw bytes are reachable only through
-///     <see cref="RevealForForwarding"/> — there is no public raw accessor and
-///     no implicit/explicit string conversion. The sole production caller is the
-///     outbound forwarding credential.</item>
+///     <see cref="RevealForForwarding"/> - there is no public raw accessor and
+///     no implicit or explicit string conversion. A usage-scan test pins that no
+///     other production type calls it.</item>
 ///   <item><b>Enrichment-isolated.</b> The wrapper is held in a dedicated
 ///     request-scoped holder (<see cref="IForwardedJwtAccessor"/>), never as a
-///     property of the request context — the request context is a broadly
+///     property of the request context - the request context is a broadly
 ///     projected log/telemetry surface, and the credential is structurally
 ///     excluded from it.</item>
 ///   <item><b>Never a log parameter.</b> No <c>[LoggerMessage]</c> delegate
 ///     accepts this type.</item>
 /// </list>
 /// <para>
-/// The guarantee is proven, not asserted — a ToString-redacts test, a
-/// field-set-exclusion structural test, a log-capture test across a
-/// capture-then-reveal cycle asserting the bytes never surface, and the two
-/// scans (sole-reveal-caller, no-log-delegate-parameter).
+/// Tests cover the guarantee: a test that ToString redacts, a structural test
+/// that the field set excludes the bytes, a log-capture test across a
+/// capture-then-reveal cycle asserting the bytes never surface, and scans for
+/// the sole reveal caller and for log delegate parameters of this type.
 /// </para>
 /// </remarks>
 [RedactData(Reason = RedactReason.SecretInformation)]
@@ -65,7 +65,7 @@ public readonly struct ForwardedJwt : IEquatable<ForwardedJwt>
     /// </summary>
     public const string REDACTION_PLACEHOLDER = "[REDACTED: ForwardedJwt]";
 
-    // Raw bearer bytes — a PRIVATE field, deliberately NOT a public property:
+    // Raw bearer bytes - a private field, deliberately not a public property:
     // the Serilog destructuring policy reflects only public instance properties,
     // so the bytes are invisible to structural logging even before [RedactData]
     // masks the type. The sole read path is RevealForForwarding().
@@ -93,8 +93,8 @@ public readonly struct ForwardedJwt : IEquatable<ForwardedJwt>
 
     /// <summary>
     /// Validates and wraps a raw bearer string. The token is expected to have
-    /// ALREADY passed inbound JWT validation at the capture site, so this does
-    /// NOT re-check the JWT format — it only rejects a blank credential
+    /// already passed inbound JWT validation at the capture site, so this does
+    /// not re-check the JWT format - it only rejects a blank credential
     /// (null / empty / whitespace), which is never valid to hold.
     /// </summary>
     /// <param name="rawBearer">
@@ -107,10 +107,10 @@ public readonly struct ForwardedJwt : IEquatable<ForwardedJwt>
     /// </returns>
     public static D2Result<ForwardedJwt> Create(string? rawBearer)
     {
-        // ToNullIfEmpty() collapses null/empty/whitespace to null in one call —
-        // never hand-roll the null/empty check. NOTE: the trimmed return is
-        // deliberately NOT used as the stored value; a validated JWT is held
-        // VERBATIM (RevealForForwarding must return the exact bytes the issuer
+        // ToNullIfEmpty() collapses null/empty/whitespace to null in one call,
+        // so no hand-rolled null/empty check is needed. The trimmed return value
+        // is deliberately not used as the stored value; a validated JWT is held
+        // verbatim (RevealForForwarding must return the exact bytes the issuer
         // signed), so the trim here is a presence check only.
         if (rawBearer.ToNullIfEmpty() is null)
             return D2Result<ForwardedJwt>.ValidationFailed(category: ErrorCategory.ValidationFailure);
@@ -119,9 +119,8 @@ public readonly struct ForwardedJwt : IEquatable<ForwardedJwt>
     }
 
     /// <summary>
-    /// THE sole reveal seam — returns the raw bearer bytes verbatim for outbound
-    /// forwarding. The intended production caller is the outbound forwarding
-    /// credential; a usage-scan test pins that no other production type calls it.
+    /// The sole reveal seam - returns the raw bearer bytes verbatim for outbound
+    /// forwarding. A usage-scan test pins that no other production type calls it.
     /// </summary>
     /// <returns>The exact raw bearer bytes the wrapper holds.</returns>
     /// <exception cref="InvalidOperationException">
@@ -132,12 +131,12 @@ public readonly struct ForwardedJwt : IEquatable<ForwardedJwt>
     public string RevealForForwarding() =>
         r_raw ?? throw new InvalidOperationException(
             "RevealForForwarding() was called on an empty ForwardedJwt. A reveal "
-            + "with no token to forward indicates a pipeline ordering error — the "
+            + "with no token to forward indicates a pipeline ordering error - the "
             + "holder must be populated by the inbound auth surface before an "
             + "outbound hop reveals it.");
 
     /// <summary>
-    /// Always returns <see cref="REDACTION_PLACEHOLDER"/> — never the raw bytes.
+    /// Always returns <see cref="REDACTION_PLACEHOLDER"/> - never the raw bytes.
     /// This is the second mandatory redaction layer: it covers the plain
     /// <c>{x}</c> / string-interpolation log path that the destructuring policy
     /// does not intercept.
@@ -160,7 +159,7 @@ public readonly struct ForwardedJwt : IEquatable<ForwardedJwt>
     /// <summary>
     /// Returns a hash of the wrapped token bytes (ordinal), or zero for a default
     /// wrapper. A hash is one-way and non-reversible, so it does not surface the
-    /// bytes — unlike <see cref="ToString"/>, which must never echo them.
+    /// bytes - unlike <see cref="ToString"/>, which must never echo them.
     /// </summary>
     /// <returns>An ordinal hash of the wrapped bytes, or zero when empty.</returns>
     public override int GetHashCode() =>

@@ -14,10 +14,10 @@ using DcsvIo.D2.Tests.Integration.Telemetry.Infrastructure;
 using Xunit;
 
 /// <summary>
-/// Forces 100% coverage that EVERY shipped lib's <c>ActivitySource</c> /
-/// <c>Meter</c> in <see cref="AggregatedTelemetrySources"/> is actually
-/// wired through the OTel SDK by emitting a synthetic activity / counter
-/// per name and asserting capture in the in-memory exporter.
+/// Covers 100% of the <c>ActivitySource</c> and <c>Meter</c> names in
+/// <see cref="AggregatedTelemetrySources"/>: for every name, the test emits a
+/// synthetic activity or counter and asserts that the in-memory exporter
+/// captured it, which shows the OTel SDK is wired to that source or meter.
 /// </summary>
 [Collection("LogLoggerStaticState")]
 public sealed class AggregatedSourceRegistrationTests
@@ -38,9 +38,10 @@ public sealed class AggregatedSourceRegistrationTests
 
         using (var source = new ActivitySource(sourceName))
         {
-            // Explicit name arg overrides the [CallerMemberName] default —
-            // the test name itself ("EveryAggregated...") is meaningless
-            // as a span name; "aggregation-pin" is the contract token.
+            // The explicit name argument replaces the [CallerMemberName]
+            // default, which would make the test method name
+            // ("EveryAggregated...") the span name. The span is named
+            // "aggregation-pin".
             // ReSharper disable once ExplicitCallerInfoArgument
             using var activity = source.StartActivity("aggregation-pin");
             activity?.SetTag("test", "true");
@@ -50,7 +51,7 @@ public sealed class AggregatedSourceRegistrationTests
 
         handle.Activities.Snapshot(sourceName).Should().NotBeEmpty(
             because: $"AggregatedTelemetrySources lists '{sourceName}' "
-            + "as wired via AddSource — emitting through that source should "
+            + "as wired via AddSource - emitting through that source should "
             + "reach the exporter.");
     }
 
@@ -70,7 +71,7 @@ public sealed class AggregatedSourceRegistrationTests
 
         handle.Metrics.Snapshot(meterName).Should().NotBeEmpty(
             because: $"AggregatedTelemetrySources lists '{meterName}' "
-            + "as wired via AddMeter — emitting through that meter should "
+            + "as wired via AddMeter - emitting through that meter should "
             + "reach the exporter.");
     }
 }

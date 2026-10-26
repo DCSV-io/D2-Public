@@ -72,4 +72,49 @@ internal static partial class MessagingLog
             + "{Exchange}/{RoutingKey}; treating as transient.")]
     public static partial void PublishConfirmTimeout(
         ILogger logger, double timeoutMs, string exchange, string routingKey);
+
+    [LoggerMessage(
+        EventId = 105,
+        Level = LogLevel.Warning,
+        Message = "Publish to {Exchange}/{RoutingKey} was returned by the broker on "
+            + "attempt {Attempt}/{MaxAttempts} (replyCode={ReplyCode}, "
+            + "replyText={ReplyText}); nothing is bound to that exchange for that "
+            + "routing key.")]
+    public static partial void PublishReturned(
+        ILogger logger,
+        string exchange,
+        string routingKey,
+        int attempt,
+        int maxAttempts,
+        int replyCode,
+        string replyText);
+
+    [LoggerMessage(
+        EventId = 106,
+        Level = LogLevel.Error,
+        Message = "Publish to {Exchange}/{RoutingKey} matched no queue on every one of "
+            + "{Attempts} attempt(s) (msgType={MessageType}); the message was not "
+            + "delivered anywhere. Declare a queue bound to that exchange for that "
+            + "routing key, or stop publishing to it.")]
+    public static partial void PublishUnroutableTerminal(
+        ILogger logger,
+        string exchange,
+        string routingKey,
+        string messageType,
+        int attempts);
+
+    [LoggerMessage(
+        EventId = 107,
+        Level = LogLevel.Warning,
+        Message = "Broker returned a publish to {Exchange}/{RoutingKey} on a channel "
+            + "with publisher-confirmation tracking off (replyCode={ReplyCode}, "
+            + "replyText={ReplyText}); the publish could not be failed, so the message "
+            + "is gone. Enable ChannelPoolOptions.PublisherConfirmsEnabled to have the "
+            + "publisher retry this.")]
+    public static partial void PublishReturnedUntracked(
+        ILogger logger,
+        string exchange,
+        string routingKey,
+        int replyCode,
+        string replyText);
 }

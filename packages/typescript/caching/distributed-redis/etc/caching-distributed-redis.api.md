@@ -10,6 +10,7 @@ import { ICacheSerializer } from '@dcsv-io/d2-caching-abstractions';
 import { IDistributedCache } from '@dcsv-io/d2-caching-abstractions';
 import type { ILogger } from '@dcsv-io/d2-logging';
 import Redis from 'ioredis';
+import { TokenBucketDecision } from '@dcsv-io/d2-caching-abstractions';
 
 // @public
 export interface CacheInstrumentMeta {
@@ -23,6 +24,9 @@ export interface CacheInstrumentMeta {
 
 // @public
 export function connectRedis(options: RedisCacheOptions): Redis;
+
+// @public
+export const CONSUME_TOKEN: string;
 
 // @public
 export function createRedisCacheOptions(partial?: Partial<RedisCacheOptions>): RedisCacheOptions;
@@ -80,6 +84,8 @@ export class RedisDistributedCache implements IDistributedCache {
     // (undocumented)
     acquireLock(key: string, lockId: string, expirationMs: number, signal?: AbortSignal): Promise<D2Result<boolean>>;
     // (undocumented)
+    consumeToken(key: string, refillTokens: number, refillIntervalMs: number, burst: number, cost?: number, signal?: AbortSignal): Promise<D2Result<TokenBucketDecision>>;
+    // (undocumented)
     exists(key: string, signal?: AbortSignal): Promise<D2Result<boolean>>;
     // (undocumented)
     get<T>(key: string, signal?: AbortSignal): Promise<D2Result<T>>;
@@ -95,6 +101,8 @@ export class RedisDistributedCache implements IDistributedCache {
     remove(key: string, signal?: AbortSignal): Promise<D2Result>;
     removeAndBroadcast(key: string, signal?: AbortSignal): Promise<D2Result>;
     // (undocumented)
+    removeIfEqual<T>(key: string, expected: T, signal?: AbortSignal): Promise<D2Result<boolean>>;
+    // (undocumented)
     removeMany(keys: readonly string[], signal?: AbortSignal): Promise<D2Result>;
     removeManyAndBroadcast(keys: readonly string[], signal?: AbortSignal): Promise<D2Result>;
     // (undocumented)
@@ -106,6 +114,8 @@ export class RedisDistributedCache implements IDistributedCache {
     setCardinality(key: string, signal?: AbortSignal): Promise<D2Result<number>>;
     // (undocumented)
     setContains(key: string, member: string, signal?: AbortSignal): Promise<D2Result<boolean>>;
+    // (undocumented)
+    setIfEqual<T>(key: string, expected: T, value: T, expirationMs?: number, signal?: AbortSignal): Promise<D2Result<boolean>>;
     // (undocumented)
     setMany<T>(entries: ReadonlyMap<string, T>, expirationMs?: number, signal?: AbortSignal): Promise<D2Result>;
     setManyAndBroadcast<T>(entries: ReadonlyMap<string, T>, expirationMs?: number, signal?: AbortSignal): Promise<D2Result>;
@@ -131,7 +141,13 @@ export interface RedisDistributedCacheDeps {
 export const RELEASE_LOCK_IF_OWNER: string;
 
 // @public
+export const REMOVE_IF_EQUAL: string;
+
+// @public
 export const SET_ADD_WITH_OPTIONAL_TTL: string;
+
+// @public
+export const SET_IF_EQUAL: string;
 
 // (No @packageDocumentation comment for this package)
 

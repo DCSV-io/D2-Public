@@ -13,9 +13,8 @@ using DcsvIo.D2.SourceGen;
 
 /// <summary>
 /// Pure logic for parsing <c>keys.spec.json</c> into an
-/// <see cref="InProcessKeysSpec"/> record. Responsible only for JSON-shape
-/// validation; semantic validation lives in
-/// <see cref="InProcessKeysEmitter"/>.
+/// <see cref="InProcessKeysSpec"/> record. It validates only the JSON shape;
+/// <see cref="InProcessKeysEmitter"/> validates the content.
 /// </summary>
 internal static class InProcessKeysSpecLoader
 {
@@ -28,7 +27,7 @@ internal static class InProcessKeysSpecLoader
     /// <summary>
     /// Parses raw JSON spec content into an <see cref="InProcessKeysSpec"/>.
     /// </summary>
-    /// <param name="path">Spec file path (used for diagnostic message context).</param>
+    /// <param name="path">Spec file path. Diagnostics report its file name.</param>
     /// <param name="json">Raw JSON content of the spec file.</param>
     /// <returns>
     /// A <see cref="LoadResult{TSpec}"/> wrapping <see cref="InProcessKeysSpec"/>.

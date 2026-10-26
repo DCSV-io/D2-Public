@@ -13,14 +13,15 @@ using Xunit;
 
 /// <summary>
 /// Adversarial coverage for <see cref="MutableEmitter.Emit"/>. Asserts the
-/// shape of the generated <c>MutableRequestContext</c>
-/// — get/set vs computed getters, three named factories, claim-source dispatch,
-/// and the property-name collision diagnostic (D2CTX003).
+/// shape of the generated <c>MutableRequestContext</c>:
+/// get/set vs computed getters, the FromJwtPayloadNoValidation and FromClaims
+/// factories, claim-source dispatch, and the property-name collision
+/// diagnostic (D2CTX003).
 /// </summary>
 public sealed class MutableEmitterTests
 {
     // ----------------------------------------------------------------------
-    // Mutable shape — non-derived properties get { get; set; }
+    // Mutable shape - non-derived properties get { get; set; }
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -44,7 +45,7 @@ public sealed class MutableEmitterTests
         var mutable = MutableEmitter.Emit(auth, request);
 
         // ImmediateCallerClientId / OriginatingClientId / IsServiceIdentity are
-        // computed from ActorChain — must NOT have a setter.
+        // computed from ActorChain - must not have a setter.
         mutable.GeneratedSource.Should()
             .NotContain("public string? ImmediateCallerClientId { get; set; }");
         mutable.GeneratedSource.Should()
@@ -64,12 +65,12 @@ public sealed class MutableEmitterTests
 
         // Trinary semantics: when IsAuthenticated is null, derived auth flags
         // also return null (pre-auth state). The emitter pattern is identical
-        // for IsServiceIdentity + IsImpersonating.
+        // for IsServiceIdentity and IsImpersonating.
         mutable.GeneratedSource.Should().Contain("if (IsAuthenticated is null)");
     }
 
     // ----------------------------------------------------------------------
-    // Two factories — FromJwtPayloadNoValidation / FromClaims
+    // Two factories - FromJwtPayloadNoValidation / FromClaims
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -82,9 +83,9 @@ public sealed class MutableEmitterTests
         mutable.GeneratedSource.Should().Contain("FromJwtPayloadNoValidation(JsonElement payload)");
         mutable.GeneratedSource.Should().Contain("FromClaims(ClaimsPrincipal principal)");
 
-        // No more envelope wire-shape — propagation now goes via the hand-
-        // written PropagatedContext + a single x-d2-context header. Asserting
-        // the generated source doesn't reintroduce envelope methods.
+        // Propagation uses the hand-written PropagatedContext and a single
+        // x-d2-context header, not an envelope wire shape. The assertions check
+        // that the generated source contains no envelope methods.
         mutable.GeneratedSource.Should().NotContain("ContextEnvelope");
         mutable.GeneratedSource.Should().NotContain("FromContextEnvelope");
         mutable.GeneratedSource.Should().NotContain("ToContextEnvelope");
@@ -98,8 +99,8 @@ public sealed class MutableEmitterTests
 
         var mutable = MutableEmitter.Emit(auth, request);
 
-        // Loud-warning XML doc — DOES NOT VALIDATE / forged-token impersonation
-        // primitive — both phrases must appear.
+        // The warning XML doc must contain both phrases: DOES NOT VALIDATE and
+        // forged-token impersonation.
         mutable.GeneratedSource.Should().Contain("DOES NOT VALIDATE");
         mutable.GeneratedSource.Should().Contain("forged-token impersonation");
 
@@ -111,8 +112,8 @@ public sealed class MutableEmitterTests
     [Fact]
     public void Emit_FromClaims_UsesFindAllForStringListType()
     {
-        // RFC 7519 §4.1.3: aud claim may be string or array. ASP.NET expands
-        // multi-valued claims into multiple Claim entries — FromClaims must
+        // RFC 7519 section 4.1.3: aud claim may be string or array. ASP.NET expands
+        // multi-valued claims into multiple Claim entries - FromClaims must
         // use FindAll, not FindFirst, for IReadOnlyList<string> properties.
         var (auth, request) = MinimalSpecs();
 
@@ -124,7 +125,7 @@ public sealed class MutableEmitterTests
     [Fact]
     public void Emit_FromJwtPayloadNoValidation_AcceptsBothStringAndArrayForStringList()
     {
-        // RFC 7519 §4.1.3: wire format may be a single string OR an array.
+        // RFC 7519 section 4.1.3: the wire format may be a single string or an array.
         // FromJwtPayloadNoValidation must handle both ValueKinds for any
         // IReadOnlyList<string> property.
         var (auth, request) = MinimalSpecs();
@@ -137,7 +138,7 @@ public sealed class MutableEmitterTests
     }
 
     // ----------------------------------------------------------------------
-    // D2CTX003 — property-name collision across specs
+    // D2CTX003 - property-name collision in the combined spec hierarchy
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -164,11 +165,38 @@ public sealed class MutableEmitterTests
     }
 
     [Fact]
-    public void Emit_SamePropertyNameInSameSpec_NoCollisionDiagnostic()
+    public void Emit_PropertyNameRepeatedInOneSpec_EmitsD2CTX003AndNoClass()
     {
-        // Carve-out: properties in the SAME spec that intentionally map to the
-        // same JWT claim (e.g. Subject + UserId both reading "sub" with
-        // different parsers) are allowed — collision check is cross-spec only.
+        var auth = Spec(
+            name: "IAuthContext",
+            @namespace: "DcsvIo.D2.AuthContext.Abstractions",
+            sections: [
+                Section(
+                    "S",
+                    Property("Subject", "string?", claim: "sub"),
+                    Property("Subject", "string?", claim: "sub")),
+            ]);
+
+        var request = Spec(
+            name: "IRequestContext",
+            @namespace: "DcsvIo.D2.Context.Abstractions",
+            extends: "DcsvIo.D2.AuthContext.Abstractions.IAuthContext",
+            sections: [Section("Tracing", Property("TraceId", "string?"))]);
+
+        var mutable = MutableEmitter.Emit(auth, request);
+
+        mutable.Diagnostics.Should()
+            .ContainSingle(d => d.DescriptorId == DiagnosticIds.PropertyNameCollision);
+        mutable.GeneratedSource.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Emit_TwoPropertiesReadSameClaim_NoCollisionDiagnostic()
+    {
+        // Carve-out: properties in the same spec that intentionally map to the
+        // same JWT claim (e.g. Subject and UserId both reading "sub" with
+        // different parsers) are allowed, because the collision check compares
+        // property names and not claims.
         var auth = Spec(
             name: "IAuthContext",
             @namespace: "DcsvIo.D2.AuthContext.Abstractions",
@@ -187,22 +215,24 @@ public sealed class MutableEmitterTests
 
         var mutable = MutableEmitter.Emit(auth, request);
 
-        // Different property names — no collision (the carve-out is structural,
-        // not name-based; the test asserts no false positives on legit twin claims).
+        // Different property names, so no collision (the carve-out is structural,
+        // not name-based; the test asserts no false positives on legitimate twin claims).
         mutable.Diagnostics.Should()
             .NotContain(d => d.DescriptorId == DiagnosticIds.PropertyNameCollision);
     }
 
     // ----------------------------------------------------------------------
-    // Adversarial — minimal specs (no derived sections, single-section auth)
+    // Adversarial - minimal specs (no derived sections, single-section auth)
     // ----------------------------------------------------------------------
 
     [Fact]
     public void Emit_AuthSpecOnlyAuthSideProperties_RequestSideFieldsAbsent()
     {
-        // Defensive: a spec that contains only auth-side properties shouldn't
-        // produce request-side mutable fields. Validates emitter doesn't
-        // hardcode field assumptions about what's present.
+        // Defensive: the emitter must produce the fields that the specs declare
+        // and no others. The auth spec declares only Subject and the request
+        // spec declares only TraceId, so a field that neither declares
+        // (OrgName) must be absent. This validates that the emitter does not
+        // hard-code assumptions about which fields exist.
         var auth = Spec(
             name: "IAuthContext",
             @namespace: "DcsvIo.D2.AuthContext.Abstractions",
@@ -231,9 +261,10 @@ public sealed class MutableEmitterTests
     [Fact]
     public void Emit_NoActorChainSection_HandlesAbsenceGracefully()
     {
-        // No ActorChain property means no derived getter machinery should
-        // complain — the generator's switch-on-derived just emits a placeholder
-        // when ActorChain isn't present.
+        // A spec with no ActorChain property must produce neither derived
+        // getter machinery nor diagnostics. The switch-on-derived emits a
+        // placeholder only for an unknown derived rule, and not for a missing
+        // ActorChain.
         var auth = Spec(
             name: "IAuthContext",
             @namespace: "DcsvIo.D2.AuthContext.Abstractions",
@@ -293,7 +324,7 @@ public sealed class MutableEmitterTests
         var src = Normalize(mutable.GeneratedSource);
         src.Should().Contain("[RedactData(Reason = RedactReason.PersonalInformation)]");
 
-        // Attribute lands immediately above the matching property declaration.
+        // The attribute appears immediately above the matching property declaration.
         src.Should().Contain(
             "[RedactData(Reason = RedactReason.PersonalInformation)]\n"
             + "    public string? Username { get; set; }");
@@ -309,7 +340,7 @@ public sealed class MutableEmitterTests
         mutable.Diagnostics.Should().BeEmpty();
 
         // None of the MinimalSpecs properties carry redact, so the concrete
-        // class shouldn't have the attribute on any property.
+        // class does not have the attribute on any property.
         mutable.GeneratedSource.Should().NotContain("[RedactData");
     }
 
@@ -414,6 +445,7 @@ public sealed class MutableEmitterTests
         string name,
         string type,
         string? claim = null,
+        string? claimForm = null,
         bool trinaryAuth = false,
         string? derived = null,
         string? @default = null,
@@ -426,6 +458,7 @@ public sealed class MutableEmitterTests
             name,
             type,
             claim,
+            claimForm,
             trinaryAuth,
             derived,
             @default,

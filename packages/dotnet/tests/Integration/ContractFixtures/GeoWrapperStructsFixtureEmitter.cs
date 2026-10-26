@@ -16,7 +16,7 @@ using Xunit;
 /// <summary>
 /// Emits the parity fixture for the codegen-emitted geo wrapper structs
 /// (<see cref="SubdivisionCode"/>, <see cref="LocaleCode"/>,
-/// <see cref="TimezoneCode"/>) — specifically the closed-set validation
+/// <see cref="TimezoneCode"/>) - specifically the closed-set validation
 /// catalogs embedded in each struct's <c>JsonConverter</c>. The catalog
 /// is the cross-language wire contract: a value rejected on one side
 /// must be rejected on the other.
@@ -24,14 +24,13 @@ using Xunit;
 /// <remarks>
 /// The validation sets live as <c>private static readonly FrozenSet&lt;string&gt;</c>
 /// fields on each <c>*JsonConverter</c> (e.g.
-/// <c>SubdivisionCodeJsonConverter.sr_validSubdivisionCodes</c>) — exposed
-/// publicly only via the boolean <c>IsKnown(string)</c> probe. Reflection
-/// is the right hammer here: enumerating the full set lets the parity test
-/// pin set equality (sorted string array), not just per-string probes.
-/// The TS-side parity test loads <c>fixtures/geo/wrapper-structs.json</c>
-/// and asserts byte-equivalence against the TS-side
-/// <c>SUBDIVISION_CODE_SET</c> / <c>LOCALE_CODE_SET</c> /
-/// <c>TIMEZONE_CODE_SET</c> exports.
+/// <c>SubdivisionCodeJsonConverter.sr_validSubdivisionCodes</c>) - exposed
+/// publicly only via the boolean <c>IsKnown(string)</c> probe. The emitter
+/// uses reflection to enumerate the full set, so the fixture holds the whole
+/// set as a sorted string array and not only per-string probe results.
+/// The emitter writes the fixture to <c>fixtures/geo/wrapper-structs.json</c>;
+/// the TypeScript counterparts are the <c>SUBDIVISION_CODE_SET</c> /
+/// <c>LOCALE_CODE_SET</c> / <c>TIMEZONE_CODE_SET</c> exports.
 /// </remarks>
 public sealed class GeoWrapperStructsFixtureEmitter
 {
@@ -76,13 +75,13 @@ public sealed class GeoWrapperStructsFixtureEmitter
             BindingFlags.Static | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException(
                 $"Could not find private static field '{fieldName}' " +
-                $"on {converterType.FullName} — " +
+                $"on {converterType.FullName} - " +
                 "the geo source-gen emitter may have renamed the field; " +
                 "update GeoWrapperStructsFixtureEmitter to match.");
 
         var raw = field.GetValue(null)
             ?? throw new InvalidOperationException(
-                $"Field '{fieldName}' on {converterType.FullName} returned null — "
+                $"Field '{fieldName}' on {converterType.FullName} returned null - "
                 + "the emitted set is missing.");
 
         var enumerable = (System.Collections.IEnumerable)raw;

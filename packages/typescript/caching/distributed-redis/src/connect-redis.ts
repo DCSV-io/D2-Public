@@ -13,7 +13,7 @@ export const CONNECTION_STRING_REQUIRED_MESSAGE =
 
 /**
  * Builds a host-owned **command** ioredis client from options.
- * Maps timeout / retry knobs. Never logs `connectionString`.
+ * Maps the timeout and retry options. Never logs `connectionString`.
  *
  * @throws {Error} with {@link CONNECTION_STRING_REQUIRED_MESSAGE} when
  *   `connectionString` is falsey.

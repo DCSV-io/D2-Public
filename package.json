@@ -16,6 +16,9 @@
     "vitest": "4.0.18"
   },
   "pnpm": {
+    "patchedDependencies": {
+      "rabbitmq-client@5.0.8": "packages/typescript/messaging/rabbitmq/patches/rabbitmq-client@5.0.8.patch"
+    },
     "onlyBuiltDependencies": ["@bufbuild/buf"]
   }
 }

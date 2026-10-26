@@ -60,6 +60,7 @@ export type CallPathKind = (typeof CallPathKind)[keyof typeof CallPathKind];
 
 // @public
 export interface IAuthContext {
+    readonly accessibleOrgIds: ReadonlySet<string>;
     readonly actorChain: readonly ActorEntry[];
     readonly audience: readonly string[];
     readonly authMethod?: string;
@@ -81,6 +82,7 @@ export interface IAuthContext {
     readonly orgType?: OrgType;
     readonly originatingClientId?: string;
     readonly requestedByClientId?: string;
+    readonly rootOrgId?: string;
     readonly scopes: ReadonlySet<string>;
     readonly sessionId?: string;
     readonly subject?: string;

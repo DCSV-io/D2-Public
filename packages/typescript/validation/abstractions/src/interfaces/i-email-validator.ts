@@ -5,12 +5,12 @@
 import type { D2Result } from "@dcsv-io/d2-result";
 
 /**
- * Mirror of .NET `DcsvIo.D2.Validation.Abstractions.IEmailValidator` —
- * validates an email address and returns a normalized form on success.
+ * Mirror of .NET `DcsvIo.D2.Validation.Abstractions.IEmailValidator`.
+ * Validates an email address and returns a normalized form on success.
  *
  * Implementations live in `@dcsv-io/d2-validation` backed by the default
- * normalization rules; tests can supply ad-hoc fixtures by implementing
- * this interface directly.
+ * normalization rules; an ad-hoc fixture can implement this interface
+ * directly.
  */
 export interface IEmailValidator {
   /**

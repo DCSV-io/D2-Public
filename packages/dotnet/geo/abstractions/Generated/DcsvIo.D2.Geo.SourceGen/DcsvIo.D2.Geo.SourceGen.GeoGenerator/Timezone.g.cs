@@ -13,7 +13,7 @@ using System.Collections.Generic;
 
 namespace DcsvIo.D2.Geo.Abstractions;
 
-/// <summary>Timezone record — offsets + abbreviations + localized names + aliases + country navs.</summary>
+/// <summary>Timezone record - offsets + abbreviations + localized names + aliases + country navs.</summary>
 public sealed record Timezone
 {
     /// <summary>Typed IANA timezone identifier (PK, e.g. <c>"America/New_York"</c>).</summary>

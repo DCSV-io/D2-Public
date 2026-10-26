@@ -13,11 +13,11 @@ using DcsvIo.D2.Validation.Abstractions;
 using Xunit;
 
 /// <summary>
-/// Adversarial test coverage for <see cref="StreetAddress"/> per §7.1 matrix:
-/// 5-line ctor + Line1-required + no-gap rule, two-stage normalization
-/// (stored vs hash), Latin diacritic dedup, non-Latin script preservation,
-/// emoji / CRLF / NUL / TAB / BiDi-override / ZWJ adversarial inputs,
-/// HashId invariants.
+/// Adversarial test coverage for <see cref="StreetAddress"/>:
+/// the 5-line constructor, the rule that Line1 is required, the no-gap rule,
+/// two-stage normalization (stored form and hash form), deduplication of
+/// Latin diacritics, preservation of non-Latin scripts, adversarial emoji,
+/// CRLF, NUL, TAB, BiDi-override and ZWJ inputs, and HashId invariants.
 /// </summary>
 public sealed class StreetAddressTests
 {
@@ -55,7 +55,7 @@ public sealed class StreetAddressTests
     }
 
     // -----------------------------------------------------------------------
-    // No-gap rule — Line1 + Line5 with nulls between is valid
+    // No-gap rule - Line1 and Line5 with nulls between them are valid
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -89,19 +89,20 @@ public sealed class StreetAddressTests
     [Fact]
     public void Create_Line1OnlyPunctuation_ReturnsValidationFailed_AfterStrip()
     {
-        // Decorative punctuation strips entirely from stored form.
+        // The stored form removes decorative punctuation entirely.
         var result = StreetAddress.Create("....");
         result.Success.Should().BeFalse();
     }
 
     // -----------------------------------------------------------------------
-    // Two-stage normalization — stored form
+    // Two-stage normalization - stored form
     // -----------------------------------------------------------------------
 
     [Fact]
     public void Create_DecorativePunctuationInStored_IsStripped_CasePreserved()
     {
-        // Periods, commas, semicolons, colons, exclamation, question marks strip from stored form.
+        // The stored form removes periods, commas, semicolons, colons,
+        // exclamation marks and question marks.
         var result = StreetAddress.Create("123 Main St., Apt. 4!");
         result.Success.Should().BeTrue();
         result.Data!.Line1.Should().Be("123 Main St Apt 4");
@@ -110,7 +111,8 @@ public sealed class StreetAddressTests
     [Fact]
     public void Create_SemanticPunctuationInStored_IsPreserved()
     {
-        // Hyphens, apostrophes, parentheses, '#', '&' SHOULD survive.
+        // Hyphens, apostrophes, parentheses, '#' and '&' stay in the stored
+        // form.
         var result = StreetAddress.Create("O'Connor's #4 & Co (Suite-B)");
         result.Success.Should().BeTrue();
         result.Data!.Line1.Should().Be("O'Connor's #4 & Co (Suite-B)");
@@ -133,7 +135,7 @@ public sealed class StreetAddressTests
     }
 
     // -----------------------------------------------------------------------
-    // Hash dedup — case
+    // Hash dedup - case
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -148,7 +150,7 @@ public sealed class StreetAddressTests
     }
 
     // -----------------------------------------------------------------------
-    // Hash dedup — Latin diacritics
+    // Hash dedup - Latin diacritics
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -185,7 +187,7 @@ public sealed class StreetAddressTests
     {
         var result = StreetAddress.Create("123 Main St");
 
-        // "v1." (3) + 64 hex chars = 67
+        // "v1." (3) + 64 hex characters = 67
         result.Data!.HashId.Length.Should().Be(67);
     }
 
@@ -218,7 +220,8 @@ public sealed class StreetAddressTests
     [Fact]
     public void Create_HashId_LinePopulationDistinct_ProducesDistinctHashes()
     {
-        // Line5 only with the rest null is a positionally distinct shape vs Line1-only.
+        // Adding Line5 to an input that already has Line1 changes the hash
+        // input, so the hash differs from the Line1-only input.
         var r1 = StreetAddress.Create("Line 1");
         var r2 = StreetAddress.Create("Line 1", null, null, null, "Line 5");
 
@@ -226,7 +229,7 @@ public sealed class StreetAddressTests
     }
 
     // -----------------------------------------------------------------------
-    // Non-Latin scripts — preserved by design
+    // Non-Latin scripts - preserved on purpose
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -254,13 +257,14 @@ public sealed class StreetAddressTests
     }
 
     // -----------------------------------------------------------------------
-    // Adversarial — emoji / CRLF / NUL / TAB / BiDi / ZWJ
+    // Adversarial - emoji / CRLF / NUL / TAB / BiDi / ZWJ
     // -----------------------------------------------------------------------
 
     [Fact]
     public void NormalizeForHash_EmojiInInput_Stripped()
     {
-        // U+1F4A9 PILE OF POO — surrogate pair — must strip via Rune iteration.
+        // U+1F4A9 PILE OF POO is a surrogate pair, and the method strips it by
+        // iterating over Rune values.
         StreetAddress.NormalizeForHash("💩 Address").Should().Be(" ADDRESS");
     }
 
@@ -279,7 +283,8 @@ public sealed class StreetAddressTests
     [Fact]
     public void NormalizeForHash_CRLF_Stripped()
     {
-        // CRLF chars are Control, not Letter/Digit/space → stripped.
+        // CRLF characters are Control characters, not a Letter, Digit or
+        // space, so the method strips them.
         var hashed = StreetAddress.NormalizeForHash("123 Main\r\nINJECTED");
         hashed.Should().NotContain("\r");
         hashed.Should().NotContain("\n");
@@ -302,7 +307,7 @@ public sealed class StreetAddressTests
     [Fact]
     public void NormalizeForHash_ZeroWidthJoiner_Stripped()
     {
-        // U+200D ZERO WIDTH JOINER — Format category.
+        // U+200D ZERO WIDTH JOINER is in the Format category.
         var hashed = StreetAddress.NormalizeForHash("Main‍St");
         hashed.Should().Be("MAINST");
     }
@@ -310,7 +315,7 @@ public sealed class StreetAddressTests
     [Fact]
     public void NormalizeForHash_BiDiOverride_Stripped()
     {
-        // U+202E RIGHT-TO-LEFT OVERRIDE — Format category.
+        // U+202E RIGHT-TO-LEFT OVERRIDE is in the Format category.
         var hashed = StreetAddress.NormalizeForHash("Hello‮World");
         hashed.Should().Be("HELLOWORLD");
     }
@@ -318,13 +323,14 @@ public sealed class StreetAddressTests
     [Fact]
     public void NormalizeForHash_MixedScriptWithHyphenAndDigits_HyphenStripped()
     {
-        // Hyphen is Punctuation, not Letter/Digit/space → stripped.
-        var hashed = StreetAddress.NormalizeForHash("123 Москва-Centre");
-        hashed.Should().Be("123 МОСКВАCENTRE");
+        // A hyphen is Punctuation, not a Letter, Digit or space, so the
+        // method strips it.
+        var hashed = StreetAddress.NormalizeForHash("123 Москва-Center");
+        hashed.Should().Be("123 МОСКВАCENTER");
     }
 
     // -----------------------------------------------------------------------
-    // Stored form — CRLF / NUL / TAB collapse to single space or strip
+    // Stored form - CRLF, NUL and TAB collapse to a single space or are stripped
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -335,7 +341,7 @@ public sealed class StreetAddressTests
         result.Data!.Line1.Should().NotContain("\r");
         result.Data!.Line1.Should().NotContain("\n");
 
-        // Whitespace + control chars collapse to single space.
+        // Whitespace and control characters collapse to a single space.
         result.Data!.Line1.Should().Be("123 Main INJECTED LOG LINE");
     }
 
@@ -356,7 +362,7 @@ public sealed class StreetAddressTests
     }
 
     // -----------------------------------------------------------------------
-    // Boundary — single-char + very-long inputs
+    // Boundary - single-character and very long inputs
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -368,7 +374,7 @@ public sealed class StreetAddressTests
     }
 
     // -----------------------------------------------------------------------
-    // Length caps — Line1 (required)
+    // Length caps - Line1 (required)
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -391,7 +397,7 @@ public sealed class StreetAddressTests
     }
 
     // -----------------------------------------------------------------------
-    // Length caps — Line2 (optional)
+    // Length caps - Line2 (optional)
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -415,7 +421,7 @@ public sealed class StreetAddressTests
     }
 
     // -----------------------------------------------------------------------
-    // Length caps — Line3 (optional)
+    // Length caps - Line3 (optional)
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -441,7 +447,7 @@ public sealed class StreetAddressTests
     }
 
     // -----------------------------------------------------------------------
-    // Length caps — Line4 (optional)
+    // Length caps - Line4 (optional)
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -469,7 +475,7 @@ public sealed class StreetAddressTests
     }
 
     // -----------------------------------------------------------------------
-    // Length caps — Line5 (optional)
+    // Length caps - Line5 (optional)
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -499,15 +505,16 @@ public sealed class StreetAddressTests
     }
 
     // -----------------------------------------------------------------------
-    // Cap is measured on the post-clean value
+    // The cap applies to the cleaned value
     // -----------------------------------------------------------------------
 
     [Fact]
     public void Create_Line1_RawOver_CollapsesBelowMax_ReturnsOk()
     {
-        // Raw input > MAX but decorative punctuation strips → post-clean ≤ MAX.
-        // Build a value that's exactly STREET_LINE_MAX chars of 'a' followed by
-        // a stripped punctuation char '.' → post-clean length == STREET_LINE_MAX.
+        // The raw input is longer than MAX, but cleaning strips the decorative
+        // punctuation, so the cleaned length is at most MAX. The value is
+        // STREET_LINE_MAX 'a' characters followed by the stripped character
+        // '.', so the cleaned length equals STREET_LINE_MAX.
         var line1 = new string('a', FieldConstraints.STREET_LINE_MAX) + ".";
         var result = StreetAddress.Create(line1);
         result.Success.Should().BeTrue();
@@ -515,14 +522,15 @@ public sealed class StreetAddressTests
     }
 
     // -----------------------------------------------------------------------
-    // Cap is measured on the post-clean value — Lines 2-5 (T7)
+    // The cap applies to the cleaned value - Lines 2-5 (T7)
     // -----------------------------------------------------------------------
 
     [Fact]
     public void Create_Line2_RawOver_CollapsesBelowMax_ReturnsOk()
     {
-        // Raw input > MAX but a stripped decorative punctuation char '.' appended
-        // → post-clean length == STREET_LINE_MAX → accepted.
+        // The raw input is longer than MAX because of an appended decorative
+        // punctuation character '.', which cleaning strips. The cleaned length
+        // equals STREET_LINE_MAX, so the line is accepted.
         var line2 = new string('a', FieldConstraints.STREET_LINE_MAX) + ".";
         var result = StreetAddress.Create("Valid Line 1", line2);
         result.Success.Should().BeTrue();
@@ -557,16 +565,16 @@ public sealed class StreetAddressTests
     }
 
     // -----------------------------------------------------------------------
-    // Hash-stability regression — golden-value pin
+    // Hash-stability regression - golden-value pin
     // -----------------------------------------------------------------------
 
     [Fact]
     public void Create_HashId_KnownInput_MatchesGoldenValue()
     {
-        // Pin: StreetAddress.Create("123 Main St") → hash input "123 MAIN ST||||"
-        // → SHA-256 (UTF-8) → v1.<64-hex>.
-        // If NormalizeForHash algorithm changes (either side of the forward),
-        // this test fails and prevents a silent hash-drift regression.
+        // Pin: StreetAddress.Create("123 Main St") -> hash input "123 MAIN ST||||"
+        // -> SHA-256 (UTF-8) -> v1.<64-hex>.
+        // A change to the NormalizeForHash algorithm fails this test and
+        // prevents silent drift.
         const string expected_hash =
             "v1.e7a9181fea764351c88f38fd0bfe3644a368ce058e3f75fa0e85cc27b06bab78";
         var result = StreetAddress.Create("123 Main St");
@@ -574,7 +582,7 @@ public sealed class StreetAddressTests
     }
 
     // -----------------------------------------------------------------------
-    // NormalizeForHash — single char + oversized
+    // NormalizeForHash - single character and oversized input
     // -----------------------------------------------------------------------
 
     [Fact]

@@ -10,6 +10,7 @@ namespace DcsvIo.D2.Tests.Unit.Result.SourceGen;
 
 using System.Collections.Immutable;
 using AwesomeAssertions;
+using DcsvIo.D2.ErrorCodes.Registry;
 using Xunit;
 using CatalogConfig = ResultErrorCodesSourceGen::DcsvIo.D2.ErrorCodes.SourceGen.CatalogConfig;
 using ConstantsEmitter = ResultErrorCodesSourceGen::DcsvIo.D2.ErrorCodes.SourceGen.ConstantsEmitter;
@@ -32,17 +33,17 @@ public sealed class ErrorCodesEmitterTests
     [Fact]
     public void Emit_ValidSingleEntry_EmitsConstantAndAllCodesAndGetHttpStatus()
     {
-        var spec = MakeSpec(new ErrorCodeEntry("X_THING", 404, "X thing doc."));
+        var spec = MakeSpec(new ErrorCodeEntry("GEN_X_THING", 404, "X thing doc."));
 
         var result = ConstantsEmitter.Emit(spec, Config, ImmutableHashSet<string>.Empty);
 
         result.Diagnostics.Should().BeEmpty();
-        result.GeneratedSource.Should().Contain("public const string X_THING = \"X_THING\";");
+        result.GeneratedSource.Should().Contain("public const string GEN_X_THING = \"GEN_X_THING\";");
         result.GeneratedSource.Should().Contain("namespace DcsvIo.D2.Result;");
         result.GeneratedSource.Should().Contain("public static class ErrorCodes");
         result.GeneratedSource.Should().Contain(
             "public static int GetHttpStatus(string errorCode)");
-        result.GeneratedSource.Should().Contain("\"X_THING\" => 404,");
+        result.GeneratedSource.Should().Contain("\"GEN_X_THING\" => 404,");
         result.GeneratedSource.Should().Contain(
             "public static IReadOnlyList<string> AllCodes => sr_allCodes;");
 
@@ -54,8 +55,8 @@ public sealed class ErrorCodesEmitterTests
     public void Emit_DuplicateCode_EmitsDuplicateCodeDiagnostic()
     {
         var spec = MakeSpec(
-            new ErrorCodeEntry("DUPE", 400, "X"),
-            new ErrorCodeEntry("DUPE", 400, "Y"));
+            new ErrorCodeEntry("GEN_DUPE", 400, "X"),
+            new ErrorCodeEntry("GEN_DUPE", 400, "Y"));
 
         var result = ConstantsEmitter.Emit(spec, Config, ImmutableHashSet<string>.Empty);
 
@@ -66,7 +67,7 @@ public sealed class ErrorCodesEmitterTests
     [Fact]
     public void Emit_InvalidHttpStatus_EmitsInvalidHttpStatusDiagnostic()
     {
-        var spec = MakeSpec(new ErrorCodeEntry("X", 418, "X"));
+        var spec = MakeSpec(new ErrorCodeEntry("GEN_X", 418, "X"));
 
         var result = ConstantsEmitter.Emit(spec, Config, ImmutableHashSet<string>.Empty);
 
@@ -121,7 +122,7 @@ public sealed class ErrorCodesEmitterTests
     [Fact]
     public void Emit_MissingDoc_EmitsMissingDocDiagnostic()
     {
-        var spec = MakeSpec(new ErrorCodeEntry("X", 400, string.Empty));
+        var spec = MakeSpec(new ErrorCodeEntry("GEN_X", 400, string.Empty));
 
         var result = ConstantsEmitter.Emit(spec, Config, ImmutableHashSet<string>.Empty);
 
@@ -132,7 +133,7 @@ public sealed class ErrorCodesEmitterTests
     [Fact]
     public void Emit_WhitespaceDoc_EmitsMissingDocDiagnostic()
     {
-        var spec = MakeSpec(new ErrorCodeEntry("X", 400, "   "));
+        var spec = MakeSpec(new ErrorCodeEntry("GEN_X", 400, "   "));
 
         var result = ConstantsEmitter.Emit(spec, Config, ImmutableHashSet<string>.Empty);
 
@@ -144,36 +145,47 @@ public sealed class ErrorCodesEmitterTests
     public void Emit_PreservesSpecOrder()
     {
         var spec = MakeSpec(
-            new ErrorCodeEntry("ZEBRA", 400, "Z"),
-            new ErrorCodeEntry("ALPHA", 400, "A"));
+            new ErrorCodeEntry("GEN_ZEBRA", 400, "Z"),
+            new ErrorCodeEntry("GEN_ALPHA", 400, "A"));
 
         var result = ConstantsEmitter.Emit(spec, Config, ImmutableHashSet<string>.Empty);
 
         result.Diagnostics.Should().BeEmpty();
 
-        // ZEBRA must appear before ALPHA in the emitted source — spec order
-        // wins; alphabetical sorting would change the diff shape on spec edits.
-        var zebraIndex = result.GeneratedSource.IndexOf("ZEBRA", System.StringComparison.Ordinal);
-        var alphaIndex = result.GeneratedSource.IndexOf("ALPHA", System.StringComparison.Ordinal);
+        // ZEBRA must appear before ALPHA in the emitted source: the emitter keeps
+        // the spec order, and alphabetical sorting would change the diff on spec edits.
+        var zebraIndex = result.GeneratedSource.IndexOf("GEN_ZEBRA", System.StringComparison.Ordinal);
+        var alphaIndex = result.GeneratedSource.IndexOf("GEN_ALPHA", System.StringComparison.Ordinal);
         zebraIndex.Should().BeLessThan(alphaIndex);
     }
 
     [Fact]
-    public void Emit_GenericCatalogIsExemptFromDomainPrefix()
+    public void Emit_GenericCatalog_RequiresGenDomainPrefix()
     {
-        // The generic catalog owns the reserved unprefixed namespace — an
-        // unprefixed code must NOT fire the domain-prefix diagnostic.
+        // Under GEN_ owner law, an unprefixed code in the generic catalog
+        // MUST fire the domain-prefix diagnostic (D2ERC001).
         var spec = MakeSpec(new ErrorCodeEntry("NOT_FOUND", 404, "X"));
 
         var result = ConstantsEmitter.Emit(spec, Config, ImmutableHashSet<string>.Empty);
 
+        result.Diagnostics.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public void Emit_GenericCatalog_AcceptsGenPrefixedCode()
+    {
+        var spec = MakeSpec(new ErrorCodeEntry("GEN_NOT_FOUND", 404, "X"));
+
+        var result = ConstantsEmitter.Emit(spec, Config, ImmutableHashSet<string>.Empty);
+
         result.Diagnostics.Should().BeEmpty();
+        result.GeneratedSource.Should().Contain("GEN_NOT_FOUND");
     }
 
     [Fact]
     public void Emit_RunsTwiceWithIdenticalInput_ProducesIdenticalSource()
     {
-        var spec = MakeSpec(new ErrorCodeEntry("X", 400, "X doc."));
+        var spec = MakeSpec(new ErrorCodeEntry("GEN_X", 400, "X doc."));
 
         var first = ConstantsEmitter.Emit(spec, Config, ImmutableHashSet<string>.Empty);
         var second = ConstantsEmitter.Emit(spec, Config, ImmutableHashSet<string>.Empty);
@@ -182,32 +194,46 @@ public sealed class ErrorCodesEmitterTests
     }
 
     /// <summary>
-    /// Per-VALUE pin for every shipping spec entry: the emitter MUST produce
-    /// the exact constant declaration AND the exact switch-arm wire-value mapping.
+    /// Per-VALUE pin for every shipping spec entry: the literal table below is
+    /// the pin, and it is asserted twice - against the shipping registry, which
+    /// is generated from the catalog this table mirrors, and against the
+    /// source the emitter produces for the same entry.
     /// </summary>
+    /// <remarks>
+    /// A drifted row fails the registry assertion. Without that assertion, the
+    /// synthetic spec would carry the row's own status into the emitter and back
+    /// out, so a status changed in the shipping catalog would leave this table
+    /// with the old value and no test would fail.
+    /// </remarks>
     /// <param name="code">The wire-format error code expected on the emitted constant.</param>
     /// <param name="httpStatus">
-    /// The HTTP status the emitted switch arm must map the code to.
+    /// The HTTP status the shipping catalog declares and the emitted switch arm
+    /// must map the code to.
     /// </param>
     [Theory]
-    [InlineData("NOT_FOUND", 404)]
-    [InlineData("FORBIDDEN", 403)]
-    [InlineData("UNAUTHORIZED", 401)]
-    [InlineData("VALIDATION_FAILED", 400)]
-    [InlineData("CONFLICT", 409)]
-    [InlineData("UNHANDLED_EXCEPTION", 500)]
-    [InlineData("COULD_NOT_BE_SERIALIZED", 500)]
-    [InlineData("COULD_NOT_BE_DESERIALIZED", 500)]
-    [InlineData("SERVICE_UNAVAILABLE", 503)]
-    [InlineData("SOME_FOUND", 206)]
-    [InlineData("PARTIAL_SUCCESS", 207)]
-    [InlineData("RATE_LIMITED", 429)]
-    [InlineData("IDEMPOTENCY_IN_FLIGHT", 409)]
-    [InlineData("PAYLOAD_TOO_LARGE", 413)]
-    [InlineData("CANCELED", 400)]
+    [InlineData("GEN_NOT_FOUND", 404)]
+    [InlineData("GEN_FORBIDDEN", 403)]
+    [InlineData("GEN_UNAUTHORIZED", 401)]
+    [InlineData("GEN_VALIDATION_FAILED", 400)]
+    [InlineData("GEN_CONFLICT", 409)]
+    [InlineData("GEN_UNHANDLED_EXCEPTION", 500)]
+    [InlineData("GEN_COULD_NOT_BE_SERIALIZED", 500)]
+    [InlineData("GEN_COULD_NOT_BE_DESERIALIZED", 500)]
+    [InlineData("GEN_SERVICE_UNAVAILABLE", 503)]
+    [InlineData("GEN_SOME_FOUND", 206)]
+    [InlineData("GEN_PARTIAL_SUCCESS", 503)]
+    [InlineData("GEN_RATE_LIMITED", 429)]
+    [InlineData("GEN_IDEMPOTENCY_IN_FLIGHT", 409)]
+    [InlineData("GEN_PAYLOAD_TOO_LARGE", 413)]
+    [InlineData("GEN_CANCELED", 400)]
+    [InlineData("GEN_FORGERY_REFUSED", 403)]
     public void Emit_ShippingSpecEntry_EmitsConstantAndHttpStatusMapping(
         string code, int httpStatus)
     {
+        ErrorCodeRegistry.All
+            .Should().ContainSingle(entry => entry.Code == code)
+            .Which.HttpStatus.Should().Be(httpStatus);
+
         var spec = MakeSpec(new ErrorCodeEntry(code, httpStatus, $"{code} doc."));
 
         var result = ConstantsEmitter.Emit(spec, Config, ImmutableHashSet<string>.Empty);
@@ -220,7 +246,7 @@ public sealed class ErrorCodesEmitterTests
     [Fact]
     public void Emit_XmlDocSpecialChars_AreEscaped()
     {
-        var spec = MakeSpec(new ErrorCodeEntry("X", 400, "Has <angle> & ampersand."));
+        var spec = MakeSpec(new ErrorCodeEntry("GEN_X", 400, "Has <angle> & ampersand."));
 
         var result = ConstantsEmitter.Emit(spec, Config, ImmutableHashSet<string>.Empty);
 
@@ -231,7 +257,7 @@ public sealed class ErrorCodesEmitterTests
     [Fact]
     public void Emit_ShortDoc_KeepsCompactSingleLineSummary()
     {
-        var spec = MakeSpec(new ErrorCodeEntry("X", 400, "Short doc."));
+        var spec = MakeSpec(new ErrorCodeEntry("GEN_X", 400, "Short doc."));
 
         var result = ConstantsEmitter.Emit(spec, Config, ImmutableHashSet<string>.Empty);
 

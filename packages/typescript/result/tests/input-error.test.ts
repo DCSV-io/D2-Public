@@ -13,9 +13,9 @@ describe("inputError()", () => {
   });
 
   it("emits wire-shape property names from the spec-derived catalog", () => {
-    // Pin the property names that ship on the wire — the inputError()
-    // builder emits `field` and `errors` byte-for-byte against the spec
-    // catalog (single object shape).
+    // The inputError() builder emits the property names `field` and `errors`
+    // on the wire, and they must equal the names in the spec catalog (a single
+    // object shape).
     const e = inputError("email", [{ key: "TK.X" }]);
     expect(Object.keys(e).sort()).toEqual(
       [InputErrorWireShape.FIELD, InputErrorWireShape.ERRORS].sort(),

@@ -2,7 +2,7 @@
 // Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 // -----------------------------------------------------------------------
 
-// Barrel re-export — convenience entrypoint for consumers that want every
+// Barrel re-export: a convenience entry point that exports every
 // catalog at once. Prefer the sub-path imports (e.g.
 // `@dcsv-io/d2-geo-default/countries`) for bundle-friendliness. Each sub-path
 // already triggers the coordinator (wire-nav step) via side-effect import
@@ -25,7 +25,7 @@ export {
 } from "./generated/geopolitical-entities.g.js";
 export { initializeGeoData } from "./generated/geo-data-initializer.g.js";
 
-// Name resolver — cascade-based free-form text → catalog record matcher.
+// Name resolver: cascade-based free-form text -> catalog record matcher.
 export {
   DefaultGeoNameResolver,
   tryResolveCountryByName,

@@ -5,67 +5,67 @@
       "constName": "SUB",
       "value": "sub",
       "kind": "standard",
-      "description": "Subject — the user's identifier (Guid string for user tokens) or service client_id for pure service-identity tokens (RFC 6749 §4.4)."
+      "description": "Subject - the user's identifier (Guid string for user tokens) or service client_id for pure service-identity tokens (RFC 6749 section 4.4)."
     },
     {
       "constName": "AUD",
       "value": "aud",
       "kind": "standard",
-      "description": "Audience — the intended recipient service identifier(s). Per RFC 7519 §4.1.3 may be a single string OR a JSON array; both wire shapes accepted."
+      "description": "Audience - the intended recipient service identifier(s). Per RFC 7519 section 4.1.3 may be a single string OR a JSON array; both wire shapes accepted."
     },
     {
       "constName": "IAT",
       "value": "iat",
       "kind": "standard",
-      "description": "Issued-at — Unix timestamp seconds when the token was minted."
+      "description": "Issued-at - Unix timestamp seconds when the token was minted."
     },
     {
       "constName": "EXP",
       "value": "exp",
       "kind": "standard",
-      "description": "Expiry — Unix timestamp seconds after which the token is invalid."
+      "description": "Expiry - Unix timestamp seconds after which the token is invalid."
     },
     {
       "constName": "AZP",
       "value": "azp",
       "kind": "standard",
-      "description": "Authorized party (RFC 7519 §4.1.7) — the OAuth client the token was issued for."
+      "description": "Authorized party (RFC 7519 section 4.1.7) - the OAuth client the token was issued for."
     },
     {
       "constName": "SCOPE",
       "value": "scope",
       "kind": "standard",
-      "description": "Space-separated string of granted permissions per RFC 6749 §3.3. Some authorization servers send this as a JSON array; the runtime parser accepts both shapes."
+      "description": "Space-separated string of granted permissions per RFC 6749 section 3.3. Some authorization servers send this as a JSON array; the runtime parser accepts both shapes."
     },
     {
       "constName": "ACT",
       "value": "act",
       "kind": "standard",
-      "description": "Actor chain — RFC 8693 §2.1 nested-object structure identifying the chain of services / impersonators that minted the token. Empty / absent when the token is an end-user-direct token."
+      "description": "Actor chain - RFC 8693 section 2.1 nested-object structure identifying the chain of services / impersonators that minted the token. Empty / absent when the token is an end-user-direct token."
     },
     {
       "constName": "CLIENT_ID",
       "value": "client_id",
       "kind": "standard",
-      "description": "OAuth client identifier of the client that requested THIS specific token from the authorization server (RFC 8693 §4.3 / RFC 9068 §2.2). Updates on every token exchange — for a multi-hop chain, this is the immediate requesting client, not the originating one."
+      "description": "OAuth client identifier of the client that requested THIS specific token from the authorization server (RFC 8693 section 4.3 / RFC 9068 section 2.2). Updates on every token exchange - for a multi-hop chain, this is the immediate requesting client, not the originating one."
     },
     {
       "constName": "SESSION_ID",
       "value": "d2_session_id",
       "kind": "d2-custom",
-      "description": "User session identifier — links the token to a session record in d2-auth."
+      "description": "User session identifier - links the token to a session record."
     },
     {
       "constName": "USERNAME",
       "value": "d2_username",
       "kind": "d2-custom",
-      "description": "Login handle — unique, lowercase username."
+      "description": "Login handle - unique, lowercase username."
     },
     {
       "constName": "FINGERPRINT",
       "value": "d2_fp",
       "kind": "d2-custom",
-      "description": "JWT fingerprint — SHA-256 of canonical request signal (User-Agent + Accept). Used for token-binding adversarial checks."
+      "description": "JWT fingerprint - SHA-256 of canonical request signal (User-Agent + Accept). Used for token-binding adversarial checks."
     },
     {
       "constName": "ORG_ID",
@@ -83,37 +83,49 @@
       "constName": "ORG_TYPE",
       "value": "d2_org_type",
       "kind": "d2-custom",
-      "description": "Operating organization type — string form of the OrgType enum."
+      "description": "Operating organization type - string form of the OrgType enum."
     },
     {
       "constName": "ORG_ROLE",
       "value": "d2_org_role",
       "kind": "d2-custom",
-      "description": "User's role in the operating organization — string form of the Role enum."
+      "description": "User's role in the operating organization - string form of the Role enum."
+    },
+    {
+      "constName": "ROOT_ORG_ID",
+      "value": "d2_root_org_id",
+      "kind": "d2-custom",
+      "description": "Root organization of the tree the operating organization belongs to. Minted onto the session so no consumer walks the tree to find it."
+    },
+    {
+      "constName": "ACCESSIBLE_ORG_IDS",
+      "value": "d2_accessible_org_ids",
+      "kind": "d2-custom",
+      "description": "The organizations the caller may reach - the seat's organization and every organization beneath it, downward only. A JSON array of identifier strings, bounded by the configured reach cap. Absent or unreadable denies every tenant object rather than admitting a partial set."
     },
     {
       "constName": "ACT_KIND",
       "value": "d2_kind",
       "kind": "inside-act",
-      "description": "Inside-act claim — flavor of impersonation when the actor's kind is impersonation. Values are lowercase strings matching ImpersonationKind (consent or force). Lookup path: act.d2_kind. There is NO top-level d2_kind claim; token kind is derived from the act chain's shape."
+      "description": "Inside-act claim - flavor of impersonation when the actor's kind is impersonation. Values are lowercase strings matching ImpersonationKind (consent or force). Lookup path: act.d2_kind. There is NO top-level d2_kind claim; token kind is derived from the act chain's shape."
     },
     {
       "constName": "ACT_SESSION_ID",
       "value": "d2_session_id",
       "kind": "inside-act",
-      "description": "Inside-act claim — impersonation session identifier when the actor's kind is impersonation. Lookup path: act.d2_session_id. Wire value collides with top-level d2_session_id but the lookup path is distinct (nested under act)."
+      "description": "Inside-act claim - impersonation session identifier when the actor's kind is impersonation. Lookup path: act.d2_session_id. Wire value collides with top-level d2_session_id but the lookup path is distinct (nested under act)."
     },
     {
       "constName": "AMR",
       "value": "amr",
       "kind": "standard",
-      "description": "Authentication Methods Reference (RFC 8176). Array of strings identifying the authentication methods used. Input to risk-scoring and audit — 'password-only vs MFA vs OAuth2-with-WebAuthn' matters for sensitive-action gating."
+      "description": "Authentication Methods Reference (RFC 8176). Array of strings identifying the authentication methods used. Input to risk-scoring and audit - 'password-only vs MFA vs OAuth2-with-WebAuthn' matters for sensitive-action gating."
     },
     {
       "constName": "STEP_UP_AT",
       "value": "d2_step_up_at",
       "kind": "d2-custom",
-      "description": "Unix-seconds timestamp of last step-up authentication completion. Handlers gating sensitive actions enforce 'step-up within last N minutes'. Edge auth populates from session record at JWT mint."
+      "description": "Unix-seconds timestamp of last step-up authentication completion. Handlers gating sensitive actions enforce 'step-up within last N minutes'. The JWT minter of the entry service populates it from the session record at mint."
     }
   ]
 }

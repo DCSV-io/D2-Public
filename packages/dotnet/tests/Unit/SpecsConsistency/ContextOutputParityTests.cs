@@ -83,7 +83,7 @@ public sealed class ContextOutputParityTests
         requestSpecJson.Should().Contain(
             original,
             because:
-                "the drift test mutates this exact doc string — if the real spec's "
+                "the drift test mutates this exact doc string - if the real spec's "
                 + "wording changed, update this literal too");
 
         var drifted = requestSpecJson.Replace(original, original + " DRIFT-TEST-MARKER.");
@@ -96,7 +96,7 @@ public sealed class ContextOutputParityTests
             Normalize(committed),
             because:
                 "a deliberately drifted spec must produce output that differs from the "
-                + "committed file — proves the parity check is not vacuous");
+                + "committed file - proves the parity check is not vacuous");
     }
 
     private static Dictionary<string, string> RegenerateContext()

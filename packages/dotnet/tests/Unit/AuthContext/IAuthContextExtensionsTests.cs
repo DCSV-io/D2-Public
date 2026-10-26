@@ -32,14 +32,14 @@ public sealed class IAuthContextExtensionsTests
     {
         var ctx = new TestAuthContext { Scopes = ScopeSet("self.read") };
 
-        ctx.HasScope("auth.password.change").Should().BeFalse();
+        ctx.HasScope("orders.order.cancel").Should().BeFalse();
     }
 
     [Fact]
     public void HasScope_EmptyScopeSet_ReturnsFalse()
     {
-        // Adversarial: pre-auth context (no scopes resolved yet) must not
-        // accidentally grant anything.
+        // Adversarial: a pre-auth context (no scopes resolved yet) must not
+        // grant anything.
         var ctx = new TestAuthContext { Scopes = ScopeSet() };
 
         ctx.HasScope("self.read").Should().BeFalse();
@@ -48,9 +48,9 @@ public sealed class IAuthContextExtensionsTests
     [Fact]
     public void HasScope_DifferentCasing_ReturnsFalse()
     {
-        // Adversarial: scope names are case-sensitive (RFC 6749 §3.3). The
-        // backing HashSet uses StringComparer.Ordinal in our test factory and
-        // in MutableRequestContext.
+        // Adversarial: scope names are case-sensitive (RFC 6749 section 3.3). The
+        // backing HashSet uses StringComparer.Ordinal in this test's factory
+        // and in MutableRequestContext.
         var ctx = new TestAuthContext { Scopes = ScopeSet("self.read") };
 
         ctx.HasScope("Self.Read").Should().BeFalse();
@@ -64,8 +64,9 @@ public sealed class IAuthContextExtensionsTests
     [Fact]
     public void HasAnyScope_NoArgs_ReturnsFalse()
     {
-        // Adversarial: empty params array — `Any()` over empty returns false,
-        // which is the right semantics ("require ANY of nothing" → unmet).
+        // Adversarial: empty params array. `Any()` over an empty array returns
+        // false, which is the right semantics: "require any of nothing" is
+        // unmet.
         var ctx = new TestAuthContext { Scopes = ScopeSet("self.read") };
 
         ctx.HasAnyScope().Should().BeFalse();
@@ -84,7 +85,7 @@ public sealed class IAuthContextExtensionsTests
     {
         var ctx = new TestAuthContext { Scopes = ScopeSet("self.read") };
 
-        ctx.HasAnyScope("auth.password.change", "self.read", "billing.payment.charge")
+        ctx.HasAnyScope("orders.order.cancel", "self.read", "orders.payment.capture")
             .Should().BeTrue();
     }
 
@@ -93,7 +94,7 @@ public sealed class IAuthContextExtensionsTests
     {
         var ctx = new TestAuthContext
         {
-            Scopes = ScopeSet("self.read", "self.write", "auth.password.change"),
+            Scopes = ScopeSet("self.read", "self.write", "orders.order.cancel"),
         };
 
         ctx.HasAnyScope("self.read", "self.write").Should().BeTrue();
@@ -104,7 +105,7 @@ public sealed class IAuthContextExtensionsTests
     {
         var ctx = new TestAuthContext { Scopes = ScopeSet("self.read") };
 
-        ctx.HasAnyScope("auth.password.change", "billing.payment.charge").Should().BeFalse();
+        ctx.HasAnyScope("orders.order.cancel", "orders.payment.capture").Should().BeFalse();
     }
 
     // ----------------------------------------------------------------------
@@ -114,10 +115,10 @@ public sealed class IAuthContextExtensionsTests
     [Fact]
     public void HasAllScopes_NoArgs_ReturnsTrue()
     {
-        // Adversarial: empty params — `All()` over empty returns true. Document
-        // the vacuous-truth behavior. Callers passing a dynamic empty array
-        // get an "all of nothing" pass; if that matters for an authz check,
-        // the caller must guard at the call site.
+        // Adversarial: empty params. `All()` over an empty array returns true.
+        // This test documents the vacuous-truth behavior: an empty array gets
+        // an "all of nothing" pass, so an authorization check that must reject
+        // an empty requirement needs its own guard before the call.
         var ctx = new TestAuthContext { Scopes = ScopeSet() };
 
         ctx.HasAllScopes().Should().BeTrue();
@@ -136,7 +137,7 @@ public sealed class IAuthContextExtensionsTests
     {
         var ctx = new TestAuthContext { Scopes = ScopeSet("self.read") };
 
-        ctx.HasAllScopes("self.read", "auth.password.change").Should().BeFalse();
+        ctx.HasAllScopes("self.read", "orders.order.cancel").Should().BeFalse();
     }
 
     [Fact]
@@ -144,7 +145,7 @@ public sealed class IAuthContextExtensionsTests
     {
         var ctx = new TestAuthContext
         {
-            Scopes = ScopeSet("self.read", "self.write", "auth.password.change"),
+            Scopes = ScopeSet("self.read", "self.write", "orders.order.cancel"),
         };
 
         ctx.HasAllScopes("self.read", "self.write").Should().BeTrue();
@@ -155,7 +156,7 @@ public sealed class IAuthContextExtensionsTests
     {
         var ctx = new TestAuthContext { Scopes = ScopeSet("self.read") };
 
-        ctx.HasAllScopes("auth.password.change", "billing.payment.charge").Should().BeFalse();
+        ctx.HasAllScopes("orders.order.cancel", "orders.payment.capture").Should().BeFalse();
     }
 
     // ----------------------------------------------------------------------
@@ -178,7 +179,7 @@ public sealed class IAuthContextExtensionsTests
     [Fact]
     public void IsStaff_NullOrgType_ReturnsFalse()
     {
-        // Adversarial: pre-auth context (OrgType not yet resolved) must not
+        // Adversarial: a pre-auth context (OrgType not yet resolved) must not
         // be classified as staff.
         var ctx = new TestAuthContext { OrgType = null };
 
@@ -225,8 +226,8 @@ public sealed class IAuthContextExtensionsTests
     [Fact]
     public void IsForcedImpersonation_ImpersonationKindConsent_ReturnsFalse()
     {
-        // Adversarial: critical not to confuse Consent (OTP-authorized,
-        // available to staff) with Force (silent, admin-only).
+        // Adversarial: Consent (OTP-authorized, available to staff) must not
+        // be confused with Force (silent, admin-only).
         var ctx = new TestAuthContext { ImpersonationKind = ImpersonationKind.Consent };
 
         ctx.IsForcedImpersonation().Should().BeFalse();
@@ -284,8 +285,8 @@ public sealed class IAuthContextExtensionsTests
     [Fact]
     public void IsImpersonatorStaff_NullImpersonatorOrgType_ReturnsFalse()
     {
-        // Adversarial: NOT impersonating → ImpersonatorOrgType is null →
-        // IsImpersonatorStaff() is false. Must not silently report true.
+        // Adversarial: when no impersonation is in progress, ImpersonatorOrgType
+        // is null and IsImpersonatorStaff() must return false, never true.
         var ctx = new TestAuthContext { ImpersonatorOrgType = null };
 
         ctx.IsImpersonatorStaff().Should().BeFalse();
@@ -316,8 +317,8 @@ public sealed class IAuthContextExtensionsTests
     public void IsImpersonatorAdmin_AgentOrgIsAdminButImpersonatedOrgIsCustomer_StillReportsAdmin()
     {
         // Adversarial: an Admin-org agent impersonating a Customer-org user
-        // should report IsImpersonatorAdmin()=true (the AGENT is admin) and
-        // IsAdmin()=false (the OPERATING org is customer). The two must NOT
+        // must report IsImpersonatorAdmin()=true (the agent is admin) and
+        // IsAdmin()=false (the operating org is customer). The two must not
         // be confused.
         var ctx = new TestAuthContext
         {

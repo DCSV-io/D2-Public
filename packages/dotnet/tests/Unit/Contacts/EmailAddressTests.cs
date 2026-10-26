@@ -15,14 +15,15 @@ using Xunit;
 
 /// <summary>
 /// Adversarial coverage for <see cref="EmailAddress"/>: the structural floor
-/// (trim / collapse / lowercase / shape / length cap, bubbling the common
-/// invalid-email key) and the injected-validator seam (output + failure bubbled
-/// verbatim, no extra length cap applied in validator mode).
+/// (trim, collapse, lowercase, shape and length cap, returning the common
+/// invalid-email key on failure) and the injected-validator seam (the
+/// validator's output and failure returned verbatim, and no extra length cap
+/// in validator mode).
 /// </summary>
 public sealed class EmailAddressTests
 {
     // -----------------------------------------------------------------------
-    // Floor — valid
+    // Floor - valid
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -58,7 +59,7 @@ public sealed class EmailAddressTests
     }
 
     // -----------------------------------------------------------------------
-    // Floor — invalid (bubbles common invalid-email key)
+    // Floor - invalid (bubbles common invalid-email key)
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -92,8 +93,41 @@ public sealed class EmailAddressTests
             .Which.Key.Should().Be(TK.Contacts.Validation.EMAIL_TOO_LONG.Key);
     }
 
+    [Fact]
+    public void Create_FloorOverMaxLengthAndMalformed_ReturnsEmailTooLong()
+    {
+        // The length is checked before the pattern runs, so an input both too long and
+        // malformed gets the too-long result.
+        var address = new string('a', FieldConstraints.EMAIL_MAX + 1);
+
+        var result = EmailAddress.Create(address);
+
+        result.Messages.Should().ContainSingle()
+            .Which.Key.Should().Be(TK.Contacts.Validation.EMAIL_TOO_LONG.Key);
+    }
+
+    [Fact]
+    public void Create_FloorAtMaxLength_IsAccepted()
+    {
+        var domain = "@example.com";
+        var address = new string('a', FieldConstraints.EMAIL_MAX - domain.Length) + domain;
+
+        EmailAddress.Create(address).Success.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Create_FloorPaddedToOverMaxLength_MeasuresTheCleanedValue()
+    {
+        // Surrounding whitespace is removed before the length is measured, so padding around
+        // an address of the maximum length does not make it too long.
+        var domain = "@example.com";
+        var address = new string('a', FieldConstraints.EMAIL_MAX - domain.Length) + domain;
+
+        EmailAddress.Create("   " + address + "   ").Success.Should().BeTrue();
+    }
+
     // -----------------------------------------------------------------------
-    // FromTrusted — verbatim trusted-store reconstruction (no validation)
+    // FromTrusted - verbatim trusted-store reconstruction (no validation)
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -105,7 +139,7 @@ public sealed class EmailAddressTests
     [Fact]
     public void FromTrusted_DoesNotValidate_PassesInvalidValueVerbatim()
     {
-        // FromTrusted bypasses the Create gate — an invalid stored value is reconstructed
+        // FromTrusted bypasses the Create gate - an invalid stored value is reconstructed
         // verbatim (the trusted-store contract assumes the value was validated on write).
         EmailAddress.FromTrusted("not-an-email").Value.Should().Be("not-an-email");
     }
@@ -163,8 +197,8 @@ public sealed class EmailAddressTests
     {
         // The validator returns a key that EmailAddress.Create itself never emits
         // (TK.Geo.Validation.ADMIN_EMPTY_RECORD is outside {EMAIL_INVALID, EMAIL_TOO_LONG}).
-        // This proves the validator's exact result was bubbled verbatim, not re-raised
-        // with a key from Contacts' own validation vocabulary.
+        // This shows that the result returned is the validator's exact result, and
+        // not a new failure with a key from Contacts' own validation vocabulary.
         var distinguishingKey = TK.Geo.Validation.ADMIN_EMPTY_RECORD;
         var failure = D2Result<string>.ValidationFailed(messages: [distinguishingKey]);
         var validator = new FakeEmailValidator(failure);
@@ -179,8 +213,8 @@ public sealed class EmailAddressTests
     [Fact]
     public void Create_WithValidator_NoExtraLengthCapApplied()
     {
-        // A validator may legitimately emit a longer normalized form — Contacts
-        // does NOT second-guess it with the floor's length cap.
+        // A validator may legitimately emit a longer normalized form, and
+        // Contacts does not apply the floor's length cap to it.
         var longEmail = new string('a', FieldConstraints.EMAIL_MAX + 50) + "@x.com";
         var validator = new FakeEmailValidator(D2Result<string>.Ok(longEmail));
 

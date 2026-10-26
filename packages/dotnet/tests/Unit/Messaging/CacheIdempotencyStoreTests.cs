@@ -56,8 +56,10 @@ public sealed class CacheIdempotencyStoreTests
 
         var result = await store.HasSeenAsync("abc");
 
-        // Per the contract, store-level failures bubble. The CONSUMER then
-        // decides to "fail open" (process the message anyway).
+        // Per the contract, HasSeenAsync returns a store-level failure to its
+        // caller and does not handle it. The consumer then fails open and
+        // processes the message anyway (IMessageIdempotencyStore.cs,
+        // SubscriberChannel.cs).
         result.Failed.Should().BeTrue();
     }
 
@@ -111,9 +113,9 @@ public sealed class CacheIdempotencyStoreTests
     }
 
     /// <summary>
-    /// Test-only fake. Does NOT implement the full IDistributedCache surface;
-    /// only the methods CacheIdempotencyStore actually calls. Other methods
-    /// throw NotImplementedException — fail-fast if test code drifts.
+    /// Test-only fake. It implements only the IDistributedCache methods that
+    /// CacheIdempotencyStore calls. The other methods throw
+    /// NotImplementedException, so a test that calls one fails at once.
     /// </summary>
     private sealed class FakeDistributedCache : IDistributedCache
     {
@@ -142,7 +144,16 @@ public sealed class CacheIdempotencyStoreTests
             return new(D2Result<bool>.Ok(data: true));
         }
 
-        // The remainder of IDistributedCache — fail-fast (test-helper precision).
+        // The remaining IDistributedCache methods throw NotImplementedException.
+        public ValueTask<D2Result<bool>> SetIfEqualAsync<T>(
+            string k, T expected, T v, TimeSpan? e = null, CancellationToken c = default)
+            => throw new NotImplementedException();
+
+        /// <inheritdoc/>
+        public ValueTask<D2Result<bool>> RemoveIfEqualAsync<T>(
+            string k, T expected, CancellationToken c = default)
+            => throw new NotImplementedException();
+
         public ValueTask<D2Result<T?>> GetAsync<T>(
             string k, CancellationToken c = default)
             => throw new NotImplementedException();
@@ -175,6 +186,15 @@ public sealed class CacheIdempotencyStoreTests
 
         public ValueTask<D2Result<long>> IncrementAsync(
             string k, long a = 1, TimeSpan? e = null, CancellationToken c = default)
+            => throw new NotImplementedException();
+
+        public ValueTask<D2Result<TokenBucketDecision>> ConsumeTokenAsync(
+            string k,
+            long refillTokens,
+            TimeSpan refillInterval,
+            long burst,
+            long cost = 1,
+            CancellationToken c = default)
             => throw new NotImplementedException();
 
         public ValueTask<D2Result<bool>> AcquireLockAsync(

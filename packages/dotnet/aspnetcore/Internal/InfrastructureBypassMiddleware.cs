@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
 /// <summary>
-/// Internal middleware impl behind
+/// Internal middleware implementation behind
 /// <see cref="InfrastructureBypassApplicationBuilderExtensions.UseD2InfrastructureBypass"/>.
 /// For every request, sets
 /// <see cref="D2AspNetCoreConstants.INFRASTRUCTURE_HTTP_CONTEXT_ITEM_KEY"/>
@@ -21,24 +21,23 @@ using Microsoft.Extensions.Options;
 /// <para>
 /// Default behavior (<see cref="D2InfrastructureBypassOptions.TagOnly"/>
 /// = <c>false</c>): when the request path matches the infrastructure-path
-/// list AND a routing-matched endpoint is present on the context (i.e.
+/// list and a routing-matched endpoint is present on the context (that is,
 /// <c>UseRouting()</c> has already run and resolved the request to a
 /// mapped endpoint), the middleware invokes the matched endpoint's
-/// <see cref="Endpoint.RequestDelegate"/> directly and returns — bypassing
-/// every middleware registered AFTER this one. This is the canonical
-/// short-circuit so heavy business middleware (idempotency,
-/// auth) does not execute on cheap probe / metrics / well-known requests.
-/// When no endpoint has been routed yet (caller put bypass before
-/// <c>UseRouting()</c>), the middleware falls through to the next delegate
-/// instead of short-circuiting.
+/// <see cref="Endpoint.RequestDelegate"/> directly and returns, bypassing
+/// every middleware registered after this one. This short-circuit keeps
+/// heavy business middleware (idempotency, auth) from executing on cheap
+/// probe, metrics and well-known requests. When no endpoint has been routed
+/// yet (the middleware is registered before <c>UseRouting()</c>), it falls
+/// through to the next delegate instead of short-circuiting.
 /// </para>
 /// <para>
 /// Tag-only mode (<see cref="D2InfrastructureBypassOptions.TagOnly"/>
-/// = <c>true</c>): the middleware ONLY sets the HttpContext.Items flag and
+/// = <c>true</c>): the middleware only sets the HttpContext.Items flag and
 /// continues the pipeline. Business middleware downstream still runs and
-/// can opt-out by reading the flag. Used by services that want custom
-/// middleware to execute on infrastructure paths (e.g. a per-service
-/// rate-limit policy on <c>/metrics</c>).
+/// can opt out by reading the flag. This mode lets custom middleware
+/// execute on infrastructure paths, such as a per-service rate-limit policy
+/// on <c>/metrics</c>.
 /// </para>
 /// </remarks>
 internal sealed class InfrastructureBypassMiddleware
@@ -85,9 +84,10 @@ internal sealed class InfrastructureBypassMiddleware
             return r_next(context);
 
         // Short-circuit path: invoke the routing-matched endpoint directly,
-        // bypassing every middleware registered AFTER this one. Falls through
-        // to next() when no endpoint has been routed (caller put bypass
-        // before UseRouting()) so the pipeline still completes correctly.
+        // bypassing every middleware registered after this one. Falls through
+        // to next() when no endpoint has been routed (the middleware is
+        // registered before UseRouting()), so the pipeline still completes
+        // correctly.
         var endpoint = context.GetEndpoint();
         var endpointDelegate = endpoint?.RequestDelegate;
 

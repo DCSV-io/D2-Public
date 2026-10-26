@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------
 
 // Use globalThis.crypto (Web Crypto) so this package is safe in Node, Vite SSR,
-// and browser bundles. Avoid `node:crypto` imports — they break client bundles.
+// and browser bundles. Avoid `node:crypto` imports - they break client bundles.
 const _HEX: readonly string[] = Array.from({ length: 256 }, (_v, i) =>
   i.toString(16).padStart(2, "0"),
 );
@@ -24,13 +24,13 @@ function getRandomValues(bytes: Uint8Array): Uint8Array {
 }
 
 /**
- * Mints a UUIDv7 (RFC 9562) — a 48-bit big-endian Unix-ms timestamp prefix +
- * 74 random bits, version + variant bits set. Time-ordered, so ids used as
- * store keys keep temporal locality (e.g. a messaging `message-id` matching the
- * .NET contract: a 36-char lowercase-hex UUIDv7).
+ * Mints a UUIDv7 (RFC 9562): a 48-bit big-endian Unix-ms timestamp prefix +
+ * 74 random bits, with the version + variant bits set. The id is time-ordered,
+ * so ids used as store keys keep temporal locality (e.g. a messaging
+ * `message-id` matching the .NET contract: a 36-char lowercase-hex UUIDv7).
  *
- * @param now Injectable clock (epoch ms) for deterministic tests; the default
- *   (`Date.now`) preserves wall-clock behavior.
+ * @param now Injectable clock (epoch ms) for deterministic output; the default
+ *   (`Date.now`) reads the wall clock.
  * @returns A canonical `8-4-4-4-12` UUIDv7 string.
  */
 export function uuidv7(now: () => number = Date.now): string {

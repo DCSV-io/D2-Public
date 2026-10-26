@@ -13,7 +13,7 @@ using System.Collections.Generic;
 
 namespace DcsvIo.D2.Geo.Abstractions;
 
-/// <summary>Currency record — formatting metadata + supported flag + reverse-nav to accepting countries.</summary>
+/// <summary>Currency record - formatting metadata + supported flag + reverse-nav to accepting countries.</summary>
 public sealed record Currency
 {
     /// <summary>Typed ISO 4217 alpha identifier (PK, e.g. <c>CurrencyCode.USD</c>).</summary>
@@ -37,7 +37,7 @@ public sealed record Currency
     /// <summary>True when the framework treats this currency as user-selectable.</summary>
     public required bool IsSupported { get; init; }
 
-    /// <summary>Country codes accepting this currency (any acceptance level — LegalTender + WidelyAccepted + Tourist). Code rep paired with <see cref="AcceptedInCountries"/>.</summary>
+    /// <summary>Country codes accepting this currency (any acceptance level - LegalTender + WidelyAccepted + Tourist). Code rep paired with <see cref="AcceptedInCountries"/>.</summary>
     public IReadOnlySet<CountryCode> AcceptedInCountryIso31661Alpha2Codes { get; internal set; } = FrozenSet<CountryCode>.Empty;
 
     /// <summary>Country records accepting this currency. Wired in the second pass of the two-pass populate pattern.</summary>

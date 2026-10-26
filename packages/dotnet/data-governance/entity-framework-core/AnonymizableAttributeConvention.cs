@@ -20,30 +20,30 @@ using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 /// <remarks>
 /// <para>
 /// <strong>When it runs:</strong> <see cref="IModelFinalizingConvention"/> fires after the
-/// entire model is built, iterating the final model. This is the robust choice for
-/// anonymization metadata: at finalizing time, any fluent Explicit annotation is already
-/// present, so the convention's <c>fromDataAnnotation: true</c> write is correctly rejected
-/// (returns <see langword="null"/>) on fluent-decorated properties — precedence is enforced
-/// by EF Core, not by this convention.
+/// entire model is built and iterates the final model, so every fluent Explicit annotation
+/// already exists when the convention runs. The convention's
+/// <c>fromDataAnnotation: true</c> write is therefore rejected (returns
+/// <see langword="null"/>) on fluent-decorated properties. EF Core enforces the
+/// precedence, not this convention.
 /// </para>
 /// <para>
 /// <strong>Config-source precedence:</strong> this convention writes with
 /// <c>fromDataAnnotation: true</c> (DataAnnotation source). A fluent <c>Anonymize*</c> call
 /// writes via the public <c>HasAnnotation</c> API (Explicit source). Because
-/// Explicit &gt; DataAnnotation, the fluent declaration wins automatically. The
-/// <c>HasAnnotation</c> return value of <see langword="null"/> on a rejected write is not an
-/// error — it is the designed precedence outcome.
+/// Explicit &gt; DataAnnotation, the fluent declaration wins automatically. A
+/// <see langword="null"/> return value from <c>HasAnnotation</c> on a rejected write is
+/// not an error; it is the intended precedence outcome.
 /// </para>
 /// <para>
 /// <strong>Scope:</strong> the convention walks all entity types (including owned-entity types
 /// that EF surfaces as their own <see cref="IEntityType"/> entries), iterates their declared
 /// scalar properties, and recurses into declared complex properties. Properties on types that
-/// are not mapped by EF — or marked <c>[NotMapped]</c> — are never surfaced to this convention.
+/// are not mapped by EF - or marked <c>[NotMapped]</c> - are never surfaced to this convention.
 /// </para>
 /// <para>
 /// <strong>Activation:</strong> register this convention via
 /// <see cref="AnonymizationModelBuilderExtensions.ApplyAnonymizationConventions"/>. Properties
-/// decorated with the fluent <c>Anonymize*</c> API do not require this convention — those write
+/// decorated with the fluent <c>Anonymize*</c> API do not require this convention - those write
 /// the annotation directly.
 /// </para>
 /// </remarks>
@@ -54,7 +54,7 @@ internal sealed class AnonymizableAttributeConvention : IModelFinalizingConventi
         IConventionModelBuilder modelBuilder,
         IConventionContext<IConventionModelBuilder> context)
     {
-        foreach (IConventionEntityType entityType in modelBuilder.Metadata.GetEntityTypes())
+        foreach (var entityType in modelBuilder.Metadata.GetEntityTypes())
         {
             ProcessScalarProperties(entityType);
             ProcessComplexProperties(entityType.GetDeclaredComplexProperties());
@@ -63,13 +63,13 @@ internal sealed class AnonymizableAttributeConvention : IModelFinalizingConventi
 
     private static void ProcessScalarProperties(IConventionEntityType entityType)
     {
-        foreach (IConventionProperty property in entityType.GetDeclaredProperties())
+        foreach (var property in entityType.GetDeclaredProperties())
         {
-            MemberInfo? member = property.PropertyInfo ?? (MemberInfo?)property.FieldInfo;
+            var member = property.PropertyInfo ?? (MemberInfo?)property.FieldInfo;
             if (member is null)
                 continue;
 
-            AnonymizableAttribute? attr = member.GetCustomAttribute<AnonymizableAttribute>();
+            var attr = member.GetCustomAttribute<AnonymizableAttribute>();
             if (attr is null)
                 continue;
 
@@ -80,17 +80,17 @@ internal sealed class AnonymizableAttributeConvention : IModelFinalizingConventi
     private static void ProcessComplexProperties(
         IEnumerable<IConventionComplexProperty> complexProperties)
     {
-        foreach (IConventionComplexProperty complexProp in complexProperties)
+        foreach (var complexProp in complexProperties)
         {
-            IConventionComplexType complexType = complexProp.ComplexType;
+            var complexType = complexProp.ComplexType;
 
-            foreach (IConventionProperty property in complexType.GetDeclaredProperties())
+            foreach (var property in complexType.GetDeclaredProperties())
             {
-                MemberInfo? member = property.PropertyInfo ?? (MemberInfo?)property.FieldInfo;
+                var member = property.PropertyInfo ?? (MemberInfo?)property.FieldInfo;
                 if (member is null)
                     continue;
 
-                AnonymizableAttribute? attr = member.GetCustomAttribute<AnonymizableAttribute>();
+                var attr = member.GetCustomAttribute<AnonymizableAttribute>();
                 if (attr is null)
                     continue;
 
@@ -108,9 +108,9 @@ internal sealed class AnonymizableAttributeConvention : IModelFinalizingConventi
     {
         var rule = MapToRule(attr);
 
-        // fromDataAnnotation: true → DataAnnotation config source.
+        // fromDataAnnotation: true -> DataAnnotation config source.
         // If a fluent Explicit annotation is already present, HasAnnotation returns null
-        // (no-op) — this is the designed precedence outcome, not an error.
+        // (no-op). That is the intended precedence outcome, not an error.
         propertyBuilder.HasAnnotation(
             AnonymizationAnnotations.ANONYMIZE,
             rule,

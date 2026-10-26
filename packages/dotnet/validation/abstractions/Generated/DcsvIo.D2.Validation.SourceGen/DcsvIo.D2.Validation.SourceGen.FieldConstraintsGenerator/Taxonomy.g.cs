@@ -13,7 +13,7 @@ using System.Text.Json.Serialization;
 namespace DcsvIo.D2.Validation.Abstractions;
 
 /// <summary>
-/// Closed list of personal-name prefixes (honorifics / titles). The Other member is the escape hatch backed by a custom free-text value.
+/// Closed list of personal-name prefixes (honorifics / titles). The Other member covers a prefix not in the list and is backed by a custom free-text value.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum NamePrefix : byte
@@ -48,7 +48,7 @@ public enum NamePrefix : byte
     /// <summary>Lord.</summary>
     Lord = 9,
 
-    /// <summary>The Right Honourable.</summary>
+    /// <summary>The Right Honorable.</summary>
     RtHon = 10,
 
     /// <summary>Reverend.</summary>
@@ -66,12 +66,12 @@ public enum NamePrefix : byte
     /// <summary>Elder.</summary>
     Elder = 15,
 
-    /// <summary>Other prefix not in the closed list; carries a custom free-text value.</summary>
+    /// <summary>Other prefix not in the closed list; it comes with a custom free-text value.</summary>
     Other = 16,
 }
 
 /// <summary>
-/// Closed list of personal-name suffixes (generational and ordinal). The Other member is the escape hatch backed by a custom free-text value.
+/// Closed list of personal-name suffixes (generational and ordinal). The Other member covers a suffix not in the list and is backed by a custom free-text value.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum NameSuffix : byte
@@ -112,7 +112,7 @@ public enum NameSuffix : byte
     /// <summary>The tenth (X).</summary>
     X = 11,
 
-    /// <summary>Other suffix not in the closed list; carries a custom free-text value.</summary>
+    /// <summary>Other suffix not in the closed list; it comes with a custom free-text value.</summary>
     Other = 12,
 }
 

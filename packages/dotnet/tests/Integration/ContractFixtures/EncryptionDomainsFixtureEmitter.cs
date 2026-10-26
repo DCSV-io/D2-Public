@@ -33,8 +33,8 @@ public sealed class EncryptionDomainsFixtureEmitter
     public void Emit_Modes()
     {
         // Per-domain mode + consumerService, keyed by wire value, mirroring
-        // the emitted EncryptionDomainModes as-const twin in
-        // @dcsv-io/d2-encryption-abstractions. Only sealed domains carry a
+        // the as-const EncryptionDomainModes object emitted for
+        // @dcsv-io/d2-encryption-abstractions. Only sealed domains have a
         // consumerService.
         var data = new SortedDictionary<string, object?>(StringComparer.Ordinal);
         foreach (var domain in EncryptionDomains.AllDomains)

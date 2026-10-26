@@ -11,9 +11,9 @@ using DcsvIo.D2.Messaging;
 /// <summary>
 /// Hand-built <see cref="MqSubscriptionDescriptor"/> factory for integration
 /// tests. Production code uses the codegen'd <c>MqSubscriptions</c>
-/// constants + <c>AddD2SubscribersFromAssembly</c>; tests need to construct
-/// descriptors per-test (unique queue names) without polluting the
-/// production spec, so they use this factory.
+/// constants + <c>AddD2SubscribersFromAssembly</c>; this factory constructs
+/// descriptors per test (unique queue names) without adding them to the
+/// production spec.
 /// </summary>
 internal static class IntegrationSubscriptionFactory
 {
@@ -64,7 +64,7 @@ internal static class IntegrationSubscriptionFactory
     /// <summary>Builds a descriptor against
     /// <c>BroadcastFixtureEvent</c> (plaintext fanout). Defaults to the
     /// <see cref="QueuePattern.FanoutExclusiveAutoDelete"/> pattern with an
-    /// empty routing-key binding — the shape a fanout broadcast subscriber
+    /// empty routing-key binding - the shape a fanout broadcast subscriber
     /// declares (each replica / distinct service gets its own exclusive queue
     /// bound to the shared fanout exchange).</summary>
     /// <param name="queueName">Base queue name for the test (the runtime

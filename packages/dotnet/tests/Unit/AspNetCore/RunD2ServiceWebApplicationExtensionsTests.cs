@@ -23,9 +23,8 @@ public sealed class RunD2ServiceWebApplicationExtensionsTests
         await act.Should().ThrowAsync<ArgumentNullException>();
     }
 
-    // Note: serviceName-fallback + happy-path / fault-path scenarios are
-    // covered in the integration test class
-    // (RunD2ServiceAsyncIntegrationTests) because they require constructing
-    // a WebApplication via WebApplication.CreateBuilder, which is itself
-    // an integration-level concern.
+    // The serviceName fallback and the happy-path and fault-path scenarios
+    // are covered in the integration test class RunD2ServiceAsyncTests,
+    // because they require constructing a WebApplication through
+    // WebApplication.CreateBuilder, which is an integration-level concern.
 }

@@ -6,8 +6,8 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <RootNamespace>DcsvIo.D2.ErrorCodes.Category</RootNamespace>
 
     <!-- Emit the generator's output (ErrorCategory.g.cs) to
-         <project-dir>/Generated/. The directory is tracked in git so PR
-         reviewers see codegen diffs without a local build. -->
+         <project-dir>/Generated/. The directory is tracked in git, so a pull
+         request shows the generated-code diff without a local build. -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
@@ -15,7 +15,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   <ItemGroup>
     <!--
       The SourceGen pipeline feeds the in-memory compiler with the same
-      content that lands on disk under Generated/. Without this Remove, the
+      content that is written to disk under Generated/. Without this Remove, the
       SDK-default <Compile Include="**/*.cs" /> glob picks up the on-disk
       copy and the build fails with duplicate-definition errors (CS0101 /
       CS0111).
@@ -25,7 +25,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <ItemGroup>
     <!--
-      ErrorCategory SourceGen — emits ErrorCategory.g.cs (the ErrorCategory
+      ErrorCategory SourceGen - emits ErrorCategory.g.cs (the ErrorCategory
       enum + ErrorCategoryWire mapping + ErrorCategoryJsonConverter) from
       contracts/error-category/error-category.spec.json. This is a foundational
       zero-dep (BCL-only) leaf so result-core and the error-codes registry can
@@ -41,15 +41,17 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   <ItemGroup>
     <!--
       Surface the error-category spec to the generator. The closed catalog of
-      nine category wire strings is the single cross-runtime source of truth;
-      the .NET enum + the TS @dcsv-io/d2-error-category union both derive from it.
+      category wire strings (validation_failure, not_found, conflict, policy_denied,
+      rate_limited, payload_too_large, infrastructure_unavailable, internal_error,
+      partial_success) is the single cross-runtime source of truth; the .NET enum
+      + the TS @dcsv-io/d2-error-category union both derive from it.
     -->
     <AdditionalFiles Include="$(D2PublicContractsRoot)error-category\error-category.spec.json" />
   </ItemGroup>
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.1</Version>
+    <Version>0.1.7</Version>
     <PackageId>DcsvIo.D2.ErrorCodes.Category</PackageId>
     <Description>Foundational zero-dependency leaf exposing the closed ErrorCategory classification carried by every D2Result and error code in D2.</Description>
     <IsPackable>true</IsPackable>

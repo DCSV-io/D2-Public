@@ -4,7 +4,12 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Encryption
 
-AES-256-GCM payload encryption with a JWKS-style multi-kid keyring, in two modes: **symmetric** (the version-1 frame — one keyring encrypts and decrypts) and **sealed** (the version-2 frame — a P-256 ECDH-ES → HKDF-SHA256 → AES-256-GCM hybrid where producers holding only a recipient's PUBLIC key seal payloads that only the recipient's PRIVATE key opens). Pure crypto primitive — knows nothing about message buses, domains, or where keys come from. Messaging-bus integration and key-lifecycle service integration are out of scope for this lib; consumers construct keyrings out of bytes they obtained elsewhere and hand them in.
+AES-256-GCM payload encryption with a JWKS-style multi-kid keyring, in two modes: **symmetric** (the version-1 frame -
+one keyring encrypts and decrypts) and **sealed** (the version-2 frame - a P-256 ECDH-ES -> HKDF-SHA256 -> AES-256-GCM
+hybrid where producers holding only a recipient's PUBLIC key seal payloads that only the recipient's PRIVATE key opens).
+The library is a pure crypto primitive: it takes no dependency on message buses, domains, or key sources. Messaging-bus
+integration and key-lifecycle service integration are out of scope for this library; consumers construct keyrings from
+bytes they obtained elsewhere and pass them in.
 
 ## Install
 
@@ -14,41 +19,51 @@ dotnet add package DcsvIo.D2.Encryption
 
 ## Public surface
 
-| Type                                             | Role                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PayloadCryptoKeyring`                           | Immutable container for the active kid + zero-or-more retiring kids, plus an opaque AAD context. `IDisposable` zeroes every key buffer on dispose. Never log or serialize an instance — its `ToString()` is deliberately redacted.                                                                                                                                                                                                                                                                                                                                              |
-| `IPayloadCrypto`                                 | `Encrypt(ReadOnlySpan<byte>) → byte[]` (uses the active kid) and `Decrypt(ReadOnlySpan<byte>) → byte[]` (reads the kid from the frame).                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `PayloadCrypto`                                  | Default implementation. Per-call `AesGcm` instantiation — safe to share across threads.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `EncryptionException` (abstract)                 | Base type for `KidNotInKeyringException`, `FrameVersionMismatchException`, `FrameMalformedException`. AEAD authentication failures surface as the BCL `AuthenticationTagMismatchException` — not wrapped, since the operational response differs.                                                                                                                                                                                                                                                                                                                               |
-| `AddD2EncryptionFor(serviceKey, keyringFactory)` | Registers a keyed `PayloadCryptoKeyring` and matching keyed `IPayloadCrypto` so a service holding multiple keyrings can pick with `[FromKeyedServices(...)]`.                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `AddD2EncryptionStartupCheck()`                  | Opt-in `IHostedService` that runs an encrypt → decrypt round-trip against every registered keyed crypto at boot and crashes the host on any failure.                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `EncryptionKeyringSource`                        | Provenance enum for a keyed registration — `StaticFactory` (type-zero, fail-closed DENY default) / `KeyCustodian` (public member name = managed / rotation-aware key-source provenance mark; the host supplies key bytes from **its** key lifecycle system — not a product-service dependency). Drives the source-provenance guard below.                                                                                                                                                                                                                                                                                    |
-| `MarkD2EncryptionSource(serviceKey, source)`     | Records the provenance of the keyed registration under `serviceKey` (as a parallel keyed marker — the `EncryptionRegistration` record is unchanged). A managed / rotation-aware source that loads keys from the host's key lifecycle system marks with `EncryptionKeyringSource.KeyCustodian`; the raw `AddD2EncryptionFor` seam does not, so it stays deny-by-default.                                                                                                                                                                                                                                                                                                   |
-| `AddD2EncryptionSourceCheck()`                   | Registers the deny-by-default `IHostedService` source-provenance guard (auto-hooked by `AddD2EncryptionFor`). A static / unmarked keyring crashes a non-Development host; a registration marked `EncryptionKeyringSource.KeyCustodian` passes. Idempotent. See "Source-provenance guard" below.                                                                                                                                                                                                                                                                                                                     |
-| `EncryptionDomains`                              | Spec-driven closed catalog of **public** keyring-domain identifiers (`PLAINTEXT` sentinel + framework fixtures such as `FIXTURE_SEALED`). Codegen-emitted from `contracts/encryption-domains/encryption-domains.spec.json` by `DcsvIo.D2.EncryptionDomains.SourceGen`. Hosts may overlay additional sealed domains via `EncryptionDomainModeCatalog` + host bootstrap. Consumers reference constants when registering / resolving keyrings; messaging `MqMessageDescriptor.IsSealed` reads `EncryptionDomainModeCatalog` (overlay first, then generated baseline).                        |
-| `EncryptionDomainModeCatalog`                    | Composition overlay for domain mode + sealed-consumer lookups. Public generated `EncryptionDomainModes` is the baseline; hosts call `RegisterSealedDomain` at composition so messaging resolves host-specific sealed wire values. Thread-safe; identical re-register is idempotent; conflicting re-register throws.                        |
-| `EncryptionFrameLayout`                          | Spec-driven closed catalog of binary frame-layout constants — `CURRENT_VERSION`, per-field `*_OFFSET` / `*_LENGTH`, and `CONSTRAINT_*` GCM-spec values (`CONSTRAINT_MIN_KID_LENGTH`, `CONSTRAINT_MAX_KID_LENGTH`, `CONSTRAINT_NONCE_LENGTH`, `CONSTRAINT_TAG_LENGTH`, `CONSTRAINT_MIN_FRAME_SIZE`). Codegen-emitted from `contracts/encryption-frame/encryption-frame.spec.json` by `DcsvIo.D2.EncryptionFrame.SourceGen`. Mirrored on the TS side via `@dcsv-io/d2-encryption-abstractions`'s `EncryptionFrame` so the .NET encoder and any TS decoder consume identical byte offsets. |
-| `IPayloadSealer`                                 | Encrypt-only capability of the sealed mode: `Seal(ReadOnlySpan<byte>) → byte[]` (a version-2 sealed frame). Structurally CANNOT open — there is no `Open` member; the capability split is compile-time. No AAD parameter — the recipient keyring carries the service id and the AEAD binding is derived from it structurally.                                                                                                                                                                                                                                                    |
-| `IPayloadOpener`                                 | Decrypt-only capability of the sealed mode: `Open(ReadOnlySpan<byte>) → byte[]`. Resolves the recipient kid from the frame against this service's private keyring.                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `RecipientPublicKeyring`                         | Immutable container for a recipient service's PUBLIC sealing keys (active + retiring) + the recipient service id that anchors the AEAD binding. Constructor validates every entry imports as a P-256 public key AND completes a real agreement (fail-loud at the boundary, not at first `Seal`). Public-by-design material — not disposable; `ToString()` still never renders key bytes.                                                                                                                                                                                        |
-| `RecipientPrivateKeyring`                        | Immutable container for THIS service's PRIVATE sealing keys (active + retiring) + the service id. `IDisposable` zeroes every key buffer on dispose; constructor rejects public-only / wrong-curve / garbage input. Never log or serialize an instance — `ToString()` is redacted.                                                                                                                                                                                                                                                                                               |
-| `PayloadSealer`                                  | Default `IPayloadSealer`: fresh ephemeral P-256 keypair per message → ECDH against the recipient's active public key → HKDF-SHA256 (frozen conventions below) → per-message AES-256-GCM key → the version-2 frame. Shared secret + derived key zeroized in `finally`. Thread-safe (no shared mutable state).                                                                                                                                                                                                                                                                    |
-| `PayloadOpener`                                  | Default `IPayloadOpener`: parse → resolve kid → import the frame's ephemeral public key (non-P-256 material rejected as frame malformation) → the same derivation → decrypt. Tampering / wrong recipient / mismatched keypair surface as `AuthenticationTagMismatchException`.                                                                                                                                                                                                                                                                                                  |
-| `SealedFrameLayout`                              | Spec-driven closed catalog of SEALED (version-2) frame-layout constants, including the sealed-only `CONSTRAINT_EPH_PUB_LENGTH_PREFIX_SIZE` (2 — big-endian uint16) and `CONSTRAINT_MAX_EPH_PUB_LENGTH` (allocation cap). Codegen-emitted from the SIBLING spec `contracts/encryption-frame-sealed/encryption-frame-sealed.spec.json` by the same `DcsvIo.D2.EncryptionFrame.SourceGen` (its `SealedFrameGenerator` arm). TS mirror: `@dcsv-io/d2-encryption-abstractions`'s `SealedFrame`.                                                                                             |
+| Type                                             | Role                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PayloadCryptoKeyring`                           | Immutable container for the active kid + zero-or-more retiring kids, plus an opaque AAD context. `IDisposable` zeroes every key buffer on dispose. Never log or serialize an instance - its `ToString()` is deliberately redacted.                                                                                                                                                                                                                                                                                                                                                      |
+| `IPayloadCrypto`                                 | `Encrypt(ReadOnlySpan<byte>) -> byte[]` (uses the active kid) and `Decrypt(ReadOnlySpan<byte>) -> byte[]` (reads the kid from the frame).                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `PayloadCrypto`                                  | Default implementation. Per-call `AesGcm` instantiation - safe to share across threads.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `EncryptionException` (abstract)                 | Base type for `KidNotInKeyringException`, `FrameVersionMismatchException`, `FrameMalformedException`. AEAD authentication failures surface as the BCL `AuthenticationTagMismatchException` - not wrapped, since the operational response differs.                                                                                                                                                                                                                                                                                                                                       |
+| `AddD2EncryptionFor(serviceKey, keyringFactory)` | Registers a keyed `PayloadCryptoKeyring` and matching keyed `IPayloadCrypto` so a service holding multiple keyrings can pick with `[FromKeyedServices(...)]`.                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `AddD2EncryptionStartupCheck()`                  | Opt-in `IHostedService` that runs an encrypt -> decrypt round-trip against every registered keyed crypto at boot and crashes the host on any failure.                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `EncryptionKeyringSource`                        | Provenance enum for a keyed registration - `StaticFactory` (type-zero, fail-closed DENY default) / `Managed` (the public member that marks a managed, rotation-aware key source; the host supplies the key bytes from its own key lifecycle system, and the library does not depend on a key service). Drives the source-provenance guard below.                                                                                                                                                                                                                                        |
+| `MarkD2EncryptionSource(serviceKey, source)`     | Records the provenance of the keyed registration under `serviceKey` (as a parallel keyed marker - the `EncryptionRegistration` record is unchanged). A managed, rotation-aware source that loads keys from the host's key lifecycle system is marked with `EncryptionKeyringSource.Managed`; the raw `AddD2EncryptionFor` seam does not, so it stays deny-by-default.                                                                                                                                                                                                                   |
+| `AddD2EncryptionSourceCheck()`                   | Registers the deny-by-default `IHostedService` source-provenance guard (auto-hooked by `AddD2EncryptionFor`). A static / unmarked keyring crashes a non-Development host; a registration marked `EncryptionKeyringSource.Managed` passes. Idempotent. See "Source-provenance guard" below.                                                                                                                                                                                                                                                                                              |
+| `EncryptionDomains`                              | Spec-driven closed catalog of **public** keyring-domain identifiers (`PLAINTEXT` sentinel + framework fixtures such as `FIXTURE_SEALED`). Codegen-emitted from `contracts/encryption-domains/encryption-domains.spec.json` by `DcsvIo.D2.EncryptionDomains.SourceGen`. Hosts may overlay additional sealed domains via `EncryptionDomainModeCatalog` + host bootstrap. Consumers reference constants when registering / resolving keyrings; messaging `MqMessageDescriptor.IsSealed` reads `EncryptionDomainModeCatalog` (overlay first, then generated baseline).                      |
+| `EncryptionDomainModeCatalog`                    | Composition overlay for domain mode + sealed-consumer lookups. Public generated `EncryptionDomainModes` is the baseline; hosts call `RegisterSealedDomain` at composition so messaging resolves host-specific sealed wire values. Thread-safe; identical re-register is idempotent; conflicting re-register throws, and so does a registration for `plaintext`, for a generated domain the catalog declares with another mode, or for a generated sealed domain with another consumer.                                                                                                  |
+| `EncryptionFrameLayout`                          | Spec-driven closed catalog of binary frame-layout constants - `CURRENT_VERSION`, per-field `*_OFFSET` / `*_LENGTH`, and `CONSTRAINT_*` GCM-spec values (`CONSTRAINT_MIN_KID_LENGTH`, `CONSTRAINT_MAX_KID_LENGTH`, `CONSTRAINT_NONCE_LENGTH`, `CONSTRAINT_TAG_LENGTH`, `CONSTRAINT_MIN_FRAME_SIZE`). Codegen-emitted from `contracts/encryption-frame/encryption-frame.spec.json` by `DcsvIo.D2.EncryptionFrame.SourceGen`. Mirrored on the TS side via `@dcsv-io/d2-encryption-abstractions`'s `EncryptionFrame` so the .NET encoder and any TS decoder consume identical byte offsets. |
+| `IPayloadSealer`                                 | Encrypt-only capability of the sealed mode: `Seal(ReadOnlySpan<byte>) -> byte[]` (a version-2 sealed frame). Structurally CANNOT open - there is no `Open` member; the capability split is compile-time. No AAD parameter - the recipient keyring holds the service id and the AEAD binding is derived from it structurally.                                                                                                                                                                                                                                                            |
+| `IPayloadOpener`                                 | Decrypt-only capability of the sealed mode: `Open(ReadOnlySpan<byte>) -> byte[]`. Resolves the recipient kid from the frame against this service's private keyring.                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `RecipientPublicKeyring`                         | Immutable container for a recipient service's PUBLIC sealing keys (active + retiring) + the recipient service id that anchors the AEAD binding. Constructor validates every entry imports as a P-256 public key AND completes a real agreement (fail-loud at the boundary, not at first `Seal`). Public-by-design material - not disposable; `ToString()` still never renders key bytes.                                                                                                                                                                                                |
+| `RecipientPrivateKeyring`                        | Immutable container for THIS service's PRIVATE sealing keys (active + retiring) + the service id. `IDisposable` zeroes every key buffer on dispose; constructor rejects public-only / wrong-curve / garbage input. Never log or serialize an instance - `ToString()` is redacted.                                                                                                                                                                                                                                                                                                       |
+| `PayloadSealer`                                  | Default `IPayloadSealer`: fresh ephemeral P-256 keypair per message -> ECDH against the recipient's active public key -> HKDF-SHA256 (frozen conventions below) -> per-message AES-256-GCM key -> the version-2 frame. Shared secret + derived key zeroized in `finally`. Thread-safe (no shared mutable state).                                                                                                                                                                                                                                                                        |
+| `PayloadOpener`                                  | Default `IPayloadOpener`: parse -> resolve kid -> import the frame's ephemeral public key (non-P-256 material rejected as frame malformation) -> the same derivation -> decrypt. Tampering / wrong recipient / mismatched keypair surface as `AuthenticationTagMismatchException`.                                                                                                                                                                                                                                                                                                      |
+| `SealedFrameLayout`                              | Spec-driven closed catalog of SEALED (version-2) frame-layout constants, including the sealed-only `CONSTRAINT_EPH_PUB_LENGTH_PREFIX_SIZE` (2 - big-endian uint16) and `CONSTRAINT_MAX_EPH_PUB_LENGTH` (allocation cap). Codegen-emitted from the SIBLING spec `contracts/encryption-frame-sealed/encryption-frame-sealed.spec.json` by the same `DcsvIo.D2.EncryptionFrame.SourceGen` (its `SealedFrameGenerator` arm). TS mirror: `@dcsv-io/d2-encryption-abstractions`'s `SealedFrame`.                                                                                              |
 
 ## Spec-driven catalogs
 
 Three closed catalogs in this library are emitted from contracts, not hand-written:
 
-- **`EncryptionDomains`** — from `contracts/encryption-domains/encryption-domains.spec.json`. Hosts may extend with additional sealed domains outside this package; runtime sealed resolution for messaging goes through `EncryptionDomainModeCatalog` after host bootstrap. Cross-language mirror: `@dcsv-io/d2-encryption-abstractions`.
-- **`EncryptionFrameLayout`** — from `contracts/encryption-frame/encryption-frame.spec.json`. Binary frame-layout offsets + lengths + GCM-spec constraint values. Frame format (`[1 byte: version][1 byte: kid_length][N bytes: kid (UTF-8)][12 bytes: nonce][M bytes: ciphertext + 16-byte tag]`) is described in `Frame format` below. Cross-language mirror: `@dcsv-io/d2-encryption-abstractions` `EncryptionFrame`.
-- **`SealedFrameLayout`** — from the SIBLING spec `contracts/encryption-frame-sealed/encryption-frame-sealed.spec.json`. The version-2 SEALED frame's offsets + lengths + constraints. Deliberately a separate spec file so the version-1 catalog and its generated artifacts stay byte-identical while the sealed layout evolves. Cross-language mirror: `@dcsv-io/d2-encryption-abstractions` `SealedFrame`.
+- **`EncryptionDomains`** - from `contracts/encryption-domains/encryption-domains.spec.json`. Hosts may extend with
+  additional sealed domains outside this package; runtime sealed resolution for messaging goes through
+  `EncryptionDomainModeCatalog` after host bootstrap. Cross-language mirror: `@dcsv-io/d2-encryption-abstractions`.
+- **`EncryptionFrameLayout`** - from `contracts/encryption-frame/encryption-frame.spec.json`. Binary frame-layout
+  offsets + lengths + GCM-spec constraint values. Frame format
+  (`[1 byte: version][1 byte: kid_length][N bytes: kid (UTF-8)][12 bytes: nonce][M bytes: ciphertext + 16-byte tag]`) is
+  described in [Frame format](#frame-format). Cross-language mirror: `@dcsv-io/d2-encryption-abstractions`
+  `EncryptionFrame`.
+- **`SealedFrameLayout`** - from the SIBLING spec `contracts/encryption-frame-sealed/encryption-frame-sealed.spec.json`.
+  The version-2 SEALED frame's offsets + lengths + constraints. Deliberately a separate spec file so the version-1
+  catalog and its generated artifacts stay byte-identical while the sealed layout evolves. Cross-language mirror:
+  `@dcsv-io/d2-encryption-abstractions` `SealedFrame`.
 
-All catalogs ship as `.g.cs` files under `Generated/` (committed to git so PR reviewers see diffs without a local build).
+All catalogs ship as `.g.cs` files under `Generated/` (committed to git so PR reviewers see diffs without a local
+build).
 
 ## Frame format
 
-Self-describing on-wire layout — receivers do not need out-of-band metadata to decrypt:
+Self-describing on-wire layout - receivers do not need out-of-band metadata to decrypt:
 
 ```
 [1 byte: version=1]
@@ -58,11 +73,16 @@ Self-describing on-wire layout — receivers do not need out-of-band metadata to
 [M bytes: ciphertext + 16-byte GCM auth tag]
 ```
 
-Overhead is ~14 bytes plus the kid length (typical kid `audit-2026q3` → 26 byte total overhead). The version byte is rejected if not `1`; future format revisions cannot be silently downgraded.
+Overhead is 30 bytes (the version and kid-length bytes, the 12-byte nonce and the 16-byte tag) plus the kid length; a
+typical kid such as `orders-2026q3` makes 43 bytes in all. The version byte is rejected if not `1`, so a later format
+revision cannot be silently downgraded.
 
 ## Sealed mode (version-2 frame)
 
-The sealed mode flips the encrypt/decrypt asymmetry into the cryptography for fan-out-sensitive traffic: many producers may SEAL to a recipient service, but only that service's private key OPENS. A producer holding an `IPayloadSealer` structurally cannot decrypt any sealed frame — including its own output.
+In sealed mode, for fan-out-sensitive traffic, a frame is produced with the recipient's public key and opened only with
+its private key, and `IPayloadSealer` has no open member: many producers may SEAL to a recipient service, but only that
+service's private key OPENS. A producer holding an `IPayloadSealer` structurally cannot decrypt any sealed frame -
+including its own output.
 
 ### Sealed frame format
 
@@ -71,81 +91,117 @@ The sealed mode flips the encrypt/decrypt asymmetry into the cryptography for fa
 [1 byte:  recipient_kid_length (UTF-8 byte count, 1..64)]
 [N bytes: recipient_kid (UTF-8)]
 [2 bytes: eph_pub_length (BIG-ENDIAN uint16, capped at 256)]
-[M bytes: eph_pub — the per-message ephemeral P-256 public key, SubjectPublicKeyInfo DER]
+[M bytes: eph_pub - the per-message ephemeral P-256 public key, SubjectPublicKeyInfo DER]
 [12 bytes: GCM nonce (random per seal)]
 [K bytes: ciphertext + 16-byte GCM auth tag]
 ```
 
-The leading version byte is the mode discriminator: the symmetric codec hard-rejects `2`, the sealed codec hard-rejects `1` — the two formats can never cross-parse. `EncryptedBodyComposer.ReadKidFromFrame` (messaging) is version-aware and surfaces the recipient kid for `x-d2-encryption-kid` DLQ triage.
+The leading version byte is the mode discriminator: the symmetric codec hard-rejects `2`, the sealed codec hard-rejects
+`1` - a version-1 frame never parses as a version-2 frame, or the reverse. `EncryptedBodyComposer.ReadKidFromFrame`
+(messaging) is version-aware and returns the recipient kid for `x-d2-encryption-kid` DLQ triage.
 
 ### The hybrid construction + the FROZEN wire values
 
-Per seal: fresh ephemeral P-256 keypair → `Z = ECDH(ephemeral, recipientActivePublic)` → `DEK = HKDF-SHA256(ikm: Z, salt, info, 32)` → fresh 12-byte nonce → AES-256-GCM. Forward secrecy comes from the per-message ephemeral; the DEK is fresh per message so nonce reuse across messages is structurally impossible.
+Per seal: fresh ephemeral P-256 keypair -> `Z = ECDH(ephemeral, recipientActivePublic)` ->
+`DEK = HKDF-SHA256(ikm: Z, salt, info, 32)` -> fresh 12-byte nonce -> AES-256-GCM. Forward secrecy comes from the
+per-message ephemeral; the DEK is fresh per message so nonce reuse across messages is structurally impossible.
 
-The derivation + AEAD-binding conventions are **WIRE-PERMANENT** (changing any of them breaks decryption of everything sealed before the change; each is pinned by known-answer freeze tests). All are anchored on the RECIPIENT SERVICE id (never the message domain), so one opener per service covers every sealed domain routed to it:
+The derivation + AEAD-binding conventions are **WIRE-PERMANENT** (changing any of them breaks decryption of everything
+sealed before the change; each is pinned by known-answer freeze tests). All are anchored on the RECIPIENT SERVICE id
+(never the message domain), so one opener per service covers every sealed domain routed to it:
 
-- HKDF `info` = `"d2-seal-v1"` ‖ len16BE(serviceId) ‖ UTF-8(serviceId) ‖ len16BE(ephSPKI) ‖ ephSPKI — each variable component prefixed by its 2-byte big-endian length, so component boundaries are unambiguous by construction.
+- HKDF `info` = `"d2-seal-v1"` ‖ len16BE(serviceId) ‖ UTF-8(serviceId) ‖ len16BE(ephSPKI) ‖ ephSPKI - each variable
+  component prefixed by its 2-byte big-endian length, so component boundaries are unambiguous by construction.
 - HKDF `salt` = UTF-8(serviceId).
-- AES-GCM `aad` = UTF-8(serviceId) — a frame sealed for one service can never authenticate as sealed for another, even under the same keypair.
+- AES-GCM `aad` = UTF-8(serviceId) - a frame sealed for one service can never authenticate as sealed for another, even
+  under the same keypair.
 
-Both sealer and opener derive through the single internal `SealedKeyDerivation` implementation, so producer and consumer cannot disagree byte-for-byte, and neither API takes an AAD parameter — the recipient keyrings carry the service id and agreement is structural.
+Both sealer and opener derive through the single internal `SealedKeyDerivation` implementation, so producer and consumer
+cannot disagree byte-for-byte, and neither API takes an AAD parameter - the recipient keyrings hold the service id, so
+agreement is structural.
 
 ### Sealed startup self-check
 
-A hosted self-check (the sealed sibling of `AddD2EncryptionStartupCheck`) verifies every registered sealed recipient at boot: a (sealer, opener) pair round-trips a sentinel (a mismatched keypair crashes the host); a producer-only host seal-checks its public material; an opener-only registration is logged (its private material was already validated at keyring construction). Zero registrations is a logged no-op. The registration surface is **public** — `AddD2SealedEncryptionRecipient(recipientServiceId)` (records a recipient for the self-check) is the building-block seam a host sealing SOURCE composes when wiring sealer/opener registrations, not necessarily the only surface consumers call.
+A hosted self-check (the sealed sibling of `AddD2EncryptionStartupCheck`) verifies every registered sealed recipient at
+boot: a (sealer, opener) pair round-trips a sentinel (a mismatched keypair crashes the host); a producer-only host
+seal-checks its public material; an opener-only registration is logged (its private material was already validated at
+keyring construction). Zero registrations is a logged no-op. The registration surface is **public** -
+`AddD2SealedEncryptionRecipient(recipientServiceId)` (records a recipient for the self-check) is the seam a host
+sealing SOURCE calls when wiring sealer/opener registrations, and not necessarily the only surface consumers call.
 
-A separate deny-by-default **sealed source-provenance guard** (`AddD2SealedEncryptionSourceCheck` → `SealedEncryptionSourceStartupCheck`, the sealed sibling of `AddD2EncryptionSourceCheck`) rejects a static / unmarked sealed recipient outside a Development host — a managed key-lifecycle source marks each registration `EncryptionKeyringSource.KeyCustodian` (via `MarkD2EncryptionSource`) so it passes. A host that hand-wires a keyed sealer/opener directly, bypassing the library extension, is caught here.
+A separate deny-by-default **sealed source-provenance guard** (`AddD2SealedEncryptionSourceCheck` ->
+`SealedEncryptionSourceStartupCheck`, the sealed sibling of `AddD2EncryptionSourceCheck`) rejects a static / unmarked
+sealed recipient outside a Development host - a managed key-lifecycle source marks each registration
+`EncryptionKeyringSource.Managed` (via `MarkD2EncryptionSource`) so it passes. A host that hand-wires a keyed
+sealer/opener directly, bypassing the library extension, is caught here.
 
 ## Threat model
 
 **Defends against:**
 
-- DB row exfiltration of stored keys (assumes keys are wrapped with a separate root key before storage — see "Key wrapping" below).
+- DB row exfiltration of stored keys (assumes keys are wrapped with a separate root key before storage - see [Key
+  wrapping](#key-wrapping-for-storing-per-domain-keys-at-rest)).
 - Wire interception of ciphertext on RabbitMQ / DLQ / archive blob storage.
-- Bit-flipping of ciphertext or AAD (GCM auth tag detects → `AuthenticationTagMismatchException`).
+- Bit-flipping of ciphertext or AAD (GCM auth tag detects -> `AuthenticationTagMismatchException`).
 - Cross-domain replay (different AAD contexts cause tag mismatch).
 - Cross-version replay (version byte must match).
 - Buffer-overrun via crafted frame (every length prefix is bounds-checked).
 
 **Does not defend against (higher-layer concerns):**
 
-- Replay of valid ciphertext — handle with idempotency keys / sequence numbers at the message bus or handler layer.
-- Plaintext-length leakage — pad the plaintext if length-hiding matters.
-- Memory-dump of the running process — OS-level mitigations (disable swap, etc.).
-- Side-channel timing attacks against AES-NI — the BCL / OS handles this.
-- Compromise of the keys themselves — handled by the host's key lifecycle / rotation authority (compromise-response runbooks are out of scope for this library).
-- A host that hand-registers a keyed `IPayloadCrypto` directly (`AddKeyedSingleton<IPayloadCrypto>(...)`, bypassing every library extension) — such a registration records no `EncryptionRegistration` and is invisible to the source-provenance guard below. That is deliberate circumvention, not the guarded footgun.
+- Replay of valid ciphertext - handle with idempotency keys / sequence numbers at the message bus or handler layer.
+- Plaintext-length leakage - pad the plaintext if length-hiding matters.
+- Memory-dump of the running process - OS-level mitigations (disable swap, etc.).
+- Side-channel timing attacks against AES-NI - the BCL / OS handles this.
+- Compromise of the keys themselves - handled by the host's key lifecycle / rotation authority (compromise-response
+  runbooks are out of scope for this library).
+- A host that hand-registers a keyed `IPayloadCrypto` directly (`AddKeyedSingleton<IPayloadCrypto>(...)`, bypassing
+  every library extension) - such a registration records no `EncryptionRegistration` and is invisible to the
+  source-provenance guard below. That is deliberate circumvention, not the guarded footgun.
 
 ## Source-provenance guard (deny-by-default)
 
-Every `AddD2EncryptionFor` registration is checked at host startup for its keyring **provenance**. The intent is to stop a hand-wired static key (the `AddD2EncryptionFor(serviceKey, staticFactory)` footgun) from silently backing production traffic where a rotation-aware, managed keyring belongs.
+Every `AddD2EncryptionFor` registration is checked at host startup for its keyring **provenance**. The intent is to stop
+a hand-wired static key (the `AddD2EncryptionFor(serviceKey, staticFactory)` footgun) from silently backing production
+traffic where a rotation-aware, managed keyring belongs.
 
-- **Deny-by-default.** A registration with no `EncryptionSourceMarker` — the raw `AddD2EncryptionFor` seam registers none — is treated as `StaticFactory`. A managed / rotation-aware source opts in by calling `MarkD2EncryptionSource(serviceKey, EncryptionKeyringSource.KeyCustodian)` (`KeyCustodian` here is the public enum member for managed provenance — the host still supplies the key bytes from its own lifecycle system).
-- **Environment gate.** Outside a Development host, a static / unmarked domain throws at startup and crashes the host (fail-loud). In a Development host the same case logs a loud warning and proceeds, so local development with static unmarked keyrings still works. A missing `IHostEnvironment` is treated as non-Development (fail-closed).
-- **Auto-hooked.** `AddD2EncryptionFor` registers the guard (`AddD2EncryptionSourceCheck()`) itself, so no encryption host can skip it. The registration is idempotent — one `EncryptionSourceStartupCheck` regardless of how many domains register.
+- **Deny-by-default.** A registration with no `EncryptionSourceMarker` - the raw `AddD2EncryptionFor` seam registers
+  none - is treated as `StaticFactory`. A managed / rotation-aware source opts in by calling
+  `MarkD2EncryptionSource(serviceKey, EncryptionKeyringSource.Managed)`; the host still supplies the key bytes from
+  its own lifecycle system.
+- **Environment gate.** Outside a Development host, a static / unmarked domain throws at startup and crashes the host
+  (fail-loud). In a Development host the same case logs a loud warning and proceeds, so local development with static
+  unmarked keyrings still works. A missing `IHostEnvironment` is treated as non-Development (fail-closed).
+- **Auto-hooked.** `AddD2EncryptionFor` registers the guard (`AddD2EncryptionSourceCheck()`) itself, so no encryption
+  host can skip it. The registration is idempotent - one `EncryptionSourceStartupCheck` regardless of how many domains
+  register.
 
-**Known limitation (documented residual).** The guard only sees registrations made through the library extensions (`AddD2EncryptionFor` and host sources that call `MarkD2EncryptionSource`), because those record an `EncryptionRegistration`. A host that hand-registers a keyed `IPayloadCrypto` directly, bypassing every library extension, records no registration and is structurally invisible to the guard. That path is deliberate circumvention, not the footgun the guard defends against — it is accepted as out of scope.
+**Known limitation.** The guard only sees registrations made through the library extensions
+(`AddD2EncryptionFor` and host sources that call `MarkD2EncryptionSource`), because those record an
+`EncryptionRegistration`. A host that hand-registers a keyed `IPayloadCrypto` directly, bypassing every library
+extension, records no registration and is structurally invisible to the guard. That path is deliberate circumvention,
+not the footgun the guard defends against - it is accepted as out of scope.
 
 ## Usage
 
 ### Single-keyring service
 
 ```csharp
-services.AddD2EncryptionFor("audit", sp =>
+services.AddD2EncryptionFor("orders", sp =>
 {
-    var bytes = LoadActiveAuditKey();           // your code — load from your key lifecycle store / KMS / vault
+    var bytes = LoadActiveOrdersKey();          // your code - load from your key lifecycle store / KMS / vault
     return new PayloadCryptoKeyring(
-        activeKid: "audit-2026q2",
-        keys: new Dictionary<string, byte[]> { ["audit-2026q2"] = bytes },
-        aadContext: "audit"u8.ToArray());
+        activeKid: "orders-2026q2",
+        keys: new Dictionary<string, byte[]> { ["orders-2026q2"] = bytes },
+        aadContext: "orders"u8.ToArray());
 });
 
 services.AddD2EncryptionStartupCheck();
 ```
 
 ```csharp
-public sealed class AuditPublisher(
-    [FromKeyedServices("audit")] IPayloadCrypto crypto)
+public sealed class OrdersPublisher(
+    [FromKeyedServices("orders")] IPayloadCrypto crypto)
 {
     public byte[] Pack(byte[] plaintext) => crypto.Encrypt(plaintext);
 }
@@ -155,20 +211,23 @@ public sealed class AuditPublisher(
 
 ```csharp
 new PayloadCryptoKeyring(
-    activeKid: "audit-2026q2",
+    activeKid: "orders-2026q2",
     keys: new Dictionary<string, byte[]>
     {
-        ["audit-2026q2"] = newKey,   // active — encrypts new traffic
-        ["audit-2026q1"] = oldKey,   // retiring — decrypts in-flight messages encrypted before rotation
+        ["orders-2026q2"] = newKey,   // active - encrypts new traffic
+        ["orders-2026q1"] = oldKey,   // retiring - decrypts in-flight messages encrypted before rotation
     },
-    aadContext: "audit"u8.ToArray());
+    aadContext: "orders"u8.ToArray());
 ```
 
-Once the grace window expires, the host's key-lifecycle orchestrator drops the retiring kid and constructs a new keyring; the host swaps the keyed singleton. Messages arriving for a dropped kid will throw `KidNotInKeyringException`, which the messaging bus routes to a DLQ for forensic decrypt by an ops tool that loads archived keys on demand.
+Once the grace window expires, the host's key-lifecycle orchestrator drops the retiring kid and constructs a new
+keyring; the host swaps the keyed singleton. Messages arriving for a dropped kid will throw `KidNotInKeyringException`,
+which the messaging bus routes to a DLQ for forensic decrypt by an ops tool that loads archived keys on demand.
 
 ### Key wrapping (for storing per-domain keys at rest)
 
-Same primitive. Construct a keyring whose only kid is the root key, with whatever AAD bytes the wrapping layer wants to bind:
+Same primitive. Construct a keyring whose only kid is the root key, with whatever AAD bytes the wrapping layer wants to
+bind:
 
 ```csharp
 using var rootKeyring = new PayloadCryptoKeyring(
@@ -183,31 +242,46 @@ var encryptedKeyMaterial = wrapper.Encrypt(perDomainKeyBytes);
 
 ## Operational rules (DO and DON'T)
 
-- **DO** dispose keyrings on rotation — disposes zero the key buffers.
-- **DO** make AAD non-empty and meaningful (the constructor rejects empty AAD). The string itself is not secret; it just has to match encrypt-side and decrypt-side.
-- **DO** rotate keys on the configured cadence — rotation is the primary tool that bounds the exposure window if a service holding a keyring is ever compromised.
-- **DO** think about _what's inside_ the encrypted payload, not just who holds the key. In pub/sub, every publisher and consumer of a domain ends up with that domain's keyring (there is no smaller set that still works). The remaining lever is shaping payloads so a compromised key reveals as little as possible — e.g. publish trigger references that the consumer joins to its own DB, instead of fully-denormalized PII.
-- **DON'T** log keyring instances. `ToString()` is redacted but field-level reflection or serializers can still leak bytes.
-- **DON'T** log frame bytes or exception messages that include them. Our exceptions explicitly do not embed bytes; if you wrap them, keep that property.
-- **DON'T** roll your own nonce strategy. `Encrypt` uses 12 random bytes from `RandomNumberGenerator` per call. There is no override path on purpose — GCM nonce reuse is catastrophic.
-- **DON'T** strip or shorten the auth tag. The 16-byte tag is part of the ciphertext span and the BCL verifies it; there is no "decrypt-without-auth" mode in this lib's API.
+- **DO** dispose keyrings on rotation - disposes zero the key buffers.
+- **DO** make AAD non-empty and meaningful (the constructor rejects empty AAD). The string itself is not secret; it just
+  has to match encrypt-side and decrypt-side.
+- **DO** rotate keys on the configured cadence - rotation is the primary tool that limits how long a key stays usable
+  if a service holding a keyring is ever compromised.
+- **DO** think about _what's inside_ the encrypted payload, not just who holds the key. In pub/sub, every publisher and
+  consumer of a domain ends up with that domain's keyring (there is no smaller set that still works). The remaining
+  option is to shape payloads so a compromised key reveals as little as possible - e.g. publish trigger references that
+  the consumer joins to its own DB, instead of fully-denormalized PII.
+- **DON'T** log keyring instances. `ToString()` is redacted but field-level reflection or serializers can still leak
+  bytes.
+- **DON'T** log frame bytes or exception messages that include them. The exceptions this library throws do not embed
+  bytes; if you wrap them, keep that property.
+- **DON'T** roll your own nonce strategy. `Encrypt` uses 12 random bytes from `RandomNumberGenerator` per call. There is
+  no override path on purpose - GCM nonce reuse is catastrophic.
+- **DON'T** strip or shorten the auth tag. The 16-byte tag is part of the ciphertext span and the BCL verifies it; there
+  is no "decrypt-without-auth" mode in this lib's API.
 - **DON'T** share keys across purposes. One keyring per purpose (per domain, per wrapping layer, etc.).
 
 ## Dependencies
 
 - `Microsoft.Extensions.DependencyInjection.Abstractions` (DI registration helpers + keyed markers)
-- `Microsoft.Extensions.Hosting.Abstractions` (the startup checks are `IHostedService`; the source guard reads `IHostEnvironment`)
+- `Microsoft.Extensions.Hosting.Abstractions` (the startup checks are `IHostedService`; the source guard reads
+  `IHostEnvironment`)
 - `Microsoft.Extensions.Logging.Abstractions` (the startup checks log pass/fail per domain)
 - `DcsvIo.D2.Utilities` (the `ThrowIfFalsey` argument guard on registration helpers)
 - `JetBrains.Annotations` (annotations only, never ships)
-- BCL `System.Security.Cryptography.AesGcm` — backed by hardware-accelerated AES-NI on every modern CPU
+- BCL `System.Security.Cryptography.AesGcm` - backed by hardware-accelerated AES-NI on every modern CPU
 
-No deps on `DcsvIo.D2.Result` or any domain helper. The lib is intentionally narrow — it's a primitive plus its DI registration surface.
+This library has no dependency on `DcsvIo.D2.Result` or any domain helper. It is narrow by design: a primitive plus its
+DI registration surface.
 
 ## Telemetry
 
-None by design. This lib is a low-level crypto primitive — instrumentation lives in the consumer (`DcsvIo.D2.Messaging.RabbitMq` emits the encrypted-publish / encrypted-consume spans + counters). Adding spans here would obscure who actually paid the encrypt/decrypt cost in distributed traces.
+None by design. This library is a low-level crypto primitive - the consumer provides instrumentation
+(`DcsvIo.D2.Messaging.RabbitMq` emits the encrypted-publish / encrypted-consume spans + counters). Spans here would hide
+which consumer spent the time encrypting or decrypting in distributed traces.
 
 ## References
 
-- Host key-lifecycle / rotation authority (this lib is the encrypt/decrypt half; key generation, rotation, and compromise live in the host's lifecycle system). The compromise-response runbook is out of scope for this library.
+- Host key-lifecycle / rotation authority (this library is the encrypt/decrypt half; key generation, rotation, and
+  compromise handling belong to the host's lifecycle system). The compromise-response runbook is out of scope for this
+  library.

@@ -10,25 +10,25 @@ using System.Diagnostics.Metrics;
 
 /// <summary>
 /// Static OTel <see cref="Meter"/> for the Redis distributed cache.
-/// Aggregate counters; per-call instrumentation overhead is acceptable
-/// here because Redis ops are network-bound (1-5ms) so a few ns of
-/// counter increment is invisible.
+/// The meter contains aggregate counters. Per-call instrumentation costs a few ns
+/// per counter increment, which is invisible next to a network-bound Redis
+/// operation (1-5ms).
 /// </summary>
 /// <remarks>
 /// <para>
-/// Class is <c>public</c> so the meter name constant
-/// (<see cref="METER_NAME"/>) is reachable cross-assembly — consumed by
-/// <c>DcsvIo.D2.Telemetry</c>'s aggregation registration so cache hits /
-/// misses / sets reach the OTLP / Prometheus exporters without per-host
-/// opt-in. The counter fields remain <c>internal</c> — only the lib's own
-/// hot-path code increments them; external callers should use the
-/// <c>IDistributedCache</c> abstractions, not the meter directly.
+/// The class is <c>public</c> so the meter name constant
+/// (<see cref="METER_NAME"/>) is reachable from other assemblies, which
+/// register the meter so cache hits / misses / sets reach the OTLP /
+/// Prometheus exporters without per-host opt-in. The counter fields remain
+/// <c>internal</c> because only the lib's own hot-path code increments them;
+/// code outside the lib uses the <c>IDistributedCache</c> abstractions, not
+/// the meter directly.
 /// </para>
 /// </remarks>
 public static class RedisCacheTelemetry
 {
     /// <summary>
-    /// The OpenTelemetry <see cref="Meter"/> name. Hosts add this via
+    /// The OpenTelemetry <see cref="Meter"/> name. Register it with
     /// <c>.WithMetrics(m =&gt; m.AddMeter(RedisCacheTelemetry.METER_NAME))</c>
     /// when wiring telemetry without <c>DcsvIo.D2.Telemetry</c>'s aggregator.
     /// </summary>

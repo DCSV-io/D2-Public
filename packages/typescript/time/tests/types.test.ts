@@ -191,20 +191,20 @@ describe("ZonedInstant", () => {
   it.each(["america/new_york", "AMERICA/NEW_YORK", "America/new_york"])(
     "create_lowercaseOrMixedCaseIANA_normalizesToCanonical_documentsIntlBehavior (%s)",
     (nonCanonicalCase) => {
-      // Node's Intl.DateTimeFormat is CASE-INSENSITIVE — it accepts
-      // lowercase / mixed-case IANA inputs and resolves them to the
-      // canonical-cased form via resolvedOptions().timeZone.
+      // Node's Intl.DateTimeFormat is case-insensitive: it accepts
+      // lowercase and mixed-case IANA inputs and resolves them to the
+      // canonical-cased form through resolvedOptions().timeZone.
       //
-      // CROSS-LANGUAGE DIVERGENCE (.NET ↔ TS):
-      // .NET NodaTime tzdb lookup IS case-sensitive (GetZoneOrNull returns
-      // null for non-canonical case → ValidationFailed). See
+      // Cross-language divergence (.NET <-> TS):
+      // the .NET NodaTime tzdb lookup is case-sensitive (GetZoneOrNull returns
+      // null for non-canonical case -> ValidationFailed). See
       // public/packages/dotnet/tests/Unit/Time/ZonedInstantTests.cs:
       // Create_LowercaseCanonicalName_BehaviorDocumented.
       //
-      // Callers crossing the .NET/TS boundary MUST pass canonical-cased
-      // IANA strings to stay parity-aligned. The TS side cannot reject
-      // non-canonical case without re-implementing tzdb lookup outside of
-      // Intl; the divergence is documented here so future readers don't
+      // An IANA string that crosses the .NET/TS boundary stays parity-aligned
+      // only when it is canonical-cased. The TS side cannot reject
+      // non-canonical case without re-implementing the tzdb lookup outside of
+      // Intl; the divergence is documented here so that a reader does not
       // assume symmetric rejection.
       const result = ZonedInstant.create(
         Temporal.Instant.fromEpochMilliseconds(0),
@@ -372,7 +372,7 @@ describe("LocalAnchoredEvent", () => {
   });
 
   it("plainDateTime_leapDay2000_Feb29_constructsSuccessfully", () => {
-    // Year 2000 IS a leap year (div by 400).
+    // Year 2000 is a leap year (divisible by 400).
     const dt = Temporal.PlainDateTime.from("2000-02-29T12:00:00");
     expect(dt.day).toBe(29);
   });
@@ -384,7 +384,7 @@ describe("LocalAnchoredEvent", () => {
   });
 
   it("plainDateTime_leapDay1900_Feb29_throws", () => {
-    // Year 1900: div by 100 but NOT div by 400 → NOT a leap year.
+    // Year 1900: divisible by 100 but not by 400 -> not a leap year.
     expect(() => Temporal.PlainDateTime.from("1900-02-29T09:00:00")).toThrow(
       RangeError,
     );
@@ -421,13 +421,12 @@ describe("LocalAnchoredEvent", () => {
   // Temporal supports a wider ISO year range than NodaTime:
   // - Temporal: [-271821, +275760] (millisecond-distance from Unix epoch)
   // - NodaTime: [-9998, 9999] (ISO calendar; see
-  //   public/packages/dotnet/tests/Unit/Time/LocalAnchoredEventTests.cs —
+  //   public/packages/dotnet/tests/Unit/Time/LocalAnchoredEventTests.cs -
   //   LocalDateTime_YearMinNodaTime / LocalDateTime_YearMaxNodaTime)
   //
-  // CROSS-LANGUAGE DIVERGENCE: an event with year > 9999 round-trips fine
+  // Cross-language divergence: an event with year > 9999 round-trips fine
   // on the TS side but throws ArgumentOutOfRangeException on the .NET side.
-  // Callers crossing the boundary MUST stay within the NodaTime range to
-  // remain parity-safe.
+  // An event stays parity-safe only within the NodaTime range.
 
   it("plainDateTime_year1_constructsSuccessfully", () => {
     const dt = new Temporal.PlainDateTime(1, 1, 1, 0, 0);
@@ -475,10 +474,10 @@ describe("LocalAnchoredEvent", () => {
 
   it("plainDateTime_second60_clamped_noLeapSecondSupport", () => {
     // Temporal explicitly does not model leap seconds; per the spec, parsing
-    // ":60" CLAMPS to :59 (does NOT throw). Behavior divergence from .NET
-    // NodaTime (which throws on second=60) — both engines agree on "no
-    // leap-second support" but disagree on the error mode. Documented here
-    // so future readers know not to rely on a throw for invalid-second input.
+    // ":60" clamps to :59 (it does not throw). This diverges from .NET
+    // NodaTime (which throws on second=60): both engines agree on "no
+    // leap-second support" but disagree on the error mode. Do not rely on a
+    // throw for invalid-second input.
     const dt = Temporal.PlainDateTime.from("2026-06-01T09:30:60");
     expect(dt.second).toBe(59);
   });
@@ -531,7 +530,7 @@ describe("LocalAnchoredEvent", () => {
 
   it("computeNextFire_USSpringForward_2_30AM_disambiguationCompatibleMapsForward", () => {
     // March 8 2026 = US DST spring-forward. 2:00-3:00 AM EST doesn't
-    // exist. compatible maps 2:30 AM forward → 3:30 AM EDT clock = 7:30 UTC.
+    // exist. compatible maps 2:30 AM forward -> 3:30 AM EDT clock = 7:30 UTC.
     const ev = LocalAnchoredEvent.create(
       Temporal.PlainDateTime.from("2026-03-08T02:30:00"),
       "America/New_York",
@@ -581,7 +580,7 @@ describe("LocalAnchoredEvent", () => {
 
   it("computeNextFire_USFallBack_1_30AM_disambiguationCompatiblePicksEarlier", () => {
     // November 1 2026 = US DST fall-back. 1:30 AM occurs twice; compatible
-    // picks earlier (EDT) → 5:30 UTC, NOT 6:30 UTC (EST).
+    // picks earlier (EDT) -> 5:30 UTC, not 6:30 UTC (EST).
     const ev = LocalAnchoredEvent.create(
       Temporal.PlainDateTime.from("2026-11-01T01:30:00"),
       "America/New_York",

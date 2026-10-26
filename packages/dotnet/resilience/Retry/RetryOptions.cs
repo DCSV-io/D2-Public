@@ -17,28 +17,28 @@ namespace DcsvIo.D2.Resilience.Retry;
 /// <c>options ??= new RetryOptions&lt;T&gt;()</c>; no defaults are restated
 /// in the helper itself.
 /// <para>
-/// Eight properties — past the threshold for the small-Options-record ctor
-/// pattern. Use object-initializer syntax for overrides.
+/// The properties below are past the threshold for the small-Options-record
+/// ctor pattern. Use object-initializer syntax for overrides.
 /// </para>
 /// </remarks>
 public sealed record RetryOptions<T>
 {
     /// <summary>
-    /// Default value-failure predicate — accepts every returned value (i.e.
+    /// Default value-failure predicate - accepts every returned value (i.e.
     /// retries are driven by exceptions only). The only default that
     /// genuinely depends on <c>T</c>; lives on the generic type so the
     /// signature matches without runtime casting. <see cref="RetryHelper"/>
     /// uses <b>reference-equality</b> against this delegate to detect
-    /// "caller didn't customize ShouldRetry" — do NOT rebind to a
-    /// structurally-identical lambda (e.g. <c>options with { ShouldRetry =
-    /// _ => false }</c>) expecting the smart-substitution path to fire.
-    /// Reference, not behavior, is the discriminator.
+    /// "caller didn't customize ShouldRetry". A structurally identical lambda
+    /// (e.g. <c>options with { ShouldRetry =
+    /// _ => false }</c>) is a different delegate and does not trigger the
+    /// D2Result-aware substitution.
     /// </summary>
     internal static readonly Func<T, bool> SR_DefaultShouldRetry = static _ => false;
 
     /// <summary>
     /// Gets the maximum number of attempts (including the initial call).
-    /// Default: 5. <c>0</c> and <c>1</c> are observably equivalent — the
+    /// Default: 5. <c>0</c> and <c>1</c> are observably equivalent - the
     /// attempt counter is post-incremented, so a single execution always
     /// happens regardless of the cap; values below 2 disable retries.
     /// </summary>
@@ -82,8 +82,8 @@ public sealed record RetryOptions<T>
 
     /// <summary>
     /// Gets the delay function used between retries. Default:
-    /// <see cref="Task.Delay(TimeSpan, CancellationToken)"/>. Override only
-    /// for tests that need synchronous / instant delay control.
+    /// <see cref="Task.Delay(TimeSpan, CancellationToken)"/>. Replace it to
+    /// control delays synchronously or make them instant.
     /// </summary>
     public Func<TimeSpan, CancellationToken, Task> DelayFunc { get; init; } =
         RetryDefaults.SR_DelayFunc;

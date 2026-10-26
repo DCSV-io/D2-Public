@@ -21,7 +21,7 @@ public static class TieredCacheServiceCollectionExtensions
         /// Registers <see cref="DefaultTieredCache"/> as the singleton
         /// <see cref="ITieredCache"/>. Requires <see cref="ILocalCache"/>
         /// and <see cref="IDistributedCache"/> to be registered first.
-        /// <see cref="ICacheInvalidationBackplane"/> is optional — if
+        /// <see cref="ICacheInvalidationBackplane"/> is optional - if
         /// registered, the tiered cache subscribes for cluster-wide L1
         /// invalidation; if not, broadcast methods throw and L1 stays
         /// stale until TTL.

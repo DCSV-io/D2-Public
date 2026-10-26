@@ -21,16 +21,16 @@ using Microsoft.CodeAnalysis.Text;
 /// generator's responsibilities are split across two consumer assemblies:
 /// <list type="bullet">
 ///   <item>
-///     <c>DcsvIo.D2.Geo.Abstractions</c> → emit all TYPES (enums, wrapper
+///     <c>DcsvIo.D2.Geo.Abstractions</c> -> emit all TYPES (enums, wrapper
 ///     structs, JsonConverters, record shapes, <c>GeoCatalog</c> constants,
 ///     <c>SubdivisionParentCountryLookup</c>).
 ///   </item>
 ///   <item>
-///     <c>DcsvIo.D2.Geo.Default</c> → emit all DATA (per-entity static
+///     <c>DcsvIo.D2.Geo.Default</c> -> emit all DATA (per-entity static
 ///     instances, nested static-class shells, lookup tables, and the
 ///     wire-nav coordinator).
 ///   </item>
-///   <item>Anything else → emit nothing.</item>
+///   <item>Anything else -> emit nothing.</item>
 /// </list>
 /// Diagnostics surfaced by <see cref="SpecLoader.LoadAll"/> + the per-emitter
 /// passes are translated into Roslyn <c>Diagnostic</c> instances via the
@@ -71,43 +71,40 @@ public sealed class GeoGenerator : IIncrementalGenerator
             if (!isAbstractionsTarget && !isDefaultTarget)
                 return;
 
-            // Load every spec file present and surface any parse diagnostics
-            // upstream of the per-emitter pass.
+            // Load every spec file present and report any parse diagnostics
+            // before the per-emitter pass runs.
             var loadDiagnostics = ImmutableArray.CreateBuilder<EmitDiagnostic>();
-            var specContext = SpecLoader.LoadAll(specFiles, loadDiagnostics);
+            var specContext = SpecLoader.LoadAll(specFiles, loadDiagnostics, assemblyName);
 
             foreach (var diag in loadDiagnostics)
                 spc.ReportDiagnostic(ToRoslynDiagnostic(diag));
 
-            // Catalog uniqueness check (safety predicate) — fail-closed on
-            // collisions so the resolver impl never has to choose between two
-            // identically-named records. Runs on every target; build fails on
-            // D2GEO010 collisions regardless of which assembly is being emitted
-            // into.
+            // Catalog uniqueness check. It reports each collision of two
+            // identically named records; the runtime name resolver is what
+            // fails closed (NotFound). It runs on every target, so whichever assembly is being
+            // emitted into reports a D2GEO010 collision. That diagnostic fails
+            // the build only when it is enabled (it is disabled by default).
             var uniquenessDiagnostics = CatalogUniquenessChecker.Check(specContext);
             foreach (var diag in uniquenessDiagnostics)
                 spc.ReportDiagnostic(ToRoslynDiagnostic(diag));
 
-            // Cross-catalog locale-reference check (safety predicate) —
-            // ensures every country.primaryLocaleIETFBCP47Tag + every entry
-            // in country.localeIETFBCP47Tags[] resolves to a locale in
-            // locales.spec.json. Drift here would otherwise force the data
-            // emitter into defensive `TryGetValue + skip` patterns that mask
-            // bad spec data; fail-loud at build time keeps the runtime
-            // direct-indexer access honest. Build fails on D2GEO011.
+            // Cross-catalog locale-reference check. It verifies that every
+            // country.primaryLocaleIETFBCP47Tag and every entry in
+            // country.localeIETFBCP47Tags[] resolves to a locale in
+            // locales.spec.json. The build fails on D2GEO012.
             var localeRefDiagnostics = LocaleReferenceChecker.Check(specContext);
             foreach (var diag in localeRefDiagnostics)
                 spc.ReportDiagnostic(ToRoslynDiagnostic(diag));
 
             if (isAbstractionsTarget)
             {
-                // Per-target emission order: enums first, then wrapper
-                // structs, then JsonConverters (the structs reference the
-                // converters via [JsonConverter]; converters reference the
-                // structs via JsonConverter<T> — emit both as partials in
-                // the same compilation unit to satisfy the cycle), then
-                // record shapes, then the parent-country table + GeoCatalog
-                // constants.
+                // Emission order for this target: enums, wrapper structs,
+                // JsonConverters, record shapes, then the parent-country
+                // table and the GeoCatalog constants. The structs reference
+                // the converters through [JsonConverter] and the converters
+                // reference the structs through JsonConverter<T>, so both are
+                // emitted as partials in the same compilation unit to satisfy
+                // that cycle.
                 EmitAll(spc, EnumEmitter.EmitAll(specContext));
                 EmitAll(spc, WrapperStructEmitter.EmitAll(specContext));
                 EmitAll(spc, JsonConverterEmitter.EmitAll(specContext));
@@ -119,18 +116,18 @@ public sealed class GeoGenerator : IIncrementalGenerator
 
             if (isDefaultTarget)
             {
-                // Per-entity static-instance data + nested static-class
-                // hierarchies + FrozenDictionary lookup tables. Each catalog
-                // emits a static ctor (record construction with default/empty
-                // nav values — first pass of the two-pass populate pattern) +
-                // a WireNav() method (nav-ref mutation via friend-assembly
-                // internal set visibility — second / wire-nav step). The
-                // GeoDataInitializer coordinator (emitted last) carries a
+                // Per-entity static-instance data, nested static-class
+                // hierarchies and FrozenDictionary lookup tables. Each catalog
+                // emits a static ctor and a WireNav() method. The static ctor
+                // constructs the records with default or empty navigation
+                // values (first pass of the two-pass populate pattern).
+                // WireNav() sets the navigation references through the
+                // friend-assembly internal setters (second pass). The
+                // GeoDataInitializer coordinator, emitted last, has a
                 // [ModuleInitializer] that runs every catalog's static ctor
-                // first, then invokes WireNav() in dependency order. Emit
-                // order between catalogs here is purely cosmetic — the
-                // [ModuleInitializer]-driven runtime sequence is what matters
-                // for nav correctness.
+                // first and then calls WireNav() in dependency order. The emit
+                // order between catalogs does not affect the
+                // [ModuleInitializer] runtime sequence.
                 EmitAll(spc, CountryDataEmitter.EmitAll(specContext));
                 EmitAll(spc, CurrencyDataEmitter.EmitAll(specContext));
                 EmitAll(spc, LanguageDataEmitter.EmitAll(specContext));
@@ -179,13 +176,9 @@ public sealed class GeoGenerator : IIncrementalGenerator
     {
         DiagnosticIds.MalformedSpec => DiagnosticDescriptors.MalformedSpec,
         DiagnosticIds.UnknownFk => DiagnosticDescriptors.UnknownFk,
-        DiagnosticIds.FkAmbiguity => DiagnosticDescriptors.FkAmbiguity,
         DiagnosticIds.InvalidIdentifier => DiagnosticDescriptors.InvalidIdentifier,
-        DiagnosticIds.VocabularyViolation => DiagnosticDescriptors.VocabularyViolation,
         DiagnosticIds.MissingCatalogMetadata => DiagnosticDescriptors.MissingCatalogMetadata,
         DiagnosticIds.MissingSpec => DiagnosticDescriptors.MissingSpec,
-        DiagnosticIds.LocaleMessageMismatch => DiagnosticDescriptors.LocaleMessageMismatch,
-        DiagnosticIds.StructuralParityMismatch => DiagnosticDescriptors.StructuralParityMismatch,
         DiagnosticIds.DuplicateNormalizedName => DiagnosticDescriptors.DuplicateNormalizedName,
         DiagnosticIds.MissingLocaleReference => DiagnosticDescriptors.MissingLocaleReference,
         _ => throw new InvalidOperationException(

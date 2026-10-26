@@ -14,7 +14,7 @@ using Xunit;
 /// Constructor-boundary matrix for <see cref="RecipientPublicKeyring"/>:
 /// service-id grammar, kid bounds, active-kid membership, and the
 /// P-256-at-construction validation (garbage / wrong curve / private-where-
-/// public-expected all fail loud at the boundary, never at first Seal).
+/// public-expected all throw at the boundary, never at first Seal).
 /// </summary>
 public sealed class RecipientPublicKeyringTests
 {
@@ -28,9 +28,9 @@ public sealed class RecipientPublicKeyringTests
     [Fact]
     public void Ctor_ValidInput_ExposesServiceIdAndActiveKid()
     {
-        var ring = new RecipientPublicKeyring("audit", "kid-1", ValidKeys());
+        var ring = new RecipientPublicKeyring("orders", "kid-1", ValidKeys());
 
-        ring.RecipientServiceId.Should().Be("audit");
+        ring.RecipientServiceId.Should().Be("orders");
         ring.ActiveKid.Should().Be("kid-1");
         ring.TryGetPublicKey("kid-1", out var spki).Should().BeTrue();
         spki.ToArray().Should().Equal(sr_keypair.PublicSpki);
@@ -41,7 +41,7 @@ public sealed class RecipientPublicKeyringTests
     {
         var mutable = (byte[])sr_keypair.PublicSpki.Clone();
         var ring = new RecipientPublicKeyring(
-            "audit", "kid-1", new Dictionary<string, byte[]> { ["kid-1"] = mutable });
+            "orders", "kid-1", new Dictionary<string, byte[]> { ["kid-1"] = mutable });
 
         mutable.AsSpan().Clear();
 
@@ -52,7 +52,7 @@ public sealed class RecipientPublicKeyringTests
     [Fact]
     public void TryGetPublicKey_UnknownOrNullKid_ReturnsFalse()
     {
-        var ring = new RecipientPublicKeyring("audit", "kid-1", ValidKeys());
+        var ring = new RecipientPublicKeyring("orders", "kid-1", ValidKeys());
 
         ring.TryGetPublicKey("other", out _).Should().BeFalse();
         ring.TryGetPublicKey(null, out _).Should().BeFalse();
@@ -72,10 +72,10 @@ public sealed class RecipientPublicKeyringTests
 
     [Theory]
     [InlineData("")]
-    [InlineData("Audit")]
-    [InlineData("audit service")]
-    [InlineData(" audit")]
-    [InlineData("audit_1")]
+    [InlineData("Orders")]
+    [InlineData("orders service")]
+    [InlineData(" orders")]
+    [InlineData("orders_1")]
     [InlineData("aüdit")]
     public void Ctor_InvalidServiceIdGrammar_Throws(string serviceId)
     {
@@ -109,7 +109,7 @@ public sealed class RecipientPublicKeyringTests
     [Fact]
     public void Ctor_NullActiveKid_Throws()
     {
-        var act = () => new RecipientPublicKeyring("audit", null!, ValidKeys());
+        var act = () => new RecipientPublicKeyring("orders", null!, ValidKeys());
 
         act.Should().Throw<ArgumentNullException>();
     }
@@ -117,7 +117,7 @@ public sealed class RecipientPublicKeyringTests
     [Fact]
     public void Ctor_NullKeys_Throws()
     {
-        var act = () => new RecipientPublicKeyring("audit", "kid-1", null!);
+        var act = () => new RecipientPublicKeyring("orders", "kid-1", null!);
 
         act.Should().Throw<ArgumentNullException>();
     }
@@ -125,7 +125,7 @@ public sealed class RecipientPublicKeyringTests
     [Fact]
     public void Ctor_ActiveKidNotInKeys_Throws()
     {
-        var act = () => new RecipientPublicKeyring("audit", "absent", ValidKeys());
+        var act = () => new RecipientPublicKeyring("orders", "absent", ValidKeys());
 
         act.Should().Throw<ArgumentException>().WithParameterName("activeKid");
     }
@@ -133,9 +133,9 @@ public sealed class RecipientPublicKeyringTests
     [Fact]
     public void Ctor_EmptyKeys_Throws()
     {
-        // Empty map ⇒ the active kid can never be a member.
+        // Empty map => the active kid can never be a member.
         var act = () => new RecipientPublicKeyring(
-            "audit", "kid-1", new Dictionary<string, byte[]>());
+            "orders", "kid-1", new Dictionary<string, byte[]>());
 
         act.Should().Throw<ArgumentException>();
     }
@@ -150,20 +150,20 @@ public sealed class RecipientPublicKeyringTests
             [longKid] = sr_keypair.PublicSpki,
         };
 
-        var act = () => new RecipientPublicKeyring("audit", "kid-1", keys);
+        var act = () => new RecipientPublicKeyring("orders", "kid-1", keys);
 
         act.Should().Throw<ArgumentException>();
     }
 
     // ---------------------------------------------------------------
-    // Key material validation (fail loud at the boundary).
+    // Key material validation (throws at the boundary).
     // ---------------------------------------------------------------
 
     [Fact]
     public void Ctor_GarbageSpki_Throws()
     {
         var keys = new Dictionary<string, byte[]> { ["kid-1"] = [1, 2, 3, 4] };
-        var act = () => new RecipientPublicKeyring("audit", "kid-1", keys);
+        var act = () => new RecipientPublicKeyring("orders", "kid-1", keys);
 
         act.Should().Throw<ArgumentException>().WithParameterName("publicKeysByKid");
     }
@@ -174,7 +174,7 @@ public sealed class RecipientPublicKeyringTests
         var p384 = SealedTestKeys.GenerateP384Keypair();
         var keys = new Dictionary<string, byte[]> { ["kid-1"] = p384.PublicSpki };
 
-        var act = () => new RecipientPublicKeyring("audit", "kid-1", keys);
+        var act = () => new RecipientPublicKeyring("orders", "kid-1", keys);
 
         act.Should().Throw<ArgumentException>().WithParameterName("publicKeysByKid");
     }
@@ -184,7 +184,7 @@ public sealed class RecipientPublicKeyringTests
     {
         var keys = new Dictionary<string, byte[]> { ["kid-1"] = sr_keypair.PrivatePkcs8 };
 
-        var act = () => new RecipientPublicKeyring("audit", "kid-1", keys);
+        var act = () => new RecipientPublicKeyring("orders", "kid-1", keys);
 
         act.Should().Throw<ArgumentException>().WithParameterName("publicKeysByKid");
     }
@@ -194,7 +194,7 @@ public sealed class RecipientPublicKeyringTests
     {
         var keys = new Dictionary<string, byte[]> { ["kid-1"] = null! };
 
-        var act = () => new RecipientPublicKeyring("audit", "kid-1", keys);
+        var act = () => new RecipientPublicKeyring("orders", "kid-1", keys);
 
         act.Should().Throw<ArgumentNullException>();
     }
@@ -206,7 +206,7 @@ public sealed class RecipientPublicKeyringTests
         sr_keypair.PublicSpki.CopyTo(padded, 0);
         var keys = new Dictionary<string, byte[]> { ["kid-1"] = padded };
 
-        var act = () => new RecipientPublicKeyring("audit", "kid-1", keys);
+        var act = () => new RecipientPublicKeyring("orders", "kid-1", keys);
 
         act.Should().Throw<ArgumentException>().WithParameterName("publicKeysByKid");
     }
@@ -218,11 +218,11 @@ public sealed class RecipientPublicKeyringTests
     [Fact]
     public void ToString_NeverContainsKeyBytes()
     {
-        var ring = new RecipientPublicKeyring("audit", "kid-1", ValidKeys());
+        var ring = new RecipientPublicKeyring("orders", "kid-1", ValidKeys());
 
         var rendered = ring.ToString();
 
-        rendered.Should().Contain("audit").And.Contain("kid-1");
+        rendered.Should().Contain("orders").And.Contain("kid-1");
         rendered.Should().NotContain(Convert.ToBase64String(sr_keypair.PublicSpki));
         rendered.Should().NotContain(Convert.ToHexString(sr_keypair.PublicSpki));
     }

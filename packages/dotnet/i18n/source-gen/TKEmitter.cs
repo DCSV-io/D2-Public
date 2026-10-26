@@ -20,9 +20,9 @@ using DcsvIo.D2.SourceGen;
 /// per-locale coverage diagnostics).
 /// </summary>
 /// <remarks>
-/// Stateless and unit-testable in isolation. The Roslyn-host integration
-/// (<see cref="TKGenerator"/>) reads the JSON files via <c>AdditionalText</c>
-/// and forwards them here.
+/// This class is stateless and has no dependency on the Roslyn host.
+/// <see cref="TKGenerator"/> is the Roslyn-host integration; it reads the
+/// JSON files through <c>AdditionalText</c>.
 /// </remarks>
 internal static class TKEmitter
 {
@@ -35,12 +35,12 @@ internal static class TKEmitter
     /// </summary>
     /// <param name="enUsJson">The en-US JSON catalog content. Source of truth for TK.</param>
     /// <param name="otherLocales">
-    /// Other locale catalogs by locale code (e.g. <c>"fr-FR"</c> → JSON content).
-    /// Used for per-locale coverage diagnostics only — the keys themselves are
+    /// Other locale catalogs by locale code (e.g. <c>"fr-FR"</c> -> JSON content).
+    /// Used for per-locale coverage diagnostics only - the keys themselves are
     /// NOT included in TK if they're absent from en-US.
     /// </param>
-    /// <param name="rootNamespace">Emit namespace (public TK or private ProductTK).</param>
-    /// <param name="className">Emit class name (<c>TK</c> or <c>ProductTK</c>).</param>
+    /// <param name="rootNamespace">Emit namespace (the public namespace or an extension namespace).</param>
+    /// <param name="className">Emit class name (<c>TK</c> or an extension class name).</param>
     /// <returns>The generated source code plus an immutable array of diagnostics.</returns>
     public static EmitResult Emit(
         string enUsJson,
@@ -52,7 +52,7 @@ internal static class TKEmitter
         var effectiveClassName = className ?? _DEFAULT_TK_CLASS_NAME;
         var diagnostics = ImmutableArray.CreateBuilder<EmitDiagnostic>();
 
-        // Parse en-US — if it fails, emit an empty TK class with a diagnostic.
+        // Parse en-US. If parsing fails, emit an empty TK class and a diagnostic.
         Dictionary<string, string> enUsKeys;
         try
         {
@@ -66,9 +66,10 @@ internal static class TKEmitter
                 diagnostics.ToImmutable());
         }
 
-        // Decompose every key, collect valid ones and report invalid ones.
-        // Sort by key for deterministic emission order (cache stability).
-        // Type alias for the 3-level nested sorted dictionary keeps the line short.
+        // Decompose every key, collect the valid ones and report the invalid
+        // ones. Sorting by key makes the emission order deterministic (cache
+        // stability). NewByPath creates the 3-level nested sorted
+        // dictionary.
         var byPath = NewByPath();
 
         foreach (var kvp in enUsKeys.OrderBy(k => k.Key, StringComparer.Ordinal))
@@ -95,7 +96,8 @@ internal static class TKEmitter
             if (constants.TryGetValue(decomposed.ConstantName, out var existingKey))
             {
                 // Collision: two source keys decompose to the same TK path.
-                // First one wins (we got here via OrderBy), report the loser.
+                // The first key in OrderBy order wins, and the diagnostic
+                // reports the later key.
                 var fullPath =
                     $"{effectiveClassName}.{decomposed.Domain}." +
                     $"{decomposed.Category}.{decomposed.ConstantName}";
@@ -124,7 +126,7 @@ internal static class TKEmitter
                 continue;
             }
 
-            // en-US-present-but-missing-here → D2I18N002.
+            // en-US-present-but-missing-here -> D2I18N002.
             foreach (var enUsKey in enUsKeySet.OrderBy(k => k, StringComparer.Ordinal))
             {
                 if (!localeKeys.ContainsKey(enUsKey))
@@ -133,7 +135,7 @@ internal static class TKEmitter
                 }
             }
 
-            // here-but-missing-in-en-US → D2I18N004.
+            // here-but-missing-in-en-US -> D2I18N004.
             foreach (var localeKey in localeKeys.Keys.OrderBy(k => k, StringComparer.Ordinal))
             {
                 if (string.Equals(localeKey, _SCHEMA_KEY, StringComparison.Ordinal))
@@ -154,8 +156,8 @@ internal static class TKEmitter
 
     private static Dictionary<string, string> ParseCatalog(string json)
     {
-        // Use JsonDocument for granular parsing — we must error on non-string
-        // values without aborting the whole catalog.
+        // Parse with JsonDocument. A non-string value throws a JsonException,
+        // and Emit then reports MalformedJson and emits an empty TK class.
         using var doc = JsonDocument.Parse(json);
         if (doc.RootElement.ValueKind != JsonValueKind.Object)
         {
@@ -312,8 +314,8 @@ internal static class TKEmitter
 
     private static string EscapeStringLiteral(string value)
     {
-        // netstandard2.0 lacks the (string, string, StringComparison) overload —
-        // use the 2-arg form.
+        // netstandard2.0 lacks the (string, string, StringComparison)
+        // overload, so use the 2-arg form.
         return value
             .Replace("\\", "\\\\")
             .Replace("\"", "\\\"");

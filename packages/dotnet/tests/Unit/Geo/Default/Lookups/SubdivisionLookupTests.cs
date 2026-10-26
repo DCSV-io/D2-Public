@@ -23,7 +23,8 @@ public sealed class SubdivisionLookupTests
     [Fact]
     public void ByCode_CardinalityAtLeast3000()
     {
-        // ISO 3166-2 catalog is ~4900 entries globally; pin a lower bound.
+        // The ISO 3166-2 catalog (contracts/geo/subdivisions.spec.json) has more than
+        // 3000 entries; the assertion pins that lower bound.
         SubdivisionLookup.ByCode.Count.Should().BeGreaterThanOrEqualTo(3000);
     }
 
@@ -54,7 +55,7 @@ public sealed class SubdivisionLookupTests
         }
     }
 
-    // §1.2 category: Domain-specific — per-VALUE pins for US states.
+    // Category: Domain-specific - per-VALUE pins for US states.
     [Fact]
     public void Subdivision_USNY_AllFieldsPinned()
     {
@@ -92,7 +93,7 @@ public sealed class SubdivisionLookupTests
         tx.CountryIso31661Alpha2Code.Should().Be(CountryCode.US);
     }
 
-    // §1.2 category: Domain-specific — foreign subdivisions.
+    // Category: Domain-specific - foreign subdivisions.
     [Fact]
     public void Subdivision_CAON_OntarioPinned()
     {
@@ -106,7 +107,7 @@ public sealed class SubdivisionLookupTests
     [Fact]
     public void Subdivision_FRIDF_IleDeFrancePinned()
     {
-        // Île-de-France — exercises NFD normalization (catalog stores raw NFC).
+        // Île-de-France - exercises NFD normalization (catalog stores raw NFC).
         var idf = SubdivisionLookup.ByCode[SubdivisionCode.FromString("FR-IDF")];
 
         idf.CountryIso31661Alpha2Code.Should().Be(CountryCode.FR);
@@ -122,7 +123,7 @@ public sealed class SubdivisionLookupTests
         sp.DisplayName.Should().NotBeNullOrEmpty();
     }
 
-    // §1.2 category: Cross-field — every subdivision wires its parent country.
+    // Category: Cross-field - every subdivision wires its parent country.
     [Fact]
     public void Subdivision_EveryRecord_CountryNavBackrefMatchesCode()
     {
@@ -134,7 +135,7 @@ public sealed class SubdivisionLookupTests
         }
     }
 
-    // §1.2 category: Domain-specific — parent-subdivision nav.
+    // Category: Domain-specific - parent-subdivision nav.
     [Fact]
     public void Subdivision_ParentSubdivisionNav_WhereCodeSet_NavMatches()
     {

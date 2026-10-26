@@ -15,51 +15,57 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 
 /// <summary>
-/// Static helper that builds a fully wired AspNetCore test host suitable
-/// for driving the OpenTelemetry SDK end-to-end through
-/// <c>Microsoft.AspNetCore.TestHost</c>. Each call gets its own
+/// Static helper that builds an AspNetCore test host with the telemetry
+/// wiring in place, for driving the OpenTelemetry SDK end-to-end through
+/// <c>Microsoft.AspNetCore.TestHost</c>. Each call creates its own
 /// <see cref="InMemoryActivityExporter"/> /
 /// <see cref="InMemoryMetricExporter"/> /
-/// <see cref="InMemoryLogRecordExporter"/> so xUnit-parallel test classes
-/// don't see each other's emissions; the host's local OpenTelemetry
-/// pipeline writes to those exporters via the
-/// <c>SimpleActivityExportProcessor</c> /
-/// <c>BaseExportingMetricReader</c> / <c>SimpleLogRecordExportProcessor</c>
-/// shapes (synchronous-flush so tests don't race).
+/// <see cref="InMemoryLogRecordExporter"/>, so xUnit-parallel test classes
+/// do not see each other's emissions. The host's own OpenTelemetry
+/// pipeline writes to those exporters through
+/// <c>SimpleActivityExportProcessor</c> and <c>SimpleLogRecordExportProcessor</c>,
+/// which export each item on the thread that stops the activity or writes
+/// the log record, and through
+/// <c>BaseExportingMetricReader</c>, which exports when
+/// <see cref="ForceFlushAsync"/> collects it. Under TestServer the server
+/// activity of a request can stop after the client has its response, so a
+/// test waits for a server span with
+/// <see cref="TelemetryTestHostHandle.WaitForActivityAsync"/>; a flush does
+/// not export an activity that has not stopped.
 /// </summary>
 internal static class TelemetryTestHostBuilder
 {
     /// <summary>
     /// Builds and starts an in-process AspNetCore host with
-    /// <c>AddD2Telemetry</c> wired plus the three in-memory exporters
-    /// attached. Returns the started host and the three exporters.
+    /// <c>AddD2Telemetry</c> wired plus the in-memory activity, metric and
+    /// log exporters attached. Returns the started host and those exporters.
     /// </summary>
     /// <param name="configureOptions">
-    /// Optional callback to mutate the lib's <see cref="D2TelemetryOptions"/>
-    /// (e.g. set <c>OtlpTracesEndpoint</c> for the self-referential
-    /// HttpClient filter test).
+    /// Optional callback that changes the <see cref="D2TelemetryOptions"/>
+    /// (for example, set <c>OtlpTracesEndpoint</c> to exercise the
+    /// self-referential HttpClient filter).
     /// </param>
     /// <param name="extraServices">
-    /// Optional services-collection mutator invoked AFTER
-    /// <c>AddD2Telemetry</c>.
+    /// Optional callback that changes the services collection after
+    /// <c>AddD2Telemetry</c> runs.
     /// </param>
     /// <param name="extraConfigure">
-    /// Optional middleware-pipeline mutator invoked AFTER
-    /// <c>UseRouting</c> and BEFORE <c>UseEndpoints</c>.
+    /// Optional callback that changes the middleware pipeline after
+    /// <c>UseRouting</c> and before <c>UseEndpoints</c>.
     /// </param>
     /// <param name="extraEndpoints">
-    /// Optional endpoint-registration mutator invoked alongside the
+    /// Optional callback that registers endpoints alongside the
     /// default endpoints.
     /// </param>
     /// <returns>
-    /// Tuple of the started host and three in-memory exporters.
+    /// A handle that holds the started host and the in-memory activity,
+    /// metric and log exporters.
     /// </returns>
     internal static async Task<TelemetryTestHostHandle> BuildAsync(
         Action<D2TelemetryOptions>? configureOptions = null,
@@ -88,11 +94,12 @@ internal static class TelemetryTestHostBuilder
                                 configureOptions?.Invoke(opts);
                             });
 
-                        // Attach the per-test in-memory exporters AFTER
-                        // AddD2Telemetry so they ride alongside any OTLP
-                        // exporters the lib registered via env-derived
-                        // defaults. Synchronous processors so tests don't
-                        // race the batch flush deadline.
+                        // Attach the per-test in-memory exporters after
+                        // AddD2Telemetry, so they run alongside any OTLP
+                        // exporters the library registered from
+                        // environment-derived defaults. The processors are
+                        // synchronous, so tests do not race the batch flush
+                        // deadline.
                         services.ConfigureOpenTelemetryTracerProvider(tracing =>
                             tracing.AddProcessor(
                                 new SimpleActivityExportProcessor(activityExporter)));
@@ -139,19 +146,21 @@ internal static class TelemetryTestHostBuilder
     }
 
     /// <summary>
-    /// Forces all three providers to flush their pending exports so the
-    /// in-memory captures are populated synchronously by the time the
-    /// test inspects them.
+    /// Flushes the tracer provider and the meter provider.
+    /// The logs reach their exporter without a flush, because
+    /// <c>SimpleLogRecordExportProcessor</c> exports each record on the
+    /// calling thread.
     /// </summary>
     /// <param name="host">The host to flush.</param>
     /// <param name="ct">The cancellation token.</param>
-    /// <returns>A task that completes when all flushes settle.</returns>
+    /// <returns>
+    /// A completed task; the flushes run synchronously before it returns.
+    /// </returns>
     internal static Task ForceFlushAsync(IHost host, CancellationToken ct = default)
     {
         var sp = host.Services;
         sp.GetService<TracerProvider>()?.ForceFlush(5000);
         sp.GetService<MeterProvider>()?.ForceFlush(5000);
-        sp.GetService<LoggerFactory>()?.Dispose();
         return Task.CompletedTask;
     }
 }

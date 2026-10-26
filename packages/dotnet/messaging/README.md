@@ -6,16 +6,24 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 > Parent: [`packages/dotnet/`](../README.md)
 
-The async messaging stack for D2 services that publish or subscribe to RabbitMQ — the transport-agnostic abstractions, the default RabbitMQ implementation, and the spec-driven source generators that emit the message / subscription registries, the DLQ failure-metadata catalog, and the OTel messaging activity-tag catalog from `contracts/`. Domain code attaches `[MqPub]` / `[MqSub]` attributes and requests `IMessageBus` from the abstractions without dragging in `RabbitMQ.Client`. Sensitive payloads are encrypted in-frame via the `encryption/` cluster.
+The async messaging stack for D2 services that publish or subscribe to RabbitMQ: the transport-agnostic abstractions,
+the default RabbitMQ implementation, and the spec-driven source generators. The generators emit the message and
+subscription registries, the dead-letter queue (DLQ) failure-metadata catalog, and the OpenTelemetry (OTel) messaging
+activity-tag catalog from `contracts/`. Domain code attaches `[MqPub]` / `[MqSub]` attributes and requests `IMessageBus`
+from the abstractions, which do not reference `RabbitMQ.Client`. Sensitive payloads are encrypted in-frame via the
+`encryption/` cluster.
 
-OTel sem-conv tag catalog for messaging lives at [`otel-messaging-tags-source-gen/`](otel-messaging-tags-source-gen/README.md) — observability concern owned by messaging for consumer-locality.
+The OTel semantic-convention tag catalog for messaging is in
+[`otel-messaging-tags-source-gen/`](otel-messaging-tags-source-gen/README.md). It is an observability catalog, and the
+messaging cluster owns it because its only consumer is `rabbitmq/`.
 
 ## Packages
 
-| Package                                                                       | Description                                                                                                                          |
-| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| [`abstractions/`](abstractions/README.md)                                     | Transport-agnostic surface — `IMessageBus`, idempotency store, `[MqPub]` / `[MqSub]` attributes, codegen-emitted descriptors, subscriber registration. |
-| [`rabbitmq/`](rabbitmq/README.md)                                             | Default `RabbitMQ.Client 7.x` implementation — singleton bus, publisher confirms, idempotent topology, DLQ handling, in-frame payload encryption. |
-| [`source-gen/`](source-gen/README.md)                                         | Roslyn generator emitting the message / subscription registries into `abstractions/` from `contracts/mq-messages/` + `contracts/mq-subscriptions/`. |
-| [`dlq-failure-metadata-source-gen/`](dlq-failure-metadata-source-gen/README.md) | Roslyn generator emitting the DLQ failure-metadata field catalog and cause-string catalog into `abstractions/` and `rabbitmq/` from `contracts/dlq-failure-metadata/dlq-failure-metadata.spec.json`. |
-| [`otel-messaging-tags-source-gen/`](otel-messaging-tags-source-gen/README.md) | Roslyn generator emitting the OTel sem-conv messaging activity-tag catalog into `rabbitmq/` from `contracts/otel-messaging-tags/otel-messaging-tags.spec.json`. |
+| Package                                                                         | Description                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`abstractions/`](abstractions/README.md)                                       | Transport-agnostic surface - `IMessageBus`, idempotency store, `[MqPub]` / `[MqSub]` attributes, codegen-emitted descriptors, subscriber registration.                                                                                                                                                      |
+| [`rabbitmq/`](rabbitmq/README.md)                                               | Default `RabbitMQ.Client 7.x` implementation - singleton bus, publisher confirms, idempotent topology, DLQ handling, in-frame payload encryption.                                                                                                                                                           |
+| [`source-gen/`](source-gen/README.md)                                           | Roslyn generator emitting the message / subscription registries into `abstractions/` from `contracts/mq-messages/` + `contracts/mq-subscriptions/`.                                                                                                                                                         |
+| [`dlq-failure-metadata-source-gen/`](dlq-failure-metadata-source-gen/README.md) | Roslyn generator emitting the DLQ failure-metadata field catalog and cause-string catalog into `abstractions/` and `rabbitmq/` from `contracts/dlq-failure-metadata/dlq-failure-metadata.spec.json`.                                                                                                        |
+| [`otel-messaging-tags-source-gen/`](otel-messaging-tags-source-gen/README.md)   | Roslyn generator emitting the OTel sem-conv messaging activity-tag catalog into `rabbitmq/` from `contracts/otel-messaging-tags/otel-messaging-tags.spec.json`.                                                                                                                                             |
+| [`rabbitmq/error-codes-source-gen/`](rabbitmq/error-codes-source-gen/README.md) | Roslyn generator emitting `MessagingErrorCodes` + `MessagingTransportFailures` into `rabbitmq/` from `contracts/messaging-error-codes/messaging-error-codes.spec.json`. Every generation step is in the shared error-codes engine; this project supplies one `CatalogConfig` and its own analyzer identity. |

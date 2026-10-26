@@ -28,9 +28,9 @@ public sealed class RecipientPrivateKeyringTests
     [Fact]
     public void Ctor_ValidInput_ExposesServiceIdAndResolvesKid()
     {
-        using var ring = new RecipientPrivateKeyring("audit", ValidKeys());
+        using var ring = new RecipientPrivateKeyring("orders", ValidKeys());
 
-        ring.RecipientServiceId.Should().Be("audit");
+        ring.RecipientServiceId.Should().Be("orders");
         ring.TryGetPrivateKey("kid-1", out var pkcs8).Should().BeTrue();
         pkcs8.ToArray().Should().Equal(sr_keypair.PrivatePkcs8);
     }
@@ -40,7 +40,7 @@ public sealed class RecipientPrivateKeyringTests
     {
         var mutable = (byte[])sr_keypair.PrivatePkcs8.Clone();
         using var ring = new RecipientPrivateKeyring(
-            "audit", new Dictionary<string, byte[]> { ["kid-1"] = mutable });
+            "orders", new Dictionary<string, byte[]> { ["kid-1"] = mutable });
 
         mutable.AsSpan().Clear();
 
@@ -51,7 +51,7 @@ public sealed class RecipientPrivateKeyringTests
     [Fact]
     public void TryGetPrivateKey_UnknownOrNullKid_ReturnsFalse()
     {
-        using var ring = new RecipientPrivateKeyring("audit", ValidKeys());
+        using var ring = new RecipientPrivateKeyring("orders", ValidKeys());
 
         ring.TryGetPrivateKey("other", out _).Should().BeFalse();
         ring.TryGetPrivateKey(null, out _).Should().BeFalse();
@@ -63,8 +63,8 @@ public sealed class RecipientPrivateKeyringTests
 
     [Theory]
     [InlineData("")]
-    [InlineData("Audit")]
-    [InlineData("audit!")]
+    [InlineData("Orders")]
+    [InlineData("orders!")]
     public void Ctor_InvalidServiceIdGrammar_Throws(string serviceId)
     {
         var act = () => new RecipientPrivateKeyring(serviceId, ValidKeys());
@@ -75,7 +75,7 @@ public sealed class RecipientPrivateKeyringTests
     [Fact]
     public void Ctor_NullKeys_Throws()
     {
-        var act = () => new RecipientPrivateKeyring("audit", null!);
+        var act = () => new RecipientPrivateKeyring("orders", null!);
 
         act.Should().Throw<ArgumentNullException>();
     }
@@ -84,7 +84,7 @@ public sealed class RecipientPrivateKeyringTests
     public void Ctor_EmptyKeys_Throws()
     {
         var act = () => new RecipientPrivateKeyring(
-            "audit", new Dictionary<string, byte[]>());
+            "orders", new Dictionary<string, byte[]>());
 
         act.Should().Throw<ArgumentException>().WithParameterName("privateKeysByKid");
     }
@@ -95,7 +95,7 @@ public sealed class RecipientPrivateKeyringTests
         var longKid = new string('k', SealedFrameLayout.CONSTRAINT_MAX_KID_LENGTH + 1);
         var keys = new Dictionary<string, byte[]> { [longKid] = sr_keypair.PrivatePkcs8 };
 
-        var act = () => new RecipientPrivateKeyring("audit", keys);
+        var act = () => new RecipientPrivateKeyring("orders", keys);
 
         act.Should().Throw<ArgumentException>();
     }
@@ -105,7 +105,7 @@ public sealed class RecipientPrivateKeyringTests
     {
         var keys = new Dictionary<string, byte[]> { ["kid-1"] = [9, 9, 9, 9] };
 
-        var act = () => new RecipientPrivateKeyring("audit", keys);
+        var act = () => new RecipientPrivateKeyring("orders", keys);
 
         act.Should().Throw<ArgumentException>().WithParameterName("privateKeysByKid");
     }
@@ -115,7 +115,7 @@ public sealed class RecipientPrivateKeyringTests
     {
         var keys = new Dictionary<string, byte[]> { ["kid-1"] = sr_keypair.PublicSpki };
 
-        var act = () => new RecipientPrivateKeyring("audit", keys);
+        var act = () => new RecipientPrivateKeyring("orders", keys);
 
         act.Should().Throw<ArgumentException>().WithParameterName("privateKeysByKid");
     }
@@ -126,7 +126,7 @@ public sealed class RecipientPrivateKeyringTests
         var p384 = SealedTestKeys.GenerateP384Keypair();
         var keys = new Dictionary<string, byte[]> { ["kid-1"] = p384.PrivatePkcs8 };
 
-        var act = () => new RecipientPrivateKeyring("audit", keys);
+        var act = () => new RecipientPrivateKeyring("orders", keys);
 
         act.Should().Throw<ArgumentException>().WithParameterName("privateKeysByKid");
     }
@@ -138,9 +138,9 @@ public sealed class RecipientPrivateKeyringTests
     [Fact]
     public void Dispose_ZeroesStoredKeyBytes()
     {
-        var ring = new RecipientPrivateKeyring("audit", ValidKeys());
+        var ring = new RecipientPrivateKeyring("orders", ValidKeys());
 
-        // Snapshot the keyring's internal copy via the ROM token — the token
+        // Hold a read-only view of the keyring's internal copy - the view
         // aliases the internal byte[].
         ring.TryGetPrivateKey("kid-1", out var live).Should().BeTrue();
         live.ToArray().Should().NotBeEquivalentTo(new byte[live.Length]);
@@ -153,7 +153,7 @@ public sealed class RecipientPrivateKeyringTests
     [Fact]
     public void Dispose_Idempotent()
     {
-        var ring = new RecipientPrivateKeyring("audit", ValidKeys());
+        var ring = new RecipientPrivateKeyring("orders", ValidKeys());
         ring.Dispose();
 
         var act = ring.Dispose;
@@ -164,7 +164,7 @@ public sealed class RecipientPrivateKeyringTests
     [Fact]
     public void TryGetPrivateKey_AfterDispose_Throws()
     {
-        var ring = new RecipientPrivateKeyring("audit", ValidKeys());
+        var ring = new RecipientPrivateKeyring("orders", ValidKeys());
         ring.Dispose();
 
         var act = () => ring.TryGetPrivateKey("kid-1", out _);
@@ -179,11 +179,11 @@ public sealed class RecipientPrivateKeyringTests
     [Fact]
     public void ToString_NeverContainsKeyBytes()
     {
-        using var ring = new RecipientPrivateKeyring("audit", ValidKeys());
+        using var ring = new RecipientPrivateKeyring("orders", ValidKeys());
 
         var rendered = ring.ToString();
 
-        rendered.Should().Contain("audit");
+        rendered.Should().Contain("orders");
         rendered.Should().NotContain(Convert.ToBase64String(sr_keypair.PrivatePkcs8));
         rendered.Should().NotContain(Convert.ToHexString(sr_keypair.PrivatePkcs8));
     }
@@ -191,7 +191,7 @@ public sealed class RecipientPrivateKeyringTests
     [Fact]
     public void ToString_AfterDispose_RendersDisposedMarker()
     {
-        var ring = new RecipientPrivateKeyring("audit", ValidKeys());
+        var ring = new RecipientPrivateKeyring("orders", ValidKeys());
         ring.Dispose();
 
         ring.ToString().Should().Contain("disposed");

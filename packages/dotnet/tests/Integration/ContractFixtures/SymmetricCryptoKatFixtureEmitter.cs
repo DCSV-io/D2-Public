@@ -15,11 +15,12 @@ using DcsvIo.D2.Encryption;
 using Xunit;
 
 /// <summary>
-/// Emits the SYMMETRIC (version-1) crypto known-answer fixture — the .NET → TS
-/// cross-runtime gate for AES-256-GCM. Fixed key / kid / AAD context / nonce /
+/// Emits the SYMMETRIC (version-1) crypto known-answer fixture for
+/// AES-256-GCM. Fixed key / kid / AAD context / nonce /
 /// plaintext (all synthetic, fixture-only) produce a deterministic v1 frame via
-/// the REAL production AEAD + codec, so the TS twin reproducing the frame proves
-/// byte-for-byte agreement and opening it proves the full decrypt path.
+/// the REAL production AEAD + codec. A TypeScript implementation that
+/// reproduces the frame agrees byte for byte, and opening the frame covers the
+/// full decrypt path.
 /// </summary>
 public sealed class SymmetricCryptoKatFixtureEmitter
 {

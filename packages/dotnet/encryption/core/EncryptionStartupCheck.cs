@@ -11,7 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Hosted service that runs an encrypt → decrypt round-trip against every
+/// Hosted service that runs an encrypt -> decrypt round-trip against every
 /// registered <see cref="IPayloadCrypto"/> at host startup.
 /// Crashes the host on any failure so misconfiguration cannot serve traffic.
 /// </summary>

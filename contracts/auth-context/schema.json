@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "D² context interface specification",
-  "description": "Schema for IAuthContext.spec.json and IRequestContext.spec.json — the source-of-truth shape that DcsvIo.D2.Context.SourceGen reads to emit interfaces + MutableRequestContext.",
+  "title": "D2 context interface specification",
+  "description": "Schema for IAuthContext.spec.json and IRequestContext.spec.json - the source-of-truth shape that DcsvIo.D2.Context.SourceGen reads to emit interfaces + MutableRequestContext.",
   "type": "object",
   "required": ["name", "namespace", "sections"],
   "additionalProperties": false,
@@ -42,7 +42,7 @@
         },
         "deprecated": {
           "type": "boolean",
-          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive — the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
+          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive - the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
         },
         "deprecatedReason": {
           "type": "string",
@@ -56,7 +56,7 @@
         "sunset": {
           "type": "string",
           "format": "date",
-          "description": "ISO-8601 date for the future RFC 8594 Sunset response header. Edge-runtime-deferred: carried on the contract now, consumed by the Edge response middleware when it exists. Inert until then."
+          "description": "ISO-8601 date for the RFC 8594 Sunset response header. A host whose response pipeline emits that header reads the date from here; a host that does not ignores it."
         }
       }
     },
@@ -95,6 +95,11 @@
           "type": "string",
           "description": "JWT claim name this property maps to (used by FromClaims / FromJwtPayload factories)."
         },
+        "claimForm": {
+          "type": "string",
+          "enum": ["verbatimSet", "spaceJoined"],
+          "description": "How the claim's value reaches the property. Omit for the default form of the property's type. verbatimSet applies to an IReadOnlySet<string> whose consumer decides whether the set is acceptable: every element arrives unchanged, including one that is not a string and one that is whitespace, so the consumer refuses the whole set instead of receiving a silently smaller one. The default set form is the RFC 6749 section 3.3 scope reading, which drops what it cannot use. A claim present but empty leaves the property unassigned on both reading paths: the ClaimsPrincipal path receives an empty array as no claim at all, because ASP.NET expands an array claim into one claim entry per element. spaceJoined applies to a string? whose claim is an array of strings, such as RFC 8176 amr: both reading paths join every non-empty string element with one space, and a single string value is read as it is."
+        },
         "trinaryAuth": {
           "type": "boolean",
           "default": false,
@@ -116,7 +121,7 @@
         "propagate": {
           "type": "boolean",
           "default": false,
-          "description": "When true, this property is included in the codegen-emitted PropagatedContext record (the cross-hop subset that ships in the x-d2-context AMQP / gRPC / HTTP header). Identity fields (UserId / OrgId / Scopes / ActorChain) MUST NOT be propagated — they rebuild from the JWT at every sync hop."
+          "description": "When true, this property is included in the codegen-emitted PropagatedContext record (the cross-hop subset that ships in the x-d2-context AMQP / gRPC / HTTP header). Identity fields (UserId / OrgId / Scopes / ActorChain) MUST NOT be propagated - they rebuild from the JWT at every sync hop."
         },
         "maxLength": {
           "type": "integer",
@@ -135,7 +140,7 @@
         },
         "deprecated": {
           "type": "boolean",
-          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive — the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
+          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive - the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
         },
         "deprecatedReason": {
           "type": "string",
@@ -149,7 +154,7 @@
         "sunset": {
           "type": "string",
           "format": "date",
-          "description": "ISO-8601 date for the future RFC 8594 Sunset response header. Edge-runtime-deferred: carried on the contract now, consumed by the Edge response middleware when it exists. Inert until then."
+          "description": "ISO-8601 date for the RFC 8594 Sunset response header. A host whose response pipeline emits that header reads the date from here; a host that does not ignores it."
         }
       }
     }

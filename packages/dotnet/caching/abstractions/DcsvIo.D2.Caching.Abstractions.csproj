@@ -8,22 +8,28 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <ItemGroup>
     <!--
-      Result + I18n.Abstractions are zero-runtime-dep / domain-safe so this
-      abstractions slice stays the same. Every cache op returns D2Result<T>
-      so callers compose with the rest of the codebase's errors-as-values
-      pattern; tier failures land as PartialSuccess (writes) or NotFound /
-      SomeFound (reads).
+      Every cache op returns D2Result<T> so its results compose with the rest
+      of the codebase's errors-as-values pattern; tier failures return PartialSuccess
+      (writes) or NotFound / SomeFound (reads), and each of those reports
+      Success false, so a check of Failed alone treats a write that reached
+      one tier as not done.
+
+      Utilities supplies Falsey(), the emptiness check this codebase requires
+      for null, empty, whitespace and Guid.Empty values. It declares no runtime
+      NuGet package, so the dependency closure of these abstractions gains
+      only JetBrains.Annotations, a compile-time attributes package.
     -->
     <ProjectReference Include="..\..\result\core\DcsvIo.D2.Result.csproj" />
     <ProjectReference Include="..\..\i18n\abstractions\DcsvIo.D2.I18n.Abstractions.csproj" />
     <ProjectReference Include="..\..\i18n\keys\DcsvIo.D2.I18n.Keys.csproj" />
+    <ProjectReference Include="..\..\utilities\DcsvIo.D2.Utilities.csproj" />
   </ItemGroup>
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.1</Version>
+    <Version>0.5.12</Version>
     <PackageId>DcsvIo.D2.Caching.Abstractions</PackageId>
-    <Description>Shared abstractions for the D2 cache stack — the ILocalCache / IDistributedCache / ITieredCache marker interfaces and the invalidation backplane contract.</Description>
+    <Description>Shared abstractions for the D2 cache stack - the ILocalCache / IDistributedCache / ITieredCache marker interfaces and the invalidation backplane contract.</Description>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

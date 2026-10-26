@@ -10,7 +10,7 @@
 
 namespace DcsvIo.D2.Geo.Abstractions;
 
-/// <summary>Locale record — formatting metadata + recursive language/country nav.</summary>
+/// <summary>Locale record - formatting metadata + recursive language/country nav.</summary>
 public sealed record Locale
 {
     /// <summary>Typed IETF BCP 47 locale identifier (PK, e.g. <c>"en-US"</c>).</summary>
@@ -43,7 +43,7 @@ public sealed record Locale
     /// <summary>Single-character decimal separator (e.g. "." or ",").</summary>
     public required string DecimalSeparator { get; init; }
 
-    /// <summary>Thousands separator (zero or one char — some locales lack one).</summary>
+    /// <summary>Thousands separator (zero or one char - some locales lack one).</summary>
     public required string ThousandsSeparator { get; init; }
 
     /// <summary>Date-component ordering for the human-readable form.</summary>

@@ -2,7 +2,7 @@
   "$schema": "./schema.json",
   "errorCodes": [
     {
-      "code": "NOT_FOUND",
+      "code": "GEN_NOT_FOUND",
       "httpStatus": 404,
       "category": "not_found",
       "userMessageKey": "TK.Common.Errors.NOT_FOUND",
@@ -11,7 +11,7 @@
       "doc": "Indicates that the requested resource was not found."
     },
     {
-      "code": "FORBIDDEN",
+      "code": "GEN_FORBIDDEN",
       "httpStatus": 403,
       "category": "policy_denied",
       "userMessageKey": "TK.Common.Errors.FORBIDDEN",
@@ -20,7 +20,7 @@
       "doc": "Indicates that the action is forbidden due to insufficient permissions."
     },
     {
-      "code": "UNAUTHORIZED",
+      "code": "GEN_UNAUTHORIZED",
       "httpStatus": 401,
       "category": "policy_denied",
       "userMessageKey": "TK.Common.Errors.UNAUTHORIZED",
@@ -29,7 +29,7 @@
       "doc": "Indicates that the user is unauthorized to perform the action (e.g., not authenticated)."
     },
     {
-      "code": "VALIDATION_FAILED",
+      "code": "GEN_VALIDATION_FAILED",
       "httpStatus": 400,
       "category": "validation_failure",
       "userMessageKey": "TK.Common.Errors.VALIDATION_FAILED",
@@ -38,7 +38,7 @@
       "doc": "Indicates that the input validation has failed."
     },
     {
-      "code": "CONFLICT",
+      "code": "GEN_CONFLICT",
       "httpStatus": 409,
       "category": "conflict",
       "userMessageKey": "TK.Common.Errors.CONFLICT",
@@ -47,7 +47,7 @@
       "doc": "Indicates that a conflict occurred, such as a resource already existing."
     },
     {
-      "code": "UNHANDLED_EXCEPTION",
+      "code": "GEN_UNHANDLED_EXCEPTION",
       "httpStatus": 500,
       "category": "internal_error",
       "userMessageKey": "TK.Common.Errors.UNKNOWN",
@@ -56,7 +56,7 @@
       "doc": "Indicates that an unhandled exception has occurred."
     },
     {
-      "code": "COULD_NOT_BE_SERIALIZED",
+      "code": "GEN_COULD_NOT_BE_SERIALIZED",
       "httpStatus": 500,
       "category": "internal_error",
       "userMessageKey": "TK.Common.Errors.COULD_NOT_BE_SERIALIZED",
@@ -65,7 +65,7 @@
       "doc": "Indicates that the data could not be serialized."
     },
     {
-      "code": "COULD_NOT_BE_DESERIALIZED",
+      "code": "GEN_COULD_NOT_BE_DESERIALIZED",
       "httpStatus": 500,
       "category": "internal_error",
       "userMessageKey": "TK.Common.Errors.COULD_NOT_BE_DESERIALIZED",
@@ -74,7 +74,7 @@
       "doc": "Indicates that the data could not be deserialized."
     },
     {
-      "code": "SERVICE_UNAVAILABLE",
+      "code": "GEN_SERVICE_UNAVAILABLE",
       "httpStatus": 503,
       "category": "infrastructure_unavailable",
       "userMessageKey": "TK.Common.Errors.SERVICE_UNAVAILABLE",
@@ -83,7 +83,7 @@
       "doc": "Indicates that the service is currently unavailable."
     },
     {
-      "code": "SOME_FOUND",
+      "code": "GEN_SOME_FOUND",
       "httpStatus": 206,
       "category": "partial_success",
       "userMessageKey": "TK.Common.Errors.SOME_FOUND",
@@ -92,16 +92,16 @@
       "doc": "Indicates that some items were found in a query operation but not all."
     },
     {
-      "code": "PARTIAL_SUCCESS",
-      "httpStatus": 207,
+      "code": "GEN_PARTIAL_SUCCESS",
+      "httpStatus": 503,
       "category": "partial_success",
       "userMessageKey": "TK.Common.Errors.PARTIAL_SUCCESS",
       "factoryName": "PartialSuccess",
       "factoryShape": "none",
-      "doc": "Indicates that a multi-target write operation succeeded against some targets but not all (e.g. tiered cache wrote L1 but not L2). D2Result.Success stays true - the operation did succeed in part. Callers inspect IsPartialSuccess + the result data to decide what to do about the failed target(s)."
+      "doc": "Indicates that a multi-target write operation applied to some targets and not others (e.g. a tiered cache wrote L1 but not L2). D2Result.Success is false: anything short of every target is returned as a failure, so a caller that only asks Failed treats the operation as not done. A caller that may accept a partial outcome tests IsPartialSuccess and reads the result data to see which targets were left. The status is 503 rather than a 2xx because the operation is not done and the caller should retry. The error code distinguishes it from GEN_SERVICE_UNAVAILABLE, where no target was written at all."
     },
     {
-      "code": "RATE_LIMITED",
+      "code": "GEN_RATE_LIMITED",
       "httpStatus": 429,
       "category": "rate_limited",
       "userMessageKey": "TK.Common.Errors.TOO_MANY_REQUESTS",
@@ -110,7 +110,7 @@
       "doc": "Indicates that the request has been rate limited."
     },
     {
-      "code": "IDEMPOTENCY_IN_FLIGHT",
+      "code": "GEN_IDEMPOTENCY_IN_FLIGHT",
       "httpStatus": 409,
       "category": "conflict",
       "userMessageKey": "TK.Common.Errors.IDEMPOTENCY_IN_FLIGHT",
@@ -119,7 +119,7 @@
       "doc": "Indicates that an idempotent request is already being processed (in-flight)."
     },
     {
-      "code": "PAYLOAD_TOO_LARGE",
+      "code": "GEN_PAYLOAD_TOO_LARGE",
       "httpStatus": 413,
       "category": "payload_too_large",
       "userMessageKey": "TK.Common.Errors.PAYLOAD_TOO_LARGE",
@@ -128,13 +128,22 @@
       "doc": "Indicates that the request payload exceeds the maximum allowed size."
     },
     {
-      "code": "CANCELED",
+      "code": "GEN_CANCELED",
       "httpStatus": 400,
       "category": "validation_failure",
       "userMessageKey": "TK.Common.Errors.CANCELED",
       "factoryName": "Canceled",
       "factoryShape": "standard",
       "doc": "Indicates that the operation was canceled (client or server cancellation)."
+    },
+    {
+      "code": "GEN_FORGERY_REFUSED",
+      "httpStatus": 403,
+      "category": "policy_denied",
+      "userMessageKey": "TK.Common.Errors.FORBIDDEN",
+      "factoryName": "ForgeryRefused",
+      "factoryShape": "standard",
+      "doc": "A cookie-borne request that did not prove it came from this origin: the fetch-metadata headers identified another site or were absent with no matching Origin, or the forgery token was absent, stale or forged. One code covers every arm, so the rejection does not reveal which check failed. The response re-issues the token cookie when a session resolved, and a same-origin client retries once."
     }
   ]
 }

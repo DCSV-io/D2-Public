@@ -7,13 +7,13 @@
 namespace DcsvIo.D2.AdvisoryLocks.SourceGen;
 
 /// <summary>
-/// One advisory-lock entry parsed from
-/// <c>contracts/advisory-locks/advisory-locks.spec.json</c>.
+/// One advisory-lock entry parsed from a host-supplied
+/// <c>advisory-locks.spec.json</c> AdditionalFiles catalog.
 /// </summary>
 /// <param name="ConstName">UPPER_SNAKE_CASE C# constant identifier.</param>
 /// <param name="Database">
 /// Owning database (lowercase snake_case). The uniqueness check is
-/// per-database — the same key in two different databases is legal.
+/// per database: the same key in two different databases is legal.
 /// </param>
 /// <param name="Key">
 /// Explicit signed 64-bit integer passed to

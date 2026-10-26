@@ -10,14 +10,14 @@ using System.Collections.Immutable;
 using DcsvIo.D2.SourceGen;
 
 /// <summary>
-/// Result of <see cref="AudiencesEmitter.Emit"/>. Pure data — the Roslyn host
-/// transforms the diagnostics into <see cref="Microsoft.CodeAnalysis.Diagnostic"/>
-/// instances and writes the generated source to <c>Audiences.g.cs</c>.
+/// Result of <see cref="AudiencesEmitter.Emit"/>. Pure data: the generated
+/// source and the emit-side diagnostics. The generated source is named
+/// <c>Audiences.g.cs</c>.
 /// </summary>
 /// <param name="GeneratedSource">
 /// The generated C# source for the <c>Audiences</c> static partial class.
 /// </param>
-/// <param name="Diagnostics">Diagnostics emitted during validation + emission.</param>
+/// <param name="Diagnostics">Diagnostics emitted during validation and emission.</param>
 internal sealed record EmitResult(
     string GeneratedSource,
     ImmutableArray<EmitDiagnostic> Diagnostics);

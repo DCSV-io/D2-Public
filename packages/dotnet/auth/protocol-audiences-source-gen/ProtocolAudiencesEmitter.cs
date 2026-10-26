@@ -16,10 +16,9 @@ using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
 /// Pure logic for emitting the <c>WellKnownAudiences</c> static partial class
-/// source from a parsed <see cref="ProtocolAudiencesSpec"/>. Stateless and
-/// unit-testable in isolation. The Roslyn-host integration
-/// (<see cref="ProtocolAudiencesGenerator"/>) calls this and translates emit-side
-/// <see cref="EmitDiagnostic"/> records into Roslyn <c>Diagnostic</c> instances.
+/// source from a parsed <see cref="ProtocolAudiencesSpec"/>. It is stateless and
+/// does not use the Roslyn host. It returns <see cref="EmitDiagnostic"/> records,
+/// which are translated into Roslyn <c>Diagnostic</c> instances.
 /// </summary>
 internal static class ProtocolAudiencesEmitter
 {
@@ -30,7 +29,7 @@ internal static class ProtocolAudiencesEmitter
     /// Emits the WellKnownAudiences class source plus diagnostics for the supplied spec.
     /// </summary>
     /// <param name="spec">Parsed protocol-audience spec.</param>
-    /// <returns>Generated source + diagnostics.</returns>
+    /// <returns>The generated source and the diagnostics.</returns>
     public static EmitResult Emit(ProtocolAudiencesSpec spec)
     {
         var diagnostics = ImmutableArray.CreateBuilder<EmitDiagnostic>();
@@ -128,7 +127,7 @@ internal static class ProtocolAudiencesEmitter
         sb.AppendLine(
             "/// These are bare-token <c>aud</c> values (the universal internal receive");
         sb.AppendLine(
-            "/// audience and the Edge self-audience), distinct from the URL-shaped");
+            "/// audience and the entry service's self-audience), distinct from the URL-shaped");
         sb.AppendLine(
             "/// token-exchange targets in the spec-generated <see cref=\"Audiences\"/>.");
         sb.AppendLine("/// </summary>");

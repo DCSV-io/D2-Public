@@ -18,34 +18,33 @@ using DcsvIo.D2.SourceGen;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The coordinator carries a <c>[ModuleInitializer]</c>-annotated method
-/// that runs exactly once at assembly load (guarded by both the CLR
-/// module-initializer contract AND an explicit
-/// <c>s_initialized</c> flag mirroring the TS coordinator's
-/// <c>_initialized</c> guard). Sequence:
+/// The coordinator has a <c>[ModuleInitializer]</c>-annotated method that
+/// runs once at assembly load. Both the CLR module-initializer contract and
+/// an explicit <c>s_initialized</c> flag guard this, and the flag mirrors the
+/// TypeScript coordinator's <c>_initialized</c> guard. The sequence is:
 /// </para>
 /// <list type="number">
 ///   <item><description>
-///     Force every per-catalog static constructor (first pass) via
+///     Run every per-catalog static constructor (first pass) through
 ///     <c>RuntimeHelpers.RunClassConstructor</c>. After this step every
 ///     catalog's <c>ByCode</c> FrozenDictionary is populated with records
-///     whose nav-rep properties carry default <c>null</c> / <c>[]</c>
-///     / empty-frozen-set values.
+///     whose nav-rep properties have the default <c>null</c>, <c>[]</c> or
+///     empty-frozen-set values.
 ///   </description></item>
 ///   <item><description>
-///     Invoke each catalog's <c>WireNav()</c> method, mutating nav
-///     properties via the friend-assembly <c>internal set</c> accessors.
+///     Call each catalog's <c>WireNav()</c> method, which sets the nav
+///     properties through the friend-assembly <c>internal set</c> accessors.
 ///     Order: Subdivision first (Country.WireNav depends on
 ///     SubdivisionLookup.ByCountry), then Country, then Locale (Locale
-///     needs Country + Language first-pass complete), then Currency
+///     needs the Country and Language first passes complete), then Currency
 ///     (depends on Country.Currencies), then Language (depends on
-///     Country.PrimaryLanguage + Locale.Language), then Timezone (depends
+///     Country.PrimaryLanguage and Locale.Language), then Timezone (depends
 ///     on Country), then GeopoliticalEntity (depends on Country).
 ///   </description></item>
 /// </list>
 /// <para>
-/// The module initializer runs before any consumer code touches the
-/// catalogs, so every reader observes a fully-populated nav graph.
+/// The module initializer runs before any code reads the catalogs, so every
+/// reader sees a fully populated nav graph.
 /// </para>
 /// </remarks>
 internal static class GeoDataInitializerEmitter
@@ -54,13 +53,14 @@ internal static class GeoDataInitializerEmitter
 
     /// <summary>
     /// Emits the <c>GeoDataInitializer.g.cs</c> file. Always returns a
-    /// single result regardless of which catalogs are present — the file
-    /// is safe to emit empty WireNav calls (each catalog guards itself).
+    /// single result regardless of which catalogs are present. The emitted
+    /// WireNav calls are safe when a catalog is empty, because each catalog
+    /// guards itself.
     /// </summary>
-    /// <param name="context">The aggregate spec context (currently
-    /// unused — the coordinator's content is independent of per-entry
-    /// data because it only references the per-catalog
-    /// <c>WireNav()</c> entry points).</param>
+    /// <param name="context">The aggregate spec context (currently unused:
+    /// the coordinator's content does not depend on per-entry data, because
+    /// it only references the per-catalog <c>WireNav()</c> entry
+    /// points).</param>
     /// <returns>The single emit result.</returns>
     public static ImmutableArray<EmitResult> EmitAll(GeoSpecContext context)
     {
@@ -93,7 +93,7 @@ internal static class GeoDataInitializerEmitter
         sb.AppendLine(
             "    /// <summary>");
         sb.AppendLine(
-            "    /// Module initializer — runs once before any consumer touches");
+            "    /// Module initializer - runs once before any consumer touches");
         sb.AppendLine(
             "    /// the catalogs. Idempotent: the CLR runs module initializers at most");
         sb.AppendLine(
@@ -112,7 +112,7 @@ internal static class GeoDataInitializerEmitter
         sb.AppendLine();
         sb.AppendLine("        // ---- First pass: force every catalog's static ctor to run. ----");
         sb.AppendLine(
-            "        // Order here doesn't matter — each ctor "
+            "        // Order here doesn't matter - each ctor "
             + "only touches its own catalog");
         sb.AppendLine(
             "        // and its own ByCode dict "
@@ -145,13 +145,13 @@ internal static class GeoDataInitializerEmitter
             + "first-pass; Country.Subdivisions");
         sb.AppendLine(
             "        // needs Subdivision first-pass "
-            + "(the ByCountry index) — so Subdivision");
+            + "(the ByCountry index) - so Subdivision");
         sb.AppendLine("        // WireNav runs FIRST (mutates Subdivision.Country), then Country");
         sb.AppendLine("        // WireNav (consumes SubdivisionLookup.ByCountry for");
         sb.AppendLine("        // Country.Subdivisions; also needs Locale/Language/Currency/Gpe");
         sb.AppendLine(
             "        // first-pass records present in their "
-            + "ByCode dicts — they are because");
+            + "ByCode dicts - they are because");
         sb.AppendLine(
             "        // first-pass ran for all above). "
             + "Locale/Currency/Language/Timezone/Gpe");

@@ -7,12 +7,12 @@ import { normalize } from "../src/name-resolution/name-normalizer.js";
 
 describe("normalize", () => {
   it("preserves unspaced ampersand (AT&T stays at&t)", () => {
-    // Spaced-form-only substitution — `&` without surrounding whitespace
-    // is preserved literally. .NET parity: AT&T → at&t.
+    // Spaced-form-only substitution - `&` without surrounding whitespace
+    // is preserved literally. .NET parity: AT&T -> at&t.
     expect(normalize("AT&T")).toBe("at&t");
   });
 
-  it("substitutes spaced ampersand token (' & ' → ' and ')", () => {
+  it("substitutes spaced ampersand token (' & ' -> ' and ')", () => {
     expect(normalize("Foo & Bar")).toBe("foo and bar");
   });
 
@@ -29,7 +29,7 @@ describe("normalize", () => {
     expect(normalize("\t\n\r ")).toBe("");
   });
 
-  it("strips diacritics via NFD decomposition (São Paulo → sao paulo)", () => {
+  it("strips diacritics via NFD decomposition (São Paulo -> sao paulo)", () => {
     expect(normalize("São Paulo")).toBe("sao paulo");
   });
 

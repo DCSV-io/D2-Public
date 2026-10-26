@@ -19,7 +19,7 @@ using Microsoft.CodeAnalysis.Text;
 /// Roslyn incremental source generator that emits per-meter
 /// <c>*TelemetryTags.g.cs</c> typed-constants classes by reading
 /// <c>contracts/telemetry/telemetry.spec.json</c> via <c>AdditionalFiles</c>.
-/// Per-meter single-target dispatch — emits ONLY when the consuming assembly
+/// Per-meter single-target dispatch - emits only when the consuming assembly
 /// matches the meter's <c>consumingAssembly</c> field.
 /// </summary>
 [Generator]
@@ -46,7 +46,7 @@ public sealed class TelemetryTagsGenerator : IIncrementalGenerator
                 Content: file.GetText(ct)?.ToString() ?? string.Empty))
             .Collect();
 
-        // 2. Combine with the compilation so we can gate emission per-meter
+        // 2. Combine with the compilation to gate emission per-meter
         //    by consumingAssembly.
         var combined = specs.Combine(context.CompilationProvider);
 
@@ -88,7 +88,7 @@ public sealed class TelemetryTagsGenerator : IIncrementalGenerator
             var spec = loadResult.Spec!;
             var assemblyName = compilation.AssemblyName ?? string.Empty;
 
-            // Cross-spec uniqueness — surfaced once per duplicate meter name.
+            // Cross-spec uniqueness - surfaced once per duplicate meter name.
             var seenMeters = new HashSet<string>(StringComparer.Ordinal);
             foreach (var meter in spec.Meters)
             {
@@ -103,7 +103,7 @@ public sealed class TelemetryTagsGenerator : IIncrementalGenerator
 
             foreach (var meter in spec.Meters)
             {
-                // Single-target dispatch — only emit for the meter whose
+                // Single-target dispatch - only emit for the meter whose
                 // consumingAssembly matches the current compilation.
                 if (!string.Equals(
                     meter.ConsumingAssembly, assemblyName, StringComparison.Ordinal))

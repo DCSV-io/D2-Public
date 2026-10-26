@@ -20,10 +20,10 @@ namespace DcsvIo.D2.Context.Abstractions;
 /// downstream service can NOT recompute on its own and that are NOT
 /// identity claims (identity rebuilds at every hop from the JWT).
 /// Carried as a single header (<c>x-d2-context</c>) on AMQP / gRPC /
-/// HTTP — same shape on every transport.
+/// HTTP - same shape on every transport.
 /// </summary>
 /// <remarks>
-/// Field set is spec-driven — every property marked <c>propagate: true</c>
+/// Field set is spec-driven - every property marked <c>propagate: true</c>
 /// in <c>contracts/request-context/IRequestContext.spec.json</c> appears
 /// here. Per-field length caps from the spec's <c>maxLength</c> are
 /// enforced by <see cref="PropagatedContextSerializer.TryDecode"/>.
@@ -36,62 +36,67 @@ public sealed record PropagatedContext
     public string? RequestId { get; init; }
 
     /// <summary>
-    /// Request path (HTTP) or routing key (AMQP) — descriptive context for logs.
+    /// Request path (HTTP) or routing key (AMQP) - descriptive context for logs.
     /// </summary>
     public string? RequestPath { get; init; }
 
     /// <summary>
-    /// Timestamp when Edge began processing the originating request (Category 2 — past UTC instant). Propagates so async consumers (Audit, Courier) can report end-to-end SLA latency. Domain consumers MUST convert to NodaTime.Instant at the consumption boundary before any temporal arithmetic: dto.Value.ToInstant(). Wire form is DateTimeOffset? for JSON-serialization interop.
+    /// Timestamp when the entry service began processing the originating request (Category 1 - past UTC instant). Propagates so async consumers, such as audit recording, can report end-to-end SLA latency. Domain consumers MUST convert to NodaTime.Instant at the consumption boundary before any temporal arithmetic: dto.Value.ToInstant(). Wire form is DateTimeOffset? for JSON-serialization interop.
     /// </summary>
     public DateTimeOffset? RequestStartedAt { get; init; }
 
     /// <summary>
-    /// Parsed value of the Idempotency-Key request header. Propagates so downstream consumers correlate idempotent retries across the call chain. Max 255 chars; values exceeding cap are rejected by Edge middleware with 400 Bad Request. Treat as opaque — do NOT log the raw value; structured logs may emit a SHA-256 prefix for correlation but never the literal value.
+    /// Parsed value of the Idempotency-Key request header. Propagates so downstream consumers correlate idempotent retries across the call chain. Max 255 chars; values exceeding cap are rejected by the entry service's middleware with 400 Bad Request. Treat as opaque - do NOT log the raw value; structured logs may emit a SHA-256 prefix for correlation but never the literal value.
     /// </summary>
     public string? IdempotencyKey { get; init; }
 
     /// <summary>
-    /// The fingerprint that was bound to this session at JWT mint time (the d2_fp claim). Format: 'v{N}.c1.c2.c3.c4.c5.s1.s2.s3.s4.s5' — leading version token then 10 component hashes (5 client-side: FingerprintJS-OSS, WebGL renderer, speech voices, media devices, extended fonts; 5 server-side: HTTP/2 SETTINGS frame, header order, Sec-CH-UA, Accept-Encoding, Accept-Language). Each component hash is the first 16 hex chars of SHA-256. Stable across all requests in a session. Propagated to async consumers (Audit, Courier) via the cross-hop x-d2-context header — never as plaintext caller identity (broker stays blind to identity).
+    /// The fingerprint that was bound to this session at JWT mint time (the d2_fp claim). Format: 'v{N}.c1.c2.c3.c4.c5.s1.s2.s3.s4.s5' - leading version token then 10 component hashes (5 client-side: FingerprintJS-OSS, WebGL renderer, speech voices, media devices, extended fonts; 5 server-side: HTTP/2 SETTINGS frame, header order, Sec-CH-UA, Accept-Encoding, Accept-Language). Each component hash is the 16-hex-character prefix of a SHA-256 digest. Stable across all requests in a session. Propagated to async consumers, such as audit recording, via the cross-hop x-d2-context header - never as plaintext caller identity (broker stays blind to identity).
     /// </summary>
     public string? SessionFingerprint { get; init; }
 
     /// <summary>
-    /// The fingerprint recomputed for THIS request by Edge fingerprint middleware, in the same dot-separated format as SessionFingerprint. Captures the actual device fingerprint of the originating request (vs the session-bound one). Propagated via x-d2-context so audit rows for async-triggered actions record the originating request's actual fingerprint — not just what the session was bound to.
+    /// The fingerprint recomputed for THIS request by the entry service's fingerprint middleware, in the same dot-separated format as SessionFingerprint. Captures the actual device fingerprint of the originating request (vs the session-bound one). Propagated via x-d2-context so audit rows for async-triggered actions record the originating request's actual fingerprint - not just what the session was bound to.
     /// </summary>
     public string? CurrentFingerprint { get; init; }
 
     /// <summary>
-    /// Composite request-risk score (0-100; higher = more risky) computed by Edge's risk engine for THIS request. Inputs include geo-velocity drift from the sign-in baseline, ASN reputation, Tor / proxy / hosting flags, per-org and per-user policy contributions, and fingerprint-mismatch components (SessionFingerprint vs CurrentFingerprint). 0 = no risk; ≥ user/org step-up threshold = OTP step-up; ≥ user/org block threshold = block + invalidate session. Null on internal services and pre-risk-engine paths. Propagated via x-d2-context so audit rows record Edge's verdict at the moment of the originating request. Edge owns the contribution math + thresholds; consumer-side libs (DcsvIo.D2.Auth) only read this field, never compute it.
+    /// Composite request-risk score (0-100; higher = more risky) computed by the entry service's risk engine for THIS request. Inputs include geo-velocity drift from the sign-in baseline, ASN reputation, Tor / proxy / hosting flags, per-org and per-user policy contributions, and fingerprint-mismatch components (SessionFingerprint vs CurrentFingerprint). 0 = no risk; &gt;= user/org step-up threshold = OTP step-up; &gt;= user/org block threshold = block + invalidate session. Null on internal services and pre-risk-engine paths. Propagated via x-d2-context so audit rows record the risk engine's verdict at the moment of the originating request. The entry service defines the contribution math + thresholds; consumer-side libraries only read this field, never compute it.
     /// </summary>
     public int? RiskScore { get; init; }
 
     /// <summary>
-    /// Edge process identifier (e.g. Kubernetes pod name, EC2 instance id, or region+node tuple). Captured once at Edge process boot by startup middleware. Propagates via x-d2-context so downstream audit and telemetry know which edge node originated the request — important for hot-spot diagnosis and capacity attribution.
+    /// Opaque portable device identifier bound at session establish when known (sticky device continuity). Max 128 chars. Mandatory redact (PersonalInformation) - treat as correlating device id, never log the raw value. Propagates so async audit can correlate the same device across hops without carrying fingerprint component material.
+    /// </summary>
+    public string? DeviceKey { get; init; }
+
+    /// <summary>
+    /// Process identifier of the entry service (e.g. Kubernetes pod name, EC2 instance id, or region+node tuple). Captured once at that process's boot by startup middleware. Propagates via x-d2-context so downstream audit and telemetry know which entry node originated the request - important for hot-spot diagnosis and capacity attribution.
     /// </summary>
     public string? EdgeNodeId { get; init; }
 
     /// <summary>
-    /// Resolved user locale as an IETF BCP 47 tag (e.g. 'en-US', 'zh-Hans-SG'). Populated by Edge auth middleware via the locale cascade: user profile preference &gt; org default preference &gt; X-D2-Locale header &gt; Accept-Language header &gt; fallback 'en-US'. Propagates so async consumers (Courier, Notifications) render locale-aware content. Validation of the BCP 47 tag is performed by the LocaleCode typed wrapper at the consumption site.
+    /// Resolved user locale as an IETF BCP 47 tag (e.g. 'en-US', 'zh-Hans-SG'). Populated by the entry service's auth middleware via the locale cascade: user profile preference &gt; org default preference &gt; X-D2-Locale header &gt; Accept-Language header &gt; fallback 'en-US'. Propagates so async consumers, such as email and notification delivery, render locale-aware content. Validation of the BCP 47 tag is performed by the LocaleCode typed wrapper at the consumption site.
     /// </summary>
     public string? LocaleIetfBcp47Tag { get; init; }
 
     /// <summary>
-    /// Resolved user timezone as an IANA timezone database name (e.g. 'America/New_York', 'Europe/Berlin'). Populated by Edge auth middleware via the timezone cascade: user profile preference &gt; org default preference &gt; X-D2-Timezone header &gt; WhoIs-derived (CountryIso31661Alpha2Code + SubdivisionIso31662Code mapped via DcsvIo.D2.Geo.Default) &gt; fallback 'UTC'. Propagates so async consumers render timezone-aware timestamps.
+    /// Resolved user timezone as an IANA timezone database name (e.g. 'America/New_York', 'Europe/Berlin'). Populated by the entry service's auth middleware via the timezone cascade: user profile preference &gt; org default preference &gt; X-D2-Timezone header &gt; WhoIs-derived (CountryIso31661Alpha2Code + SubdivisionIso31662Code mapped via DcsvIo.D2.Geo.Default) &gt; fallback 'UTC'. Propagates so async consumers render timezone-aware timestamps.
     /// </summary>
     public string? TimezoneIanaName { get; init; }
 
     /// <summary>
-    /// Resolved user currency as an ISO 4217 code (e.g. 'USD', 'EUR', 'GBP'). Populated by Edge auth middleware via the currency cascade: user profile preference &gt; org default preference &gt; X-D2-Currency header &gt; CountryIso31661Alpha2Code-derived (ISO 3166 to ISO 4217 primary legal-tender mapping via DcsvIo.D2.Geo.Default) &gt; fallback NULL (no sensible universal default; consumers surface a validation error when null and a currency is required).
+    /// Resolved user currency as an ISO 4217 code (e.g. 'USD', 'EUR', 'GBP'). Populated by the entry service's auth middleware via the currency cascade: user profile preference &gt; org default preference &gt; X-D2-Currency header &gt; CountryIso31661Alpha2Code-derived (ISO 3166 to ISO 4217 primary legal-tender mapping via DcsvIo.D2.Geo.Default) &gt; fallback NULL (no sensible universal default; consumers surface a validation error when null and a currency is required).
     /// </summary>
     public string? CurrencyIso4217Code { get; init; }
 
     /// <summary>
-    /// Operating organization plan tier label (e.g. 'Free', 'Starter', 'Pro', 'Enterprise'). Used by handlers gating premium operations. Stored as a free-form string (not an enum) to allow tier names to evolve without a source-gen rebuild cycle — validate at the consumption site. Propagates so async consumers can apply plan-gated logic.
+    /// Operating organization plan tier label (e.g. 'Free', 'Starter', 'Pro', 'Enterprise'). Used by handlers gating premium operations. Stored as a free-form string (not an enum) to allow tier names to evolve without a source-gen rebuild cycle - validate at the consumption site. Propagates so async consumers can apply plan-gated logic.
     /// </summary>
     public string? OrgPlanTier { get; init; }
 
     /// <summary>
-    /// Comma-separated list of active feature flag names for the operating org (e.g. 'new-billing,risk-v2'). Callers split on comma to enumerate active flags. Flag names MUST NOT contain commas — enforced at flag-creation time. CSV form chosen because source-gen does not currently support IReadOnlySet&lt;string&gt; for propagated context fields. Propagates so async consumers can apply flag-gated logic.
+    /// Comma-separated list of active feature flag names for the operating org (e.g. 'new-billing,risk-v2'). Callers split on comma to enumerate active flags. Flag names MUST NOT contain commas - enforced at flag-creation time. CSV form chosen because source-gen does not currently support IReadOnlySet&lt;string&gt; for propagated context fields. Propagates so async consumers can apply flag-gated logic.
     /// </summary>
     public string? FeatureFlagsCsv { get; init; }
 
@@ -101,12 +106,12 @@ public sealed record PropagatedContext
     public string? WhoIsHashId { get; init; }
 
     /// <summary>
-    /// Ordered sequence of the workloads/modules that have handled this request, oldest-first. Each boundary appends its OWN identity + a timestamp on receipt and logs the field; the chain reconstructs 'entered at Edge, went through A, then B, reached me' even when a trace span is dropped. Operational TELEMETRY ONLY — authority NEVER reads it. Propagated on x-d2-context alongside the other operational subset (it is the first propagated list-of-records field); depth-bounded (maxLength = max entry count) so a request cannot grow it without limit. Distinct from the impersonation act chain (which records on-whose-behalf and is signed identity).
+    /// Ordered sequence of the workloads/modules that have handled this request, oldest-first. Each boundary appends its OWN identity + a timestamp on receipt and logs the field; the chain reconstructs 'entered at the entry service, went through A, then B, reached me' even when a trace span is dropped. Operational TELEMETRY ONLY - authority NEVER reads it. Propagated on x-d2-context alongside the other operational subset (it is the first propagated list-of-records field); depth-bounded (maxLength = max entry count) so a request cannot grow it without limit. Distinct from the impersonation act chain (which records on-whose-behalf and is signed identity).
     /// </summary>
     public IReadOnlyList<CallPathEntry>? CallPath { get; init; }
 
     /// <summary>Gets a value indicating whether any propagated
-    /// field is set — lets callers skip the encode/serialize round-
+    /// field is set - lets callers skip the encode/serialize round-
     /// trip when nothing meaningful is in the context.</summary>
     [JsonIgnore]
     public bool HasAnyField =>
@@ -117,6 +122,7 @@ public sealed record PropagatedContext
         SessionFingerprint is not null ||
         CurrentFingerprint is not null ||
         RiskScore is not null ||
+        DeviceKey is not null ||
         EdgeNodeId is not null ||
         LocaleIetfBcp47Tag is not null ||
         TimezoneIanaName is not null ||

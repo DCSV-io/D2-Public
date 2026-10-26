@@ -11,8 +11,8 @@ using DcsvIo.D2.Result;
 /// <summary>
 /// Pluggable serialization seam for distributed caches. Local caches store
 /// objects directly and don't need this. The default implementation in
-/// the distributed lib is JSON; provider-specific impls may swap in
-/// MessagePack, Protobuf, etc., for size or perf wins.
+/// the distributed library is JSON; provider-specific implementations may
+/// swap in MessagePack, Protobuf, etc., for size or performance wins.
 /// </summary>
 public interface ICacheSerializer
 {

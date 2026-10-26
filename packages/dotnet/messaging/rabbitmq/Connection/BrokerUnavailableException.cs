@@ -8,9 +8,9 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Connection;
 
 /// <summary>
 /// Thrown by <see cref="ID2Connection.CreateChannelAsync"/> when the
-/// underlying RabbitMQ connection is not currently open. The publisher path
-/// catches this and returns <c>D2Result.ServiceUnavailable</c> so callers
-/// can degrade gracefully instead of crashing.
+/// underlying RabbitMQ connection is not currently open. A publish that meets
+/// this exception returns <c>D2Result.ServiceUnavailable</c>, so the failure
+/// degrades gracefully instead of crashing.
 /// </summary>
 public sealed class BrokerUnavailableException : Exception
 {
@@ -29,7 +29,7 @@ public sealed class BrokerUnavailableException : Exception
     {
     }
 
-    /// <summary>Initializes a new instance with a custom message + inner.</summary>
+    /// <summary>Initializes a new instance with a custom message and an inner exception.</summary>
     /// <param name="message">Custom message.</param>
     /// <param name="inner">Underlying exception.</param>
     public BrokerUnavailableException(string message, Exception inner)

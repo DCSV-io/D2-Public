@@ -14,19 +14,19 @@ using System.Text.Json.Serialization;
 /// without decrypting the body.
 /// </summary>
 /// <remarks>
-/// Kept small because RabbitMQ headers are not unbounded. Truncate
-/// long messages at the consumer (256 chars is plenty for triage).
+/// Kept small because RabbitMQ headers have a size limit. Truncate
+/// long messages at the consumer (256 chars is enough for triage).
 ///
 /// Property names are explicitly bound to <see cref="DlqFailureMetadataFields"/>
 /// codegen-emitted constants via <see cref="JsonPropertyNameAttribute"/>.
 /// This eliminates implicit reliance on <c>MessagingJsonOptions</c>'
 /// <c>JsonNamingPolicy.CamelCase</c> and gives the spec a single source of
-/// truth for the wire shape — drift between the .NET wire encoder and the
+/// truth for the wire shape - drift between the .NET wire encoder and the
 /// spec is structurally impossible.
 /// </remarks>
 public sealed record DlqFailureMetadata
 {
-    /// <summary>Gets the handler's failure cause — one of the
+    /// <summary>Gets the handler's failure cause - one of the
     /// <c>DlqFailureCauses</c> constants (closed-enum string catalog emitted
     /// by DcsvIo.D2.Messaging.DlqMetadata.SourceGen into DcsvIo.D2.Messaging.RabbitMq).
     /// The producer-side <c>DlqFailureHeaderBuilder</c> only emits values
@@ -39,7 +39,7 @@ public sealed record DlqFailureMetadata
     [JsonPropertyName(DlqFailureMetadataFields.ERROR_CODE)]
     public required string ErrorCode { get; init; }
 
-    /// <summary>Gets the truncated diagnostic message (≤256 chars).</summary>
+    /// <summary>Gets the truncated diagnostic message (&lt;=256 chars).</summary>
     [JsonPropertyName(DlqFailureMetadataFields.DETAIL)]
     public string? Detail { get; init; }
 

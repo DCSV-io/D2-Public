@@ -26,7 +26,7 @@ public static class DlqFailureMetadataFields
     /// <summary>JSON property carrying either the exception type's FullName (HANDLER_EXCEPTION / DECRYPT_FAILURE / DESERIALIZE_FAILURE) or the D2Result error code (HANDLER_RESULT_FAILURE). Free-form string.</summary>
     public const string ERROR_CODE = "errorCode";
 
-    /// <summary>JSON property carrying the truncated diagnostic detail (≤256 chars). NEVER built from exception.Message — for result-failure cases this is the join of result.messages.Select(m =&gt; m.Key); for exception cases it stays null.</summary>
+    /// <summary>JSON property carrying the truncated diagnostic detail (&lt;=256 chars). NEVER built from exception.Message - for result-failure cases this is the join of result.messages.Select(m =&gt; m.Key); for exception cases it stays null.</summary>
     public const string DETAIL = "detail";
 
     /// <summary>JSON property carrying the number of redelivery attempts observed before final NACK. Parsed from the AMQP x-death header when available; 0 when not.</summary>

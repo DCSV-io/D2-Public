@@ -13,41 +13,41 @@ using DcsvIo.D2.Utilities.Extensions;
 using DcsvIo.D2.Validation.Abstractions;
 
 /// <summary>
-/// Default <see cref="IEmailValidator"/> — regex structural check enforcing
-/// RFC-5321/5322 practical limits: total length 1–254, local part 1–64 of
-/// ASCII alphanumeric plus <c>. _ % + -</c>, at-sign, one or more domain
-/// labels separated by dots with no leading/trailing hyphen per label.
+/// Default <see cref="IEmailValidator"/> that checks structure with a regex
+/// enforcing the practical limits of RFC-5321 and RFC-5322: total length 1-254,
+/// a local part of 1-64 ASCII alphanumeric characters plus <c>. _ % + -</c>,
+/// an at-sign, and one or more domain labels separated by dots, with no leading
+/// or trailing hyphen in a label.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Normalization: the input is trimmed then lowercased before the regex runs
-/// and before the normalized value is returned. The comparison is therefore
-/// case-insensitive by design; <c>RegexOptions.IgnoreCase</c> covers the
-/// regex side.
+/// Normalization: the input is trimmed before the regex runs, and the returned
+/// value is the trimmed input lowercased. The match is case-insensitive by
+/// design, through <c>RegexOptions.IgnoreCase</c>.
 /// </para>
 /// <para>
-/// <b>ReDoS posture: anchored, bounded — no catastrophic backtracking (Bucket B1).</b>
+/// <b>ReDoS posture: anchored and bounded, with no catastrophic backtracking.</b>
 /// The pattern is anchored at both ends. The total-length lookahead is bounded. Every
 /// character class is bounded: local part <c>{1,64}</c>, each domain label
-/// <c>{0,61}</c>. The structure is linear in input length — genuinely B1
-/// shape — but a 50 ms match timeout and the static-constructor JIT
-/// pre-warm are retained as defense-in-depth against future-author regex edits that
-/// could silently push the pattern into catastrophic-backtracking territory.
+/// <c>{0,61}</c>. The structure is linear in input length.
+/// A 50 ms match timeout and the static-constructor JIT pre-warm are
+/// kept as defense-in-depth against later regex edits that
+/// could silently push the pattern into catastrophic backtracking.
 /// </para>
 /// <para>
 /// The pattern string is exposed as <see cref="EMAIL_PATTERN"/> so a parity
-/// test can assert byte-identity with the TypeScript side.
+/// test can assert byte-identity with the TypeScript pattern.
 /// </para>
 /// </remarks>
 public sealed class DefaultEmailValidator : IEmailValidator
 {
     /// <summary>
-    /// The email validation regex pattern — the cross-language source of truth
-    /// shared with the TypeScript <c>@dcsv-io/d2-validation</c> package. Any change
-    /// here must be mirrored on the TypeScript side; a parity test asserts
-    /// byte-identity.
+    /// The email validation regex pattern, which is the cross-language source of
+    /// truth shared with the TypeScript <c>@dcsv-io/d2-validation</c> package. Any
+    /// change here must be mirrored on the TypeScript side, because the two
+    /// patterns must stay byte-identical.
     /// </summary>
-    // long regex literal — cannot wrap
+    // The regex literal is too long to wrap.
     public const string EMAIL_PATTERN =
         @"^(?=.{1,254}$)[A-Z0-9._%+\-]{1,64}@[A-Z0-9](?:[A-Z0-9\-]{0,61}[A-Z0-9])?(?:\.[A-Z0-9](?:[A-Z0-9\-]{0,61}[A-Z0-9])?)+$";
 
@@ -60,10 +60,10 @@ public sealed class DefaultEmailValidator : IEmailValidator
 
     static DefaultEmailValidator()
     {
-        // JIT pre-warm — defense-in-depth posture retains the timeout even for
-        // a B1-shape pattern so that future edits to the pattern cannot
-        // inadvertently remove the guard-rail.
-        _ = sr_Email.IsMatch("a@b.co");
+        // JIT pre-warm. The timeout stays even though the pattern is linear in
+        // input length, so that later edits to the pattern cannot silently remove the
+        // protection.
+        PreWarm(sr_Email);
     }
 
     /// <inheritdoc />
@@ -88,6 +88,28 @@ public sealed class DefaultEmailValidator : IEmailValidator
             return Invalid();
 
         return D2Result<string>.Ok(trimmed.ToLowerInvariant());
+    }
+
+    /// <summary>
+    /// Runs a single throwaway match that forces the compiled matcher to be emitted and
+    /// jitted. The match timeout covers that emit, so on a loaded machine this first
+    /// match can exceed it; the pre-warm is an optimization, and letting that exception
+    /// leave the static constructor would fail the type initializer and make every later
+    /// use of the validator throw for the life of the process.
+    /// </summary>
+    /// <param name="regex">The regex to warm.</param>
+    internal static void PreWarm(Regex regex)
+    {
+        ArgumentNullException.ThrowIfNull(regex);
+
+        try
+        {
+            _ = regex.IsMatch("a@b.co");
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            // Pre-warm only; the next real call incurs the emit cost instead.
+        }
     }
 
     private static D2Result<string> Invalid()

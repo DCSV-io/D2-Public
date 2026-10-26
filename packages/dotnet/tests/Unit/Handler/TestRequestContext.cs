@@ -56,6 +56,11 @@ internal sealed class TestRequestContext : IRequestContext
 
     public Role? OrgRole { get; init; }
 
+    public Guid? RootOrgId { get; init; }
+
+    public IReadOnlySet<string> AccessibleOrgIds { get; init; } =
+        new HashSet<string>(StringComparer.Ordinal);
+
     public bool? IsImpersonating { get; init; }
 
     public ImpersonationKind? ImpersonationKind { get; init; }
@@ -105,6 +110,10 @@ internal sealed class TestRequestContext : IRequestContext
     public string? CurrentFingerprint { get; init; }
 
     public int? RiskScore { get; init; }
+
+    public string? DeviceKey { get; init; }
+
+    public string? DeviceConfidence { get; init; }
 
     public string? WhoIsHashId { get; init; }
 

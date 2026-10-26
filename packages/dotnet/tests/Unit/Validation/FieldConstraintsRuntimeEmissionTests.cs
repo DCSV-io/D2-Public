@@ -13,8 +13,8 @@ using Xunit;
 /// <summary>
 /// Runtime-emission pin tests for the codegen-emitted <see cref="FieldConstraints"/>
 /// catalog. Each enumerated bound is asserted against its locked spec value on
-/// the EMITTED <c>DcsvIo.D2.Validation.Abstractions</c> surface (not the emitter
-/// internals) — a spec edit that changes a value flips exactly the affected row.
+/// the emitted <c>DcsvIo.D2.Validation.Abstractions</c> surface (not the emitter
+/// internals), so a spec edit that changes a value fails exactly the affected test.
 /// </summary>
 public sealed class FieldConstraintsRuntimeEmissionTests
 {

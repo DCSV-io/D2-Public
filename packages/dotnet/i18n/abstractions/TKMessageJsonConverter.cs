@@ -18,12 +18,12 @@ using System.Text.Json.Serialization;
 /// <remarks>
 /// Property names come from the spec-derived
 /// <see cref="TkMessageWireShape"/> constants
-/// (<see cref="TkMessageWireShape.KEY"/> / <see cref="TkMessageWireShape.PARAMS"/>) —
+/// (<see cref="TkMessageWireShape.KEY"/> / <see cref="TkMessageWireShape.PARAMS"/>) -
 /// a single source of truth shared with the TS-side parser via
 /// <c>contracts/tk-message/tk-message.spec.json</c>, so cross-language
 /// wire drift on the property names is structurally impossible.
 /// Deserialization is tolerant of property order and ignores unknown
-/// properties. A missing <c>key</c> property is rejected — every message
+/// properties. A missing <c>key</c> property is rejected - every message
 /// MUST carry a key.
 /// </remarks>
 public sealed class TKMessageJsonConverter : JsonConverter<TKMessage>

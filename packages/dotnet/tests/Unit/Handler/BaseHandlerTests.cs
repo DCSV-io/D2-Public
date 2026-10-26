@@ -15,13 +15,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using AwesomeAssertions;
 using DcsvIo.D2.Auth.Abstractions;
+using DcsvIo.D2.Context.Abstractions;
 using DcsvIo.D2.Handler;
 using DcsvIo.D2.Handler.Abstractions;
 using DcsvIo.D2.Result;
 using Xunit;
 
 // Telemetry tests subscribe to the STATIC HandlerTelemetry.SR_Meter +
-// SR_ActivitySource — concurrent test execution would race measurements
+// SR_ActivitySource - concurrent test execution would race measurements
 // across tests. Serialize within this collection so every metric / span
 // captured by a TestMetricCollector / TestActivityCollector is unambiguously
 // from THIS test, not bleed-over from a parallel one.
@@ -29,7 +30,7 @@ using Xunit;
 public sealed class BaseHandlerTests
 {
     // ----------------------------------------------------------------------
-    // 1. Happy path — Ok flows through unchanged
+    // 1. Happy path - Ok flows through unchanged
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -79,7 +80,7 @@ public sealed class BaseHandlerTests
     public async Task HandleAsync_HappyPath_RequestTraceIdIsNull_NoInjection()
     {
         // If the request itself has no TraceId (e.g. internal scheduled job
-        // with no upstream trace), BaseHandler doesn't fabricate one —
+        // with no upstream trace), BaseHandler doesn't fabricate one -
         // result's TraceId stays null.
         var (handler, _) = BuildHandler(
             (_, _) => new ValueTask<D2Result<TestOutput?>>(
@@ -109,7 +110,7 @@ public sealed class BaseHandlerTests
     }
 
     // ----------------------------------------------------------------------
-    // 3. Unrelated exception → UnhandledException + traceId
+    // 3. Unrelated exception -> UnhandledException + traceId
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -125,19 +126,19 @@ public sealed class BaseHandlerTests
         result.IsUnhandledException.Should().BeTrue();
         result.TraceId.Should().Be(trace_id);
 
-        // Adversarial: per §3.1, the log MUST NOT receive the raw Exception
-        // object — `ex.Message` can carry connection strings / broker URIs /
-        // OAuth tokens / raw user input. The HandlerThrew delegate now takes
+        // Adversarial: the log MUST NOT receive the raw Exception
+        // object - `ex.Message` can carry connection strings / broker URIs /
+        // OAuth tokens / raw user input. The HandlerThrew delegate takes
         // `string exceptionType` only; the structured log entry's Exception
-        // field stays null. On-call still gets the type name + duration; the
+        // field stays null. The entry still has the type name + duration; the
         // full stack/Message has to come from a separate, PII-scrubbed
-        // diagnostic channel (or the consuming service's Serilog
-        // destructuring policy applied to the activity error attribute).
+        // diagnostic channel (or a Serilog destructuring policy applied to
+        // the activity error attribute).
         logger.Entries.Should().Contain(e => e.EventId.Id == 4 && e.Exception == null);
     }
 
     // ----------------------------------------------------------------------
-    // 4. OCE — caller-canceled vs downstream-timeout split
+    // 4. OCE - caller-canceled vs downstream-timeout split
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -166,10 +167,10 @@ public sealed class BaseHandlerTests
     {
         // Adversarial: an OperationCanceledException raised by a downstream
         // (HttpClient timeout, SQL command timeout, etc.) when our token
-        // was NEVER canceled is a dependency-failure condition. Surfacing
-        // it as UnhandledException would imply OUR bug; surfacing as
-        // ServiceUnavailable correctly tells the caller "downstream is sick,
-        // retry later." Critical correctness invariant.
+        // was NEVER canceled is a dependency failure. Returning
+        // UnhandledException would report a defect in this service; returning
+        // ServiceUnavailable reports that a downstream dependency failed and
+        // the request can be retried later.
         const string trace_id = "trace-downstream";
         var (handler, logger) = BuildHandler(
             (_, _) => throw new OperationCanceledException("downstream timed out"),
@@ -183,13 +184,13 @@ public sealed class BaseHandlerTests
     }
 
     // ----------------------------------------------------------------------
-    // 5. Scope pre-check — fires BEFORE ExecuteAsync runs
+    // 5. Scope pre-check - fires BEFORE ExecuteAsync runs
     // ----------------------------------------------------------------------
 
     [Fact]
     public async Task HandleAsync_AllMatch_OneMissing_ReturnsForbiddenWithoutInvokingExecute()
     {
-        // All-of check: caller holds read:foo but not write:foo — must be Forbidden.
+        // All-of check: caller holds read:foo but not write:foo - must be Forbidden.
         var request = new TestRequestContext
         {
             Scopes = new HashSet<string>(["read:foo"]),
@@ -228,12 +229,11 @@ public sealed class BaseHandlerTests
     [Fact]
     public void HandleAsync_ScopeRequirementEmptyScopes_ThrowsAtConstruction()
     {
-        // Adversarial: empty Scopes set is now unconstructible (F5 guard).
-        // The pipeline guard `is { Scopes.Count: > 0 }` remains as
-        // defense-in-depth, but the constructor guard surfaces the
-        // misconfiguration at compose time (before any handler call).
-        // Regression-pins the F5 fix: fails without the constructor guard,
-        // passes with it.
+        // Adversarial: an empty Scopes set is unconstructible. The pipeline
+        // guard `is { Scopes.Count: > 0 }` remains as defense-in-depth, but the
+        // constructor guard surfaces the misconfiguration at compose time
+        // (before any handler call). Regression-pins the constructor guard:
+        // fails without it, passes with it.
         var act = () => new ScopeRequirement(HandlerScopeMatch.All, new HashSet<string>());
 
         act.Should().Throw<ArgumentException>()
@@ -266,7 +266,7 @@ public sealed class BaseHandlerTests
     [Fact]
     public async Task HandleAsync_AllMatch_SingleScopePresent_ExecuteRuns()
     {
-        // All-of with exactly one required scope: caller has it — must pass.
+        // All-of with exactly one required scope: caller has it - must pass.
         var request = new TestRequestContext
         {
             Scopes = new HashSet<string>(["admin"]),
@@ -340,7 +340,7 @@ public sealed class BaseHandlerTests
     [Fact]
     public async Task HandleAsync_AnyMatch_OneOfManyPresent_ExecuteRuns()
     {
-        // Any-of: caller holds one of the declared scopes — must pass even
+        // Any-of: caller holds one of the declared scopes - must pass even
         // though the other declared scopes are absent.
         var request = new TestRequestContext
         {
@@ -365,7 +365,7 @@ public sealed class BaseHandlerTests
     [Fact]
     public async Task HandleAsync_AnyMatch_NonePresent_ReturnsForbidden()
     {
-        // Adversarial: caller holds no overlap with the any-of set — must reject.
+        // Adversarial: caller holds no overlap with the any-of set - must reject.
         var request = new TestRequestContext
         {
             Scopes = new HashSet<string>(["other"]),
@@ -391,7 +391,7 @@ public sealed class BaseHandlerTests
     {
         // Adversarial: Any-mode ScopeRequirement (e.g. ["read","admin"]) with a
         // caller whose Scopes is the EMPTY set must return Forbidden and must NOT
-        // invoke ExecuteAsync — empty intersection of {} and {read,admin} is {}
+        // invoke ExecuteAsync - empty intersection of {} and {read,admin} is {}
         // which is zero overlap, so any-of fails.
         var request = new TestRequestContext
         {
@@ -466,7 +466,7 @@ public sealed class BaseHandlerTests
     }
 
     // ----------------------------------------------------------------------
-    // 7. Threshold breach logs — slow vs critical, with the if/else guard
+    // 7. Threshold breach logs - slow vs critical, with the if/else guard
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -496,7 +496,7 @@ public sealed class BaseHandlerTests
         // Adversarial: the LogThresholdBreaches if/early-return structure
         // means when BOTH thresholds are breached, ONLY the critical log
         // fires. If the early return is ever removed, slow would also fire,
-        // duplicating noise — this test pins the contract.
+        // duplicating noise - this test pins the contract.
         var (handler, logger) = BuildHandler(
             async (_, _) =>
             {
@@ -556,7 +556,7 @@ public sealed class BaseHandlerTests
     }
 
     // ----------------------------------------------------------------------
-    // 8. Activity tags — tag emission for every IRequestContext field path
+    // 8. Activity tags - tag emission for every IRequestContext field path
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -654,10 +654,10 @@ public sealed class BaseHandlerTests
     [Fact]
     public async Task HandleAsync_NotImpersonatingButImpersonatorOrgIdSet_DoesNotLeakTags()
     {
-        // Adversarial: anomaly path — IsImpersonating is null/false but
+        // Adversarial: anomaly path - IsImpersonating is null/false but
         // some impersonator fields are populated (a misbehaving middleware,
         // or a stale envelope). The activity tags MUST be gated on the
-        // IsImpersonating flag — leaking impersonator tags to non-impersonation
+        // IsImpersonating flag - leaking impersonator tags to non-impersonation
         // calls would corrupt audit traces.
         using var act = new TestActivityCollector();
         var (handler, _) = BuildHandler(
@@ -687,8 +687,8 @@ public sealed class BaseHandlerTests
 
         act.Last!.Status.Should().Be(ActivityStatusCode.Error);
 
-        // Per §3.1: StatusDescription gets the exception type name only —
-        // never `ex.Message` — because Message can carry connection strings /
+        // StatusDescription gets the exception type name only -
+        // never `ex.Message` - because Message can carry connection strings /
         // broker URIs / OAuth tokens / raw user input. The OTel exporter
         // surfaces this as a string tag with the same leak surface as logs.
         act.Last.StatusDescription.Should().Be(nameof(InvalidOperationException));
@@ -727,7 +727,7 @@ public sealed class BaseHandlerTests
     }
 
     // ----------------------------------------------------------------------
-    // 9. Metrics — counter + histogram emission
+    // 9. Metrics - counter + histogram emission
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -778,7 +778,7 @@ public sealed class BaseHandlerTests
     [Fact]
     public async Task HandleAsync_OnScopePreCheckFail_IncrementsInvokedAndFailed_NoDuration()
     {
-        // Adversarial: forbidden-at-entry path skips the stopwatch — verify
+        // Adversarial: forbidden-at-entry path skips the stopwatch - verify
         // duration is NOT recorded for a request that never ran ExecuteAsync,
         // BUT invoked + failed are still counted (telemetry must show the
         // attempt happened).
@@ -820,7 +820,7 @@ public sealed class BaseHandlerTests
     }
 
     // ----------------------------------------------------------------------
-    // 10. Concurrency — 10 concurrent calls, no shared-state collisions
+    // 10. Concurrency - 10 concurrent calls, no shared-state collisions
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -849,13 +849,176 @@ public sealed class BaseHandlerTests
     }
 
     // ----------------------------------------------------------------------
-    // 11. Architectural invariant — RunCorePipelineAsync is sealed (non-virtual)
+    // Null input gate - ValidationFailed before scope / Execute
+    // ----------------------------------------------------------------------
+
+    [Fact]
+    public async Task HandleAsync_NullInput_ReturnsValidationFailed()
+    {
+        var executed = false;
+        var request = new TestRequestContext
+        {
+            TraceId = "trace-null-input",
+            Scopes = new HashSet<string>(["admin.only"]),
+        };
+        var (handler, _) = BuildHandler(
+            (_, _) =>
+            {
+                executed = true;
+                return new ValueTask<D2Result<TestOutput?>>(
+                    D2Result<TestOutput?>.Ok(new TestOutput { Tally = 1 }));
+            },
+            defaults: new HandlerOptions
+            {
+                ScopeRequirement = new ScopeRequirement(
+                    HandlerScopeMatch.All,
+                    new HashSet<string>(["admin.only"])),
+            },
+            request: request);
+
+        var result = await handler.HandleAsync(null!);
+
+        result.Success.Should().BeFalse();
+        result.IsValidationFailed.Should().BeTrue();
+        result.IsForbidden.Should().BeFalse();
+        result.TraceId.Should().Be("trace-null-input");
+        executed.Should().BeFalse();
+        handler.ExecuteCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task HandleAsync_NullInput_IncrementsInvokedAndFailed_NotSucceeded()
+    {
+        // The counts are taken for this handler type alone, which no other test
+        // invokes, so the assertion reads only the measurements this test made
+        // on the process-wide meter.
+        const string handler_name = nameof(NullInputTestHandler);
+        using var metrics = new TestMetricCollector();
+        var request = new TestRequestContext { TraceId = "trace-null-input-metrics" };
+        var handler = new NullInputTestHandler(
+            new HandlerContext<NullInputTestHandler>(
+                request,
+                new TestLogger<NullInputTestHandler>()));
+
+        var result = await handler.HandleAsync(null!);
+
+        result.IsValidationFailed.Should().BeTrue();
+        metrics.CountFor("d2.handler.invoked", handler_name).Should().Be(1);
+        metrics.CountFor("d2.handler.failed", handler_name).Should().Be(1);
+        metrics.CountFor("d2.handler.succeeded", handler_name).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task HandleAsync_NullInput_LogsTheRefusal()
+    {
+        var request = new TestRequestContext { TraceId = "trace-null-input-log" };
+        var (handler, logger) = BuildHandler(
+            (_, _) => new ValueTask<D2Result<TestOutput?>>(
+                D2Result<TestOutput?>.Ok(new TestOutput { Tally = 1 })),
+            request: request);
+
+        var result = await handler.HandleAsync(null!);
+
+        result.IsValidationFailed.Should().BeTrue();
+        logger.Entries.Should().Contain(e => e.EventId.Id == 8); // HandlerNullInput
+    }
+
+    [Fact]
+    public async Task HandleAsync_ElevateScopesWithNoScopeRequirement_LogsTheDeclarationFault()
+    {
+        var mutable = new MutableRequestContext
+        {
+            TraceId = "trace-unpaired-elevate-log",
+            Scopes = new HashSet<string>(StringComparer.Ordinal) { "product.read" },
+        };
+        var logger = new TestLogger<TestHandler>();
+        var handler = new TestHandler(
+            new HandlerContext<TestHandler>(mutable, logger),
+            (_, _) => new ValueTask<D2Result<TestOutput?>>(
+                D2Result<TestOutput?>.Ok(new TestOutput { Tally = 1 })),
+            new HandlerOptions
+            {
+                ScopeRequirement = null,
+                ElevateScopes = new HashSet<string>(StringComparer.Ordinal)
+                {
+                    "internal.example.session.end",
+                },
+            });
+
+        var result = await handler.HandleAsync(new TestInput());
+
+        result.IsForbidden.Should().BeTrue();
+        logger.Entries.Should().Contain(
+            e => e.EventId.Id == 9); // HandlerElevateWithoutScopeRequirement
+    }
+
+    [Fact]
+    public async Task HandleAsync_ElevateScopesOnAnImmutableContext_LogsTheCompositionFault()
+    {
+        var request = new TestRequestContext
+        {
+            TraceId = "trace-immutable-elevate-log",
+            Scopes = new HashSet<string>(StringComparer.Ordinal) { "product.read" },
+        };
+        var (handler, logger) = BuildHandler(
+            (_, _) => new ValueTask<D2Result<TestOutput?>>(
+                D2Result<TestOutput?>.Ok(new TestOutput { Tally = 1 })),
+            defaults: new HandlerOptions
+            {
+                ScopeRequirement = new ScopeRequirement(
+                    HandlerScopeMatch.Any,
+                    new HashSet<string>(StringComparer.Ordinal) { "product.read" }),
+                ElevateScopes = new HashSet<string>(StringComparer.Ordinal)
+                {
+                    "internal.example.session.end",
+                },
+            },
+            request: request);
+
+        var result = await handler.HandleAsync(new TestInput());
+
+        result.IsForbidden.Should().BeTrue();
+        logger.Entries.Should().Contain(
+            e => e.EventId.Id == 10); // HandlerElevateContextNotMutable
+    }
+
+    [Fact]
+    public async Task HandleAsync_AnOrdinaryScopeDenial_LogsNoDeclarationFault()
+    {
+        // The declaration and composition faults above must stay
+        // distinguishable from a caller the scope gate refused, which shares
+        // their Forbidden result and their counters.
+        var request = new TestRequestContext
+        {
+            TraceId = "trace-plain-denial",
+            Scopes = new HashSet<string>(StringComparer.Ordinal) { "product.read" },
+        };
+        var (handler, logger) = BuildHandler(
+            (_, _) => new ValueTask<D2Result<TestOutput?>>(
+                D2Result<TestOutput?>.Ok(new TestOutput { Tally = 1 })),
+            defaults: new HandlerOptions
+            {
+                ScopeRequirement = new ScopeRequirement(
+                    HandlerScopeMatch.All,
+                    new HashSet<string>(StringComparer.Ordinal) { "admin.only" }),
+            },
+            request: request);
+
+        var result = await handler.HandleAsync(new TestInput());
+
+        result.IsForbidden.Should().BeTrue();
+        logger.Entries.Should().NotContain(
+            e => e.EventId.Id == 8 || e.EventId.Id == 9 || e.EventId.Id == 10);
+    }
+
+    // ----------------------------------------------------------------------
+    // 11. Architectural invariant - RunCorePipelineAsync is sealed (non-virtual)
     // ----------------------------------------------------------------------
 
     [Fact]
     public void RunCorePipelineAsync_IsNotVirtual_SubclassesCannotOverride()
     {
-        // Adversarial: this is a sealed-by-design invariant — the entire
+        // Adversarial: this is a sealed-by-design invariant - the entire
         // observability contract relies on subclasses being unable to skip
         // / replace the pipeline. Verify via reflection that the method
         // is NOT marked virtual / abstract.
@@ -872,9 +1035,9 @@ public sealed class BaseHandlerTests
     [Fact]
     public void HandleAsync_IsVirtual_SubclassesMayOverrideForRepoExceptionRemapping()
     {
-        // Counterpart to the seal-check: HandleAsync IS virtual by design —
+        // Counterpart to the seal-check: HandleAsync IS virtual by design -
         // BaseRepoHandler overrides it to remap typed EF / PG exceptions.
-        // Pin the virtual contract so a future accidental seal trips this.
+        // Pin the virtual contract so that sealing HandleAsync fails this test.
         var method = typeof(BaseHandler<TestHandler, TestInput, TestOutput>)
             .GetMethod(nameof(IHandler<TestInput, TestOutput>.HandleAsync));
 
@@ -883,10 +1046,10 @@ public sealed class BaseHandlerTests
     }
 
     // ----------------------------------------------------------------------
-    // Test handler — a controllable BaseHandler subclass for testing the
+    // Test handler - a controllable BaseHandler subclass for testing the
     // sealed observability pipeline. The body delegate plus the optional
-    // DefaultOptions override let each test sculpt the exact behavior it
-    // needs without piling boilerplate into every test.
+    // DefaultOptions override let each test set the exact behavior it
+    // needs without repeating boilerplate in every test.
     // ----------------------------------------------------------------------
 
     private static (TestHandler Handler, TestLogger<TestHandler> Logger) BuildHandler(
@@ -939,5 +1102,23 @@ public sealed class BaseHandlerTests
             Interlocked.Increment(ref _executeCallCount);
             return r_body(input, ct);
         }
+    }
+
+    /// <summary>
+    /// A handler type no other test invokes. Its name tags only the meter
+    /// measurements the null-input test made.
+    /// </summary>
+    private sealed class NullInputTestHandler
+        : BaseHandler<NullInputTestHandler, TestInput, TestOutput>
+    {
+        public NullInputTestHandler(HandlerContext<NullInputTestHandler> ctx)
+            : base(ctx)
+        {
+        }
+
+        protected override ValueTask<D2Result<TestOutput?>> ExecuteAsync(
+            TestInput input,
+            CancellationToken ct) =>
+            new(D2Result<TestOutput?>.Ok(new TestOutput { Tally = 1 }));
     }
 }

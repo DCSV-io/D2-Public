@@ -16,8 +16,7 @@ import { DefaultPostalCodeValidator } from "./default-postal-code-validator.js";
 
 /**
  * Ready-to-use singleton validators. The default implementations are
- * stateless, so a shared instance per process is safe and avoids
- * re-allocating the compiled email regex on every call site.
+ * stateless, so a shared instance per process is safe.
  */
 export const emailValidator = new DefaultEmailValidator();
 export const phoneValidator = new DefaultPhoneValidator();

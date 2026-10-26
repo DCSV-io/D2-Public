@@ -2,18 +2,18 @@
 // Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 // -----------------------------------------------------------------------
 
-// TS → .NET cross-runtime fixture emitter (test/fixture-only, `.fixture.ts`).
+// TS -> .NET cross-runtime fixture emitter (test and fixture only, `.fixture.ts`).
 // Produces sealed (v2) frames with @dcsv-io/d2-encryption's PayloadSealer so the .NET
-// TsCryptoInterop suite can open them with the REAL PayloadOpener and prove the
+// TsCryptoInterop suite can open them with the real PayloadOpener, which shows that the
 // TS encoder is byte-compatible with the .NET decoder. Regenerate via
 // `pnpm --filter @dcsv-io/d2-encryption emit-crypto-fixtures`.
 //
-// The emitted frames are NON-deterministic by design: this script mints a fresh
-// recipient keypair, and the sealer mints a fresh per-message ephemeral keypair
-// + nonce (no injection point), so every emit produces a different frameHex.
-// That is expected — the proof is functional (the .NET suite opens the frames
-// and compares plaintext); the byte-exact gate is delegated to the deterministic
-// `sealed-crypto-kat` known-answer fixture, not this manifest.
+// The emitted frames are non-deterministic by design: this script creates a fresh
+// recipient keypair, and the sealer creates a fresh per-message ephemeral keypair
+// and nonce (it has no injection point), so every emit produces a different frameHex.
+// That is expected. The check is functional: the .NET suite opens the frames
+// and compares plaintext. The deterministic `sealed-crypto-kat` known-answer
+// fixture, not this manifest, provides the byte-exact gate.
 
 import { webcrypto } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -31,11 +31,11 @@ const OUT_DIR = join(
 );
 const OUT_FILE = "sealed-frames.manifest.fixture.json";
 
-const RECIPIENT_SERVICE_ID = "audit";
+const RECIPIENT_SERVICE_ID = "orders";
 const RECIPIENT_KID = "ts-seal-kid";
 const PLAINTEXTS = [
   "ts-sealed-known-answer",
-  "a second sealed payload — longer, with punctuation & digits 0123456789",
+  "a second sealed payload \u2014 longer, with punctuation & digits 0123456789",
 ];
 
 async function main(): Promise<void> {
@@ -80,11 +80,15 @@ async function main(): Promise<void> {
     frames,
   };
 
-  mkdirSync(OUT_DIR, { recursive: true });
-  writeFileSync(
-    join(OUT_DIR, OUT_FILE),
-    JSON.stringify(manifest, null, 2) + "\n",
+  // Every character outside ASCII is written as a JSON \uXXXX escape, so the
+  // manifest is ASCII and JSON.parse returns the same values.
+  const json = JSON.stringify(manifest, null, 2).replace(
+    /[^\x00-\x7f]/g,
+    (c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"),
   );
+
+  mkdirSync(OUT_DIR, { recursive: true });
+  writeFileSync(join(OUT_DIR, OUT_FILE), json + "\n");
   console.log(`  ${OUT_FILE} (${frames.length} sealed frames)`);
 }
 

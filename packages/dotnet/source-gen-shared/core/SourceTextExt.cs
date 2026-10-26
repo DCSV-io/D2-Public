@@ -2,16 +2,15 @@
 // <copyright file="SourceTextExt.cs" company="DCSV">
 // Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 // </copyright>
-// Shared source-gen text helper. Wired into every source-gen csproj via the
-// shared `Compile Include` from `source-gen-shared/core/` — every emitter
-// gets the same LF-normalization, so per-generator line-ending drift is
-// structurally impossible.
+// Shared source-gen text helper. Every source-gen csproj includes it from
+// `source-gen-shared/core/` with the shared `Compile Include`, so every emitter
+// applies the same LF normalization.
 // -----------------------------------------------------------------------
 
 namespace DcsvIo.D2.SourceGen;
 
 /// <summary>
-/// Source-text helpers shared by every D² Roslyn emitter.
+/// Source-text helpers shared by every D2 Roslyn emitter.
 /// </summary>
 internal static class SourceTextExt
 {
@@ -23,11 +22,12 @@ internal static class SourceTextExt
     /// Linux); the repo policy is LF everywhere
     /// (<c>.gitattributes</c> <c>eol=lf</c>, <c>.editorconfig</c>
     /// <c>end_of_line = lf</c>), and the committed <c>EmitCompilerGeneratedFiles</c>
-    /// output is LF. Routing every emitter's returned source through this keeps
-    /// a Windows rebuild from re-emitting the generated fleet as CRLF (working-
-    /// tree-vs-index churn). The two-arg
-    /// <see cref="string.Replace(string, string)"/> is used deliberately —
-    /// netstandard2.0 has no <c>StringComparison</c> overload.
+    /// output is LF. Passing every emitter's returned source through this
+    /// method stops a Windows rebuild from emitting the generated files with
+    /// CRLF, which would show as changes between the working tree and the
+    /// index. The method calls the two-argument
+    /// <see cref="string.Replace(string, string)"/> because netstandard2.0 has
+    /// no overload that takes a <c>StringComparison</c>.
     /// </summary>
     /// <param name="source">The built source string (may contain CRLF).</param>
     /// <returns>The same source with every CRLF collapsed to a bare LF.</returns>

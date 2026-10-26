@@ -59,4 +59,8 @@ internal static class EmitDiagnostics
     public static EmitDiagnostic InvalidTieredRetryDuration(
         string subscriptionConstant, string value) =>
         new(DiagnosticIds.InvalidTieredRetryDuration, [subscriptionConstant, value]);
+
+    public static EmitDiagnostic CrossFileDuplicateConstant(
+        string constantName, string firstFile, string secondFile) =>
+        new(DiagnosticIds.CrossFileDuplicateConstant, [constantName, firstFile, secondFile]);
 }

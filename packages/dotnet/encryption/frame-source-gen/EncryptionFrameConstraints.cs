@@ -14,7 +14,10 @@ namespace DcsvIo.D2.EncryptionFrame.SourceGen;
 /// <param name="MaxKidLength">Maximum allowed kid length in UTF-8 bytes.</param>
 /// <param name="NonceLength">AES-GCM nonce length in bytes (always 12).</param>
 /// <param name="TagLength">AES-GCM authentication tag length in bytes (always 16).</param>
-/// <param name="MinFrameSize">Smallest valid frame size in bytes.</param>
+/// <param name="MinFrameSize">
+/// Fixed-field floor in bytes: VERSION, KID_LENGTH, NONCE and the tag. The KID is excluded;
+/// its length is checked separately.
+/// </param>
 internal sealed record EncryptionFrameConstraints(
     int MinKidLength,
     int MaxKidLength,

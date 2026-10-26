@@ -9,7 +9,7 @@ namespace DcsvIo.D2.Auth.Abstractions;
 /// <summary>The kind of hop a <see cref="CallPathEntry"/> records.</summary>
 public enum CallPathKind
 {
-    /// <summary>The Edge HTTP inbound boundary (the originating hop).</summary>
+    /// <summary>The HTTP inbound boundary hop (the originating hop).</summary>
     Edge = 0,
 
     /// <summary>A cross-process workload hop reached over authenticated mutual TLS.</summary>

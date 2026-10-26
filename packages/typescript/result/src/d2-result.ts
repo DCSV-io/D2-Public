@@ -23,12 +23,13 @@ export interface D2ResultInit<T = void> {
 
 /**
  * Result of an operation. Mirrors .NET `DcsvIo.D2.Result.D2Result` /
- * `D2Result<T>` — same field shape so cross-language wire is byte-identical.
+ * `D2Result<T>`; the field shape is the same, so the cross-language wire is
+ * byte-identical.
  *
- * Producers should always prefer a semantic factory
- * (`D2Result.notFound()`, `D2Result.unauthorized()`, etc.) over raw `fail()`
- * when one matches the failure mode — semantic factories carry the canonical
- * status code, error code, and default message together.
+ * Prefer a semantic factory (`D2Result.notFound()`, `D2Result.unauthorized()`,
+ * etc.) over raw `fail()` when one matches the failure mode, because a
+ * semantic factory sets the canonical status code, error code, and default
+ * message together.
  */
 export class D2Result<T = void> {
   readonly success: boolean;
@@ -64,9 +65,7 @@ export class D2Result<T = void> {
   }
 
   /**
-   * Returns a new `D2Result` with the same shape but `traceId` swapped.
-   * Used by the handler pipeline to auto-inject the request trace id on
-   * results that cross the handler boundary.
+   * Returns a new `D2Result` with the same shape and the given `traceId`.
    */
   withTraceId(traceId: string | undefined): D2Result<T> {
     return new D2Result<T>({

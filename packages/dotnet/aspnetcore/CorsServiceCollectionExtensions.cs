@@ -6,6 +6,7 @@
 
 namespace DcsvIo.D2.AspNetCore;
 
+using DcsvIo.D2.Headers.Http;
 using DcsvIo.D2.Utilities.Extensions;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Extensions.Configuration;
@@ -13,7 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 /// <summary>
-/// DI registration entry point for the D² CORS policy. Reads the canonical
+/// DI registration entry point for the D2 CORS policy. Reads the canonical
 /// indexed env-var convention
 /// (<see cref="D2AspNetCoreConstants.CORS_ORIGINS_CONFIG_KEY"/>) and
 /// validates fail-closed at host build via <c>ValidateOnStart()</c>.
@@ -24,27 +25,27 @@ public static class CorsServiceCollectionExtensions
     extension(IServiceCollection services)
     {
         /// <summary>
-        /// Registers the D² CORS policy named
+        /// Registers the D2 CORS policy named
         /// <see cref="D2AspNetCoreConstants.DEFAULT_CORS_POLICY_NAME"/>
         /// (<c>"D2_DEFAULT"</c>). Reads
         /// <see cref="D2AspNetCoreConstants.CORS_ORIGINS_CONFIG_KEY"/>
         /// (<c>"D2_CORS_ORIGINS"</c>) from <paramref name="configuration"/>
-        /// — supports the indexed env-var convention
+        /// - supports the indexed env-var convention
         /// (<c>D2_CORS_ORIGINS__0</c>, <c>D2_CORS_ORIGINS__1</c>, ...) per
         /// .NET <c>IConfiguration</c> array binding. Validates options at
-        /// host build via <c>ValidateOnStart()</c> — fail-closed when zero
+        /// host build via <c>ValidateOnStart()</c> - fail-closed when zero
         /// origins resolve.
         /// </summary>
         /// <remarks>
         /// <para>
-        /// The configure callback runs AFTER env-derived defaults so callers
-        /// can override or augment the bound origins list, alter the
+        /// The configure callback runs AFTER env-derived defaults, so it can
+        /// override or augment the bound origins list, alter the
         /// allowed-headers / allowed-methods set, toggle credentials
         /// support, or change the preflight TTL.
         /// </para>
         /// <para>
         /// CORS spec rejects <c>AllowCredentials = true</c> combined with
-        /// <c>Origins = ["*"]</c> — the validator rejects this combination
+        /// <c>Origins = ["*"]</c> - the validator rejects this combination
         /// at host build so a misconfigured production deploy fails fast
         /// rather than degrading to silent permissive behavior.
         /// </para>
@@ -111,6 +112,15 @@ public static class CorsServiceCollectionExtensions
                     + "with wildcard \"*\" in Origins per CORS spec. Either "
                     + "list explicit origins or set AllowCredentials = false.")
                 .Validate(
+                    o => !(o.AllowCredentials && AllowsAuthorization(o)),
+                    "D2CorsOptions.AllowCredentials = true is incompatible "
+                    + "with \"" + HttpHeaders.AUTHORIZATION + "\" or \"*\" in "
+                    + "AllowedHeaders: a page on an allowlisted origin could "
+                    + "then attach that header to a credentialed cross-origin "
+                    + "mutation, which UseD2ForgeryProtection treats as "
+                    + "exempt from the forgery check. Either drop these headers "
+                    + "or set AllowCredentials = false.")
+                .Validate(
                     o => o.PreflightMaxAgeSeconds > 0,
                     "D2CorsOptions.PreflightMaxAgeSeconds must be > 0.")
                 .ValidateOnStart();
@@ -128,12 +138,20 @@ public static class CorsServiceCollectionExtensions
         }
     }
 
+    // The wildcard includes Authorization; explicit header names ignore case.
+    private static bool AllowsAuthorization(D2CorsOptions options) =>
+        options.AllowedHeaders.Any(
+            h => h.Trim() == "*" || string.Equals(
+                h.Trim(),
+                HttpHeaders.AUTHORIZATION,
+                StringComparison.OrdinalIgnoreCase));
+
     /// <summary>
-    /// Configures the named D² CORS policy with the resolved
+    /// Configures the named D2 CORS policy with the resolved
     /// <see cref="D2CorsOptions"/> snapshot. Registered against
     /// <see cref="IConfigureOptions{TOptions}"/> for
     /// <see cref="CorsOptions"/> so the policy delegate is invoked when the
-    /// CORS pipeline builds its policy table at first request — by which
+    /// CORS pipeline builds its policy table at first request - by which
     /// point AddOptions's Configure pipeline has completed and produced
     /// the final D2CorsOptions snapshot.
     /// </summary>

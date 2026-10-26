@@ -15,10 +15,11 @@ using Xunit;
 
 /// <summary>
 /// Emits the parity fixture for the generic ErrorCodes catalog reflected off
-/// the .NET codegen-emitted static class <see cref="ErrorCodes"/>. One
-/// fixture file <c>codes.json</c> maps every constant name to its wire value;
-/// the TS-side parity test asserts byte-equality against the codegen-emitted
-/// TS catalog (<c>@dcsv-io/d2-result</c>'s <c>ErrorCodes</c> object).
+/// the .NET codegen-emitted static class <see cref="ErrorCodes"/>. The
+/// fixture <c>codes.json</c> maps every constant name to its wire value, as
+/// the codegen-emitted TypeScript catalog does (<c>@dcsv-io/d2-result</c>'s
+/// <c>ErrorCodes</c> object). The fixture <c>http-statuses.json</c> maps every
+/// code in <c>ErrorCodes.AllCodes</c> to its HTTP status.
 /// </summary>
 public sealed class ErrorCodesFixtureEmitter
 {
@@ -36,8 +37,8 @@ public sealed class ErrorCodesFixtureEmitter
     [Trait("Category", "ContractFixtures")]
     public void Emit_HttpStatuses()
     {
-        // The TS-side getErrorHttpStatus mirror reads this fixture and asserts
-        // the per-code → HTTP-status mapping matches byte-for-byte.
+        // Per-code -> HTTP-status mapping, as ErrorCodes.GetHttpStatus returns it;
+        // the TypeScript getErrorHttpStatus returns the same statuses.
         var data = new SortedDictionary<string, object?>(StringComparer.Ordinal);
         foreach (var code in ErrorCodes.AllCodes)
             data[code] = ErrorCodes.GetHttpStatus(code);
@@ -47,9 +48,9 @@ public sealed class ErrorCodesFixtureEmitter
 
     /// <summary>
     /// Reflect every <c>public const string</c> on the catalog type; produce a
-    /// sorted map keyed by the field name (e.g. <c>NOT_FOUND</c> →
-    /// <c>"NOT_FOUND"</c>) so the fixture mirrors the TS-side const-map shape
-    /// one-to-one.
+    /// sorted map keyed by the field name (e.g. <c>NOT_FOUND</c> ->
+    /// <c>"GEN_NOT_FOUND"</c>) so the fixture has the shape of the TypeScript
+    /// const map.
     /// </summary>
     private static SortedDictionary<string, object?> EnumerateConstants(Type type)
     {

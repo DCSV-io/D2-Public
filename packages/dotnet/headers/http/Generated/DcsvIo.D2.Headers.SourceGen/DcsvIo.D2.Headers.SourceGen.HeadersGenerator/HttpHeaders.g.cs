@@ -24,7 +24,7 @@ namespace DcsvIo.D2.Headers.Http;
 public static class HttpHeaders
 {
     /// <summary>
-    /// Standard HTTP locale-preference header (RFC 7231 §5.3.5). Set by browser or OS. Represents the lowest-priority tier of the user locale resolution cascade: profile &gt; org &gt; X-D2-Locale &gt; Accept-Language &gt; fallback 'en-US'. Adding as a typed constant so middleware stops using magic strings.
+    /// Standard HTTP locale-preference header (RFC 7231 section 5.3.5). Set by browser or OS. Represents the lowest-priority tier of the user locale resolution cascade: profile &gt; org &gt; X-D2-Locale &gt; Accept-Language &gt; fallback 'en-US'. Defined as a typed constant so middleware does not use magic strings.
     /// </summary>
     /// <remarks>Convention: <c>rfc</c>. Applicability: <c>http</c>.</remarks>
     public const string ACCEPT_LANGUAGE = "Accept-Language";
@@ -48,19 +48,19 @@ public static class HttpHeaders
     public const string CORRELATION_ID = "X-Correlation-Id";
 
     /// <summary>
-    /// User-selected currency override (ISO 4217 code, e.g. 'USD', 'EUR'). No browser-native equivalent — D2-custom. Takes precedence over country-derived currency in the cascade: profile &gt; org &gt; X-D2-Currency &gt; CountryIso31661Alpha2Code-derived &gt; fallback NULL.
+    /// User-selected currency override (ISO 4217 code, e.g. 'USD', 'EUR'). No browser-native equivalent - D2-custom. Takes precedence over country-derived currency in the cascade: profile &gt; org &gt; X-D2-Currency &gt; CountryIso31661Alpha2Code-derived &gt; fallback NULL.
     /// </summary>
     /// <remarks>Convention: <c>d2</c>. Applicability: <c>http</c>.</remarks>
     public const string D2_CURRENCY = "X-D2-Currency";
 
     /// <summary>
-    /// D2-specific user-selected locale override (IETF BCP 47 tag, e.g. 'en-US', 'zh-Hans-SG'). Set when the user explicitly picks a locale in the UI. Takes precedence over Accept-Language in the locale cascade. Consumed by Edge auth middleware to populate IRequestContext.LocaleIetfBcp47Tag.
+    /// D2-specific user-selected locale override (IETF BCP 47 tag, e.g. 'en-US', 'zh-Hans-SG'). Set when the user explicitly picks a locale in the UI. Takes precedence over Accept-Language in the locale cascade. Consumed by the entry service's auth middleware to populate IRequestContext.LocaleIetfBcp47Tag.
     /// </summary>
     /// <remarks>Convention: <c>d2</c>. Applicability: <c>http</c>.</remarks>
     public const string D2_LOCALE = "X-D2-Locale";
 
     /// <summary>
-    /// Browser-derived IANA timezone name (from Intl.DateTimeFormat().resolvedOptions().timeZone, e.g. 'America/New_York'). Set by the BFF fetch interceptor on every request. Used by Edge auth middleware as the third tier of the timezone cascade: profile &gt; org &gt; X-D2-Timezone &gt; WhoIs-derived &gt; fallback 'UTC'.
+    /// Browser-derived IANA timezone name (from Intl.DateTimeFormat().resolvedOptions().timeZone, e.g. 'America/New_York'). Set by the BFF fetch interceptor on every request. Used by the entry service's auth middleware as the third tier of the timezone cascade: profile &gt; org &gt; X-D2-Timezone &gt; WhoIs-derived &gt; fallback 'UTC'.
     /// </summary>
     /// <remarks>Convention: <c>d2</c>. Applicability: <c>http</c>.</remarks>
     public const string D2_TIMEZONE = "X-D2-Timezone";
@@ -72,25 +72,25 @@ public static class HttpHeaders
     public const string IDEMPOTENCY_KEY = "Idempotency-Key";
 
     /// <summary>
-    /// The BFF's boundary token for its calls to Edge — an OAuth client_credentials JWT (audience d2.edge, 15-min TTL) the BFF acquires as an external client of Edge. Sent on outbound BFF-&gt;Edge calls so Edge can distinguish BFF-originated SSR traffic from browser-direct traffic in audit + telemetry tags.
+    /// The BFF's boundary token for its calls to the entry service - an OAuth client_credentials JWT (audience d2.edge, 15-min TTL) the BFF acquires as an external client of the entry service. Sent on outbound calls from the BFF to the entry service so the entry service can distinguish BFF-originated SSR traffic from browser-direct traffic in audit + telemetry tags. No service issues or validates this token yet.
     /// </summary>
     /// <remarks>Convention: <c>d2</c>. Applicability: <c>http</c>.</remarks>
     public const string INTERNAL_TOKEN = "X-D2-Internal-Token";
 
     /// <summary>
-    /// Base64url-of-JSON encoded PropagatedContext — small set of cross-hop fields a downstream consumer can't recompute (request id, original request path, fingerprints, WhoIs hash). Same header name + encoding on AMQP / gRPC / HTTP. Identity fields are NEVER in here — they rebuild from the JWT at every hop.
+    /// Base64url-of-JSON encoded PropagatedContext - small set of cross-hop fields a downstream consumer cannot recompute (request id, original request path, fingerprints, WhoIs hash). Same header name + encoding on AMQP / gRPC / HTTP. Identity fields are NEVER in here - they rebuild from the JWT at every hop.
     /// </summary>
     /// <remarks>Convention: <c>d2</c>. Applicability: <c>amqp, grpc, http</c>.</remarks>
     public const string PROPAGATED_CONTEXT = "x-d2-context";
 
     /// <summary>
-    /// W3C traceparent header — full {version}-{traceId}-{spanId}-{flags} string per https://www.w3.org/TR/trace-context. Consumers parse it to start a child span whose parent is the producer's span, so cross-hop trace assembly works in any OTel backend without bespoke linking.
+    /// W3C traceparent header - full {version}-{traceId}-{spanId}-{flags} string per https://www.w3.org/TR/trace-context. Consumers parse it to start a child span whose parent is the producer's span, so cross-hop trace assembly works in any OTel backend without bespoke linking.
     /// </summary>
     /// <remarks>Convention: <c>w3c</c>. Applicability: <c>amqp, grpc, http</c>.</remarks>
     public const string TRACEPARENT = "traceparent";
 
     /// <summary>
-    /// W3C tracestate header (vendor-specific tracing context that rides alongside traceparent). Forwarded as-is so non-D2 tracing systems chained through us don't lose state.
+    /// W3C tracestate header (vendor-specific tracing context that travels alongside traceparent). Forwarded as-is so non-D2 tracing systems in the call path do not lose state.
     /// </summary>
     /// <remarks>Convention: <c>w3c</c>. Applicability: <c>amqp, grpc, http</c>.</remarks>
     public const string TRACESTATE = "tracestate";

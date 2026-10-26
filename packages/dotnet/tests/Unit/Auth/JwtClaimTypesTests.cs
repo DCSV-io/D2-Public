@@ -26,9 +26,9 @@ public sealed class JwtClaimTypesTests
     [InlineData(nameof(JwtClaimTypes.AMR), "amr")]
     public void StandardOAuthClaims_HaveCanonicalLowercaseNames(string fieldName, string expected)
     {
-        // Adversarial: standard OAuth/OIDC claims MUST keep their canonical
-        // names — any prefix change here breaks JWT interop with every
-        // authorization-server library on the planet.
+        // Adversarial: standard OAuth/OIDC claims must keep their canonical
+        // names. A prefix change here breaks JWT interoperability with every
+        // authorization-server library.
         var actual = (string)typeof(JwtClaimTypes)
             .GetField(fieldName, BindingFlags.Public | BindingFlags.Static)!
             .GetValue(null)!;
@@ -44,6 +44,8 @@ public sealed class JwtClaimTypesTests
     [InlineData(nameof(JwtClaimTypes.ORG_NAME), "d2_org_name")]
     [InlineData(nameof(JwtClaimTypes.ORG_TYPE), "d2_org_type")]
     [InlineData(nameof(JwtClaimTypes.ORG_ROLE), "d2_org_role")]
+    [InlineData(nameof(JwtClaimTypes.ROOT_ORG_ID), "d2_root_org_id")]
+    [InlineData(nameof(JwtClaimTypes.ACCESSIBLE_ORG_IDS), "d2_accessible_org_ids")]
     [InlineData(nameof(JwtClaimTypes.ACT_KIND), "d2_kind")]
     [InlineData(nameof(JwtClaimTypes.ACT_SESSION_ID), "d2_session_id")]
     [InlineData(nameof(JwtClaimTypes.STEP_UP_AT), "d2_step_up_at")]
@@ -60,11 +62,12 @@ public sealed class JwtClaimTypesTests
     public void EveryD2Claim_HasD2UnderscorePrefix()
     {
         // Adversarial: enumerate every constant via reflection and assert that
-        // anything NOT in the well-known standard set is namespaced with d2_.
-        // Catches future additions that forget the prefix discipline.
-        // Standard set: RFC 7519 (sub/aud/iat/exp), RFC 7519 §4.1.7 (azp),
-        // RFC 6749 §3.3 (scope), RFC 8693 §2.1 (act), RFC 8693 §4.3 / RFC 9068
-        // §2.2 (client_id) — these keep their canonical names.
+        // every constant outside the well-known standard set has the d2_
+        // prefix. A later addition that omits the prefix fails here.
+        // Standard set: RFC 7519 (sub/aud/iat/exp), RFC 7519 section 4.1.7 (azp),
+        // RFC 6749 section 3.3 (scope), RFC 8693 section 2.1 (act),
+        // RFC 8693 section 4.3 and RFC 9068 section 2.2 (client_id).
+        // These keep their canonical names.
         string[] canonicalStandardNames =
             ["sub", "aud", "iat", "exp", "azp", "scope", "act", "client_id", "amr"];
 
@@ -77,14 +80,14 @@ public sealed class JwtClaimTypesTests
 
         d2Constants.Should().NotBeEmpty();
         d2Constants.Should().AllSatisfy(c =>
-            c.Should().StartWith("d2_", "every D² custom claim must be d2_-namespaced"));
+            c.Should().StartWith("d2_", "every D2 custom claim must be d2_-namespaced"));
     }
 
     [Fact]
     public void NoClaimUsesColonSeparator_ColonsCollideWithScopePunctuation()
     {
-        // Adversarial: scope strings (RFC 6749 §3.3) use `:` as the punctuation
-        // separator (e.g. `org:read`). Claims must not collide.
+        // Adversarial: scope strings (RFC 6749 section 3.3) use `:` as the punctuation
+        // separator (e.g. `org:read`). Claim names must not contain it.
         var allConstants = typeof(JwtClaimTypes)
             .GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)
             .Where(f => f.IsLiteral && f.FieldType == typeof(string))

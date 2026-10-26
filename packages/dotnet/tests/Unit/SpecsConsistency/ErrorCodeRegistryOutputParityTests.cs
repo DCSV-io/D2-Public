@@ -61,7 +61,7 @@ public sealed class ErrorCodeRegistryOutputParityTests
         // Mirror the production csproj AdditionalFiles glob:
         //   $(D2ContractsRoot)**\error-codes.spec.json
         //   $(D2ContractsRoot)**\*-error-codes.spec.json
-        // so a future per-domain spec flows into the parity test automatically.
+        // so every per-domain spec that matches these globs is part of the parity test.
         var additionalTexts = new List<AdditionalText>();
 
         var genericSpec = Path.Combine(contractsRoot, "error-codes", "error-codes.spec.json");

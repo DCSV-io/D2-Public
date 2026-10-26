@@ -13,7 +13,7 @@ using Xunit;
 public sealed class SingleflightTests
 {
     // ----------------------------------------------------------------------
-    // Single call — sanity
+    // Single call
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -28,14 +28,14 @@ public sealed class SingleflightTests
     }
 
     // ----------------------------------------------------------------------
-    // Deduplication: same key → operation runs once
+    // Deduplication: same key -> operation runs once
     // ----------------------------------------------------------------------
 
     [Fact]
     public async Task ExecuteAsync_ConcurrentCallersSameKey_OperationRunsOnce()
     {
-        // Gate the operation so we KNOW callers are concurrent before it
-        // completes — proves dedup, not just sequential reuse.
+        // The gate keeps the operation pending, so the callers are concurrent before
+        // it completes. This shows deduplication, not sequential reuse.
         var sf = new Singleflight<string, int>();
         var operationInvocations = 0;
         var gate = new TaskCompletionSource();
@@ -51,8 +51,8 @@ public sealed class SingleflightTests
         var t2 = sf.ExecuteAsync("k", Operation).AsTask();
         var t3 = sf.ExecuteAsync("k", Operation).AsTask();
 
-        // Allow tasks to enter the operation; gate is still closed so they
-        // wait. Size briefly reflects the in-flight state.
+        // Let the tasks enter the operation; the gate is still closed, so they
+        // wait. Size shows the in-flight entry during this time.
         await Task.Delay(20);
         sf.Size.Should().Be(1);
 
@@ -65,7 +65,7 @@ public sealed class SingleflightTests
     }
 
     // ----------------------------------------------------------------------
-    // Different keys → independent operations
+    // Different keys -> independent operations
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -109,8 +109,8 @@ public sealed class SingleflightTests
     [Fact]
     public async Task ExecuteAsync_SequentialCallsSameKey_OperationRunsTwice()
     {
-        // Adversarial: NOT a cache. After the first completes, the second
-        // call must re-run the operation.
+        // Adversarial: Singleflight is NOT a cache. After the first call
+        // completes, the second call must run the operation again.
         var sf = new Singleflight<string, int>();
         var invocations = 0;
 
@@ -135,9 +135,8 @@ public sealed class SingleflightTests
     [Fact]
     public async Task ExecuteAsync_OperationThrows_ExceptionPropagatesToAllWaiters()
     {
-        // All concurrent waiters share the same Task, so all see the same
-        // exception. Key is removed in the finally block so subsequent calls
-        // can retry.
+        // Concurrent waiters share the same Task, so each receives the same
+        // exception. The finally block removes the key, so later calls can try again.
         var sf = new Singleflight<string, int>();
         var gate = new TaskCompletionSource();
 
@@ -185,11 +184,11 @@ public sealed class SingleflightTests
             }
             catch (InvalidOperationException)
             {
-                // expected
+                // Expected: each failed call throws.
             }
         }
 
-        invocations.Should().Be(2); // proves the key was cleared after each failure
+        invocations.Should().Be(2); // the key was cleared after each failure
     }
 
     // ----------------------------------------------------------------------
@@ -199,8 +198,8 @@ public sealed class SingleflightTests
     [Fact]
     public async Task ExecuteAsync_PerCallerCancellation_DoesNotAffectSiblings()
     {
-        // Adversarial property: caller A cancels, but the shared operation
-        // and caller B keep running. This is the defining promise of the
+        // Adversarial property: when caller A cancels, the shared operation
+        // and caller B keep running. This is the main guarantee of the
         // singleflight design.
         var sf = new Singleflight<string, int>();
         var gate = new TaskCompletionSource();
@@ -210,8 +209,8 @@ public sealed class SingleflightTests
         {
             await gate.Task;
 
-            // The shared operation receives CancellationToken.None — it
-            // ignores per-caller cancellations.
+            // The shared operation receives CancellationToken.None, so it
+            // does not see per-caller cancellations.
             operationCanceledFlag = ct.IsCancellationRequested;
             return 7;
         }
@@ -226,7 +225,7 @@ public sealed class SingleflightTests
         var actA = async () => await taskA;
         await actA.Should().ThrowAsync<OperationCanceledException>();
 
-        // Sibling B still pending; release the gate.
+        // Caller B is still waiting; release the gate.
         gate.SetResult();
         var resultB = await taskB;
 
@@ -235,10 +234,10 @@ public sealed class SingleflightTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_NoCancellableToken_TakesFastPath()
+    public async Task ExecuteAsync_NoCancelableToken_TakesFastPath()
     {
-        // Coverage: ct.CanBeCanceled == false branch (the awaiter on the
-        // shared task itself, no WaitAsync wrapper).
+        // Covers the ct.CanBeCanceled == false branch, which awaits the
+        // shared task itself with no WaitAsync wrapper.
         var sf = new Singleflight<string, int>();
 
         var result = await sf.ExecuteAsync(
@@ -250,14 +249,14 @@ public sealed class SingleflightTests
     }
 
     // ----------------------------------------------------------------------
-    // Generic key types — TKey: notnull constraint
+    // Generic key types - TKey: notnull constraint
     // ----------------------------------------------------------------------
 
     [Fact]
     public async Task ExecuteAsync_NonStringKey_DedupesByEquatableValue()
     {
-        // Adversarial: prove TKey isn't shoehorned to string. (Guid keys
-        // are hashable + equatable just like strings.)
+        // Adversarial: TKey is not limited to string. (Guid keys are hashable
+        // and equatable, like strings.)
         var sf = new Singleflight<Guid, int>();
         var key = Guid.NewGuid();
         var invocations = 0;
@@ -281,27 +280,27 @@ public sealed class SingleflightTests
     }
 
     // ----------------------------------------------------------------------
-    // High-concurrency stress + memory cleanup
+    // High-concurrency stress and cleanup of finished keys
     // ----------------------------------------------------------------------
 
     [Fact]
     public async Task HighConcurrency_ManyCallersSameKey_OperationRunsExactlyOnce()
     {
-        // 200 concurrent waiters racing to add the same key. Lazy<>'s
-        // ExecutionAndPublication mode + ConcurrentDictionary.GetOrAdd
-        // together must guarantee exactly ONE operation invocation. All
-        // 200 callers must see the same returned value.
+        // 200 concurrent waiters race to add the same key. Lazy<>'s
+        // ExecutionAndPublication mode and ConcurrentDictionary.GetOrAdd
+        // together must guarantee exactly ONE operation invocation. Every one of the
+        // 200 callers must receive the same returned value.
         //
-        // Determinism guarantee: Singleflight.ExecuteAsync is an async method
-        // whose first synchronous operation is r_inflight.GetOrAdd (the join
-        // into the shared in-flight entry). No await precedes GetOrAdd, so
-        // calling ExecuteAsync and capturing the returned ValueTask — without
-        // awaiting it — is proof the caller has already joined. Signalling
-        // AFTER capturing the ValueTask therefore guarantees all 200 callers
-        // are joined before the gate opens: no SpinWait/Yield timing guess
-        // is needed. Pre-warm the threadpool because the default growth rate
+        // Singleflight.ExecuteAsync is an async method whose first synchronous
+        // operation is r_inflight.GetOrAdd (the join into the shared in-flight
+        // entry). No await precedes GetOrAdd, so a caller that has called
+        // ExecuteAsync and captured the returned ValueTask, without awaiting it,
+        // has already joined. Releasing the semaphore AFTER capturing the
+        // ValueTask therefore guarantees that every caller has joined before the
+        // gate opens, with no SpinWait or Yield timing guess. The test raises
+        // the minimum thread-pool size because the default growth rate
         // (one worker per ~0.5s) would let late callers arrive AFTER the
-        // operation already returned, each starting their own invocation.
+        // operation already returned, and each of them would start its own invocation.
         ThreadPool.GetMinThreads(out var origWorker, out var origIo);
         ThreadPool.SetMinThreads(Math.Max(origWorker, 256), Math.Max(origIo, 256));
         try
@@ -311,10 +310,10 @@ public sealed class SingleflightTests
             var gate = new TaskCompletionSource<int>();
             const int concurrent_threads = 200;
 
-            // Signal AFTER capturing the ValueTask from ExecuteAsync (not before
+            // Release AFTER capturing the ValueTask from ExecuteAsync (not before
             // calling it). GetOrAdd runs synchronously as the first operation
-            // inside ExecuteAsync, so capturing the ValueTask proves the join has
-            // already happened. All 200 signals == all 200 callers joined.
+            // inside ExecuteAsync, so once the ValueTask is captured the join has
+            // already happened. Each release means that one caller has joined.
             var allJoined = new SemaphoreSlim(0, concurrent_threads);
 
             async ValueTask<int> Operation(CancellationToken ct)
@@ -326,17 +325,17 @@ public sealed class SingleflightTests
             var tasks = Enumerable.Range(0, concurrent_threads)
                 .Select(_ => Task.Run(async () =>
                 {
-                    var vt = sf.ExecuteAsync("k", Operation); // join is synchronous; GetOrAdd already ran
-                    allJoined.Release();                       // signal AFTER join, not before
+                    var vt = sf.ExecuteAsync("k", Operation); // the join is synchronous: GetOrAdd ran
+                    allJoined.Release();                       // release AFTER the join, not before
                     return await vt;
                 }))
                 .ToArray();
 
-            // Wait for all 200 callers to have joined — now guaranteed, not polled.
+            // Wait for every caller to join. The wait is on the semaphore, not a poll.
             for (var i = 0; i < concurrent_threads; i++)
                 await allJoined.WaitAsync();
 
-            // All callers are joined to the single in-flight entry.
+            // Every caller has joined the single in-flight entry.
             sf.Size.Should().Be(1);
             gate.SetResult(42);
 
@@ -356,8 +355,8 @@ public sealed class SingleflightTests
     public async Task ManyUniqueKeys_AfterAllComplete_SizeReturnsToZero()
     {
         // Adversarial: 500 distinct keys execute concurrently. After all
-        // complete, the in-flight dictionary must be empty — proves the
-        // RunAsync finally-block reliably removes keys even under load.
+        // complete, the in-flight dictionary must be empty, which shows that the
+        // RunAsync finally block removes every key, also under load.
         var sf = new Singleflight<string, int>();
         const int unique_keys = 500;
 
@@ -378,11 +377,12 @@ public sealed class SingleflightTests
     [Fact]
     public async Task Reentrancy_OperationCallsBackWithDifferentKey_Works()
     {
-        // Adversarial property: an operation may safely call back into the
-        // same Singleflight instance with a DIFFERENT key. (Same-key
-        // reentrancy would deadlock — Lazy.Value blocks waiting for the
-        // outer call to complete, which is itself waiting for the inner.
-        // Tested separately is too risky; this test pins the safe case.)
+        // Adversarial property: an operation may call back into the same
+        // Singleflight instance with a DIFFERENT key. (Same-key reentrancy
+        // would deadlock: Lazy.Value blocks waiting for the outer call to
+        // complete, and the outer call is waiting for the inner one. The
+        // deadlock case has no test, because such a test is too risky;
+        // this test covers the safe case.)
         var sf = new Singleflight<string, int>();
 
         var result = await sf.ExecuteAsync("outer", async outerCt =>

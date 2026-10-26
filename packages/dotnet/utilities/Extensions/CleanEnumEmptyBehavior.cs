@@ -7,24 +7,23 @@
 namespace DcsvIo.D2.Utilities.Extensions;
 
 /// <summary>
-/// Behavior options controlling how
-/// <see cref="EnumerableExtensions"/> handles a null/empty enumerable, either
-/// before or after cleaning.
+/// Selects what <see cref="EnumerableExtensions"/> does when the input
+/// enumerable is null or empty, or when cleaning leaves it empty.
 /// </summary>
 public enum CleanEnumEmptyBehavior
 {
     /// <summary>
-    /// Return an empty enumerable.
+    /// Returns an empty enumerable.
     /// </summary>
     ReturnEmpty,
 
     /// <summary>
-    /// Return null.
+    /// Returns null.
     /// </summary>
     ReturnNull,
 
     /// <summary>
-    /// Throw an exception.
+    /// Throws an exception.
     /// </summary>
     Throw,
 }

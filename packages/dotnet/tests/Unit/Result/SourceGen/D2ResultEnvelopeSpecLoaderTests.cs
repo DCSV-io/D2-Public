@@ -172,7 +172,7 @@ public sealed class D2ResultEnvelopeSpecLoaderTests
     public void Load_EmptyFieldsArray_ParsesWithNoEntries()
     {
         // Note: SCHEMA-level "minItems: 1" lives in schema.json (IDE-time
-        // validation). The loader itself accepts an empty array — emitter
+        // validation). The loader itself accepts an empty array - emitter
         // surface stays silent because there are no entries to validate.
         const string json = """{ "fields": [] }""";
 

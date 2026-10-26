@@ -28,7 +28,7 @@
       "offset": -1,
       "length": 12,
       "kind": "byte_fixed",
-      "doc": "AES-GCM nonce. Fixed 12 bytes (GCM-spec). Offset is variable — comes immediately after KID. Generated fresh per encrypt; no nonce reuse with the same key (GCM safety requirement)."
+      "doc": "AES-GCM nonce. Fixed 12 bytes (GCM-spec). Offset is variable - comes immediately after KID. Generated fresh per encrypt; no nonce reuse with the same key (GCM safety requirement)."
     },
     {
       "constName": "CIPHERTEXT_WITH_TAG",

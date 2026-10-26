@@ -72,9 +72,9 @@ public enum ErrorCategory
 }
 
 /// <summary>
-/// Canonical <see cref="ErrorCategory"/> ↔ snake_case wire-string mapping.
-/// All consumers — JSON serialization, gRPC trailers, fixture emission —
-/// delegate to these two methods so the mapping has a single source of
+/// Canonical <see cref="ErrorCategory"/> &lt;-&gt; snake_case wire-string mapping.
+/// All consumers - JSON serialization, gRPC trailers, fixture emission -
+/// delegate to the methods below so the mapping has a single source of
 /// truth inside this assembly.
 /// </summary>
 public static class ErrorCategoryWire
@@ -110,7 +110,7 @@ public static class ErrorCategoryWire
     /// <summary>
     /// Returns the snake_case wire string for the given
     /// <see cref="ErrorCategory"/> value
-    /// (e.g. <see cref="ErrorCategory.ValidationFailure"/> →
+    /// (e.g. <see cref="ErrorCategory.ValidationFailure"/> ->
     /// <c>"validation_failure"</c>).
     /// </summary>
     /// <param name="category">The enum value to convert.</param>

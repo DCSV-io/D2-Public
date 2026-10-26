@@ -12,9 +12,9 @@ using Xunit;
 
 /// <summary>
 /// Adversarial coverage for <see cref="NameNormalizer.Normalize"/>. Validates the
-/// full seven-step pipeline (null/falsey short-circuit, NFD decomposition, combining-mark
-/// strip, ampersand-token substitution, invariant casefold, trim, whitespace collapse)
-/// including idempotency and cross-language parity invariants.
+/// full seven-step pipeline (null/falsey short-circuit, NFD decomposition,
+/// combining-mark strip, ampersand-token substitution, invariant casefold, trim,
+/// whitespace collapse) including idempotency and cross-language parity invariants.
 /// </summary>
 public sealed class NameNormalizerTests
 {
@@ -108,7 +108,7 @@ public sealed class NameNormalizerTests
     }
 
     // ------------------------------------------------------------------
-    // Ampersand-token substitution (spaced form only — pipeline step 4)
+    // Ampersand-token substitution (spaced form only - pipeline step 4)
     // ------------------------------------------------------------------
 
     [Fact]
@@ -121,26 +121,26 @@ public sealed class NameNormalizerTests
     [Fact]
     public void Normalize_UnspacedAmpersand_PreservedLiterally()
     {
-        // "AT&T" — no surrounding whitespace around "&" → untouched.
+        // "AT&T" - no surrounding whitespace around "&" -> untouched.
         NameNormalizer.Normalize("AT&T").Should().Be("at&t");
     }
 
     [Fact]
     public void Normalize_AmpersandAtStartOfToken_PreservedLiterally()
     {
-        // "&something" — no leading space before "&" → untouched.
+        // "&something" - no leading space before "&" -> untouched.
         NameNormalizer.Normalize("foo &bar").Should().Be("foo &bar");
     }
 
     // ------------------------------------------------------------------
-    // Unicode — non-Latin scripts (no diacritic strip expected)
+    // Unicode - non-Latin scripts (no diacritic strip expected)
     // ------------------------------------------------------------------
 
     [Fact]
     public void Normalize_ArabicScript_CasefoldedAndTrimmed()
     {
         // Arabic doesn't have combining-mark decompositions in NFD that produce
-        // strippable NonSpacingMark characters — the text passes through unchanged
+        // strippable NonSpacingMark characters - the text passes through unchanged
         // (except whitespace collapse / casefold, which is a no-op for Arabic).
         const string arabic = "مصر";
         NameNormalizer.Normalize(arabic).Should().Be(arabic);
@@ -149,12 +149,12 @@ public sealed class NameNormalizerTests
     [Fact]
     public void Normalize_CyrillicScript_ReturnedLowercased()
     {
-        // Cyrillic uppercase "РОССИЯ" → lowercase "россия".
+        // Cyrillic uppercase "РОССИЯ" -> lowercase "россия".
         NameNormalizer.Normalize("РОССИЯ").Should().Be("россия");
     }
 
     // ------------------------------------------------------------------
-    // Punctuation — preserved (only combining marks stripped)
+    // Punctuation - preserved (only combining marks stripped)
     // ------------------------------------------------------------------
 
     [Fact]
@@ -170,7 +170,7 @@ public sealed class NameNormalizerTests
     }
 
     // ------------------------------------------------------------------
-    // Idempotency — Normalize(Normalize(x)) == Normalize(x)
+    // Idempotency - Normalize(Normalize(x)) == Normalize(x)
     // ------------------------------------------------------------------
 
     [Theory]

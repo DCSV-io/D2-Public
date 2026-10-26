@@ -11,7 +11,7 @@ namespace DcsvIo.D2.ErrorCodes.SourceGen;
 /// shell into the shared <see cref="ErrorCodesEngine"/>. Every string that
 /// affects the emitted bytes (class names, namespace, banner, doc-comment
 /// nouns) is config-driven so a single engine reproduces every catalog's
-/// output byte-for-byte. Adding a catalog is a config row — no new emitter
+/// output byte-for-byte. Adding a catalog is a config row - no new emitter
 /// logic.
 /// </summary>
 /// <param name="TargetAssemblyName">
@@ -36,8 +36,8 @@ namespace DcsvIo.D2.ErrorCodes.SourceGen;
 /// </param>
 /// <param name="ConstantsBanner">
 /// The exact auto-generated header banner block emitted verbatim on the
-/// constants file (carried per-catalog because the two current catalogs'
-/// banners differ in line-split shape).
+/// constants file (carried per-catalog because catalog banners differ in
+/// line-split shape).
 /// </param>
 /// <param name="ConstantsSummary">
 /// The exact XML <c>&lt;summary&gt;</c>/<c>&lt;remarks&gt;</c> doc block
@@ -46,21 +46,30 @@ namespace DcsvIo.D2.ErrorCodes.SourceGen;
 /// <param name="AllCodesDoc">
 /// The exact XML doc-comment block (each line including its <c>///</c>
 /// prefix + indentation, newline-joined) rendered above the <c>AllCodes</c>
-/// member. Carried verbatim per-catalog because the two catalogs' doc
-/// comments differ in both wording and line-wrap shape.
+/// member. Carried verbatim per-catalog because catalog doc comments differ
+/// in both wording and line-wrap shape.
 /// </param>
 /// <param name="GetHttpStatusDoc">
 /// The exact XML doc-comment block rendered above the <c>GetHttpStatus</c>
 /// member (verbatim per-catalog).
 /// </param>
 /// <param name="DomainPrefix">
-/// The enforced SCREAMING_SNAKE code prefix (e.g. <c>AUTH_</c>); <c>null</c>
-/// for the generic catalog (the reserved unprefixed namespace) which is
-/// exempt from the domain-prefix diagnostic.
+/// The full enforced SCREAMING_SNAKE wire prefix including owner
+/// (e.g. <c>GEN_</c>, <c>LIB_PAGINATION_</c>, <c>LIB_AUTH_</c>,
+/// <c>DOM_AUTH_</c>). Every catalog code must start with this prefix
+/// (D2ERC001).
+/// </param>
+/// <param name="Owner">
+/// Closed owner token: <c>gen</c> | <c>lib</c> | <c>dom</c> (required).
+/// </param>
+/// <param name="DomainToken">
+/// Business domain token in lowercase (e.g. <c>common</c>, <c>auth</c>,
+/// <c>pagination</c>). A multi-segment catalog file name takes the first
+/// segment as its token. The same token may exist under LIB and DOM.
 /// </param>
 /// <param name="EmitKebabCase">
 /// <c>true</c> when the constants class emits the <c>KebabCase</c> helper
-/// (auth-only today).
+/// (the catalogs of the public tree set <c>false</c>).
 /// </param>
 /// <param name="EmitFailures">
 /// <c>true</c> when the catalog emits a <c>&lt;Domain&gt;Failures</c> factory
@@ -91,7 +100,7 @@ namespace DcsvIo.D2.ErrorCodes.SourceGen;
 /// </param>
 /// <param name="MalformedSpecId">
 /// The catalog's malformed-spec diagnostic id (<c>D2EC001</c> /
-/// <c>D2AEC001</c>) — surfaced by the loader.
+/// <c>D2AEC001</c>) - surfaced by the loader.
 /// </param>
 /// <param name="DuplicateCodeId">
 /// The catalog's duplicate-code diagnostic id (<c>D2EC002</c> /
@@ -104,7 +113,7 @@ namespace DcsvIo.D2.ErrorCodes.SourceGen;
 /// <param name="InvalidCodeId">
 /// The generic catalog's malformed-code diagnostic id (<c>D2EC004</c>);
 /// <c>null</c> when <see cref="ValidateCategory"/> is <c>true</c> (auth
-/// relies on the schema's <c>^AUTH_…</c> regex).
+/// relies on the schema's <c>^LIB_AUTH_...</c> regex).
 /// </param>
 /// <param name="MissingDocId">
 /// The generic catalog's missing-doc diagnostic id (<c>D2EC005</c>);
@@ -123,7 +132,7 @@ namespace DcsvIo.D2.ErrorCodes.SourceGen;
 /// <c>factoryShape</c>). <see cref="SourceGen.FactoryHost.Domain"/> (default,
 /// auth): delegating <c>&lt;Domain&gt;Failures</c> + <c>&lt;Domain&gt;Failures&lt;T&gt;</c>.
 /// <see cref="SourceGen.FactoryHost.Base"/> (generic): constructing factories
-/// ONTO the <c>D2Result</c> / <c>D2Result&lt;TData&gt;</c> partials + per-code
+/// on the <c>D2Result</c> / <c>D2Result&lt;TData&gt;</c> partials + per-code
 /// booleans. Ignored when <see cref="EmitFailures"/> is <c>false</c>.
 /// </param>
 /// <param name="GenericFailuresSourceName">
@@ -189,13 +198,13 @@ namespace DcsvIo.D2.ErrorCodes.SourceGen;
 /// </param>
 /// <param name="MessageKeyClassName">
 /// C# class name used when emitting default <c>userMessageKey</c> expressions
-/// (public catalogs: <c>TK</c>; private product union: <c>ProductTK</c>).
+/// (the default is <c>TK</c>; a catalog can set its own class).
 /// Spec <c>userMessageKey</c> values remain <c>TK.*</c> for inverse-resolve;
 /// emission maps the root identifier to this class name.
 /// </param>
 /// <param name="MessageKeyUsingNamespace">
-/// Namespace imported for the message-key class (public:
-/// <c>DcsvIo.D2.I18n</c>; private: <c>DcsvIo.D2.Private.I18n</c>).
+/// Namespace imported for the message-key class (the default is
+/// <c>DcsvIo.D2.I18n</c>).
 /// </param>
 internal sealed record CatalogConfig(
     string TargetAssemblyName,
@@ -207,7 +216,9 @@ internal sealed record CatalogConfig(
     string ConstantsSummary,
     string AllCodesDoc,
     string GetHttpStatusDoc,
-    string? DomainPrefix,
+    string DomainPrefix,
+    string Owner,
+    string DomainToken,
     bool EmitKebabCase,
     bool EmitFailures,
     string? FailuresClassName,

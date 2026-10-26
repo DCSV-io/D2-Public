@@ -23,15 +23,13 @@ using DcsvIo.D2.SourceGen.Polyfills;
 /// failures surface as <see cref="DiagnosticIds.MalformedSpec"/>;
 /// missing-metadata failures surface as
 /// <see cref="DiagnosticIds.MissingCatalogMetadata"/>. Semantic checks
-/// (FK resolution, vocabulary discipline, structural parity) belong in
-/// the per-emitter sub-dispatches that consume the
+/// (FK resolution) belong in the per-emitter sub-dispatches that consume the
 /// <see cref="GeoSpecContext"/> aggregate.
 /// </summary>
 /// <remarks>
-/// Spec mirroring under <c>Spec/</c> is permitted by the source-gen
-/// internal carve-out — these DTOs do not leak across an assembly
-/// boundary and serve only as a typed deserialization surface for
-/// emitter consumption.
+/// The source-gen internal carve-out permits the spec mirroring under
+/// <c>Spec/</c>, because these DTOs do not leak across an assembly boundary.
+/// They are only a typed deserialization target.
 /// </remarks>
 internal static class SpecLoader
 {
@@ -50,26 +48,70 @@ internal static class SpecLoader
     private const string _SOURCE_KEY = "$source";
     private const string _ENTRIES_KEY = "entries";
 
+    // An array, so the missing-spec diagnostics come out in a fixed order.
+    private static readonly string[] sr_catalogFiles =
+    [
+        _COUNTRIES_FILE,
+        _SUBDIVISIONS_FILE,
+        _CURRENCIES_FILE,
+        _LANGUAGES_FILE,
+        _LOCALES_FILE,
+        _TIMEZONES_FILE,
+        _GEOPOLITICAL_FILE,
+    ];
+
+    private static readonly HashSet<string> sr_catalogFileSet =
+        new(sr_catalogFiles, StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
     /// Parses every spec file present in <paramref name="specFiles"/> into the
     /// matching <see cref="SpecEnvelope{T}"/> and returns the populated
     /// <see cref="GeoSpecContext"/>. Diagnostics surfaced during parsing are
-    /// appended to <paramref name="diagnostics"/>; downstream emitters
-    /// degrade gracefully when a catalog property is <c>null</c>.
+    /// appended to <paramref name="diagnostics"/>. A catalog property of the
+    /// returned context is <c>null</c> when its file is absent or fails to
+    /// parse.
     /// </summary>
     /// <param name="specFiles">
     /// The pipeline's collected spec-file inputs (one per JSON file under
     /// <c>contracts/geo/</c>).
     /// </param>
     /// <param name="diagnostics">
-    /// Builder that accumulates per-file parse diagnostics. The caller
-    /// translates each entry to a Roslyn <c>Diagnostic</c> via the
-    /// per-source-gen descriptor resolver.
+    /// Builder that accumulates per-file parse diagnostics. The loader does
+    /// not convert them to Roslyn <c>Diagnostic</c> instances; the generator's
+    /// descriptor resolver does.
+    /// </param>
+    /// <param name="assemblyName">
+    /// The assembly being emitted into. When it is set, each catalog whose file
+    /// is absent from <paramref name="specFiles"/> adds a
+    /// <see cref="DiagnosticIds.MissingSpec"/> diagnostic naming the file and the
+    /// assembly. A file present but malformed reports
+    /// <see cref="DiagnosticIds.MalformedSpec"/> and not this one.
     /// </param>
     /// <returns>The aggregate spec context.</returns>
     public static GeoSpecContext LoadAll(
         ImmutableArray<SpecFile> specFiles,
-        ImmutableArray<EmitDiagnostic>.Builder diagnostics)
+        ImmutableArray<EmitDiagnostic>.Builder diagnostics,
+        string? assemblyName = null)
+    {
+        var matched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var context = LoadMatched(specFiles, diagnostics, matched);
+
+        if (assemblyName is null)
+            return context;
+
+        foreach (var catalogFile in sr_catalogFiles)
+        {
+            if (!matched.Contains(catalogFile))
+                diagnostics.Add(EmitDiagnostics.MissingSpec(catalogFile, assemblyName));
+        }
+
+        return context;
+    }
+
+    private static GeoSpecContext LoadMatched(
+        ImmutableArray<SpecFile> specFiles,
+        ImmutableArray<EmitDiagnostic>.Builder diagnostics,
+        HashSet<string> matched)
     {
         SpecEnvelope<CountrySpec>? countries = null;
         SpecEnvelope<SubdivisionSpec>? subdivisions = null;
@@ -97,9 +139,12 @@ internal static class SpecLoader
             if (fileName.Falsey())
                 continue;
 
-            // Each file routes to exactly one parser. Files outside the
-            // canonical seven are silently ignored — additional .spec.json
-            // companions may live in contracts/geo/ in the future.
+            // Each file routes to exactly one parser. A file whose name matches
+            // none of the *_FILE constants above is ignored without a
+            // diagnostic. A matched name is recorded whether or not it parses.
+            if (sr_catalogFileSet.Contains(fileName))
+                matched.Add(fileName);
+
             if (string.Equals(fileName, _COUNTRIES_FILE, StringComparison.OrdinalIgnoreCase))
                 countries = LoadCatalog(file, fileName, diagnostics, ParseCountry);
             else if (string.Equals(fileName, _SUBDIVISIONS_FILE, StringComparison.OrdinalIgnoreCase))
@@ -215,8 +260,9 @@ internal static class SpecLoader
             lastEditedElement.ValueKind == JsonValueKind.String)
             lastEditedAt = lastEditedElement.GetString();
 
-        // Pipeline-derived specs MUST carry generatedAt; the hand-rolled
-        // geopolitical catalog MUST carry lastEditedAt instead.
+        // A pipeline-derived spec ($generated is true) MUST carry
+        // generatedAt. Any other spec, such as the hand-written geopolitical
+        // catalog, MUST carry lastEditedAt instead.
         if (isGenerated && generatedAt.Falsey())
         {
             return (null, EmitDiagnostics.MissingCatalogMetadata(
@@ -458,7 +504,7 @@ internal static class SpecLoader
         if (decimalSeparator is null)
             return (null, MissingField(fileName, entryIndex, "decimalSeparator"));
 
-        // thousandsSeparator schema allows maxLength=1 with no minLength —
+        // thousandsSeparator schema allows maxLength=1 with no minLength -
         // so empty string is valid. Read as optional, default to "".
         var thousandsSeparator = GetOptionalString(element, "thousandsSeparator") ?? string.Empty;
 

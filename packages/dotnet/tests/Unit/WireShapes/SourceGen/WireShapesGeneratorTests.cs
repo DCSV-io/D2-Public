@@ -17,7 +17,7 @@ using Microsoft.CodeAnalysis.Text;
 using Xunit;
 
 /// <summary>
-/// IIncrementalGenerator integration tests for the wire-shapes SrcGen —
+/// IIncrementalGenerator integration tests for the wire-shapes SrcGen -
 /// drive <see cref="WireShapesGenerator"/> via a synthetic
 /// <see cref="CSharpGeneratorDriver"/> rather than the build pipeline.
 /// Asserts the multi-target dispatch behavior: DcsvIo.D2.I18n.Abstractions
@@ -101,10 +101,9 @@ public sealed class WireShapesGeneratorTests
     [Fact]
     public void Generator_TargetAssemblyButWrongSpec_EmitsMissingSpecDiagnostic()
     {
-        // Generator target is DcsvIo.D2.I18n.Abstractions which expects
-        // tk-message.spec.json — but consumer only supplied
-        // input-error.spec.json. The filename-match dispatch fails →
-        // D2WS005 fires.
+        // The target assembly DcsvIo.D2.I18n.Abstractions expects
+        // tk-message.spec.json, but only input-error.spec.json is supplied.
+        // The filename-match dispatch fails -> D2WS005 is reported.
         var driver = RunGenerator(
             assemblyName: _TK_MESSAGE_ASSEMBLY,
             specs: new[] { ("input-error.spec.json", _INPUT_ERROR_SPEC) });
@@ -146,9 +145,9 @@ public sealed class WireShapesGeneratorTests
     [Fact]
     public void Generator_BothSpecsSupplied_RoutesByAssemblyName()
     {
-        // Both spec files supplied — the I18n consumer should route to
-        // TkMessageWireShape and the Result consumer should route to
-        // InputErrorWireShape; cross-routing is impossible.
+        // Both spec files are supplied - the I18n assembly routes to
+        // TkMessageWireShape and the Result assembly routes to
+        // InputErrorWireShape; the generator cannot cross-route.
         var i18nDriver = RunGenerator(
             assemblyName: _TK_MESSAGE_ASSEMBLY,
             specs: new[]

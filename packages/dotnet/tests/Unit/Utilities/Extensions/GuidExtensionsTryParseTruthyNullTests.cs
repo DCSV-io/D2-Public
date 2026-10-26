@@ -15,7 +15,7 @@ using Xunit;
 public sealed class GuidExtensionsTryParseTruthyNullTests
 {
     // ----------------------------------------------------------------------
-    // null / empty / whitespace inputs → false + null result
+    // null / empty / whitespace inputs -> false + null result
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -66,7 +66,7 @@ public sealed class GuidExtensionsTryParseTruthyNullTests
     [Fact]
     public void TryParseTruthyNull_OnMixedCase_ReturnsTrue()
     {
-        // Adversarial: Guid.TryParse is case-insensitive; the wrapper must reflect that.
+        // Guid.TryParse is case-insensitive, so the wrapper must accept mixed case.
         const string mixed_case = "aBcDeFaB-cdEf-4123-8456-789012345678";
         var expected = new Guid("abcdefab-cdef-4123-8456-789012345678");
 
@@ -79,8 +79,8 @@ public sealed class GuidExtensionsTryParseTruthyNullTests
     [Fact]
     public void TryParseTruthyNull_OnGuidEmptyLiteral_ReturnsFalseAndNull()
     {
-        // Adversarial: the Truthy() filter rejects Guid.Empty even though
-        // Guid.TryParse parses it successfully.
+        // The Truthy() filter rejects Guid.Empty although Guid.TryParse parses it
+        // successfully.
         const string empty_literal = "00000000-0000-0000-0000-000000000000";
 
         var ok = empty_literal.TryParseTruthyNull(out var result);
@@ -92,7 +92,7 @@ public sealed class GuidExtensionsTryParseTruthyNullTests
     [Fact]
     public void TryParseTruthyNull_OnGuidEmptyLiteralBracedOrNFormat_AlsoFalse()
     {
-        // Adversarial: Empty in N / B formats must also be filtered.
+        // Guid.Empty in the N and B formats must also be filtered out.
         const string n_format_empty = "00000000000000000000000000000000";
         const string b_format_empty = "{00000000-0000-0000-0000-000000000000}";
 
@@ -106,9 +106,9 @@ public sealed class GuidExtensionsTryParseTruthyNullTests
     [Fact]
     public void TryParseTruthyNull_OnGuidWithLeadingTrailingWhitespace_DocumentsBehavior()
     {
-        // Adversarial: Guid.TryParse trims surrounding whitespace by default
-        // (since .NET 5). Document the wrapper's pass-through behavior so a
-        // future Guid.TryParse strictness change surfaces here.
+        // Guid.TryParse trims surrounding whitespace by default (since .NET 5).
+        // The test pins the wrapper's pass-through of that behavior, so a change in
+        // Guid.TryParse strictness fails here.
         const string padded = "  a1b2c3d4-e5f6-4789-9abc-def012345678  ";
         var expected = new Guid("a1b2c3d4-e5f6-4789-9abc-def012345678");
 
@@ -119,7 +119,7 @@ public sealed class GuidExtensionsTryParseTruthyNullTests
     }
 
     // ----------------------------------------------------------------------
-    // malformed inputs → false + null result, no exception
+    // malformed inputs -> false + null result, no exception
     // ----------------------------------------------------------------------
 
     [Theory]
@@ -142,10 +142,9 @@ public sealed class GuidExtensionsTryParseTruthyNullTests
     [Fact]
     public void TryParseTruthyNull_OnThousandCharacterRandomString_ReturnsFalseNoThrow()
     {
-        // Adversarial: malicious / oversized input must not throw, must not allocate
-        // unboundedly, must not catch fire. Random.Shared is thread-safe; the
-        // input shape (1000 alphabetic chars) is the assertion target, not the
-        // exact byte sequence.
+        // Malicious or oversized input must not throw and must not allocate without
+        // bound. Random.Shared is thread-safe; the input shape (1000 alphabetic
+        // chars) is the assertion target, not the exact byte sequence.
         const int huge_length = 1000;
         var input = new string(Enumerable.Range(0, huge_length)
             .Select(_ => (char)('a' + Random.Shared.Next(26)))
@@ -161,8 +160,8 @@ public sealed class GuidExtensionsTryParseTruthyNullTests
     [Fact]
     public void TryParseTruthyNull_OnGuidWithUnicodeChars_ReturnsFalse()
     {
-        // Adversarial: a GUID-shaped string with non-ASCII chars in the hex
-        // positions must be rejected cleanly.
+        // A GUID-shaped string with non-ASCII chars in the hex positions must be
+        // rejected: TryParseTruthyNull returns false and no result.
         const string unicode_garbage = "a1b2c3d4-e5f6-4789-9abc-def01234567é";
 
         var ok = unicode_garbage.TryParseTruthyNull(out var result);
@@ -174,7 +173,7 @@ public sealed class GuidExtensionsTryParseTruthyNullTests
     [Fact]
     public void TryParseTruthyNull_OnFullEmojiInput_ReturnsFalseNoThrow()
     {
-        // Adversarial: surrogate pairs / emoji inputs must not crash.
+        // Surrogate pairs and emoji inputs must not crash the parse.
         const string emoji = "😀😁😂";
 
         Action act = () => emoji.TryParseTruthyNull(out _);

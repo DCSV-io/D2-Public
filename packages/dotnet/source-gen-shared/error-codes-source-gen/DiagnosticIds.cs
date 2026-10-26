@@ -9,12 +9,13 @@ namespace DcsvIo.D2.ResultErrorCodes.SourceGen;
 /// <summary>
 /// String identifiers for the generic catalog's per-catalog validation
 /// diagnostics (<c>D2EC*</c>). Kept in a separate class from
-/// <see cref="DiagnosticDescriptors"/> so non-Roslyn-host consumers (e.g.
-/// unit tests of the shared engine emitters) can reference the IDs without
-/// dragging in <c>Microsoft.CodeAnalysis</c> (which the SrcGen csproj marks
-/// <c>PrivateAssets="all"</c>). The shell maps these ids to descriptors and
-/// supplies them to the shared engine via its <c>CatalogConfig</c>; the
-/// catalog-neutral engine diagnostics (<c>D2ERC*</c>) live in the engine.
+/// <see cref="DiagnosticDescriptors"/> so code that runs outside the Roslyn
+/// host, such as the shared engine emitters, can reference the IDs without
+/// referencing <c>Microsoft.CodeAnalysis</c>, which the source generator
+/// project marks <c>PrivateAssets="all"</c>. The shell maps these ids to
+/// descriptors and supplies them to the shared engine via its
+/// <c>CatalogConfig</c>; the catalog-neutral engine diagnostics
+/// (<c>D2ERC*</c>) live in the engine.
 /// </summary>
 internal static class DiagnosticIds
 {

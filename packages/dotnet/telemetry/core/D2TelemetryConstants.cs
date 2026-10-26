@@ -9,29 +9,27 @@ namespace DcsvIo.D2.Telemetry;
 using DcsvIo.D2.AspNetCore;
 
 /// <summary>
-/// Public constants exposed by <see cref="DcsvIo.D2.Telemetry"/> — config-key
-/// strings, env-var names, and infrastructure endpoint paths consumers may
-/// want to reference by symbol rather than by literal.
+/// Public constants exposed by <see cref="DcsvIo.D2.Telemetry"/> - config-key
+/// strings, env-var names, and infrastructure endpoint paths that can be
+/// referenced by symbol rather than by literal.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <see cref="OTEL_SERVICE_NAME_CONFIG_KEY"/> carries the same value as
+/// <see cref="OTEL_SERVICE_NAME_CONFIG_KEY"/> has the same value as
 /// <c>DcsvIo.D2.Logging.D2LoggingConstants.OTEL_SERVICE_NAME_CONFIG_KEY</c>
-/// — both reference the same OpenTelemetry-canonical env var. Re-declared
-/// here rather than depending on <c>DcsvIo.D2.Logging</c> for the constant
-/// because Telemetry is intentionally independent of Logging (consumers may
-/// wire one without the other).
+/// - both are the same OpenTelemetry-canonical env var. The constant is
+/// declared again here because Telemetry does not depend on
+/// <c>DcsvIo.D2.Logging</c>, so a host can wire one without the other.
 /// </para>
 /// <para>
 /// Infrastructure-path constants
 /// (<see cref="HEALTH_ENDPOINT_PATH"/>, <see cref="ALIVE_ENDPOINT_PATH"/>,
 /// <see cref="PROMETHEUS_ENDPOINT_PATH"/>,
 /// <see cref="WELL_KNOWN_ENDPOINT_PATH"/>) re-export the canonical literals
-/// from <see cref="D2AspNetCoreConstants"/>. Telemetry now ProjectReferences
-/// AspNetCore for the shared <c>InfrastructurePathMatcher</c>; the constant
-/// re-export keeps any consumer that imports
-/// <c>DcsvIo.D2.Telemetry.D2TelemetryConstants.HEALTH_ENDPOINT_PATH</c>
-/// working without code change while removing per-lib literal duplication.
+/// from <see cref="D2AspNetCoreConstants"/>. Telemetry has a
+/// ProjectReference to AspNetCore for the shared
+/// <c>InfrastructurePathMatcher</c>, so the literals are declared once and
+/// not in each library.
 /// </para>
 /// </remarks>
 public static class D2TelemetryConstants
@@ -41,8 +39,8 @@ public static class D2TelemetryConstants
     /// <see cref="TelemetryServiceCollectionExtensions.AddD2Telemetry"/> to
     /// source the service name when
     /// <see cref="D2TelemetryOptions.ServiceName"/> is left null. Matches
-    /// the OpenTelemetry-canonical convention so log + trace + metric
-    /// service names stay aligned across the three pipelines.
+    /// the OpenTelemetry-canonical convention so service names stay aligned
+    /// across the log, trace and metric pipelines.
     /// </summary>
     public const string OTEL_SERVICE_NAME_CONFIG_KEY = "OTEL_SERVICE_NAME";
 
@@ -72,15 +70,15 @@ public static class D2TelemetryConstants
         "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT";
 
     /// <summary>
-    /// Environment variable consulted at registration time —
+    /// Environment variable consulted at registration time -
     /// case-insensitive equality with the literal <c>"true"</c> short-
     /// circuits the entire OTel setup
     /// (<see cref="TelemetryServiceCollectionExtensions.AddD2Telemetry"/>
     /// becomes a no-op,
     /// <see cref="WebApplicationTelemetryExtensions.MapD2PrometheusEndpoint"/>
     /// maps no route). The OpenTelemetry SDK observes the same env var
-    /// internally; honoring it here ensures the lib's surface stays
-    /// consistent with that contract for E2E test scenarios.
+    /// internally; honoring it here keeps this library consistent with that
+    /// contract, for example in end-to-end tests.
     /// </summary>
     public const string OTEL_SDK_DISABLED_ENV_VAR = "OTEL_SDK_DISABLED";
 
@@ -94,7 +92,7 @@ public static class D2TelemetryConstants
         D2AspNetCoreConstants.METRICS_ENDPOINT_PATH;
 
     /// <summary>
-    /// Health-probe infrastructure endpoint — by convention excluded from
+    /// Health-probe infrastructure endpoint - by convention excluded from
     /// AspNetCore instrumentation auto-spans + downgraded to verbose by
     /// <c>DcsvIo.D2.Logging</c>'s request-logging middleware. Re-exports
     /// <see cref="D2AspNetCoreConstants.HEALTH_ENDPOINT_PATH"/>.
@@ -103,7 +101,7 @@ public static class D2TelemetryConstants
         D2AspNetCoreConstants.HEALTH_ENDPOINT_PATH;
 
     /// <summary>
-    /// Liveness-probe infrastructure endpoint — same treatment as
+    /// Liveness-probe infrastructure endpoint - same treatment as
     /// <see cref="HEALTH_ENDPOINT_PATH"/>. Re-exports
     /// <see cref="D2AspNetCoreConstants.ALIVE_ENDPOINT_PATH"/>.
     /// </summary>
@@ -111,7 +109,7 @@ public static class D2TelemetryConstants
         D2AspNetCoreConstants.ALIVE_ENDPOINT_PATH;
 
     /// <summary>
-    /// Well-known-doc prefix — covers OIDC discovery (
+    /// Well-known-doc prefix - covers OIDC discovery (
     /// <c>/.well-known/openid-configuration</c>), JWKS (
     /// <c>/.well-known/jwks.json</c>), security.txt, etc. All treated as
     /// infrastructure and excluded from auto-spans. Re-exports

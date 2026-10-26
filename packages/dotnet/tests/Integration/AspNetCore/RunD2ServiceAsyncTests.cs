@@ -22,7 +22,7 @@ using Xunit;
 /// Verifies the try / catch / finally wrapping captures startup faults via
 /// PII-safe Serilog rendering and always flushes the log buffer in finally.
 /// Tests serialize on the static <c>Log.Logger</c> (the wrapper writes to
-/// it from the catch + finally paths) — single-collection annotation
+/// it from the catch + finally paths) - single-collection annotation
 /// prevents parallel pollution.
 /// </summary>
 [Collection("LogLoggerStaticState")]
@@ -66,7 +66,7 @@ public sealed class RunD2ServiceAsyncTests
             "RunD2ServiceAsync's catch path must Log.Fatal on host startup failure");
 
         // PII discipline regression: rendered message must contain the
-        // exception type FullName but must NOT contain the raw exception
+        // exception type FullName but must not contain the raw exception
         // message (which can carry connection strings / secrets / user input).
         var rendered = fatal.RenderMessage(System.Globalization.CultureInfo.InvariantCulture);
         rendered.Should().Contain(typeof(InvalidOperationException).FullName!);
@@ -84,9 +84,9 @@ public sealed class RunD2ServiceAsyncTests
         var act = async () => await app.RunD2ServiceAsync("test-svc");
         await act.Should().ThrowAsync<InvalidOperationException>();
 
-        // Sink received the Fatal event — proves the finally CloseAndFlushAsync
-        // ran (otherwise the buffered batch would not have surfaced).
-        sink.Events.Any(e => e.Level == LogEventLevel.Fatal).Should().BeTrue();
+        // CloseAndFlushAsync disposes the logger, which disposes its sinks, so a
+        // disposed sink shows that the finally block ran after the throw.
+        sink.Disposed.Should().BeTrue();
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public sealed class RunD2ServiceAsyncTests
     {
         var (app, sink) = BuildAppWithSink();
 
-        // Capture ApplicationName upfront — accessing app.Environment after
+        // Capture ApplicationName upfront - accessing app.Environment after
         // the host disposes raises ObjectDisposedException.
         var applicationName = app.Environment.ApplicationName;
 
@@ -125,7 +125,7 @@ public sealed class RunD2ServiceAsyncTests
         Log.Logger = localLogger;
 
         // Bind to an ephemeral port (port 0 = OS-assigned) so parallel test
-        // invocations don't collide on a fixed port.
+        // invocations do not collide on a fixed port.
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
             Args = ["--urls", "http://127.0.0.1:0"],
@@ -139,7 +139,7 @@ public sealed class RunD2ServiceAsyncTests
     }
 
     /// <summary>
-    /// Hosted service whose <c>StartAsync</c> always throws — used to
+    /// Hosted service whose <c>StartAsync</c> always throws - used to
     /// exercise <c>RunD2ServiceAsync</c>'s startup-fault catch path.
     /// </summary>
     private sealed class ThrowingHostedService : IHostedService
@@ -152,13 +152,15 @@ public sealed class RunD2ServiceAsyncTests
     }
 
     /// <summary>
-    /// Minimal in-memory Serilog sink for these tests — captures every
+    /// Minimal in-memory Serilog sink for these tests - captures every
     /// LogEvent so assertions can inspect Level + RenderedMessage +
-    /// Properties.
+    /// Properties, and records whether the logger disposed it.
     /// </summary>
-    private sealed class MemorySink : Serilog.Core.ILogEventSink
+    private sealed class MemorySink : Serilog.Core.ILogEventSink, IDisposable
     {
         private readonly List<LogEvent> r_events = new();
+
+        public bool Disposed { get; private set; }
 
         public IReadOnlyList<LogEvent> Events
         {
@@ -170,6 +172,8 @@ public sealed class RunD2ServiceAsyncTests
                 }
             }
         }
+
+        public void Dispose() => Disposed = true;
 
         public void Emit(LogEvent logEvent)
         {

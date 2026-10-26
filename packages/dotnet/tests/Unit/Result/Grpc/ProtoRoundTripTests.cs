@@ -12,12 +12,12 @@ using DcsvIo.D2.ErrorCodes.Category;
 using DcsvIo.D2.I18n;
 using DcsvIo.D2.Result;
 using DcsvIo.D2.Result.Grpc;
-using global::D2.Services.Protos.Common.V1;
+using global::D2.Services.Protos.Common.V2;
 using Xunit;
 
 /// <summary>
 /// Round-trip fidelity tests: every <see cref="D2Result"/> shape survives
-/// the in-memory → <see cref="D2ResultProto"/> → in-memory cycle with
+/// the in-memory -> <see cref="D2ResultProto"/> -> in-memory cycle with
 /// EQUAL field values on every carried property.
 /// </summary>
 public sealed class ProtoRoundTripTests
@@ -49,7 +49,7 @@ public sealed class ProtoRoundTripTests
         var source = D2Result<string>.Ok(expected_data);
         var proto = source.ToProto();
 
-        // data travels in the sibling field, not inside D2ResultProto
+        // the data is in the sibling field, not inside D2ResultProto
         var rebuilt = proto.ToD2Result(expected_data);
 
         rebuilt.Success.Should().BeTrue();
@@ -164,7 +164,7 @@ public sealed class ProtoRoundTripTests
         roundTripped.Parameters["count"].Should().Be("3");
     }
 
-    // ── SomeFound<T> — success=false, data present ───────────────────────
+    // ── SomeFound<T> - success=false, data present ───────────────────────
 
     [Fact]
     public void SomeFound_Generic_RoundTrips_DataAndPartialSuccessCategory()
@@ -213,12 +213,13 @@ public sealed class ProtoRoundTripTests
     [Fact]
     public void ValidationFailed_RoundTrips_ValidationFailureCategory()
     {
-        // FIX-3: genuine ToProto→ToD2Result→Category assertion (not just a ToProto status check).
+        // Asserts the category after the full ToProto->ToD2Result round trip, not only
+        // a ToProto status check.
         var rebuilt = D2Result.ValidationFailed().ToProto().ToD2Result<string?>();
         rebuilt.Category.Should().Be(ErrorCategory.ValidationFailure);
     }
 
-    // ── Remaining categories round-trip (FIX-4) ───────────────────────────
+    // ── Remaining categories round-trip ───────────────────────────────────
 
     [Theory]
     [InlineData("UnhandledException", ErrorCategory.InternalError)]
@@ -226,7 +227,7 @@ public sealed class ProtoRoundTripTests
     [InlineData("TooManyRequests", ErrorCategory.RateLimited)]
     public void Factory_RoundTrips_ExpectedCategory(string factoryName, ErrorCategory expectedCategory)
     {
-        // Each factory: ToProto→ToD2Result→assert Category.
+        // Each factory: ToProto->ToD2Result->assert Category.
         var source = factoryName switch
         {
             "UnhandledException" => D2Result.UnhandledException(),
@@ -247,7 +248,7 @@ public sealed class ProtoRoundTripTests
         rebuilt.Category.Should().Be(ErrorCategory.ValidationFailure, "Canceled maps to ValidationFailure category per factory spec");
     }
 
-    // ── Status fidelity — exact integer, NOT a lossy gRPC bucket ─────────
+    // ── Status fidelity - exact integer, NOT a lossy gRPC bucket ─────────
 
     [Fact]
     public void StatusFidelity_NotFound_404_IsNotRoundTrippedAsGenericFailure()
@@ -255,7 +256,7 @@ public sealed class ProtoRoundTripTests
         var source = D2Result.NotFound();
         var proto = source.ToProto();
 
-        // proto3 status_code field carries the exact int — NOT a lossy gRPC bucket
+        // proto3 status_code field carries the exact int - NOT a lossy gRPC bucket
         proto.StatusCode.Should().Be(404);
 
         var rebuilt = proto.ToD2Result<string?>();
@@ -292,14 +293,14 @@ public sealed class ProtoRoundTripTests
         rebuilt.TraceId.Should().BeNull();
     }
 
-    // ── Category absent / unknown wire string → null, not a throw ────────
+    // ── Category absent / unknown wire string -> null, not a throw ────────
 
     [Fact]
     public void Category_AbsentOnWire_RehydratesAsNull()
     {
         var proto = new D2ResultProto { Success = false, StatusCode = 400 };
 
-        // HasCategory == false → no category field set
+        // HasCategory == false -> no category field set
         var rebuilt = proto.ToD2Result<string?>();
         rebuilt.Category.Should().BeNull();
     }
@@ -320,7 +321,7 @@ public sealed class ProtoRoundTripTests
     public void TKMessage_EmptyParams_RoundTripsAsNullParameters()
     {
         var msg = TK.Common.Errors.NOT_FOUND;
-        msg.Parameters.Should().BeNull("no params bound → Parameters is null");
+        msg.Parameters.Should().BeNull("no params bound -> Parameters is null");
         var rebuilt = D2Result.NotFound().ToProto().ToD2Result<string?>();
         rebuilt.Messages[0].Parameters.Should().BeNull();
     }

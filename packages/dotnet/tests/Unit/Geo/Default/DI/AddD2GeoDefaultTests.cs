@@ -19,7 +19,7 @@ using Xunit;
 /// </summary>
 public sealed class AddD2GeoDefaultTests
 {
-    // §1.2 category: State-lifecycle — DI composition.
+    // Category: State-lifecycle - DI composition.
     [Fact]
     public void AddD2GeoDefault_RegistersIGeoNameResolver()
     {

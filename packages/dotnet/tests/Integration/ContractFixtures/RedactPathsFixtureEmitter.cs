@@ -18,7 +18,7 @@ using Xunit;
 /// <summary>
 /// Emits the canonical (sorted) list of PII-bearing properties on
 /// <see cref="IAuthContext"/> and <see cref="IRequestContext"/> as
-/// determined by the .NET <c>[RedactData]</c> attribute. The TS-side
+/// determined by the .NET <c>[RedactData]</c> attribute. The TypeScript
 /// <c>IAuthContextRedactPaths</c> and <c>IRequestContextRedactPaths</c>
 /// arrays must enumerate the same set (camelCased), one per redacted
 /// property.
@@ -33,8 +33,8 @@ public sealed class RedactPathsFixtureEmitter
     {
         var paths = RedactedPropertyPaths(typeof(IAuthContext));
 
-        // Wrapped in a record-like shape so the parity test can assert
-        // the array deep-equals the TS-side IAuthContextRedactPaths.
+        // Wrapped in an object with a paths array, which is the fixture shape
+        // for IAuthContextRedactPaths.
         var data = new SortedDictionary<string, object?>(StringComparer.Ordinal)
         {
             ["paths"] = paths,
@@ -46,8 +46,8 @@ public sealed class RedactPathsFixtureEmitter
     [Trait("Category", "ContractFixtures")]
     public void Emit_RequestContext()
     {
-        // IRequestContext only — exclude inherited IAuthContext properties so
-        // the fixture mirrors the TS-side IRequestContextRedactPaths array
+        // IRequestContext only - exclude inherited IAuthContext properties so
+        // the fixture matches the TypeScript IRequestContextRedactPaths array
         // (which lists request-context-specific paths only; IAuthContext
         // paths live in IAuthContextRedactPaths).
         var paths = RedactedPropertyPathsDeclaredOn(typeof(IRequestContext));
@@ -82,7 +82,7 @@ public sealed class RedactPathsFixtureEmitter
 
     /// <summary>
     /// Same as <see cref="RedactedPropertyPaths"/> but excludes
-    /// properties inherited from a base interface — IRequestContext's
+    /// properties inherited from a base interface - IRequestContext's
     /// own properties only.
     /// </summary>
     /// <param name="type">Interface or class type to reflect.</param>
@@ -106,7 +106,7 @@ public sealed class RedactPathsFixtureEmitter
     }
 
     /// <summary>
-    /// Walks interface inheritance — returns every public property
+    /// Walks interface inheritance - returns every public property
     /// from the type and its base interfaces.
     /// </summary>
     /// <param name="type">Interface type to enumerate.</param>

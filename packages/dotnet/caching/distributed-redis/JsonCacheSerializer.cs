@@ -12,8 +12,8 @@ using DcsvIo.D2.Result;
 
 /// <summary>
 /// Default <see cref="ICacheSerializer"/> using <c>System.Text.Json</c>.
-/// Dev-friendly (Redis CLI can inspect values directly), no extra deps.
-/// Swap to a binary serializer (MessagePack, Protobuf) if size becomes
+/// Dev-friendly (Redis CLI can inspect values directly), no extra dependencies.
+/// Replace it with a binary serializer (MessagePack, Protobuf) if size becomes
 /// the dominant cost.
 /// </summary>
 public sealed class JsonCacheSerializer : ICacheSerializer
@@ -43,7 +43,7 @@ public sealed class JsonCacheSerializer : ICacheSerializer
                 data: default,
                 messages: [TK.Common.Errors.COULD_NOT_BE_SERIALIZED],
                 statusCode: System.Net.HttpStatusCode.InternalServerError,
-                errorCode: ErrorCodes.COULD_NOT_BE_SERIALIZED);
+                errorCode: ErrorCodes.GEN_COULD_NOT_BE_SERIALIZED);
         }
     }
 
@@ -52,8 +52,8 @@ public sealed class JsonCacheSerializer : ICacheSerializer
     {
         try
         {
-            // Note: a null result is a LEGITIMATE round-trip for nullable T
-            // (callers can Set<string?>(k, null) → bytes "null" → Deserialize
+            // A null result is a legitimate round trip for nullable T
+            // (Set<string?>(k, null) writes the bytes "null", and Deserialize
             // returns null). Failure is reserved for actual parse errors.
             var value = JsonSerializer.Deserialize<T>(bytes, sr_options);
             return D2Result<T>.Ok(value);
@@ -65,18 +65,18 @@ public sealed class JsonCacheSerializer : ICacheSerializer
                 data: default,
                 messages: [TK.Common.Errors.COULD_NOT_BE_DESERIALIZED],
                 statusCode: System.Net.HttpStatusCode.InternalServerError,
-                errorCode: ErrorCodes.COULD_NOT_BE_DESERIALIZED);
+                errorCode: ErrorCodes.GEN_COULD_NOT_BE_DESERIALIZED);
         }
         catch (NotSupportedException)
         {
-            // STJ throws NotSupportedException for unsupported types (e.g.
-            // some interface or polymorphic shape it can't construct).
+            // System.Text.Json throws NotSupportedException for unsupported
+            // types (e.g. some interface or polymorphic shape it can't construct).
             return new D2Result<T>(
                 success: false,
                 data: default,
                 messages: [TK.Common.Errors.COULD_NOT_BE_DESERIALIZED],
                 statusCode: System.Net.HttpStatusCode.InternalServerError,
-                errorCode: ErrorCodes.COULD_NOT_BE_DESERIALIZED);
+                errorCode: ErrorCodes.GEN_COULD_NOT_BE_DESERIALIZED);
         }
     }
 }

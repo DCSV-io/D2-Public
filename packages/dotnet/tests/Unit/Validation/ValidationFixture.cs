@@ -14,16 +14,17 @@ using DcsvIo.D2.Utilities.Extensions;
 /// <summary>
 /// Loads a hand-authored cross-language validation parity corpus from
 /// <c>contracts/validation/fixtures/&lt;name&gt;.json</c> and exposes its rows
-/// as a strongly-typed model. The corpus is the SOURCE OF TRUTH shared with
-/// the TypeScript <c>@dcsv-io/d2-validation</c> parity tests — both runtimes read the
-/// SAME file and assert the SAME expected behavior per row.
+/// as a strongly-typed model. The corpus is the source of truth shared with
+/// the TypeScript <c>@dcsv-io/d2-validation</c> parity tests: the .NET and
+/// TypeScript tests read the same file and assert the same expected behavior per
+/// row.
 /// </summary>
 /// <remarks>
 /// Mirrors the <c>LocationHashDeterminismTests</c> fixture-loading pattern:
 /// the path is derived from <see cref="CallerFilePathAttribute"/> at compile
-/// time (robust under hermetic CI sandboxes), the JSON is parsed manually via
-/// <see cref="JsonDocument"/> (explicit, no reflection surprises), and a guard
-/// throws if zero rows load.
+/// time (so it resolves under hermetic CI sandboxes), the JSON is parsed manually
+/// via <see cref="JsonDocument"/> (with no reflection-based deserialization), and
+/// a guard throws if zero rows load.
 /// </remarks>
 internal static class ValidationFixture
 {
@@ -32,7 +33,7 @@ internal static class ValidationFixture
     /// contains zero rows.
     /// </summary>
     /// <param name="name">The corpus name (<c>email</c>, <c>phone</c>, or
-    /// <c>postcode</c>) — the file stem under
+    /// <c>postcode</c>) - the file stem under
     /// <c>contracts/validation/fixtures/</c>.</param>
     /// <returns>The parsed corpus.</returns>
     public static ValidationCorpus Load(string name)
@@ -60,7 +61,7 @@ internal static class ValidationFixture
     /// </summary>
     /// <param name="row">The corpus row.</param>
     /// <returns>The synthesized input (may be empty; never <see langword="null"/>
-    /// for a synthesized kind — an empty string drives the falsey path the
+    /// for a synthesized kind - an empty string drives the falsey path the
     /// same way <c>undefined</c> does on the TS side).</returns>
     public static string? SynthInput(ValidationRow row)
     {
@@ -142,13 +143,12 @@ internal static class ValidationFixture
         [CallerFilePath] string thisSourcePath = "")
     {
         // Walk up from this source file's directory until the repo root is
-        // found — identified by a '.git' entry (only present at the true
-        // root, unlike 'D2.slnx' which sits in server/). In a primary clone
-        // '.git' is a DIRECTORY; in a linked git worktree it is a FILE
-        // pointing at the shared gitdir — accept both so the suite runs in
-        // worktrees. This is robust under any depth rearrangement of the
-        // tests folder — no fixed iteration count, no silent wrong-root on
-        // partial matches.
+        // found - identified by a '.git' entry (only present at the true
+        // root). In a primary clone '.git' is a directory; in a linked git
+        // worktree it is a file pointing at the shared gitdir - accept both so
+        // the suite runs in worktrees. The walk has no fixed iteration count, so
+        // it works at any depth of the tests folder, and it stops at the first
+        // '.git' entry, so it cannot select a wrong root on a partial match.
         var dir = Path.GetDirectoryName(thisSourcePath) ?? string.Empty;
         while (dir.Truthy())
         {
@@ -156,7 +156,7 @@ internal static class ValidationFixture
 
             if (Directory.Exists(gitEntry) || File.Exists(gitEntry))
             {
-                // Dual-layout: monorepo public/contracts vs public OSS contracts/.
+                // Layouts: monorepo public/contracts, or contracts/ in the public OSS clone.
                 var monorepo = Path.Combine(
                     dir,
                     "public",

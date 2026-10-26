@@ -32,7 +32,7 @@ public sealed class RedisCacheInvalidationBackplaneAdversarialTests
     [Fact]
     public async Task Subscribe_ManySubscribers_AllReceiveAllMessages()
     {
-        // 50 simultaneous subscribers on the same backplane. One publish →
+        // 50 simultaneous subscribers on the same backplane. One publish ->
         // every subscriber's handler must fire.
         var channel = $"chaos-{Guid.NewGuid():N}";
         await using var backplane = NewBackplane(channel);
@@ -64,7 +64,7 @@ public sealed class RedisCacheInvalidationBackplaneAdversarialTests
     [Fact]
     public async Task Subscribe_SubscribeThenImmediatelyDispose_NoLeak()
     {
-        // Pathological pattern: subscribe + immediately dispose. Repeat 200×.
+        // Pathological pattern: subscribe + immediately dispose. Repeat 200x.
         // No leaks, no exceptions.
         var channel = $"chaos-{Guid.NewGuid():N}";
         await using var backplane = NewBackplane(channel);
@@ -83,9 +83,9 @@ public sealed class RedisCacheInvalidationBackplaneAdversarialTests
     [Fact]
     public async Task Subscribe_ConcurrentSubscribeAndUnsubscribe_NoCrash()
     {
-        // Two threads: one rapidly subscribes + disposes, the other rapidly
-        // publishes. Verifies the ConcurrentDictionary-backed subscription
-        // store doesn't blow up under chaotic mutation.
+        // Four workers: two subscribe and dispose in a loop, and two publish in
+        // a loop. Verifies the ConcurrentDictionary-backed subscription
+        // store does not fail under concurrent mutation.
         var channel = $"chaos-{Guid.NewGuid():N}";
         await using var backplane = NewBackplane(channel);
 
@@ -119,7 +119,7 @@ public sealed class RedisCacheInvalidationBackplaneAdversarialTests
     {
         // One handler sleeps 200ms; another should still receive messages
         // without being blocked by the slow one. Verifies dispatch fans out
-        // (handlers don't run sequentially on a single thread).
+        // (handlers do not run sequentially on a single thread).
         var channel = $"chaos-{Guid.NewGuid():N}";
         await using var backplane = NewBackplane(channel);
 
@@ -147,7 +147,7 @@ public sealed class RedisCacheInvalidationBackplaneAdversarialTests
 
         fastReceived.Should().Be(5);
 
-        // Slow handler may not have caught all 5 yet (each takes 200ms).
+        // The slow handler may not have received every message yet (each takes 200ms).
     }
 
     [Fact]
@@ -181,7 +181,7 @@ public sealed class RedisCacheInvalidationBackplaneAdversarialTests
     [Fact]
     public async Task PublishMany_ManyKeys_AllReceived()
     {
-        // 1000 keys in a single PublishInvalidationManyAsync — all delivered.
+        // 1000 keys in a single PublishInvalidationManyAsync - all delivered.
         var channel = $"chaos-{Guid.NewGuid():N}";
         await using var backplane = NewBackplane(channel);
 
@@ -205,8 +205,9 @@ public sealed class RedisCacheInvalidationBackplaneAdversarialTests
     public async Task Subscribe_AcrossManyInstances_AllReceiveCrossPublishes()
     {
         // Multi-instance scenario: 5 backplane instances on the same channel
-        // (5 replicas in the cluster). Instance 0 publishes; the other 4
-        // each receive. Verifies pub/sub fan-out works at a realistic scale.
+        // (the replicas of a cluster). Instance 0 publishes; every instance,
+        // including instance 0, receives the message. Verifies pub/sub
+        // fan-out works at a realistic scale.
         var channel = $"chaos-{Guid.NewGuid():N}";
         var instances = new List<RedisCacheInvalidationBackplane>();
         var subs = new List<IAsyncDisposable>();
@@ -261,22 +262,39 @@ public sealed class RedisCacheInvalidationBackplaneAdversarialTests
     [Fact]
     public async Task PublishInvalidation_AfterDispose_ReturnsServiceUnavailable()
     {
-        // After disposing the backplane, publishes should fail cleanly,
-        // not throw.
-        var channel = $"chaos-{Guid.NewGuid():N}";
-        var backplane = NewBackplane(channel);
+        // The multiplexer stays usable after the backplane is disposed, so without
+        // the disposed check the publish would go through and return Ok.
+        await using var redis = await ConnectAsync();
+        var backplane = NewBackplane(redis, $"chaos-{Guid.NewGuid():N}");
         await backplane.DisposeAsync();
 
         var result = await backplane.PublishInvalidationAsync("k");
 
-        // Disposed backplane: the connection is still usable from the multiplexer,
-        // but the channel is unsubscribed. Publishing still works (it's just a Redis
-        // PUBLISH), but no subscribers (on this instance) receive. We don't enforce
-        // ObjectDisposedException for Publish — keeps the surface lenient. Caller
-        // either sees Ok (publish went through) or Failure (Redis error). Either is
-        // acceptable post-dispose.
-        // The IMPORTANT invariant: it doesn't crash the process.
-        (result.IsOk || !result.IsOk).Should().BeTrue("publish post-dispose must not throw");
+        result.IsServiceUnavailable.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task PublishInvalidationMany_AfterDispose_ReturnsServiceUnavailable()
+    {
+        await using var redis = await ConnectAsync();
+        var backplane = NewBackplane(redis, $"chaos-{Guid.NewGuid():N}");
+        await backplane.DisposeAsync();
+
+        var result = await backplane.PublishInvalidationManyAsync(["k1", "k2"]);
+
+        result.IsServiceUnavailable.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task PublishInvalidation_BeforeDispose_ReturnsOk()
+    {
+        // The admitting counterpart over the same multiplexer shape.
+        await using var redis = await ConnectAsync();
+        await using var backplane = NewBackplane(redis, $"chaos-{Guid.NewGuid():N}");
+
+        var result = await backplane.PublishInvalidationAsync("k");
+
+        result.IsOk.Should().BeTrue();
     }
 
     [MustDisposeResource(false)]
@@ -293,4 +311,20 @@ public sealed class RedisCacheInvalidationBackplaneAdversarialTests
             opts,
             NullLogger<RedisCacheInvalidationBackplane>.Instance);
     }
+
+    [MustDisposeResource(false)]
+    private RedisCacheInvalidationBackplane NewBackplane(
+        IConnectionMultiplexer redis,
+        string channel)
+        => new(
+            redis,
+            Options.Create(new RedisCacheOptions
+            {
+                ConnectionString = r_fixture.ConnectionString,
+                InvalidationChannel = channel,
+            }),
+            NullLogger<RedisCacheInvalidationBackplane>.Instance);
+
+    private Task<ConnectionMultiplexer> ConnectAsync()
+        => ConnectionMultiplexer.ConnectAsync(r_fixture.ConnectionString);
 }

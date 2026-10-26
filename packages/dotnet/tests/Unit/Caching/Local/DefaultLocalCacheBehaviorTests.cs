@@ -6,22 +6,24 @@
 
 namespace DcsvIo.D2.Tests.Unit.Caching.Local;
 
+using System.Linq;
 using AwesomeAssertions;
 using DcsvIo.D2.Caching;
 using DcsvIo.D2.Caching.Local.Default;
+using DcsvIo.D2.Tests.Unit.Caching.Local.Fixtures;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Xunit;
 
 /// <summary>
-/// Behavior tests for <see cref="DefaultLocalCache"/> — exercise real
+/// Behavior tests for <see cref="DefaultLocalCache"/> that exercise real
 /// <see cref="Microsoft.Extensions.Caching.Memory.IMemoryCache"/> semantics
 /// (capacity-driven eviction, TTL expiration, concurrent-access stress).
-/// TTL-expiry tests use a <see cref="FakeTimeProvider"/> so expiry is
-/// driven by clock advance rather than real-time sleeps — load-independent
-/// and fully deterministic. The Integration tier is reserved for libs whose
+/// TTL-expiry tests use a <see cref="FakeTimeProvider"/>, so clock advance
+/// drives expiry and not real-time sleeps; the tests are load-independent and
+/// deterministic. The Integration tier is reserved for libraries whose
 /// dependencies require real infrastructure (Redis Testcontainers, real PG,
-/// etc.).
+/// and so on).
 /// </summary>
 public sealed class DefaultLocalCacheBehaviorTests
 {
@@ -32,7 +34,7 @@ public sealed class DefaultLocalCacheBehaviorTests
         using var cache = NewCache(clock: clock);
         await cache.SetAsync("k", 1, TimeSpan.FromMinutes(1));
 
-        // Advance past the TTL — IMemoryCache uses the same fake clock.
+        // Advance past the TTL - IMemoryCache uses the same fake clock.
         clock.Advance(TimeSpan.FromMinutes(2));
 
         var result = await cache.GetAsync<int>("k");
@@ -67,9 +69,10 @@ public sealed class DefaultLocalCacheBehaviorTests
             await cache.SetAsync($"k{i}", i);
 
         // Wait for the post-eviction callback to drain (compaction is async).
-        // This is a genuine async platform callback — not TTL-related — so a
-        // small real-time settle is correct here (not a timing hazard because
-        // the assertion is a loose "< 100" bound, not an exact count).
+        // This is a genuine async platform callback and is not TTL-related, so
+        // a short real-time delay is correct here. It is not a timing hazard,
+        // because the assertion is a loose "< 100" bound and not an exact
+        // count.
         await Task.Delay(200);
 
         var present = 0;
@@ -115,10 +118,10 @@ public sealed class DefaultLocalCacheBehaviorTests
         // Race-protection check for the SetCore write pair (r_cache + r_expirations).
         // N threads alternate between Set (with TTL=1h) and GetTtl on the same key.
         // Without locking the SetCore body, GetTtl could observe a key in r_cache
-        // but no TTL in r_expirations (or vice versa). The check here is that we
-        // never see a half-applied state: every observable GetTtl must either
-        // report NotFound (impossible after first Set) OR return a TTL within
-        // the expected band.
+        // but no TTL in r_expirations (or vice versa). The check is that no
+        // half-applied state appears: every GetTtl must return Ok with a TTL
+        // within the expected band, because NotFound is impossible after the
+        // first Set (the loop below counts it as an inconsistency).
         using var cache = NewCache();
         await cache.SetAsync("k", 0, TimeSpan.FromHours(1));
 
@@ -160,12 +163,12 @@ public sealed class DefaultLocalCacheBehaviorTests
     [Fact]
     public async Task SetAndRemove_Interleaved_NeverThrows()
     {
-        // Set vs Remove interleaving stress. The strict invariant version
-        // of this test is impossible: Get and GetTtl are separate ops, and
+        // Set vs Remove interleaving stress. A strict invariant version of
+        // this test is impossible: Get and GetTtl are separate ops, and
         // between them anything can happen (Remove, new Set), so combined
-        // assertions across the two ops will race even when each op is
-        // individually correct. The narrower property worth checking under
-        // chaotic concurrency is "no exceptions, no crashes."
+        // assertions across Get and GetTtl race even when each op is
+        // individually correct. The narrower property checked under chaotic
+        // concurrency is "no exceptions, no crashes."
         using var cache = NewCache();
 
         var threads = 16;
@@ -190,7 +193,7 @@ public sealed class DefaultLocalCacheBehaviorTests
                 }
             });
 
-        // Reaching this line without exception is the test passing.
+        // The test passes when execution reaches this line without an exception.
     }
 
     [Fact]
@@ -198,7 +201,7 @@ public sealed class DefaultLocalCacheBehaviorTests
     {
         // Smoke test for the full op surface under contention. 24 threads,
         // each doing a mix of Get / Set / Remove / SetNx / Increment /
-        // AcquireLock / ReleaseLock against a small key space (10 keys).
+        // AcquireLock / ReleaseLock against a small key space (keyCount = 10).
         // Verifies (a) no exceptions / no torn results, (b) the lock state
         // never reports more than one acquirer at a time per key.
         using var cache = NewCache();
@@ -215,16 +218,16 @@ public sealed class DefaultLocalCacheBehaviorTests
             {
                 for (var iter = 0; iter < iterations; iter++)
                 {
-                    // Random.Shared is thread-safe; per-thread instances were
-                    // unnecessary and triggered the §1.14/§4.7 carve-out.
+                    // Random.Shared is thread-safe, so no per-thread Random
+                    // instance is needed.
                     var key = $"k{Random.Shared.Next(keyCount)}";
                     var op = Random.Shared.Next(7);
                     switch (op)
                     {
                         case 0:
                             // Get can be Ok (hit) or NotFound (miss); both are
-                            // valid outcomes. We're checking the call doesn't
-                            // throw and the result is well-formed.
+                            // valid outcomes. The check is that the call does
+                            // not throw and the result is well-formed.
                             _ = await cache.GetAsync<int>(key, ct);
                             break;
                         case 1:
@@ -267,10 +270,11 @@ public sealed class DefaultLocalCacheBehaviorTests
     [Fact]
     public async Task IncrementAsync_RaceWithRemove_NeverLosesAtomicity()
     {
-        // Increment + Remove interleaving stress. Increments fire on a key
-        // while another thread occasionally removes it. Each Increment must
-        // either return Ok(value) (we incremented an existing or fresh key)
-        // or contend cleanly — never throw, never return stale Conflict.
+        // Increment + Remove interleaving stress. One worker increments a key
+        // while another worker occasionally removes it. Each Increment must
+        // return Ok(value) with a value greater than 0, whether it incremented
+        // an existing key or created a fresh one, and must never throw or
+        // return a stale Conflict.
         var cache = NewCache();
         try
         {
@@ -310,9 +314,9 @@ public sealed class DefaultLocalCacheBehaviorTests
         // Race-protection check: N threads call SetNx on the same empty key
         // simultaneously. Exactly one must observe "absent" and return true;
         // every other caller must see the winner's write and return false.
-        // Without per-cache locking around the read+write window, multiple
-        // threads can both observe "absent" and both claim victory while
-        // only one write actually persists.
+        // Without per-cache locking around the read+write window, several
+        // threads can observe "absent" and return true while only one write
+        // persists.
         using var cache = NewCache();
         var contenders = 32;
         var winners = 0;
@@ -334,15 +338,15 @@ public sealed class DefaultLocalCacheBehaviorTests
     [Fact]
     public async Task AcquireLockAsync_ExpirationAllowsReacquisition()
     {
-        // AcquireLockAsync now uses r_clock.GetUtcNow() for the expiry
-        // computation, so a FakeTimeProvider drives the expiry check —
-        // no real-time sleep required.
+        // AcquireLockAsync uses r_clock.GetUtcNow() for the expiry
+        // computation, so a FakeTimeProvider drives the expiry check and no
+        // real-time sleep is needed.
         var clock = new FakeTimeProvider();
         using var cache = NewCache(clock: clock);
         var first = await cache.AcquireLockAsync("k", "owner-A", TimeSpan.FromMinutes(1));
         first.Data.Should().BeTrue();
 
-        // Advance past the lock TTL — AcquireLockAsync will see the new "now"
+        // Advance past the lock TTL - AcquireLockAsync will see the new "now"
         // and treat the existing entry as expired.
         clock.Advance(TimeSpan.FromMinutes(2));
 
@@ -436,6 +440,64 @@ public sealed class DefaultLocalCacheBehaviorTests
         // After dispose, every public op throws ObjectDisposedException (fail-closed).
         var act = async () => await cache.GetAsync<int>("k");
         await act.Should().ThrowAsync<ObjectDisposedException>();
+    }
+
+    /// <summary>
+    /// The comparison is by value, so a record of primitives that is a different
+    /// instance still compares equal and the write succeeds. A reference
+    /// comparison would make the member useless when the expected value was read
+    /// out of the cache and a fresh object came back.
+    /// </summary>
+    [Fact]
+    public async Task SetIfEqualAsync_AnEqualValueFromAnotherInstance_Writes()
+    {
+        using var cache = NewCache();
+        await cache.SetAsync("k", new CachedPointFixture(1, 2));
+
+        var result = await cache.SetIfEqualAsync(
+            "k", new CachedPointFixture(1, 2), new CachedPointFixture(3, 4));
+
+        result.Data.Should().BeTrue();
+        (await cache.GetAsync<CachedPointFixture>("k")).Data
+            .Should().Be(new CachedPointFixture(3, 4));
+    }
+
+    [Fact]
+    public async Task SetIfEqualAsync_AValueDifferingInOneMember_WritesNothing()
+    {
+        using var cache = NewCache();
+        await cache.SetAsync("k", new CachedPointFixture(1, 2));
+
+        var result = await cache.SetIfEqualAsync(
+            "k", new CachedPointFixture(1, 99), new CachedPointFixture(3, 4));
+
+        result.Data.Should().BeFalse();
+        (await cache.GetAsync<CachedPointFixture>("k")).Data
+            .Should().Be(new CachedPointFixture(1, 2));
+    }
+
+    /// <summary>
+    /// The compare and the write are one critical section, so when many callers
+    /// race from the same expected value, exactly one write succeeds. A
+    /// sequence of independently atomic reads and writes would let two callers
+    /// both write.
+    /// </summary>
+    [Fact]
+    public async Task SetIfEqualAsync_ManyCallersFromOneExpectedValue_LetsExactlyOneWin()
+    {
+        using var cache = NewCache();
+        await cache.SetAsync("k", 0);
+
+        var won = 0;
+        await Parallel.ForEachAsync(
+            Enumerable.Range(1, 32),
+            async (i, ct) =>
+            {
+                if ((await cache.SetIfEqualAsync("k", 0, i, ct: ct)).Data)
+                    _ = Interlocked.Increment(ref won);
+            });
+
+        won.Should().Be(1);
     }
 
     private static DefaultLocalCache NewCache(

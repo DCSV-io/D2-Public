@@ -39,7 +39,7 @@ export interface RedisIntegrationFixture {
  * Starts a Testcontainers Redis instance for the integration suite.
  */
 export async function startRedisTestFixture(): Promise<RedisIntegrationFixture> {
-  const container = await new RedisContainer("redis:7.2-alpine").start();
+  const container = await new RedisContainer("redis:8.2.4-bookworm").start();
   const connectionString = container.getConnectionUrl();
 
   return {

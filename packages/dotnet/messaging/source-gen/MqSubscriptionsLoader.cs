@@ -13,7 +13,7 @@ using DcsvIo.D2.SourceGen;
 
 /// <summary>
 /// Pure logic for parsing <c>mq-subscriptions.spec.json</c> into a
-/// <see cref="MqSubscriptionsSpec"/>. JSON-shape validation only — semantic
+/// <see cref="MqSubscriptionsSpec"/>. JSON-shape validation only - semantic
 /// validation lives in <see cref="MqEmitter"/>.
 /// </summary>
 internal static class MqSubscriptionsLoader

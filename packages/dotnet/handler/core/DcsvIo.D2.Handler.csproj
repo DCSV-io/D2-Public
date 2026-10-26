@@ -7,16 +7,18 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   </PropertyGroup>
 
   <!--
-    BaseHandler + HandlerContext + HandlerTelemetry + AddD2Handler. The runtime
-    piece every handler in every service inherits — CQRS handlers, repo handlers,
-    messaging consumers, scheduled jobs, any handler-shaped operation. Auto-emits
-    4 OTel metrics per call (invoked, succeeded, failed, duration_ms) plus
-    per-call span via System.Diagnostics.ActivitySource.
+    BaseHandler, HandlerContext, HandlerTelemetry and AddD2Handler. The runtime
+    piece that every handler inherits - CQRS handlers, repo handlers,
+    messaging consumers, scheduled jobs and any other handler-shaped operation.
+    Emits the OTel metrics invoked, succeeded, failed and duration_ms on every
+    call, plus a per-call span through System.Diagnostics.ActivitySource.
 
-    Universal try/catch shape: ExecuteAsync exceptions surface as
-    D2Result.UnhandledException at HandleAsync return; OperationCanceledException
-    surfaces as D2Result.Canceled. RunCorePipelineAsync exposes the captured
-    exception so BaseRepoHandler can remap EF/PG-specific exceptions to typed
+    Universal try/catch shape: ExecuteAsync exceptions become
+    D2Result.UnhandledException when HandleAsync returns. An
+    OperationCanceledException from a cancellation the caller requested becomes
+    D2Result.Canceled, and any other OperationCanceledException becomes
+    D2Result.ServiceUnavailable. RunCorePipelineAsync exposes the captured
+    exception so a subclass can remap EF/PG-specific exceptions to typed
     D2Result failure codes.
   -->
 
@@ -34,14 +36,17 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <ItemGroup>
     <InternalsVisibleTo Include="DcsvIo.D2.Tests" />
-    <InternalsVisibleTo Include="DcsvIo.D2.Private.Packages.Tests" />
+    <!--
+      One assembly granted below is a runtime assembly, not a test one. The
+      README's Require/Elevate section records the exception.
+    -->
   </ItemGroup>
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.2</Version>
+    <Version>0.2.0</Version>
     <PackageId>DcsvIo.D2.Handler</PackageId>
-    <Description>BaseHandler for D2 — the abstract base every handler inherits, providing scope pre-checks, OpenTelemetry activity and metrics, log scope, and a universal try/catch.</Description>
+    <Description>BaseHandler for D2 - the abstract base every handler inherits, providing scope pre-checks, OpenTelemetry activity and metrics, log scope, and a universal try/catch.</Description>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

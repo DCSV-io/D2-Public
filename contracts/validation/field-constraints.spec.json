@@ -86,7 +86,7 @@
     {
       "name": "NamePrefix",
       "backing": "byte",
-      "doc": "Closed list of personal-name prefixes (honorifics / titles). The Other member is the escape hatch backed by a custom free-text value.",
+      "doc": "Closed list of personal-name prefixes (honorifics / titles). The Other member covers a prefix not in the list and is backed by a custom free-text value.",
       "members": [
         { "name": "Mr", "doc": "Mister." },
         { "name": "Ms", "doc": "Ms (marital-status-neutral)." },
@@ -98,7 +98,7 @@
         { "name": "Sir", "doc": "Sir (knighthood / formal address)." },
         { "name": "Lady", "doc": "Lady." },
         { "name": "Lord", "doc": "Lord." },
-        { "name": "RtHon", "doc": "The Right Honourable." },
+        { "name": "RtHon", "doc": "The Right Honorable." },
         { "name": "Rev", "doc": "Reverend." },
         { "name": "Fr", "doc": "Father (clergy)." },
         { "name": "Pr", "doc": "Pastor." },
@@ -106,14 +106,14 @@
         { "name": "Elder", "doc": "Elder." },
         {
           "name": "Other",
-          "doc": "Other prefix not in the closed list; carries a custom free-text value."
+          "doc": "Other prefix not in the closed list; it comes with a custom free-text value."
         }
       ]
     },
     {
       "name": "NameSuffix",
       "backing": "byte",
-      "doc": "Closed list of personal-name suffixes (generational and ordinal). The Other member is the escape hatch backed by a custom free-text value.",
+      "doc": "Closed list of personal-name suffixes (generational and ordinal). The Other member covers a suffix not in the list and is backed by a custom free-text value.",
       "members": [
         { "name": "Jr", "doc": "Junior." },
         { "name": "Sr", "doc": "Senior." },
@@ -129,7 +129,7 @@
         { "name": "X", "doc": "The tenth (X)." },
         {
           "name": "Other",
-          "doc": "Other suffix not in the closed list; carries a custom free-text value."
+          "doc": "Other suffix not in the closed list; it comes with a custom free-text value."
         }
       ]
     },

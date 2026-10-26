@@ -10,8 +10,8 @@ using System.Linq;
 
 /// <summary>
 /// Aggregates every <see cref="EncryptionRegistration"/> into a single
-/// queryable registry. Resolved by the startup self-test. Public only so
-/// DI can resolve it — callers should not construct this directly.
+/// queryable registry. Public only so DI can resolve it; it is not meant to
+/// be constructed directly.
 /// </summary>
 public sealed class EncryptionRegistry
 {

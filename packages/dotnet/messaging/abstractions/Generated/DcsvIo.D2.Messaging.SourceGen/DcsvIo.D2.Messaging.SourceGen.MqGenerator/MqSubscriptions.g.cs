@@ -20,9 +20,6 @@ namespace DcsvIo.D2.Messaging;
 /// </summary>
 public static class MqSubscriptions
 {
-    /// <summary>Subscription consuming DcsvIo.D2.Auth.Events.KeyRotatedEvent via queue 'keyring-refresher' (pattern: FanoutExclusiveAutoDelete).</summary>
-    public const string KeyringRefresh = "KeyringRefresh";
-
 }
 
 /// <summary>
@@ -32,17 +29,8 @@ public static class MqSubscriptions
 /// </summary>
 public static class MqSubscriptionsRegistry
 {
-    /// <summary>Lookup table: constant → descriptor.</summary>
+    /// <summary>Lookup table: constant -> descriptor.</summary>
     public static readonly IReadOnlyDictionary<string, MqSubscriptionDescriptor> ByConstant = new Dictionary<string, MqSubscriptionDescriptor>(StringComparer.Ordinal)
     {
-        ["KeyringRefresh"] = new MqSubscriptionDescriptor(
-            Constant: "KeyringRefresh",
-            MessageTypeName: "DcsvIo.D2.Auth.Events.KeyRotatedEvent",
-            QueueName: "keyring-refresher",
-            Pattern: DcsvIo.D2.Messaging.QueuePattern.FanoutExclusiveAutoDelete,
-            RoutingKeyBinding: "",
-            Prefetch: 10,
-            Idempotency: false,
-            TieredRetry: null),
     };
 }

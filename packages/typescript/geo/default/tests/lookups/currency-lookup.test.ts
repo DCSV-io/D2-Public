@@ -22,7 +22,7 @@ describe("CurrencyLookup", () => {
     );
   });
 
-  // §1.2 category: Domain-specific — per-VALUE pins.
+  // Category: Domain-specific - per-VALUE pins.
   it("USD fields pinned", () => {
     const usd = Currencies.USD;
     expect(usd.iso4217AlphaCode).toBe(CurrencyCode.USD);
@@ -50,7 +50,7 @@ describe("CurrencyLookup", () => {
     expect(gbp.decimalPlaces).toBe(2);
   });
 
-  // §1.2 category: Cross-field — reverse-FK nav populated.
+  // Category: Cross-field - reverse-FK nav populated.
   it("USD: AcceptedInCountries contains US", () => {
     expect(
       Currencies.USD.acceptedInCountryIso31661Alpha2Codes.has(

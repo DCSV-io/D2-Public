@@ -17,6 +17,8 @@ export interface IPropagatedContext {
     // (undocumented)
     readonly currentFingerprint?: string;
     // (undocumented)
+    readonly deviceKey?: string;
+    // (undocumented)
     readonly edgeNodeId?: string;
     // (undocumented)
     readonly featureFlagsCsv?: string;
@@ -54,6 +56,8 @@ export interface IRequestContext extends IAuthContext {
     readonly countryIso31661Alpha2Code?: string;
     readonly currencyIso4217Code?: string;
     readonly currentFingerprint?: string;
+    readonly deviceConfidence?: string;
+    readonly deviceKey?: string;
     readonly edgeNodeId?: string;
     readonly featureFlagsCsv?: string;
     readonly geohash?: string;

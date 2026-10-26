@@ -16,7 +16,7 @@ using Serilog.Events;
 using Serilog.Formatting.Compact;
 
 /// <summary>
-/// DI registration entry point for <see cref="DcsvIo.D2.Logging"/> — wires
+/// DI registration entry point for <see cref="DcsvIo.D2.Logging"/> - wires
 /// the Serilog pipeline (per-source minimum-level overrides, the
 /// <see cref="RedactDataDestructuringPolicy"/> safety net for the
 /// <c>[RedactData]</c> attribute, environment + service-name + machine-name
@@ -30,7 +30,7 @@ public static class LoggingServiceCollectionExtensions
     extension(IServiceCollection services)
     {
         /// <summary>
-        /// Registers the D² Serilog pipeline + its MEL bridge. Idempotent —
+        /// Registers the D2 Serilog pipeline + its MEL bridge. Idempotent -
         /// safe to call multiple times (option configurations stack via the
         /// standard <c>IOptions</c> pipeline; the static <c>Log.Logger</c> is
         /// rebuilt on each call but inherits the same final option values).
@@ -47,7 +47,7 @@ public static class LoggingServiceCollectionExtensions
         /// <para>
         /// Validates options at the first
         /// <c>IOptions&lt;D2LoggingOptions&gt;.Value</c> resolution via
-        /// <see cref="OptionsBuilderExtensions.ValidateOnStart"/> — invalid
+        /// <see cref="OptionsBuilderExtensions.ValidateOnStart"/> - invalid
         /// configuration fails the host build, never propagates as a
         /// runtime log.
         /// </para>
@@ -59,9 +59,9 @@ public static class LoggingServiceCollectionExtensions
         /// </param>
         /// <param name="configure">
         /// Optional configuration delegate applied AFTER the env-derived
-        /// defaults so callers can override any field.
+        /// defaults, so it can override any field.
         /// </param>
-        /// <returns>The same <paramref name="services"/> for fluent chaining.</returns>
+        /// <returns>The same <paramref name="services"/>, for fluent chaining.</returns>
         /// <exception cref="ArgumentNullException">
         /// Thrown when <paramref name="services"/> or
         /// <paramref name="configuration"/> is null.
@@ -111,15 +111,15 @@ public static class LoggingServiceCollectionExtensions
                     + "empty / whitespace.")
                 .ValidateOnStart();
 
-            // Build the Serilog logger eagerly using the resolved options. We
-            // can't defer to first-resolution because Serilog's Log.Logger is
+            // Build the Serilog logger eagerly using the resolved options. It
+            // cannot wait for first resolution because Serilog's Log.Logger is
             // a static and AddSerilog wires the MEL bridge against whatever
             // logger is set at registration time.
             //
-            // To pick up the env-derived defaults + the configure override,
-            // we build a temporary ServiceProvider, materialize the options,
-            // then dispose it. This is the same pattern .NET Aspire's
-            // service-defaults uses for its own startup-time settings.
+            // To pick up the env-derived defaults and the configure override
+            // without building a ServiceProvider, the Resolve* helpers below
+            // run the configure delegate on a probe options instance and read
+            // IHostEnvironment from the registered service descriptors.
             var serviceName = ResolveServiceName(services, configuration, configure);
             var environment = ResolveEnvironment(services, configure);
             var minimumLevel = ResolveMinimumLevel(configure);
@@ -140,17 +140,17 @@ public static class LoggingServiceCollectionExtensions
             Log.Logger = loggerConfig.CreateLogger();
 
             // AddLogging seeds the MEL infrastructure (LoggerFactory + the
-            // open-generic ILogger<T> registration). Idempotent — the Logging
-            // package internally TryAdds, so callers who already have it
-            // wired pay no penalty.
+            // open-generic ILogger<T> registration). Idempotent - the Logging
+            // package internally TryAdds, so a second registration adds
+            // nothing.
             services.AddLogging();
 
             // writeToProviders: true routes Serilog output to other registered
             // ILoggerProviders (e.g. an OTel OTLP log exporter, when one is
             // registered by separate observability infrastructure) so logs
             // reach an OTLP collector via the MEL pipeline.
-            // preserveStaticLogger: true keeps the Log.Logger we just built so
-            // callers using the static facade see consistent output.
+            // preserveStaticLogger: true keeps the Log.Logger we just built in
+            // place, so the static facade writes the same output.
             services.AddSerilog(
                 configureLogger: _ => { },
                 preserveStaticLogger: true,
@@ -200,7 +200,7 @@ public static class LoggingServiceCollectionExtensions
 
     private static IHostEnvironment? TryGetHostEnvironment(IServiceCollection services)
     {
-        // Walk ServiceDescriptors directly — at AddD2Logging time the
+        // Walk ServiceDescriptors directly - at AddD2Logging time the
         // ServiceProvider has not been built yet and we don't want to
         // materialize one (BuildServiceProvider inside an extension method is
         // the canonical "container leak" anti-pattern). The host registers

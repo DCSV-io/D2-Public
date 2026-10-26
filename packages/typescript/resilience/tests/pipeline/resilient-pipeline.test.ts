@@ -58,7 +58,7 @@ describe("ResilientPipelineBuilder", () => {
     expect(r).toBe(3);
   });
 
-  it("composed pipeline — singleflight outer, retry inner", async () => {
+  it("composed pipeline - singleflight outer, retry inner", async () => {
     let calls = 0;
     const p = new ResilientPipelineBuilder()
       .useSingleflight()

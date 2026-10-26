@@ -15,7 +15,7 @@ using Microsoft.EntityFrameworkCore;
 /// Synthetic host <c>DbContext</c> for anonymization engine integration tests.
 /// Contains a mix of Tier-A and Tier-B user-owned entities, an org-owned entity,
 /// and an exempt ledger to cover all anonymization paths and isolation scenarios.
-/// Schema is created via <c>EnsureCreatedAsync</c> — no migrations.
+/// Schema is created via <c>EnsureCreatedAsync</c> - no migrations.
 /// </summary>
 internal sealed class GovDbContext : DbContext
 {
@@ -28,7 +28,7 @@ internal sealed class GovDbContext : DbContext
 
     public DbSet<TierBUser> TierBUsers => Set<TierBUser>();
 
-    public DbSet<OrgRecord> OrgRecords => Set<OrgRecord>();
+    public DbSet<OrgRowFixture> Orgs => Set<OrgRowFixture>();
 
     public DbSet<ExemptLedger> ExemptLedgers => Set<ExemptLedger>();
 
@@ -63,14 +63,14 @@ internal sealed class GovDbContext : DbContext
         {
             e.HasKey(x => x.Id);
 
-            // Table-split OwnsOne (no ToJson) — decorated via fluent
+            // Table-split OwnsOne (no ToJson) - decorated via fluent
             e.OwnsOne(x => x.Address, nav =>
             {
                 nav.Anonymize(a => a.Line1, "[deleted]");
                 nav.AnonymizeNull(a => a.Line2);
             });
 
-            // Complex property — decorated via fluent
+            // Complex property - decorated via fluent
             e.ComplexProperty(x => x.Name, cp =>
             {
                 cp.Anonymize(n => n.First, "[deleted]");
@@ -90,7 +90,7 @@ internal sealed class GovDbContext : DbContext
                 .IsConcurrencyToken();
         });
 
-        modelBuilder.Entity<OrgRecord>(e =>
+        modelBuilder.Entity<OrgRowFixture>(e =>
         {
             e.HasKey(x => x.Id);
         });
@@ -125,7 +125,7 @@ internal sealed class GovDbContext : DbContext
         {
             e.HasKey(x => x.Id);
 
-            // Same complex-VO type mapped twice — dual-VO regression, Tier-B path.
+            // Same complex-VO type mapped twice - dual-VO regression, Tier-B path.
             // Email carries a Template rule to force Tier-B materialize-mutate.
             e.ComplexProperty(x => x.PrimaryAddress, cp =>
             {
@@ -174,7 +174,7 @@ internal sealed class GovDbContext : DbContext
         public string Status { get; set; } = "active";
 
         /// <summary>
-        /// Gets or sets the creation epoch-ms timestamp. Not decorated — must remain unchanged
+        /// Gets or sets the creation epoch-ms timestamp. Not decorated - must remain unchanged
         /// after sweep.
         /// </summary>
         public long CreatedAt { get; set; }
@@ -189,7 +189,7 @@ internal sealed class GovDbContext : DbContext
         public bool IsAnonymized { get; set; }
     }
 
-    /// <summary>Owned address VO for TierAUser — table-split (shares owner's table).</summary>
+    /// <summary>Owned address VO for TierAUser - table-split (shares owner's table).</summary>
     internal sealed class TierAAddress
     {
         /// <summary>Gets or sets the first address line.</summary>
@@ -219,12 +219,12 @@ internal sealed class GovDbContext : DbContext
 
         public Guid? UserId { get; set; }
 
-        /// <summary>Gets or sets the email. Template field — forces Tier B.</summary>
+        /// <summary>Gets or sets the email. Template field - forces Tier B.</summary>
         [Anonymizable(template: "deletedUser{UserId}@deleted.user.dcsv.io")]
         public string Email { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the display name. Constant field — both constant and template fire in
+        /// Gets or sets the display name. Constant field - both constant and template fire in
         /// Tier B.
         /// </summary>
         [Anonymizable("Deleted")]
@@ -239,7 +239,7 @@ internal sealed class GovDbContext : DbContext
     }
 
     /// <summary>Org-owned entity: proves org sweep and user/org isolation.</summary>
-    internal sealed class OrgRecord : IOrgOwned, IAnonymizationTrackable
+    internal sealed class OrgRowFixture : IOrgOwned, IAnonymizationTrackable
     {
         public Guid Id { get; set; }
 
@@ -254,7 +254,7 @@ internal sealed class GovDbContext : DbContext
     }
 
     /// <summary>
-    /// Exempt ledger: implements IExemptFromAnonymization — must be skipped entirely.
+    /// Exempt ledger: implements IExemptFromAnonymization - must be skipped entirely.
     /// Decorated fields must never be touched by the engine.
     /// </summary>
     internal sealed class ExemptLedger :
@@ -285,7 +285,7 @@ internal sealed class GovDbContext : DbContext
     /// minimal reproduction of the dual-VO navigation bug: when both navigations share the
     /// same CLR type, the old CLR-reflection heuristic always resolved both to PrimaryAddress,
     /// producing duplicate SET clauses in SQL (Tier-A) and cross-instance writes (Tier-B).
-    /// Self-contained — no dependency on the Location lib.
+    /// Self-contained - no dependency on the Location lib.
     /// </summary>
     internal sealed class DualVoHost : IUserOwned, IAnonymizationTrackable
     {
@@ -305,7 +305,7 @@ internal sealed class GovDbContext : DbContext
 
     /// <summary>
     /// Minimal synthetic complex VO used by <see cref="DualVoHost"/> and
-    /// <see cref="TierBDualVoHost"/>. Shared CLR type mapped TWICE on the same entity —
+    /// <see cref="TierBDualVoHost"/>. Shared CLR type mapped TWICE on the same entity -
     /// the dual-VO navigation regression scenario.
     /// </summary>
     internal sealed class SimpleAddress
@@ -313,7 +313,7 @@ internal sealed class GovDbContext : DbContext
         /// <summary>Gets or sets the city. Decorated via fluent in GovDbContext.</summary>
         public string City { get; set; } = string.Empty;
 
-        /// <summary>Gets or sets the zip code. Nullable — decorated via fluent.</summary>
+        /// <summary>Gets or sets the zip code. Nullable - decorated via fluent.</summary>
         public string? ZipCode { get; set; }
     }
 
@@ -328,7 +328,7 @@ internal sealed class GovDbContext : DbContext
 
         public Guid? UserId { get; set; }
 
-        /// <summary>Gets or sets the email. Template field — forces Tier B.</summary>
+        /// <summary>Gets or sets the email. Template field - forces Tier B.</summary>
         [Anonymizable(template: "deletedUser{UserId}@deleted.user.dcsv.io")]
         public string Email { get; set; } = string.Empty;
 

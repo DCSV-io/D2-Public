@@ -16,9 +16,9 @@ using Xunit;
 
 /// <summary>
 /// Unit matrix for the pure, depth-bounded call-path append helper. Covers the
-/// fresh-start path, the append path, the oldest-trim-beyond-the-bound invariant
-/// (a serialized path exceeding the bound is dropped wholesale by the
-/// receiver), and the required-self-id guard.
+/// fresh-start path, the append path, the trim of the oldest entries beyond the
+/// bound (a serialized path exceeding the bound is dropped wholesale on
+/// receipt), and the required-self-id guard.
 /// </summary>
 [Trait("Category", "Unit")]
 public sealed class CallPathOpsTests
@@ -52,11 +52,11 @@ public sealed class CallPathOpsTests
         var existing = new List<CallPathEntry> { new("edge", CallPathKind.Edge, sr_t0) };
 
         var result = CallPathOps.Append(
-            existing, "key-custodian", CallPathKind.WorkloadHop, sr_t0.AddSeconds(1));
+            existing, "inventory", CallPathKind.WorkloadHop, sr_t0.AddSeconds(1));
 
         result.Should().HaveCount(2);
         result[0].Id.Should().Be("edge");
-        result[1].Id.Should().Be("key-custodian");
+        result[1].Id.Should().Be("inventory");
         result[1].Kind.Should().Be(CallPathKind.WorkloadHop);
     }
 
@@ -67,14 +67,14 @@ public sealed class CallPathOpsTests
 
         CallPathOps.Append(existing, "files", CallPathKind.WorkloadHop, sr_t0);
 
-        existing.Should().ContainSingle("the input list is never mutated — a new list is returned");
+        existing.Should().ContainSingle("the input list is never mutated - a new list is returned");
     }
 
     [Fact]
     public void Append_AtTheDepthBound_TrimsOldestToStayBounded()
     {
-        // Build a path exactly at the bound, then append one more — the result must be
-        // capped at MAX_CALL_PATH_DEPTH with the OLDEST entry trimmed and the newest kept.
+        // Build a path exactly at the bound, then append one more - the result must be
+        // capped at MAX_CALL_PATH_DEPTH with the oldest entry trimmed and the newest kept.
         var atBound = Enumerable
             .Range(0, CallPathOps.MAX_CALL_PATH_DEPTH)
             .Select(i => new CallPathEntry($"hop-{i}", CallPathKind.WorkloadHop, sr_t0))

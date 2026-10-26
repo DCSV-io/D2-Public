@@ -14,13 +14,19 @@ using System.IO;
 /// directory until a workspace root marker is found.
 /// </summary>
 /// <remarks>
-/// Supports both layouts:
+/// Supports both layouts and tells them apart. The lines below that carry an
+/// exemption marker name a directory that the public clone does not have,
+/// and each names it deliberately.
 /// <list type="bullet">
-/// <item><description>Monorepo: root <c>D2.slnx</c>, contracts at <c>public/contracts</c>.</description></item>
-/// <item><description>Public OSS (D2-Public): root <c>D2.Public.slnx</c>, contracts at <c>contracts/</c>.</description></item>
+/// <item><description>
+/// Monorepo root D2.slnx, contracts at public/contracts. public-clone-path:exempt-line layout-map.
+/// </description></item>
+/// <item><description>
+/// Public OSS root <c>D2.Public.slnx</c>, contracts at <c>contracts/</c>.
+/// </description></item>
 /// </list>
-/// Nested monorepo <c>public/</c> also contains <c>D2.Public.slnx</c> — the walker
-/// prefers the monorepo root and never treats nested <c>public/</c> as the OSS root.
+/// A nested public/ carries D2.Public.slnx too. public-clone-path:exempt-line layout-map.
+/// The walker prefers the root above it.
 /// </remarks>
 internal static class TestPaths
 {
@@ -45,7 +51,7 @@ internal static class TestPaths
 
             if (File.Exists(publicOssMarker))
             {
-                // Nested monorepo public/ also has D2.Public.slnx — keep walking
+                // Nested monorepo public/ also has D2.Public.slnx - keep walking
                 // if the parent owns D2.slnx (true monorepo root is above).
                 var parent = dir.Parent;
 
@@ -108,15 +114,6 @@ internal static class TestPaths
             ? Path.Combine(RepoRoot(), "D2.Public.slnx")
             : Path.Combine(RepoRoot(), "public", "D2.Public.slnx");
 
-    public static string PrivateContractsRoot() =>
-        Path.Combine(RepoRoot(), "private", "contracts");
-
-    /// <summary>
-    /// True when private product contracts are present (monorepo only).
-    /// </summary>
-    public static bool HasPrivateContracts() =>
-        Directory.Exists(PrivateContractsRoot());
-
     public static string AuthScopesSpec() =>
         Path.Combine(PublicContractsRoot(), "auth-scopes", "scopes.spec.json");
 
@@ -140,9 +137,6 @@ internal static class TestPaths
 
     public static string MessagesDirectory() =>
         Path.Combine(PublicContractsRoot(), "messages");
-
-    public static string PrivateMessagesDirectory() =>
-        Path.Combine(PrivateContractsRoot(), "messages");
 
     public static string ErrorCategorySpec() =>
         Path.Combine(PublicContractsRoot(), "error-category", "error-category.spec.json");

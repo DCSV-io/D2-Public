@@ -20,7 +20,7 @@ describe("TimezoneLookup", () => {
     );
   });
 
-  // §1.2 category: Domain-specific — per-VALUE pins.
+  // Category: Domain-specific - per-VALUE pins.
   it("America/New_York fields pinned", () => {
     const ny = TimezoneLookup.byCode["America/New_York" as TimezoneCode];
     expect(ny).toBeDefined();
@@ -46,7 +46,7 @@ describe("TimezoneLookup", () => {
   });
 
   it("at least one zone in the catalog has CoApplicable countries (shared-zone scenario)", () => {
-    // Shared-zone scenario — at least one IANA zone in the catalog
+    // Shared-zone scenario - at least one IANA zone in the catalog
     // has a non-empty coApplicableCountryIso31661Alpha2Codes set
     // (Europe shares the same zone across multiple countries).
     const sharedZones = TimezoneLookup.all.filter(
@@ -55,7 +55,7 @@ describe("TimezoneLookup", () => {
     expect(sharedZones.length).toBeGreaterThan(0);
   });
 
-  // §1.2 category: Cross-field — code+nav agreement.
+  // Category: Cross-field - code+nav agreement.
   it("every tz: primaryCountry nav matches code when set", () => {
     for (const tz of TimezoneLookup.all) {
       if (tz.primaryCountry !== undefined)

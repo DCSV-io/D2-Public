@@ -14,21 +14,21 @@ using StackExchange.Redis;
 
 /// <summary>
 /// StackExchange.Redis-backed implementation of <see cref="IDistributedCache"/>.
-/// Implements all four building blocks (<see cref="ICacheBasic"/>,
+/// Implements every building block (<see cref="ICacheBasic"/>,
 /// <see cref="ICacheAtomic"/>, <see cref="ICacheBroadcast"/>,
-/// <see cref="ICacheSet"/>) directly — no per-op handler classes.
+/// <see cref="ICacheSet"/>) directly - no per-operation handler classes.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Atomicity for compound ops (Increment with TTL, ReleaseLock with
+/// Atomicity for compound operations (Increment with TTL, ReleaseLock with
 /// owner check, SetAdd with TTL on first add) uses Lua scripts in
-/// <see cref="RedisLuaScripts"/> so each op is one round-trip.
+/// <see cref="RedisLuaScripts"/> so each operation takes one round trip.
 /// </para>
 /// <para>
-/// Error handling: <see cref="RedisException"/> →
+/// Error handling: <see cref="RedisException"/> ->
 /// <c>ServiceUnavailable</c> (graceful degradation; caller decides
 /// fail-open vs fail-closed). Increment on a non-numeric key triggers
-/// Redis WRONGTYPE → mapped to <c>Conflict</c>.
+/// Redis WRONGTYPE -> mapped to <c>Conflict</c>.
 /// </para>
 /// </remarks>
 public sealed class RedisDistributedCache : IDistributedCache
@@ -200,9 +200,9 @@ public sealed class RedisDistributedCache : IDistributedCache
             var serialized = r_serializer.Serialize(value);
             if (!serialized.IsOk)
             {
-                // No non-generic D2Result.BubbleFail overload exists today —
-                // construct manually to surface the serializer failure with
-                // its original messages / errorCode / statusCode intact.
+                // No non-generic D2Result.BubbleFail overload exists, so
+                // construct the result manually to keep the serializer failure's
+                // original messages / errorCode / statusCode intact.
                 return new D2Result(
                     false,
                     serialized.Messages,
@@ -333,6 +333,95 @@ public sealed class RedisDistributedCache : IDistributedCache
     }
 
     /// <inheritdoc />
+    public async ValueTask<D2Result<bool>> SetIfEqualAsync<T>(
+        string key,
+        T expected,
+        T value,
+        TimeSpan? expiration = null,
+        CancellationToken ct = default)
+    {
+        if (key.Falsey()) return InputFailures.Required<bool>(nameof(key));
+
+        try
+        {
+            var serializedExpected = r_serializer.Serialize(expected);
+
+            if (!serializedExpected.IsOk)
+                return D2Result<bool>.BubbleFail(serializedExpected);
+
+            var serializedValue = r_serializer.Serialize(value);
+
+            if (!serializedValue.IsOk)
+                return D2Result<bool>.BubbleFail(serializedValue);
+
+            // The comparison is against the bytes this store holds, so the
+            // caller's `expected` is re-serialized with the same serializer
+            // that wrote them.
+            var ttl = expiration ?? r_options.DefaultExpiration;
+
+            // A non-positive lifetime would write an entry Redis never expires,
+            // and Redis persists to disk and to backups. The local flavor
+            // rejects the same argument, so both return the same result. This
+            // covers a caller passing a remaining lifetime that has reached
+            // zero and a host configuring DefaultExpiration as zero.
+            if (ttl <= TimeSpan.Zero)
+                return InputFailures.Invalid<bool>(nameof(expiration));
+
+            var ttlMs = TtlMilliseconds(ttl);
+
+            var result = await Db.ScriptEvaluateAsync(
+                RedisLuaScripts.SET_IF_EQUAL,
+                [(RedisKey)Prefixed(key)],
+                [serializedExpected.Data!, serializedValue.Data!, ttlMs]);
+
+            var written = (long)result == 1L;
+
+            if (written)
+                RedisCacheTelemetry.SR_Sets.Add(1);
+
+            return D2Result<bool>.Ok(written);
+        }
+        catch (RedisException ex)
+        {
+            return ServiceUnavailable<bool>(ex, "SetIfEqualAsync", key);
+        }
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<D2Result<bool>> RemoveIfEqualAsync<T>(
+        string key, T expected, CancellationToken ct = default)
+    {
+        if (key.Falsey()) return InputFailures.Required<bool>(nameof(key));
+
+        try
+        {
+            var serializedExpected = r_serializer.Serialize(expected);
+
+            if (!serializedExpected.IsOk)
+                return D2Result<bool>.BubbleFail(serializedExpected);
+
+            // The comparison is against the bytes this store holds, so the
+            // caller's `expected` is re-serialized with the same serializer
+            // that wrote them.
+            var result = await Db.ScriptEvaluateAsync(
+                RedisLuaScripts.REMOVE_IF_EQUAL,
+                [(RedisKey)Prefixed(key)],
+                [serializedExpected.Data!]);
+
+            var removed = (long)result == 1L;
+
+            if (removed)
+                RedisCacheTelemetry.SR_Removes.Add(1);
+
+            return D2Result<bool>.Ok(removed);
+        }
+        catch (RedisException ex)
+        {
+            return ServiceUnavailable<bool>(ex, "RemoveIfEqualAsync", key);
+        }
+    }
+
+    /// <inheritdoc />
     public async ValueTask<D2Result<long>> IncrementAsync(
         string key, long amount = 1, TimeSpan? expiration = null, CancellationToken ct = default)
     {
@@ -341,7 +430,7 @@ public sealed class RedisDistributedCache : IDistributedCache
         try
         {
             var ttlMs = expiration is not null
-                ? (long)((TimeSpan)expiration).TotalMilliseconds
+                ? TtlMilliseconds((TimeSpan)expiration)
                 : 0L;
 
             var result = await Db.ScriptEvaluateAsync(
@@ -355,7 +444,7 @@ public sealed class RedisDistributedCache : IDistributedCache
             ex.Message.Contains("safe_integer_overflow", StringComparison.Ordinal))
         {
             // Lua reversed INCRBY atomically; dual-runtime bound matches JS
-            // Number.MAX_SAFE_INTEGER so .NET and TS refuse the same range.
+            // Number.MAX_SAFE_INTEGER so .NET and TS reject the same range.
             return InputFailures.Invalid<long>(nameof(amount));
         }
         catch (RedisServerException ex) when (
@@ -365,13 +454,64 @@ public sealed class RedisDistributedCache : IDistributedCache
             // Type collision: either the key holds a non-string data structure
             // (Redis WRONGTYPE) or it holds a string that isn't a valid integer
             // ("value is not an integer or out of range"). Both map to Conflict
-            // per the abstraction's contract — caller's stored type doesn't
-            // match what Increment requires.
+            // per the abstraction's contract - the stored type doesn't match
+            // what Increment requires.
             return D2Result<long>.Conflict(traceId: null);
         }
         catch (RedisException ex)
         {
             return ServiceUnavailable<long>(ex, "IncrementAsync", key);
+        }
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<D2Result<TokenBucketDecision>> ConsumeTokenAsync(
+        string key,
+        long refillTokens,
+        TimeSpan refillInterval,
+        long burst,
+        long cost = 1,
+        CancellationToken ct = default)
+    {
+        if (InputFailures.TokenBucket(key, refillTokens, refillInterval, burst, cost)
+            is { } invalid)
+        {
+            return invalid;
+        }
+
+        try
+        {
+            var result = (RedisValue[])(await Db.ScriptEvaluateAsync(
+                RedisLuaScripts.CONSUME_TOKEN,
+                [(RedisKey)Prefixed(key)],
+                [
+                    refillTokens,
+                    (long)refillInterval.TotalMilliseconds,
+                    burst,
+                    cost,
+                ]))!;
+
+            var admitted = (long)result[0] == 1L;
+
+            if (admitted)
+                RedisCacheTelemetry.SR_Sets.Add(1);
+
+            return D2Result<TokenBucketDecision>.Ok(
+                new TokenBucketDecision(
+                    admitted, TimeSpan.FromMilliseconds((long)result[1])));
+        }
+        catch (RedisServerException ex) when (
+            ex.Message.Contains("WRONGTYPE", StringComparison.Ordinal))
+        {
+            // The bucket is a hash, so a key that already holds something else
+            // returns WRONGTYPE. That is a type collision rather than a store
+            // fault, and the in-process flavors return Conflict for it, so every
+            // flavor returns the same result for the same state.
+            return D2Result<TokenBucketDecision>.Conflict(traceId: null);
+        }
+        catch (RedisException ex)
+        {
+            return ServiceUnavailable<TokenBucketDecision>(ex, "ConsumeTokenAsync", key);
         }
     }
 
@@ -470,7 +610,7 @@ public sealed class RedisDistributedCache : IDistributedCache
         try
         {
             var ttlMs = expiration is not null
-                ? (long)((TimeSpan)expiration).TotalMilliseconds
+                ? TtlMilliseconds((TimeSpan)expiration)
                 : 0L;
 
             var result = await Db.ScriptEvaluateAsync(
@@ -538,6 +678,14 @@ public sealed class RedisDistributedCache : IDistributedCache
             return ServiceUnavailable<bool>(ex, "SetContainsAsync", key);
         }
     }
+
+    // Every script reads a millisecond count and treats zero as "no
+    // expiration", so a positive lifetime under one millisecond would truncate
+    // into an entry Redis never expires - in a store that persists to disk and
+    // to backups. A positive lifetime floors at one millisecond instead, which
+    // expires at once, as the in-process flavor does for the same input.
+    private static long TtlMilliseconds(TimeSpan ttl)
+        => ttl <= TimeSpan.Zero ? 0L : Math.Max(1L, (long)ttl.TotalMilliseconds);
 
     private async ValueTask<D2Result> PublishAsync(string key, CancellationToken ct)
     {

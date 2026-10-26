@@ -4,7 +4,12 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Headers.Amqp
 
-D2 wire-protocol headers for the AMQP transport. Includes AMQP-only entries (`content-type`, `x-proto-type`, `message-id`, `timestamp`, `x-d2-encryption-kid`, `x-d2-failure-reason`) and cross-transport entries (`x-d2-context`, `traceparent`, `tracestate`) at identical wire values. Codegen-emitted from the headers contract spec via `DcsvIo.D2.Headers.SourceGen` (filtered with `applicability.Contains("amqp")`). Mirrors the TypeScript package `@dcsv-io/d2-headers-amqp` at byte-equal wire values; parity is asserted by shared contract tests.
+D2 wire-protocol headers for the AMQP transport. The package contains AMQP-only entries (`content-type`,
+`x-proto-type`, `message-id`, `timestamp`, `x-d2-encryption-kid`, `x-d2-failure-reason`) and cross-transport entries
+(`x-d2-context`, `traceparent`, `tracestate`) at identical wire values. The `DcsvIo.D2.Headers.SourceGen` source
+generator emits it from the headers contract spec, filtered with `applicability.Contains("amqp")`. It has the same wire
+values as the TypeScript package `@dcsv-io/d2-headers-amqp`, byte for byte, and shared contract tests assert that
+parity.
 
 ## Install
 
@@ -29,24 +34,28 @@ dotnet add package DcsvIo.D2.Headers.Amqp
 
 ## Header categories
 
-- **Routing + observability**: `MESSAGE_ID`, `TIMESTAMP`, `CONTENT_TYPE`, `PROTO_TYPE`
-- **Cross-hop tracing**: `TRACEPARENT`, `TRACESTATE`, `PROPAGATED_CONTEXT`
-- **Encryption + DLQ ops**: `ENCRYPTION_KID`, `FAILURE_REASON`
+- Routing and observability: `MESSAGE_ID`, `TIMESTAMP`, `CONTENT_TYPE`, `PROTO_TYPE`
+- Cross-hop tracing: `TRACEPARENT`, `TRACESTATE`, `PROPAGATED_CONTEXT`
+- Encryption and DLQ ops: `ENCRYPTION_KID`, `FAILURE_REASON`
 
-Headers MUST NOT carry user identity, scopes, fingerprints, or any other sensitive context — the broker stores headers as plaintext at rest. Sensitive identity that a consumer needs goes in the typed message body (encrypted via the descriptor's `encryption` domain when the type carries PII).
+Headers must not carry user identity, scopes, fingerprints, or any other sensitive context, because the broker stores
+headers as plaintext at rest. Sensitive identity that a consumer needs goes in the typed message body, which is
+encrypted through the descriptor's `encryption` domain when the type contains PII.
 
-## When to reach for this catalog
+## When to use this catalog
 
-Use `DcsvIo.D2.Headers.Amqp` from any AMQP-context consumer — RabbitMQ publishers, subscribers, DLQ inspection tools. One `using` covers AMQP-only entries and cross-transport entries.
+Use `DcsvIo.D2.Headers.Amqp` from any AMQP-context consumer: RabbitMQ publishers, subscribers and DLQ inspection
+tools. One `using` covers AMQP-only entries and cross-transport entries.
 
 ## Spec contract
 
-The headers contract spec is the single source of truth. Every entry whose `applicability` array contains `"amqp"` lives in this catalog.
+The headers contract spec is the single source of truth. Every entry whose `applicability` array contains `"amqp"` is
+in this catalog.
 
 ## Dependencies
 
 - `DcsvIo.D2.Headers.SourceGen` (build-time analyzer)
 
-No runtime dependencies — pure constants.
+No runtime dependencies - pure constants.
 
-Sister packages: `DcsvIo.D2.Headers.Common`, `DcsvIo.D2.Headers.Http`, `DcsvIo.D2.Headers.Grpc`.
+Related packages: `DcsvIo.D2.Headers.Common`, `DcsvIo.D2.Headers.Http`, `DcsvIo.D2.Headers.Grpc`.

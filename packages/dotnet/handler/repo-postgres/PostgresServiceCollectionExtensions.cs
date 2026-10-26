@@ -20,14 +20,14 @@ public static class PostgresServiceCollectionExtensions
         /// <summary>
         /// Registers <see cref="PostgresDbExceptionClassifier"/> as the
         /// singleton <see cref="IDbExceptionClassifier"/> implementation.
-        /// Composition roots that consume <c>BaseRepoHandler</c> against
-        /// PostgreSQL must call this; the base handler fails at resolution
-        /// time without a registered classifier.
+        /// A service that uses <c>BaseRepoHandler</c> against PostgreSQL must
+        /// call this; the base handler fails at resolution time without a
+        /// registered classifier.
         /// </summary>
         /// <remarks>
         /// <para>
         /// Uses <c>TryAddSingleton&lt;TService, TImplementation&gt;</c>
-        /// — calling multiple times is safe (no duplicate registration). A
+        /// - calling multiple times is safe (no duplicate registration). A
         /// custom <see cref="IDbExceptionClassifier"/> registered BEFORE this
         /// call wins (TryAdd sees an existing registration and is a no-op):
         /// <code>
@@ -36,15 +36,15 @@ public static class PostgresServiceCollectionExtensions
         /// </code>
         /// </para>
         /// <para>
-        /// <b>Don't register multiple classifiers via plain
-        /// <c>AddSingleton&lt;IDbExceptionClassifier, X&gt;()</c></b> — DI's
+        /// <b>Do not register multiple classifiers with plain
+        /// <c>AddSingleton&lt;IDbExceptionClassifier, X&gt;()</c></b> - DI's
         /// last-registered-wins resolution leaves any earlier classifier as an
-        /// orphaned singleton in the graph (constructed if anyone enumerates
+        /// unused singleton in the graph (constructed if anything enumerates
         /// <c>IEnumerable&lt;IDbExceptionClassifier&gt;</c>) and the resolved
-        /// instance depends on call order, which is brittle. If a service
-        /// genuinely needs more than one classifier (e.g. one connection to
+        /// instance depends on call order, which breaks easily. If a service
+        /// needs more than one classifier (e.g. one connection to
         /// Postgres, one to an embedded SQLite for tests), use keyed
-        /// registration + keyed resolution:
+        /// registration and keyed resolution:
         /// <code>
         /// services.AddKeyedSingleton&lt;IDbExceptionClassifier,
         ///     PostgresDbExceptionClassifier&gt;("primary");
@@ -52,7 +52,7 @@ public static class PostgresServiceCollectionExtensions
         ///     SqliteDbExceptionClassifier&gt;("scratch");
         /// // Inject via [FromKeyedServices("primary")] IDbExceptionClassifier classifier
         /// </code>
-        /// (Keyed services require .NET 8+ — the codebase targets .NET 10, so
+        /// (Keyed services require .NET 8+ - the codebase targets .NET 10, so
         /// the API is available.)
         /// </para>
         /// </remarks>

@@ -47,7 +47,7 @@ export interface TieredTestContext {
  * Starts a Testcontainers Redis instance for the tiered integration suite.
  */
 export async function startTieredTestFixture(): Promise<TieredIntegrationFixture> {
-  const container = await new RedisContainer("redis:7.2-alpine").start();
+  const container = await new RedisContainer("redis:8.2.4-bookworm").start();
   const connectionString = container.getConnectionUrl();
 
   return {

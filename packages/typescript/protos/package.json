@@ -1,6 +1,11 @@
 {
   "name": "@dcsv-io/d2-protos",
-  "version": "0.1.2",
+  "version": "0.1.8",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DCSV-io/D2-Public.git",
+    "directory": "packages/typescript/protos"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -16,7 +21,7 @@
   "scripts": {
     "build": "tsc -b",
     "test": "vitest run",
-    "generate": "buf generate ../../../contracts/protos",
+    "generate": "buf generate ../../../contracts/protos && prettier --write src/generated",
     "type-check:test": "tsc -p tsconfig.test.json"
   },
   "dependencies": {
@@ -25,6 +30,7 @@
   },
   "devDependencies": {
     "@bufbuild/buf": "1.65.0",
+    "prettier": "3.8.1",
     "ts-proto": "2.11.2",
     "typescript": "5.9.3",
     "vitest": "4.0.18"

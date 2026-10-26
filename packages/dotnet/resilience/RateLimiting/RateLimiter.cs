@@ -16,17 +16,17 @@ namespace DcsvIo.D2.Resilience.RateLimiting;
 /// <remarks>
 /// <para>
 /// <b>Client-side, in-process only.</b> This primitive is admission control for
-/// outbound calls — it limits concurrent pressure from THIS process on an upstream.
-/// It is NOT the server-side, distributed rate-limit middleware.
+/// outbound calls - it limits concurrent pressure from this process on an upstream.
+/// It is not the server-side, distributed rate-limit middleware.
 /// </para>
 /// <para>
 /// <b>Disposal:</b> The underlying <see cref="SemaphoreSlim"/> is owned by this
 /// instance. Dispose via the DI container (register as a keyed singleton) or,
 /// for inline use, ensure the owning <see cref="Pipeline.RateLimiterLayer{TKey, TValue}"/>
-/// is disposed at container teardown. The semaphore is not finalized — failing to
-/// dispose leaks a kernel handle on platforms where the semaphore uses one (most
-/// production environments do not create enough concurrent limiters for this to
-/// matter in practice, but the analyzer will flag it otherwise).
+/// is disposed at container teardown. The semaphore is not finalized - failing to
+/// dispose leaks a kernel handle on platforms where the semaphore uses one. Most
+/// production environments do not create enough concurrent limiters for the leak
+/// to matter in practice, but the analyzer reports the missing dispose.
 /// </para>
 /// </remarks>
 public sealed class RateLimiter : IDisposable
@@ -65,13 +65,13 @@ public sealed class RateLimiter : IDisposable
     /// <exception cref="OperationCanceledException">
     /// Propagated from the acquisition wait when <paramref name="ct"/> is canceled
     /// before a permit is acquired (the semaphore was not acquired, so no release
-    /// is needed — no permit is leaked).
+    /// is needed - no permit is leaked).
     /// </exception>
     public async ValueTask<T> ExecuteAsync<T>(
         Func<CancellationToken, ValueTask<T>> operation,
         CancellationToken ct = default)
     {
-        // r_acquisitionTimeout <= Zero ⇒ WaitAsync with TimeSpan.Zero = non-blocking
+        // r_acquisitionTimeout <= Zero => WaitAsync with TimeSpan.Zero = non-blocking
         // tryEnter. Reject-fast without allocating a timer.
         var acquired = await r_gate.WaitAsync(r_acquisitionTimeout, ct);
         if (!acquired)

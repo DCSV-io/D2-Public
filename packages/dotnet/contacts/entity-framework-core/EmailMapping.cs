@@ -18,17 +18,17 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Non-unique path</b>: <c>.Anonymize(valueOrTemplate)</c> — a token-free string
+/// <b>Non-unique path</b>: <c>.Anonymize(valueOrTemplate)</c> - a token-free string
 /// writes a <see cref="AnonymizeKind.Constant"/> rule; a string containing a
 /// <c>{Token}</c> writes a <see cref="AnonymizeKind.Template"/> rule. No unique index
 /// is added.
 /// </para>
 /// <para>
-/// <b>Unique path</b>: <c>.Unique(uniqueTemplate)</c> — the ONLY way to add a unique
+/// <b>Unique path</b>: <c>.Unique(uniqueTemplate)</c> - the only way to add a unique
 /// index. Requires a template that contains at least one <c>{Token}</c> so erased rows
 /// never produce colliding values. Throws <see cref="ArgumentException"/> at map time
-/// if the template has no token (belt-and-braces runtime guard; the type system already
-/// prevents a parameterless call).
+/// if the template has no token (a runtime guard in addition to the type system, which
+/// already prevents a parameterless call).
 /// </para>
 /// </remarks>
 public readonly struct EmailMapping
@@ -58,7 +58,7 @@ public readonly struct EmailMapping
     /// <param name="templateOrConstant">
     /// The anonymize value. Examples:
     /// <c>"deleted@deleted.user.dcsv.io"</c> (constant) or
-    /// <c>"deletedUser{UserId}@deleted.user.dcsv.io"</c> (template — requires
+    /// <c>"deletedUser{UserId}@deleted.user.dcsv.io"</c> (template - requires
     /// a root scalar <c>UserId</c> sibling).
     /// </param>
     /// <returns>This coupling object for additional chaining.</returns>
@@ -80,13 +80,13 @@ public readonly struct EmailMapping
     }
 
     /// <summary>
-    /// The ONLY path to a unique index. Writes a <see cref="AnonymizeKind.Template"/>
-    /// rule AND declares a unique index on the column.
-    /// <paramref name="uniqueTemplate"/> MUST contain at least one <c>{Token}</c> so
+    /// The only path to a unique index. Writes a <see cref="AnonymizeKind.Template"/>
+    /// rule and declares a unique index on the column.
+    /// <paramref name="uniqueTemplate"/> must contain at least one <c>{Token}</c> so
     /// erased rows produce distinct values and never collide on the unique constraint.
     /// </summary>
     /// <param name="uniqueTemplate">
-    /// The per-row anonymize template. Must contain at least one <c>{…}</c> token.
+    /// The per-row anonymize template. Must contain at least one <c>{...}</c> token.
     /// Example: <c>"deletedUser{UserId}@deleted.user.dcsv.io"</c>.
     /// </param>
     /// <returns>This coupling object for additional chaining.</returns>
@@ -94,7 +94,7 @@ public readonly struct EmailMapping
     /// Thrown when <paramref name="uniqueTemplate"/> is <see langword="null"/>.
     /// </exception>
     /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="uniqueTemplate"/> contains no <c>{…}</c> token —
+    /// Thrown when <paramref name="uniqueTemplate"/> contains no <c>{...}</c> token -
     /// a static tombstone on a unique column guarantees erasure collisions.
     /// </exception>
     public EmailMapping Unique(string uniqueTemplate)

@@ -11,8 +11,8 @@ using DcsvIo.D2.SourceGen;
 /// <summary>
 /// Topic-specific factory helpers that produce <see cref="EmitDiagnostic"/>
 /// instances with field-constraints-source-gen descriptor IDs (<c>D2FC*</c>).
-/// The diagnostic record itself lives in <c>DcsvIo.D2.SourceGen</c> (shared
-/// across every source generator); only the per-topic factory shape lives here.
+/// The diagnostic record itself is defined in <c>DcsvIo.D2.SourceGen</c> (shared
+/// across every source generator); this class holds only the per-topic factories.
 /// </summary>
 internal static class EmitDiagnostics
 {
@@ -44,7 +44,7 @@ internal static class EmitDiagnostics
     /// <summary>
     /// Constructs a <see cref="DiagnosticDescriptors.NonPositiveValue"/> diagnostic.
     /// </summary>
-    /// <param name="name">The constant name carrying the bad value.</param>
+    /// <param name="name">The constant name that has the bad value.</param>
     /// <param name="value">The non-positive value.</param>
     /// <returns>A new <see cref="EmitDiagnostic"/>.</returns>
     public static EmitDiagnostic NonPositiveValue(string name, int value) =>
@@ -77,7 +77,7 @@ internal static class EmitDiagnostics
     /// <summary>
     /// Constructs a <see cref="DiagnosticDescriptors.DuplicateEnumMember"/> diagnostic.
     /// </summary>
-    /// <param name="enumName">The enum carrying the duplicate.</param>
+    /// <param name="enumName">The enum that contains the duplicate.</param>
     /// <param name="memberName">The duplicated member name.</param>
     /// <returns>A new <see cref="EmitDiagnostic"/>.</returns>
     public static EmitDiagnostic DuplicateEnumMember(string enumName, string memberName) =>
@@ -86,7 +86,7 @@ internal static class EmitDiagnostics
     /// <summary>
     /// Constructs a <see cref="DiagnosticDescriptors.InvalidEnumMemberName"/> diagnostic.
     /// </summary>
-    /// <param name="enumName">The enum carrying the malformed member.</param>
+    /// <param name="enumName">The enum that contains the malformed member.</param>
     /// <param name="memberName">The malformed member name.</param>
     /// <returns>A new <see cref="EmitDiagnostic"/>.</returns>
     public static EmitDiagnostic InvalidEnumMemberName(string enumName, string memberName) =>

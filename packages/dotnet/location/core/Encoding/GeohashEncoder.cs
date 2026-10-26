@@ -12,7 +12,7 @@ namespace DcsvIo.D2.Location.Encoding;
 /// then map 5-bit chunks to the base-32 alphabet.
 /// </summary>
 /// <remarks>
-/// Reference: https://en.wikipedia.org/wiki/Geohash — Niemeyer 2008.
+/// Reference: https://en.wikipedia.org/wiki/Geohash - Niemeyer 2008.
 /// Base-32 alphabet is <c>0123456789bcdefghjkmnpqrstuvwxyz</c>
 /// (32 characters: digits + lowercase letters excluding <c>a</c>, <c>i</c>,
 /// <c>l</c>, <c>o</c> to prevent visually-ambiguous characters).
@@ -22,7 +22,7 @@ internal static class GeohashEncoder
     // Geohash base-32 alphabet (excludes a, i, l, o).
     private const string _ALPHABET = "0123456789bcdefghjkmnpqrstuvwxyz";
 
-    // Lookup table from base-32 char → 5-bit value (for decode).
+    // Lookup table from base-32 char -> 5-bit value (for decode).
     // Initialized in static constructor below.
     private static readonly int[] sr_Lookup = new int[128];
 
@@ -40,9 +40,9 @@ internal static class GeohashEncoder
     /// <summary>
     /// Encodes a geographic coordinate pair to a geohash string.
     /// </summary>
-    /// <param name="latitude">Latitude in decimal degrees (−90 to +90).</param>
-    /// <param name="longitude">Longitude in decimal degrees (−180 to +180).</param>
-    /// <param name="precision">Number of geohash characters (1–12). Default 10.</param>
+    /// <param name="latitude">Latitude in decimal degrees (-90 to +90).</param>
+    /// <param name="longitude">Longitude in decimal degrees (-180 to +180).</param>
+    /// <param name="precision">Number of geohash characters (1-12). Default 10.</param>
     /// <returns>Lowercase geohash string of <paramref name="precision"/> characters.</returns>
     public static string Encode(double latitude, double longitude, int precision = 10)
     {
@@ -106,7 +106,7 @@ internal static class GeohashEncoder
     /// <summary>
     /// Decodes a geohash string to the bounding-box center and error margins.
     /// </summary>
-    /// <param name="geohash">A valid geohash string (base-32 alphabet, length 1–12).</param>
+    /// <param name="geohash">A valid geohash string (base-32 alphabet, length 1-12).</param>
     /// <returns>
     /// Center latitude, center longitude, and the half-span error in each axis.
     /// </returns>
@@ -165,7 +165,7 @@ internal static class GeohashEncoder
     /// re-encodes at the target precision.
     /// </summary>
     /// <param name="geohash">Source geohash (base-32 alphabet).</param>
-    /// <param name="precision">Target precision (1–12). Default 10.</param>
+    /// <param name="precision">Target precision (1-12). Default 10.</param>
     /// <returns>Geohash of exactly <paramref name="precision"/> characters.</returns>
     public static string TruncateOrPad(string geohash, int precision = 10)
     {

@@ -26,9 +26,10 @@ import * as barrel from "../src/index.js";
 
 /**
  * Type-conformance fixtures for every public interface type.
- * These are structural stubs (not §1.32 collaborator doubles) — full
- * method lists so assignability fails if a PublicAPI method is missing.
- * Runtime op behavior is owned by packages 02-04.
+ * These are structural stubs, not doubles for an unbuilt collaborator - each has
+ * the full method list, so assignability fails if a PublicAPI method is missing.
+ * Runtime operation behavior is tested in the tests/ directories of the
+ * local-default, distributed-redis and tiered cache packages.
  */
 
 // ---------------------------------------------------------------------------
@@ -65,7 +66,7 @@ type _TieredExcludesSet = AssertTrue<
   ITieredCache extends ICacheSet ? false : true
 >;
 
-// acquireLock third param (expirationMs) must be required — not optional.
+// acquireLock third param (expirationMs) must be required - not optional.
 // If made optional, `undefined extends Parameters<...>[2]` becomes true
 // and AssertTrue fails under type-check:test.
 type _AcquireLockExpRequired = AssertTrue<
@@ -106,7 +107,18 @@ const basicStub: ICacheBasic = {
 
 const atomicStub: ICacheAtomic = {
   setNx: async (_key, _value, _expirationMs?, _signal?) => ok(true),
+  setIfEqual: async (_key, _expected, _value, _expirationMs?, _signal?) =>
+    ok(true),
+  removeIfEqual: async (_key, _expected, _signal?) => ok(true),
   increment: async (_key, _amount?, _expirationMs?, _signal?) => ok(1),
+  consumeToken: async (
+    _key,
+    _refillTokens,
+    _refillIntervalMs,
+    _burst,
+    _cost?,
+    _signal?,
+  ) => ok({ admitted: true, retryAfterMs: 0 }),
   acquireLock: async (_key, _lockId, _expirationMs, _signal?) => ok(true),
   releaseLock: async (_key, _lockId, _signal?) => ok(),
 };
@@ -217,23 +229,60 @@ describe("ICacheBasic contract", () => {
 // ---------------------------------------------------------------------------
 
 describe("ICacheAtomic contract", () => {
-  it("iCacheAtomic_stub_assignable_exposes_setNx_increment_acquireLock_releaseLock", () => {
+  it("iCacheAtomic_stub_assignable_exposes_every_atomic_member", () => {
     const cache: ICacheAtomic = atomicStub;
 
     expect(typeof cache.setNx).toBe("function");
+    expect(typeof cache.setIfEqual).toBe("function");
+    expect(typeof cache.removeIfEqual).toBe("function");
     expect(typeof cache.increment).toBe("function");
+    expect(typeof cache.consumeToken).toBe("function");
     expect(typeof cache.acquireLock).toBe("function");
     expect(typeof cache.releaseLock).toBe("function");
   });
 
+  it("atomicStub_setIfEqual_canReturnComparisonLost", async () => {
+    const lostStub: ICacheAtomic = {
+      ...atomicStub,
+      setIfEqual: async () => ok(false),
+    };
+    const result = await lostStub.setIfEqual("k", "was", "now");
+
+    expect(result.success).toBe(true);
+    expect(result.data).toBe(false);
+  });
+
+  it("atomicStub_removeIfEqual_canReturnComparisonLost", async () => {
+    const lostStub: ICacheAtomic = {
+      ...atomicStub,
+      removeIfEqual: async () => ok(false),
+    };
+    const result = await lostStub.removeIfEqual("k", "was");
+
+    expect(result.success).toBe(true);
+    expect(result.data).toBe(false);
+  });
+
   it("atomicStub_acquireLock_requiresExpirationMsInSignature", async () => {
-    // Runtime smoke only — required-expirationMs is pinned at compile time by
+    // Runtime smoke only - required-expirationMs is pinned at compile time by
     // `_AcquireLockExpRequired` above (type-check:test). This call still needs
     // the third arg under the real signature.
     const result = await atomicStub.acquireLock("lock:k", "id-1", 5_000);
 
     expect(result.success).toBe(true);
     expect(result.data).toBe(true);
+  });
+
+  it("atomicStub_consumeToken_canReturnRefusedWithAWait", async () => {
+    const refusingStub: ICacheAtomic = {
+      ...atomicStub,
+      consumeToken: async () => ok({ admitted: false, retryAfterMs: 6_000 }),
+    };
+    const result = await refusingStub.consumeToken("bucket", 10, 60_000, 5);
+
+    expect(result.success).toBe(true);
+    expect(result.data?.admitted).toBe(false);
+    expect(result.data?.retryAfterMs).toBe(6_000);
   });
 
   it("atomicStub_increment_canReturnConflict", async () => {

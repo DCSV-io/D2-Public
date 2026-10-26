@@ -11,9 +11,8 @@ using NodaTime.TimeZones;
 
 /// <summary>
 /// Internal helper centralizing IANA time-zone identifier validation +
-/// canonicalization. Used by <see cref="ZonedInstant.Create"/> and
-/// <see cref="LocalAnchoredEvent.Create"/> so the rules stay byte-identical
-/// across both factory paths.
+/// canonicalization. The rules are in one place so they are byte-identical
+/// wherever they are applied.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -43,7 +42,7 @@ internal static class TimeZoneIdNormalizer
         if (zone is null)
             return null;
 
-        // CanonicalIdMap maps every TZDB id (canonical AND alias) to its
+        // CanonicalIdMap maps every TZDB id (canonical and alias) to its
         // canonical form. Lookup on a canonical name returns the same name;
         // lookup on an alias returns the canonical it points to. Missing
         // from the map = caller passed something exotic (e.g. a custom

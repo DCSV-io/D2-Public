@@ -1,0 +1,8 @@
+#nullable enable
+DcsvIo.D2.Handler.Analyzers.HandlerScopeAnalyzer
+DcsvIo.D2.Handler.Analyzers.HandlerScopeAnalyzer.HandlerScopeAnalyzer() -> void
+const DcsvIo.D2.Handler.Analyzers.HandlerScopeAnalyzer.D2HND001 = "D2HND001" -> string!
+const DcsvIo.D2.Handler.Analyzers.HandlerScopeAnalyzer.D2HND002 = "D2HND002" -> string!
+const DcsvIo.D2.Handler.Analyzers.HandlerScopeAnalyzer.D2HND003 = "D2HND003" -> string!
+override DcsvIo.D2.Handler.Analyzers.HandlerScopeAnalyzer.Initialize(Microsoft.CodeAnalysis.Diagnostics.AnalysisContext! context) -> void
+override DcsvIo.D2.Handler.Analyzers.HandlerScopeAnalyzer.SupportedDiagnostics.get -> System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.DiagnosticDescriptor!>

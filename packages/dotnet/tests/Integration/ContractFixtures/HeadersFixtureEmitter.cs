@@ -19,10 +19,9 @@ using Xunit;
 /// <summary>
 /// Emits one fixture per transport-specific header catalog. The fixture
 /// data is a sorted <c>{ constName: wireValue }</c> map covering every
-/// public string constant on the .NET catalog type. The TS-side parity
-/// test asserts the same membership and wire values exist on the
-/// matching <c>HttpHeaders</c> / <c>AmqpHeaders</c> / etc. <c>as const</c>
-/// objects.
+/// public string constant on the .NET catalog type. The matching
+/// <c>HttpHeaders</c> / <c>AmqpHeaders</c> / etc. <c>as const</c> objects in
+/// TypeScript have the same membership and wire values.
 /// </summary>
 public sealed class HeadersFixtureEmitter
 {
@@ -62,7 +61,7 @@ public sealed class HeadersFixtureEmitter
 
     /// <summary>
     /// Reflect every <c>public const string</c> on the catalog type and
-    /// produce a sorted name → value map. Mirrors the enumeration done
+    /// produce a sorted name -> value map. Mirrors the enumeration done
     /// by <c>HeaderCatalogConsistencyTests.EnumerateConstants</c>.
     /// </summary>
     private static SortedDictionary<string, object?> EnumerateConstants(Type type)

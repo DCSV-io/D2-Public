@@ -18,20 +18,16 @@ using Xunit;
 /// <summary>
 /// Emits one fixture per InputError wire-shape scenario reflected off
 /// the .NET codegen-emitted static class <see cref="InputErrorWireShape"/>.
-/// Two fixture families:
+/// The fixture families are:
 /// <list type="bullet">
 ///   <item>
-///     <c>shape</c> — the property-name catalog (FIELD / ERRORS → wire
-///     values). TS-side parity test asserts byte-equality against the
-///     codegen-emitted TS catalog.
+///     <c>shape</c> - the property-name catalog (FIELD / ERRORS -> wire
+///     values), as in the codegen-emitted TypeScript catalog.
 ///   </item>
 ///   <item>
-///     <c>round-trip-*</c> — round-trip JSON fixtures produced by
+///     <c>round-trip-*</c> - round-trip JSON fixtures produced by
 ///     serializing real <see cref="InputError"/> instances via
-///     <see cref="System.Text.Json"/>. The TS-side parity test reads
-///     the JSON bytes, parses them, and asserts the resulting shape
-///     matches the spec — closes the cross-language wire-shape loop
-///     end-to-end (serializer ↔ parser) for the nested TKMessage[]
+///     <see cref="System.Text.Json"/>, including the nested TKMessage[]
 ///     errors collection.
 ///   </item>
 /// </list>
@@ -65,7 +61,7 @@ public sealed class InputErrorFixtureEmitter
     [Trait("Category", "ContractFixtures")]
     public void Emit_RoundTripMultipleErrors()
     {
-        // Round-trip an InputError with multiple TKMessages — multi-error
+        // Round-trip an InputError with multiple TKMessages - multi-error
         // arrays are the common case for fields that fail multiple
         // validation predicates (required + format violation).
         var ie = new InputError(
@@ -86,8 +82,8 @@ public sealed class InputErrorFixtureEmitter
     [Trait("Category", "ContractFixtures")]
     public void Emit_RoundTripDotNotationField()
     {
-        // Round-trip an InputError with a dot-notation field name —
-        // mirrors deeply-nested form field paths
+        // Round-trip an InputError whose field name is a dot-notation path to a
+        // nested form field
         // (e.g. `address.city`, `contacts[0].email`).
         var ie = new InputError(
             "address.city",
@@ -137,8 +133,8 @@ public sealed class InputErrorFixtureEmitter
     /// <summary>
     /// Reflect every <c>public const string</c> on the wire-shape catalog
     /// type; produce a sorted map keyed by the constant name (e.g.
-    /// <c>FIELD</c>) so the fixture mirrors the TS-side const-map shape
-    /// one-to-one.
+    /// <c>FIELD</c>) so the fixture has the shape of the TypeScript const
+    /// map.
     /// </summary>
     private static SortedDictionary<string, object?> EnumerateConstants(Type type)
     {

@@ -9,7 +9,7 @@ namespace DcsvIo.D2.Caching;
 using DcsvIo.D2.Result;
 
 /// <summary>
-/// Distributed-set primitives — add-to-set, cardinality, membership.
+/// Distributed-set primitives - add-to-set, cardinality, membership.
 /// Maps to Redis SADD / SCARD / SREM / SISMEMBER. Only on
 /// <see cref="IDistributedCache"/>; per-process set-cardinality has no
 /// realistic use case (it's a single-instance counter that can't
@@ -18,10 +18,9 @@ using DcsvIo.D2.Result;
 /// </summary>
 /// <remarks>
 /// The motivating use case is rate-limiting "fingerprint too common"
-/// detection (per <c>docs/RATE-LIMITING.md</c>): track distinct IPs ever
-/// observed for a given fingerprint, compare cardinality against a
-/// threshold to decide whether the fingerprint is shared widely enough
-/// to be unreliable. Other plausible uses include:
+/// detection: track distinct IPs ever observed for a given fingerprint,
+/// compare cardinality against a threshold to decide whether the fingerprint
+/// is shared widely enough to be unreliable. Other uses include:
 /// <list type="bullet">
 /// <item>Distinct-user counts per feature flag</item>
 /// <item>Active-session tracking by org</item>
@@ -49,7 +48,7 @@ public interface ICacheSet
 
     /// <summary>
     /// Returns the cardinality (number of distinct members) of the set at
-    /// <paramref name="key"/>. Absent set → <c>Ok(0)</c>.
+    /// <paramref name="key"/>. Absent set -> <c>Ok(0)</c>.
     /// </summary>
     /// <param name="key">Set key.</param>
     /// <param name="ct">Cancellation token.</param>
@@ -60,7 +59,7 @@ public interface ICacheSet
 
     /// <summary>
     /// Removes a member from the set at <paramref name="key"/>. Idempotent
-    /// — succeeds whether the member existed or not.
+    /// - succeeds whether the member existed or not.
     /// </summary>
     /// <param name="key">Set key.</param>
     /// <param name="member">Member to remove.</param>

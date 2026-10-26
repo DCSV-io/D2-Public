@@ -15,10 +15,9 @@ using Serilog.Formatting.Compact;
 /// <summary>
 /// Hand-rolled <see cref="ILogEventSink"/> that captures every emitted
 /// <see cref="LogEvent"/> into an in-memory <see cref="ConcurrentBag{T}"/>.
-/// Pulled in by the integration test harness to assert what the Serilog
-/// pipeline actually emits, without taking a dep on the
-/// <c>Serilog.Sinks.InMemory</c> NuGet package (the per-test surface is
-/// trivial and the project's stance is conservative on test deps).
+/// Lets tests assert what the Serilog pipeline actually emits, without a
+/// dependency on the <c>Serilog.Sinks.InMemory</c> NuGet package (the
+/// sink is small and the project keeps its test dependencies few).
 /// </summary>
 internal sealed class InMemorySink : ILogEventSink
 {
@@ -49,8 +48,8 @@ internal sealed class InMemorySink : ILogEventSink
     /// <summary>
     /// Renders <paramref name="logEvent"/> through the canonical
     /// <see cref="CompactJsonFormatter"/> so tests can assert on the actual
-    /// JSON output shape (the formatter contract IS what the lib promises
-    /// consumers; pinning the JSON shape catches formatter drift).
+    /// JSON output shape (the formatter output is what the library promises,
+    /// so asserting on the JSON shape catches formatter drift).
     /// </summary>
     /// <param name="logEvent">The captured event to render.</param>
     /// <returns>The compact-JSON-formatted log line.</returns>

@@ -6,18 +6,18 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <RootNamespace>DcsvIo.D2.Messaging</RootNamespace>
 
     <!-- Emit the Messaging.SourceGen output (MqMessages.g.cs, MqSubscriptions.g.cs)
-         to <project-dir>/Generated/. The directory is tracked in git so PR
-         reviewers see codegen diffs without a local build. -->
+         to <project-dir>/Generated/. Git tracks this directory, so pull
+         request reviewers see codegen diffs without a local build. -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
     <!--
-      The SourceGen pipeline feeds the in-memory compiler with the same content
-      that lands on disk under Generated/. Without this Remove, the SDK-default
-      <Compile Include="**/*.cs" /> glob picks up the on-disk copy and the build
-      fails with duplicate-definition errors (CS0101 / CS0111). See:
+      The SourceGen pipeline gives the in-memory compiler the same content that
+      it writes to disk under Generated/. Without this Remove, the SDK-default
+      <Compile Include="**/*.cs" /> glob also picks up the on-disk copy, and the
+      build fails with duplicate-definition errors (CS0101 / CS0111). See:
       https://learn.microsoft.com/dotnet/core/project-sdk/msbuild-props#compilergeneratedfilesoutputpath
     -->
     <Compile Remove="$(CompilerGeneratedFilesOutputPath)\**\*.cs" />
@@ -25,9 +25,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <ItemGroup>
     <!--
-      Zero external runtime deps so domain code can reference [MqPub] /
-      [MqSub] and the messaging interfaces without dragging in
-      RabbitMQ.Client or any transport. Future Kafka / NATS impls live in
+      Zero external runtime dependencies, so a reference to this project for
+      [MqPub] / [MqSub] and the messaging interfaces adds no dependency on
+      RabbitMQ.Client or any transport. Transport implementations live in
       sibling csprojs with the same surface.
     -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
@@ -39,20 +39,20 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <ProjectReference Include="..\..\utilities\DcsvIo.D2.Utilities.csproj" />
 
     <!--
-      Encryption ref needed for DcsvIo.D2.Encryption.EncryptionDomains constants —
+      Encryption ref needed for DcsvIo.D2.Encryption.EncryptionDomains constants -
       Messaging.SourceGen reads them at codegen time to validate the encryption
       value on each message spec entry (whitelist of registered domains + the
       literal "plaintext").
     -->
     <ProjectReference Include="..\..\encryption\core\DcsvIo.D2.Encryption.csproj" />
 
-    <!-- Messaging.SourceGen — emits MqMessages / MqSubscriptions + their registries. -->
+    <!-- Messaging.SourceGen - emits MqMessages / MqSubscriptions + their registries. -->
     <ProjectReference Include="..\source-gen\DcsvIo.D2.Messaging.SourceGen.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
     <!--
-      DlqFailureMetadata SourceGen — multi-target. The Fields-half emits into
-      this csproj (DlqFailureMetadataFields.g.cs — the JSON property-name
+      DlqFailureMetadata SourceGen - multi-target. The Fields-half emits into
+      this csproj (DlqFailureMetadataFields.g.cs - the JSON property-name
       catalog consumed by [JsonPropertyName] attributes on DlqFailureMetadata).
       The Causes-half emits into rabbitmq (DlqFailureCauses.g.cs).
     -->
@@ -71,14 +71,13 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   <ItemGroup>
     <InternalsVisibleTo Include="DcsvIo.D2.Messaging.RabbitMq" />
     <InternalsVisibleTo Include="DcsvIo.D2.Tests" />
-    <InternalsVisibleTo Include="DcsvIo.D2.Private.Packages.Tests" />
   </ItemGroup>
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.2</Version>
+    <Version>0.2.21</Version>
     <PackageId>DcsvIo.D2.Messaging.Abstractions</PackageId>
-    <Description>Transport-agnostic messaging abstractions for D2 — the [MqPub] / [MqSub] vocabulary, the message-bus contract, and DLQ failure-metadata wire shapes.</Description>
+    <Description>Transport-agnostic messaging abstractions for D2 - the [MqPub] / [MqSub] vocabulary, the message-bus contract, and DLQ failure-metadata wire shapes.</Description>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

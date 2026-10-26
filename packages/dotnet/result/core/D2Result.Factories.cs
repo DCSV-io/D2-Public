@@ -11,12 +11,12 @@ using DcsvIo.D2.ErrorCodes.Category;
 using DcsvIo.D2.I18n;
 
 /// <summary>
-/// Hand-rolled factory methods on <see cref="D2Result"/> that are NOT derived
-/// from the error-code spec — the success / raw / data-carrying factories
+/// Hand-rolled factory methods on <see cref="D2Result"/> that are not derived
+/// from the error-code spec - the success / raw / data-carrying factories
 /// (<see cref="Ok"/> / <see cref="Created"/> / <see cref="Fail"/> /
 /// <see cref="SomeFound"/>). The spec-derived semantic failure factories
-/// (<c>NotFound</c> / <c>Forbidden</c> / …) are generated onto the same partial
-/// class from <c>contracts/error-codes/error-codes.spec.json</c> — see
+/// (<c>NotFound</c> / <c>Forbidden</c> / ...) are generated onto the same partial
+/// class from <c>contracts/error-codes/error-codes.spec.json</c> - see
 /// <c>D2Result.Factories.g.cs</c>. Always prefer a semantic factory over the
 /// raw <see cref="Fail"/> when one matches the failure mode.
 /// </summary>
@@ -43,8 +43,18 @@ public partial class D2Result
         => new(true, messages, statusCode: HttpStatusCode.Created, traceId: traceId);
 
     /// <summary>
+    /// Creates a successful result with HTTP status
+    /// <see cref="HttpStatusCode.NoContent"/>. Use when the operation succeeded
+    /// and the protocol says the response carries no body.
+    /// </summary>
+    /// <param name="traceId">Optional trace identifier.</param>
+    /// <returns>A no-content <see cref="D2Result"/>.</returns>
+    public static D2Result NoContent(string? traceId = null)
+        => new(true, statusCode: HttpStatusCode.NoContent, traceId: traceId);
+
+    /// <summary>
     /// Creates a failure result with the supplied details. Use only when no
-    /// semantic factory matches the failure mode — semantic factories should
+    /// semantic factory matches the failure mode - semantic factories should
     /// be preferred.
     /// </summary>
     /// <param name="messages">Optional translation messages.</param>
@@ -66,9 +76,9 @@ public partial class D2Result
 
     /// <summary>
     /// Creates a partial-success result (HTTP 206, error code
-    /// <see cref="ErrorCodes.SOME_FOUND"/>). <see cref="Success"/> is
+    /// <see cref="ErrorCodes.GEN_SOME_FOUND"/>). <see cref="Success"/> is
     /// <c>false</c> on the partial-success ladder
-    /// (NOT_FOUND → SOME_FOUND → OK) — only fully-found queries succeed.
+    /// (NOT_FOUND -> SOME_FOUND -> OK) - only fully-found queries succeed.
     /// </summary>
     /// <param name="messages">
     /// Optional translation messages; defaults to
@@ -85,7 +95,7 @@ public partial class D2Result
             false,
             messages,
             statusCode: HttpStatusCode.PartialContent,
-            errorCode: ErrorCodes.SOME_FOUND,
+            errorCode: ErrorCodes.GEN_SOME_FOUND,
             traceId: traceId,
             category: ErrorCategory.PartialSuccess);
     }

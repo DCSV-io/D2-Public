@@ -16,9 +16,10 @@ public sealed class ActorKindTests
     [Fact]
     public void Enum_HasExactlyTwoMembers()
     {
-        // Adversarial: adding a new ActorKind value silently breaks the
-        // Service-vs-Impersonation discriminator semantics across the codebase.
-        // This test forces a deliberate update on any addition.
+        // Adversarial: adding an ActorKind value breaks the
+        // Service-versus-Impersonation discriminator across the codebase with
+        // no compiler error. This test fails on any addition, which forces a
+        // deliberate update.
         const int expected_count = 2;
 
         Enum.GetNames<ActorKind>().Should().HaveCount(expected_count);
@@ -36,8 +37,9 @@ public sealed class ActorKindTests
     [InlineData(ActorKind.Impersonation, 1)]
     public void Enum_UnderlyingIntValuesAreStable(ActorKind kind, int expected)
     {
-        // Adversarial: enum int values land in JWT activity tags and AMQP
-        // headers as numeric. Reordering would silently re-map values.
+        // Adversarial: the enum int values appear as numbers in JWT activity
+        // tags and AMQP headers. Reordering the members would change what each
+        // number means with no compiler error.
         ((int)kind).Should().Be(expected);
     }
 
@@ -58,7 +60,8 @@ public sealed class ActorKindTests
     [Fact]
     public void Parse_GarbageString_ReturnsFalse()
     {
-        // Adversarial: case-insensitive must not match arbitrary substrings.
+        // Adversarial: case-insensitive parsing must not match arbitrary
+        // substrings.
         Enum.TryParse<ActorKind>("Serv", ignoreCase: true, out _).Should().BeFalse();
         Enum.TryParse<ActorKind>("xyz", ignoreCase: true, out _).Should().BeFalse();
         Enum.TryParse<ActorKind>(string.Empty, ignoreCase: true, out _).Should().BeFalse();

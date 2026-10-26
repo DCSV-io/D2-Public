@@ -37,7 +37,7 @@ public static partial class Scopes
         public static class Public
         {
             /// <summary>
-            /// Public health-check endpoint. Liveness signal â€” no auth.
+            /// Public health-check endpoint. Liveness signal - no auth.
             /// </summary>
             public const string Health = "anon.public.health";
         }
@@ -60,18 +60,8 @@ public static partial class Scopes
     }
 
     /// <summary>
-    /// Returns the <see cref="ActionSensitivity"/> classification for
-    /// <paramref name="scope"/>, or <see cref="ActionSensitivity.Routine"/>
-    /// for unknown scopes (defensive default).
-    /// </summary>
-    /// <param name="scope">The scope string.</param>
-    /// <returns>The action sensitivity for the scope.</returns>
-    public static ActionSensitivity GetActionSensitivity(string scope) =>
-        sr_actionSensitivity.TryGetValue(scope, out var s) ? s : ActionSensitivity.Routine;
-
-    /// <summary>
-    /// True when the scope is stripped from impersonated tokens at Edge
-    /// mint time (defense-in-depth).
+    /// True when the entry service strips the scope from impersonated tokens
+    /// at mint time (defense-in-depth).
     /// </summary>
     /// <param name="scope">The scope string.</param>
     /// <returns>True if the scope is impersonation-blocked.</returns>
@@ -112,18 +102,18 @@ public static partial class Scopes
     public static IReadOnlySet<string> AllScopes => sr_allScopes;
 
     /// <summary>
-    /// Gets the anonymous (<c>anon.*</c>) scope names — implicit universal pre-auth grant.
+    /// Gets the anonymous (<c>anon.*</c>) scope names - implicit universal pre-auth grant.
     /// </summary>
     public static IReadOnlySet<string> AllAnonymousScopes => sr_anonymousScopes;
 
     /// <summary>
-    /// Gets the scopes that Edge strips from impersonated tokens at mint time.
+    /// Gets the scopes that the entry service strips from impersonated tokens at mint time.
     /// </summary>
     public static IReadOnlySet<string> AllImpersonationBlockedScopes =>
         sr_impersonationBlockedScopes;
 
     /// <summary>
-    /// Gets the (<see cref="OrgType"/>, <see cref="Role"/>) → granted scope set, with wildcards expanded.
+    /// Gets the (<see cref="OrgType"/>, <see cref="Role"/>) -> granted scope set, with wildcards expanded.
     /// </summary>
     public static IReadOnlyDictionary<(OrgType, Role), IReadOnlySet<string>> GrantedScopes =>
         sr_grantedScopesView;
@@ -145,14 +135,6 @@ public static partial class Scopes
     private static readonly HashSet<string> sr_impersonationBlockedScopes =
         new(StringComparer.Ordinal)
     {
-    };
-
-    private static readonly Dictionary<string, ActionSensitivity> sr_actionSensitivity =
-        new(StringComparer.Ordinal)
-    {
-        ["anon.public.health"] = ActionSensitivity.Routine,
-        ["self.read"] = ActionSensitivity.Routine,
-        ["self.write"] = ActionSensitivity.Routine,
     };
 
     private static readonly Dictionary<(OrgType, Role), HashSet<string>> sr_grantedScopesBacking =

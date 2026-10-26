@@ -9,11 +9,11 @@ namespace DcsvIo.D2.Telemetry.Tags.SourceGen;
 /// <summary>
 /// String identifiers for the diagnostics emitted by
 /// <see cref="TelemetryTagsGenerator"/>. Kept in a separate class from
-/// <see cref="DiagnosticDescriptors"/> so non-Roslyn-host consumers (e.g.
-/// unit tests of the pure-logic <see cref="TelemetryTagsEmitter"/> /
-/// <see cref="TelemetrySpecLoader"/>) can reference the IDs without
-/// dragging in <c>Microsoft.CodeAnalysis</c> (which the SrcGen csproj
-/// marks <c>PrivateAssets="all"</c>).
+/// <see cref="DiagnosticDescriptors"/> so code that runs outside the Roslyn
+/// host, such as the pure-logic <see cref="TelemetryTagsEmitter"/> and
+/// <see cref="TelemetrySpecLoader"/>, can reference the IDs without
+/// referencing <c>Microsoft.CodeAnalysis</c>, which the source generator
+/// project marks <c>PrivateAssets="all"</c>.
 /// </summary>
 internal static class DiagnosticIds
 {
@@ -36,8 +36,8 @@ internal static class DiagnosticIds
     public const string DuplicateTagValue = "D2TEL005";
 
     /// <summary>
-    /// Cross-spec inconsistency — a tag's <c>valuesFromSpec</c> reference is
-    /// unknown OR could not be resolved (e.g. AuthErrorCodes spec missing
+    /// Cross-spec inconsistency - a tag's <c>valuesFromSpec</c> reference is
+    /// unknown or could not be resolved (e.g. AuthErrorCodes spec missing
     /// from <c>AdditionalFiles</c>).
     /// </summary>
     public const string CrossSpecInconsistency = "D2TEL006";

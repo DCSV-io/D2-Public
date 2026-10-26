@@ -105,7 +105,7 @@ public sealed class SerilogPipelineRedactionTests
     [Fact]
     public void CollectionOfNestedRecords_PropertyLevelRedactedBytes_EachElementMasked_KidIntact()
     {
-        // The exact emitted GetKeyringOutput/KeyringEntry shape: a collection of nested
+        // The exact shape the contract emitter produces for a keyring: a collection of nested
         // records, each carrying a property-level [RedactData(SecretInformation)] byte[]
         // KeyBytes plus a plain Kid. Every element's KeyBytes must mask; every Kid stays.
         var (logger, sink) = BuildLogger();
@@ -157,11 +157,11 @@ public sealed class SerilogPipelineRedactionTests
     {
         // Documented carve-out: {prop} (no @) calls .ToString() on the value
         // and bypasses the destructuring policy entirely. This test pins the
-        // README's "Destructuring discipline" warning — capture-mode matters.
+        // README's "Destructuring discipline" warning - capture-mode matters.
         var (logger, sink) = BuildLogger();
         var pii = new TypeLevelPii("leaked@example.com", "555-0100");
 
-        // Without @ — bypasses the policy. The .ToString() of a record
+        // Without @ - bypasses the policy. The .ToString() of a record
         // includes the property values; we assert the leak to make the
         // carve-out testable.
         logger.Information("captured {Record}", pii);
@@ -174,7 +174,7 @@ public sealed class SerilogPipelineRedactionTests
     [Fact]
     public void DestructureCaptureMode_AppliesRedaction()
     {
-        // Counterpart to the bypass test — the same payload with @-capture
+        // Counterpart to the bypass test - the same payload with @-capture
         // is masked. Together they pin the discipline contract.
         var (logger, sink) = BuildLogger();
         var pii = new TypeLevelPii("leaked@example.com", "555-0100");

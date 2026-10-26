@@ -29,9 +29,9 @@ public sealed class CircuitBreakerLayerTests
     [Fact]
     public async Task WrapAsync_OpenBreaker_ThrowsCircuitOpenException()
     {
-        // Force the breaker open via a 1-failure threshold so the next call
-        // through the layer fast-fails — proves CB.ExecuteAsync semantics
-        // are preserved end-to-end.
+        // A failure threshold of 1 opens the breaker on the first failure, so the
+        // next call through the layer fails fast. This shows the layer keeps the
+        // CB.ExecuteAsync semantics end-to-end.
         var cb = new CircuitBreaker<int>(_ => false, options: new(failureThreshold: 1));
         var layer = new CircuitBreakerLayer<string, int>(cb);
 
@@ -42,7 +42,7 @@ public sealed class CircuitBreakerLayerTests
         }
         catch (InvalidOperationException)
         {
-            // expected — opens the circuit
+            // Expected: this failure opens the circuit.
         }
 
         cb.State.Should().Be(CircuitState.Open);
@@ -56,8 +56,8 @@ public sealed class CircuitBreakerLayerTests
     [Fact]
     public async Task WrapAsync_KeyArgument_IsIgnored()
     {
-        // The CB layer ignores the per-call key — any value yields the same
-        // behavior. Verify by passing two different keys; both succeed.
+        // The CB layer ignores the per-call key, so any value gives the same
+        // behavior. The test passes two different keys and both calls succeed.
         var cb = new CircuitBreaker<int>(_ => false);
         var layer = new CircuitBreakerLayer<string, int>(cb);
 

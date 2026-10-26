@@ -20,7 +20,7 @@ namespace DcsvIo.D2.Geo.SourceGen.Spec;
 /// region subtag).
 /// </param>
 /// <param name="IsSelectable">
-/// Derived flag — true when a matching <c>contracts/messages/{tag}.json</c>
+/// Derived flag - true when a matching <c>contracts/messages/{tag}.json</c>
 /// file exists.
 /// </param>
 /// <param name="FirstDayOfWeek">
@@ -29,7 +29,7 @@ namespace DcsvIo.D2.Geo.SourceGen.Spec;
 /// </param>
 /// <param name="DecimalSeparator">Single-character decimal separator.</param>
 /// <param name="ThousandsSeparator">
-/// Thousands separator (zero or one character — some locales lack one).
+/// Thousands separator (zero or one character - some locales lack one).
 /// </param>
 /// <param name="DateFormatPattern">
 /// Date-format pattern enum (<c>"DMY"</c> / <c>"MDY"</c> / <c>"YMD"</c>).

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import { ALL_AMQP_HEADERS, AmqpHeaders } from "../src/amqp-headers.g.js";
 
-describe("AmqpHeaders — per-VALUE pin (mirrors .NET AmqpHeaders)", () => {
+describe("AmqpHeaders - per-VALUE pin (mirrors .NET AmqpHeaders)", () => {
   it.each([
     ["CONTENT_TYPE", "content-type"],
     ["ENCRYPTION_KID", "x-d2-encryption-kid"],

@@ -11,7 +11,7 @@ using DcsvIo.D2.SourceGen;
 
 /// <summary>
 /// Result of <see cref="TKEmitter.Emit"/>.
-/// Pure data — the Roslyn host transforms the diagnostics into
+/// Pure data - the Roslyn host transforms the diagnostics into
 /// <see cref="Microsoft.CodeAnalysis.Diagnostic"/> instances and writes the
 /// generated source to <c>TK.g.cs</c>.
 /// </summary>

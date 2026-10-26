@@ -17,13 +17,13 @@ using Microsoft.CodeAnalysis.Text;
 using Xunit;
 
 /// <summary>
-/// IIncrementalGenerator integration tests — drive
-/// <see cref="InProcessKeysGenerator"/> via a synthetic
-/// <see cref="CSharpGeneratorDriver"/> rather than the build pipeline.
-/// Asserts assembly-name dispatch (http vs grpc vs unrecognized),
-/// AdditionalFiles wiring, missing-spec + malformed-spec degradation paths,
-/// and cache stability — covering the generator pipeline surface that the
-/// emitter unit tests do not reach.
+/// IIncrementalGenerator integration tests. They run
+/// <see cref="InProcessKeysGenerator"/> through a synthetic
+/// <see cref="CSharpGeneratorDriver"/> and not through the build pipeline.
+/// The tests assert dispatch by assembly name (http, grpc and unrecognized),
+/// AdditionalFiles wiring, the missing-spec and malformed-spec paths, and
+/// cache stability. They cover the generator pipeline, which the emitter unit
+/// tests do not reach.
 /// </summary>
 public sealed class InProcessKeysGeneratorTests
 {
@@ -103,9 +103,9 @@ public sealed class InProcessKeysGeneratorTests
 
         var result = driver.GetRunResult();
 
-        // Generator is a strict per-assembly dispatcher — non-target assemblies
-        // produce zero output and zero diagnostics (no "missing spec" complaint
-        // for an assembly that wasn't asking for the catalog).
+        // The generator dispatches strictly by assembly name. An assembly that
+        // is not a target produces no output and no diagnostics, and gets no
+        // "missing spec" diagnostic, because it did not ask for the catalog.
         result.GeneratedTrees.Should().BeEmpty();
         result.Diagnostics.Should().BeEmpty();
     }
@@ -113,8 +113,8 @@ public sealed class InProcessKeysGeneratorTests
     [Fact]
     public void Generator_TargetAssemblyButNoSpec_EmitsMissingSpecDiagnostic()
     {
-        // No AdditionalText supplied — generator must fire D2IPK004 (MissingSpec)
-        // because the consuming assembly DOES expect the catalog.
+        // No AdditionalText is supplied, so the generator reports D2IPK004
+        // (MissingSpec), because this assembly expects the catalog.
         var driver = RunGenerator(
             assemblyName: "DcsvIo.D2.Auth.Abstractions",
             specJson: null);
@@ -192,8 +192,9 @@ public sealed class InProcessKeysGeneratorTests
     [Fact]
     public void Generator_RunTwice_SameInputs_ProducesIdenticalOutput()
     {
-        // Cache stability — identical inputs must produce identical generator
-        // output (otherwise downstream incremental builds re-run unnecessarily).
+        // Cache stability: identical inputs produce identical generator
+        // output. Otherwise downstream incremental builds re-run
+        // unnecessarily.
         var first = RunGenerator(
                 assemblyName: "DcsvIo.D2.Auth.Abstractions",
                 specJson: _SAMPLE_SPEC)
@@ -236,7 +237,7 @@ public sealed class InProcessKeysGeneratorTests
     private static string Normalize(string s) => s.Replace("\r\n", "\n").Trim();
 
     /// <summary>
-    /// Minimal AdditionalText shim for synthesizing AdditionalFiles in
+    /// Minimal AdditionalText implementation that supplies AdditionalFiles to
     /// generator tests without filesystem I/O.
     /// </summary>
     private sealed class InMemoryAdditionalText : AdditionalText

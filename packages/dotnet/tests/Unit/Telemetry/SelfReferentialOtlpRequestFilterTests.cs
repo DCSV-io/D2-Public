@@ -15,7 +15,7 @@ using Xunit;
 /// <c>HttpClient</c>'s <c>FilterHttpRequestMessage</c> callback. Prevents
 /// infinite-loop instrumentation: outbound calls whose URI starts with
 /// any configured OTLP exporter endpoint are excluded from span emission
-/// (otherwise <c>HttpClient → OTLP → HttpClient → OTLP → ...</c>).
+/// (otherwise <c>HttpClient -> OTLP -> HttpClient -> OTLP -> ...</c>).
 /// </summary>
 public sealed class SelfReferentialOtlpRequestFilterTests
 {

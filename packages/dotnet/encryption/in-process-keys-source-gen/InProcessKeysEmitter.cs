@@ -16,10 +16,9 @@ using DcsvIo.D2.SourceGen;
 
 /// <summary>
 /// Pure logic for emitting one binding-specific in-process keys catalog
-/// source from a parsed <see cref="InProcessKeysSpec"/>. Stateless and
-/// unit-testable in isolation. The Roslyn-host integration
-/// (<see cref="InProcessKeysGenerator"/>) calls this once per consuming
-/// assembly with the matching binding filter.
+/// source from a parsed <see cref="InProcessKeysSpec"/>. It is stateless and
+/// does not use the Roslyn host. It emits the entries whose bindings include
+/// the given binding filter.
 /// </summary>
 internal static class InProcessKeysEmitter
 {
@@ -46,9 +45,9 @@ internal static class InProcessKeysEmitter
     /// <param name="spec">Parsed in-process keys spec.</param>
     /// <param name="filter">Binding filter selecting which entries to emit.</param>
     /// <param name="targetNamespace">Namespace the emitted class lives in.</param>
-    /// <param name="className">Emitted static class name (e.g. <c>D2HttpContextItems</c>).</param>
+    /// <param name="className">Emitted static class name (for example <c>D2HttpContextItems</c>).</param>
     /// <param name="visibility">Either <c>"public"</c> or <c>"internal"</c>.</param>
-    /// <returns>Generated source + diagnostics.</returns>
+    /// <returns>The generated source and the diagnostics.</returns>
     public static EmitResult Emit(
         InProcessKeysSpec spec,
         BindingFilter filter,

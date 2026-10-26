@@ -12,11 +12,10 @@ using Microsoft.AspNetCore.Http;
 using Xunit;
 
 /// <summary>
-/// Adversarial coverage of <see cref="InfrastructurePathMatcher"/> — the
-/// canonical path matcher consumed by Logging, Telemetry, and
-/// AspNetCore's bypass middleware. Every prefix; sub-path; segment-
-/// boundary discipline; case insensitivity; defensive empty / null
-/// guards; per-entry whitespace skip.
+/// Adversarial coverage of <see cref="InfrastructurePathMatcher"/>, the
+/// canonical path matcher. The tests cover every prefix; sub-paths;
+/// matching on segment boundaries; case insensitivity; the empty and null
+/// guards; and skipping of whitespace entries.
 /// </summary>
 public sealed class InfrastructurePathMatcherTests
 {
@@ -66,8 +65,9 @@ public sealed class InfrastructurePathMatcherTests
     [Fact]
     public void IsInfrastructurePath_HealthZ_NotMatched_BecauseHealthIsSegmentBoundary()
     {
-        // /healthz must NOT match prefix /health — segment-boundary discipline
-        // (PathString.StartsWithSegments respects segment boundaries).
+        // /healthz must not match the prefix /health, because the match
+        // is on segment boundaries (PathString.StartsWithSegments respects
+        // segment boundaries).
         var match = InfrastructurePathMatcher.IsInfrastructurePath(
             new PathString("/healthz"), sr_defaultPaths);
 

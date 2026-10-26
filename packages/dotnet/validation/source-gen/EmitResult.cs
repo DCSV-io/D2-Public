@@ -10,17 +10,17 @@ using System.Collections.Immutable;
 using DcsvIo.D2.SourceGen;
 
 /// <summary>
-/// Result of a per-source emit run. Pure data — the Roslyn host transforms the
-/// diagnostics into <see cref="Microsoft.CodeAnalysis.Diagnostic"/> instances
-/// and writes the generated source via
-/// <c>Microsoft.CodeAnalysis.SourceProductionContext.AddSource</c>.
+/// Result of a per-source emit run. Pure data - the diagnostics are emit-side
+/// records and not <see cref="Microsoft.CodeAnalysis.Diagnostic"/> instances,
+/// and the generated source is plain text that
+/// <c>Microsoft.CodeAnalysis.SourceProductionContext.AddSource</c> accepts.
 /// </summary>
 /// <param name="HintName">
 /// The Roslyn hint name (a stable, unique-per-source identifier ending in
 /// <c>.g.cs</c>) under which the generated source is added.
 /// </param>
 /// <param name="GeneratedSource">The generated C# source.</param>
-/// <param name="Diagnostics">Diagnostics emitted during validation + emission.</param>
+/// <param name="Diagnostics">Diagnostics emitted during validation and emission.</param>
 internal sealed record EmitResult(
     string HintName,
     string GeneratedSource,

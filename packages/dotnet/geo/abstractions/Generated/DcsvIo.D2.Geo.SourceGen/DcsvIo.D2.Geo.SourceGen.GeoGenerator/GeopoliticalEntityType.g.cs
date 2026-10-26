@@ -15,7 +15,7 @@ namespace DcsvIo.D2.Geo.Abstractions;
 /// <summary>
 /// 23-value type classification for <c>GeopoliticalEntity</c>. Exact
 /// integer assignments preserved across all four region-tagged
-/// categories — stable across the wire and across .NET / TS for
+/// categories - stable across the wire and across .NET / TS for
 /// cross-runtime round-tripping.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -57,7 +57,7 @@ public enum GeopoliticalEntityType : byte
     ResourceSharingAgreement = 17,
 
     // --- Political (6) ---
-    /// <summary>Political union (e.g. EUR — European Union).</summary>
+    /// <summary>Political union (e.g. EUR - European Union).</summary>
     PoliticalUnion = 20,
 
     /// <summary>Human-rights agreement.</summary>

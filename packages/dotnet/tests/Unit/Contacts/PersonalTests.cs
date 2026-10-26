@@ -15,7 +15,7 @@ using Xunit;
 
 /// <summary>
 /// Adversarial coverage for <see cref="Personal"/>: first-name-required floor,
-/// per-field length caps, and the HashId invariants — determinism,
+/// per-field length caps, and the HashId invariants - determinism,
 /// case / diacritic / whitespace collapse, and preferred-name exclusion.
 /// </summary>
 public sealed class PersonalTests
@@ -158,7 +158,7 @@ public sealed class PersonalTests
     }
 
     // -----------------------------------------------------------------------
-    // HashId — shape
+    // HashId - shape
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -174,7 +174,7 @@ public sealed class PersonalTests
     }
 
     // -----------------------------------------------------------------------
-    // HashId — determinism
+    // HashId - determinism
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -196,7 +196,7 @@ public sealed class PersonalTests
     }
 
     // -----------------------------------------------------------------------
-    // HashId — case / diacritic / whitespace canonicalization
+    // HashId - case / diacritic / whitespace canonicalization
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -227,7 +227,7 @@ public sealed class PersonalTests
     }
 
     // -----------------------------------------------------------------------
-    // HashId — preferred name excluded
+    // HashId - preferred name excluded
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -258,7 +258,7 @@ public sealed class PersonalTests
     }
 
     // -----------------------------------------------------------------------
-    // HashId — positional slot collision (the | separator must prevent
+    // HashId - positional slot collision (the | separator must prevent
     // First|Middle|Last slot collision: ("A","B",null) vs ("A",null,"B"))
     // -----------------------------------------------------------------------
 
@@ -266,8 +266,8 @@ public sealed class PersonalTests
     public void Create_HashId_PositionalSlotCollision_DifferentHashIds()
     {
         // Without the "|" separator the hash inputs would be identical:
-        // "A" + null + null + "B" → "AB" (either way).
-        // With "|": "A|B|" vs "A||B" → distinct byte sequences → distinct hashes.
+        // ("A", "B", null) -> "AB" and ("A", null, "B") -> "AB".
+        // With "|": "A|B|" vs "A||B" -> distinct byte sequences -> distinct hashes.
         var r1 = Personal.Create("A", "B");
         var r2 = Personal.Create("A", null, "B");
 

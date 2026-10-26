@@ -32,7 +32,7 @@ public static partial class Audiences
         sr_allUrls.Contains(audience);
 
     /// <summary>
-    /// Resolves an audience <paramref name="name"/> (e.g. <c>"Files"</c>) to its URL, or returns <c>null</c> when the name is not in the spec.
+    /// Resolves an audience <paramref name="name"/> (e.g. <c>"Orders"</c>) to its URL, or returns <c>null</c> when the name is not in the spec.
     /// </summary>
     /// <param name="name">The audience name.</param>
     /// <returns>The audience URL or null if unknown.</returns>
@@ -40,7 +40,7 @@ public static partial class Audiences
         sr_byName.TryGetValue(name, out var url) ? url : null;
 
     /// <summary>
-    /// Reverse-resolves an audience <paramref name="url"/> (e.g. <c>"https://files.internal"</c>) to its name, or returns <c>null</c> when the URL is not in the spec.
+    /// Reverse-resolves an audience <paramref name="url"/> (e.g. <c>"https://orders.example.internal"</c>) to its name, or returns <c>null</c> when the URL is not in the spec.
     /// </summary>
     /// <param name="url">The audience URL.</param>
     /// <returns>The audience name or null if unknown.</returns>
@@ -53,7 +53,7 @@ public static partial class Audiences
     public static IReadOnlySet<string> AllUrls => sr_allUrls;
 
     /// <summary>
-    /// Gets the name → URL map for all registered audiences.
+    /// Gets the name -> URL map for all registered audiences.
     /// </summary>
     public static IReadOnlyDictionary<string, string> ByName => sr_byName;
 

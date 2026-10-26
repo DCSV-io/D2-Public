@@ -33,7 +33,7 @@ public sealed class TimeoutLayerTests
     [Fact]
     public async Task WrapAsync_TimeoutFires_ThrowsTimeoutException()
     {
-        // Very short timeout; op hangs until the linked CT is canceled.
+        // A very short timeout; the op waits until the linked CT is canceled.
         var layer = new TimeoutLayer<string, int>(new(TimeSpan.FromMilliseconds(20)));
 
         var act = () => layer.WrapAsync(
@@ -69,8 +69,8 @@ public sealed class TimeoutLayerTests
     [Fact]
     public async Task WrapAsync_TimeoutFires_NotOperationCanceledException()
     {
-        // The layer must convert the OCE to a TimeoutException (NOT rethrow as OCE),
-        // so callers can distinguish a timeout from a caller-cancel.
+        // The layer must convert the OCE to a TimeoutException (NOT rethrow it as an OCE),
+        // so the caller can tell a timeout from a caller cancellation.
         var layer = new TimeoutLayer<string, int>(new(TimeSpan.FromMilliseconds(20)));
 
         var act = () => layer.WrapAsync(
@@ -115,14 +115,14 @@ public sealed class TimeoutLayerTests
     {
         var layer = new TimeoutLayer<string, int>();
 
-        // Op completes immediately — default 10s timeout should not fire.
+        // The op completes immediately, so the default 10s timeout does not fire.
         var result = await layer.WrapAsync("k", _ => ValueTask.FromResult(99), default);
 
         result.Should().Be(99);
     }
 
     // ----------------------------------------------------------------------
-    // Caller-cancellation is NOT masked as a timeout
+    // Caller cancellation is NOT converted to a timeout
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -143,7 +143,7 @@ public sealed class TimeoutLayerTests
                 },
                 canceledToken).AsTask());
 
-        // cts already canceled; must NOT surface as TimeoutException on re-invocation.
+        // cts is already canceled; a second call must NOT surface as TimeoutException.
         var ex = await Record.ExceptionAsync(
             () => layer.WrapAsync(
                 "k",
@@ -159,8 +159,9 @@ public sealed class TimeoutLayerTests
     [Fact]
     public async Task WrapAsync_CallerCtCanceled_NotMaskedEvenIfTimeoutAlsoArmed()
     {
-        // Both tokens may cancel; the CALLER's token canceling should NOT produce
-        // a TimeoutException — the when-guard protects against masking.
+        // Both tokens may cancel. The CALLER's token canceling must NOT produce
+        // a TimeoutException; the when-guard keeps the caller's OCE from being
+        // converted.
         var layer = new TimeoutLayer<string, int>(new(TimeSpan.FromMilliseconds(50)));
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
@@ -176,7 +177,8 @@ public sealed class TimeoutLayerTests
                 },
                 canceledToken).AsTask());
 
-        // Caller canceled before timeout — must NOT surface as TimeoutException on re-invocation.
+        // The caller canceled before the timeout; a second call must NOT surface as
+        // TimeoutException.
         var ex = await Record.ExceptionAsync(
             () => layer.WrapAsync(
                 "k",
@@ -196,9 +198,9 @@ public sealed class TimeoutLayerTests
     [Fact]
     public async Task Pipeline_PerAttemptTimeout_InsideRetry_Retried_ThenSucceeds()
     {
-        // Composition: outer RetryLayer → inner TimeoutLayer.
-        // Attempt 1: op hangs → TimeoutException (transient) → Retry fires.
-        // Attempt 2: op completes fast → Ok.
+        // Composition: outer RetryLayer -> inner TimeoutLayer.
+        // Attempt 1: the op waits -> TimeoutException (transient) -> Retry runs again.
+        // Attempt 2: the op completes fast -> Ok.
         var attempts = 0;
         var pipeline = new ResilientPipeline<string, int>(
             NoDelayOptions(maxAttempts: 3),
@@ -209,7 +211,7 @@ public sealed class TimeoutLayerTests
             var n = Interlocked.Increment(ref attempts);
             if (n == 1)
             {
-                // First attempt hangs until the linked timeout CT fires.
+                // The first attempt waits until the linked timeout CT is canceled.
                 await Task.Delay(-1, ct);
             }
 
@@ -224,7 +226,7 @@ public sealed class TimeoutLayerTests
     [Fact]
     public async Task Pipeline_PerAttemptTimeoutExhausted_MapsToServiceUnavailable()
     {
-        // ALL attempts time out → ServiceUnavailable at the boundary.
+        // ALL attempts time out -> the pipeline boundary returns ServiceUnavailable.
         var pipeline = new ResilientPipeline<string, int>(
             NoDelayOptions(maxAttempts: 2),
             new TimeoutLayer<string, int>(new(TimeSpan.FromMilliseconds(30))));
@@ -240,7 +242,7 @@ public sealed class TimeoutLayerTests
     }
 
     // ----------------------------------------------------------------------
-    // Pipeline-level: timeout at pipeline boundary → ServiceUnavailable
+    // Pipeline-level: timeout at pipeline boundary -> ServiceUnavailable
     // ----------------------------------------------------------------------
 
     [Fact]

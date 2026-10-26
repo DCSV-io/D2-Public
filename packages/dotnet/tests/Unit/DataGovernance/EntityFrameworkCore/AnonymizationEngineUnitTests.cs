@@ -18,7 +18,7 @@ using Xunit;
 
 /// <summary>
 /// DB-free unit tests for <c>AnonymizationEngine</c>. Uses model-build-only contexts
-/// (Npgsql provider with a dummy connection string — connection never opened).
+/// (Npgsql provider with a dummy connection string - connection never opened).
 /// Covers the Guid.Empty guard, Tier-C defensive rejection, and option validation.
 /// </summary>
 /// <remarks>
@@ -30,15 +30,15 @@ using Xunit;
 [Trait("Category", "Unit")]
 public sealed class AnonymizationEngineUnitTests
 {
-    // Clear the tier classifier cache between tests so entity-type model identities
-    // across different DbContext subclasses don't collide.
+    // Clear the tier classifier cache between tests so that entity-type model identities
+    // of different DbContext subclasses do not collide.
     public AnonymizationEngineUnitTests() => AnonymizationTierClassifier.ClearCache();
 
     // =========================================================================
-    // Guid.Empty guard — no DB writes
+    // Guid.Empty guard - no DB writes
     // =========================================================================
 
-    // long identifier — cannot wrap
+    // long identifier - cannot wrap
     [Fact]
     public async Task AnonymizeUserAsync_GuidEmpty_returns_ValidationFailed_without_connecting_to_DB()
     {
@@ -51,7 +51,7 @@ public sealed class AnonymizationEngineUnitTests
         result.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
     }
 
-    // long identifier — cannot wrap
+    // long identifier - cannot wrap
     [Fact]
     public async Task AnonymizeOrgAsync_GuidEmpty_returns_ValidationFailed_without_connecting_to_DB()
     {
@@ -65,7 +65,7 @@ public sealed class AnonymizationEngineUnitTests
     }
 
     // =========================================================================
-    // Tier-C defensive rejection — entity reaching engine at runtime
+    // Tier-C defensive rejection - entity reaching engine at runtime
     // =========================================================================
 
     [Fact]
@@ -82,7 +82,7 @@ public sealed class AnonymizationEngineUnitTests
     }
 
     // =========================================================================
-    // Empty model — zero entity types → Ok with all-zero outcome
+    // Empty model - zero entity types -> Ok with all-zero outcome
     // =========================================================================
 
     [Fact]
@@ -101,7 +101,7 @@ public sealed class AnonymizationEngineUnitTests
     }
 
     // =========================================================================
-    // Options — BatchSize < 1 → ServiceUnavailable
+    // Options - BatchSize < 1 -> ServiceUnavailable
     // =========================================================================
 
     [Fact]
@@ -117,7 +117,7 @@ public sealed class AnonymizationEngineUnitTests
     }
 
     // =========================================================================
-    // Options — BatchSize negative → ServiceUnavailable (M-2)
+    // Options - BatchSize negative -> ServiceUnavailable
     // =========================================================================
 
     [Fact]
@@ -133,11 +133,11 @@ public sealed class AnonymizationEngineUnitTests
     }
 
     // =========================================================================
-    // AnonymizationEngineOptions — shape validation
+    // AnonymizationEngineOptions - shape validation
     // =========================================================================
 
     // =========================================================================
-    // Options — MaxConcurrencyRetries negative → clamped to 0
+    // Options - MaxConcurrencyRetries negative -> clamped to 0
     // =========================================================================
 
     [Fact]
@@ -145,12 +145,13 @@ public sealed class AnonymizationEngineUnitTests
     {
         await using var ctx = EmptyModelContext.Build();
 
-        // Negative MaxConcurrencyRetries is silently clamped to 0 — no exception.
+        // Negative MaxConcurrencyRetries is silently clamped to 0 - no exception.
         var engine = BuildEngine(ctx, maxRetries: -1);
 
         var result = await engine.AnonymizeUserAsync(Guid.NewGuid());
 
-        // Empty model → Ok with zero counts — proves clamping, not a crash.
+        // Empty model: the call succeeds with a negative retry count and does
+        // not throw.
         result.Success.Should().BeTrue();
     }
 
@@ -164,13 +165,13 @@ public sealed class AnonymizationEngineUnitTests
     }
 
     [Fact]
-    public void AnonymizationEngineOptions_SECTION_NAME_is_DATA_GOVERNANCE()
+    public void AnonymizationEngineOptions_SECTION_is_LIB_DATA_GOVERNANCE()
     {
-        AnonymizationEngineOptions.SECTION_NAME.Should().Be("DATA_GOVERNANCE");
+        AnonymizationEngineOptions.SECTION.Should().Be("LIB_DATA_GOVERNANCE");
     }
 
     // =========================================================================
-    // Exempt enumeration — entity with IExemptFromAnonymization is counted, not processed
+    // Exempt enumeration - entity with IExemptFromAnonymization is counted, not processed
     // =========================================================================
 
     [Fact]
@@ -179,7 +180,7 @@ public sealed class AnonymizationEngineUnitTests
         await using var ctx = ExemptModelContext.Build();
         var engine = BuildEngine(ctx);
 
-        // No DB connection — the model has an exempt entity but no processable ones
+        // No DB connection - the model has an exempt entity but no processable ones
         var result = await engine.AnonymizeUserAsync(Guid.NewGuid());
 
         result.Success.Should().BeTrue();

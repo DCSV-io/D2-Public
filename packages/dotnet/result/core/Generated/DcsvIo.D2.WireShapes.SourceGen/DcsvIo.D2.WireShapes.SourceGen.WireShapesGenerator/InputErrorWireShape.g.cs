@@ -10,13 +10,13 @@
 
 namespace DcsvIo.D2.Result;
 
-/// <summary>Spec-derived JSON property-name catalog for the InputError wire shape. Every JSON serializer / deserializer in .NET references these constants for property names instead of inline string literals — drift between the wire and the code is structurally impossible.</summary>
-/// <remarks>Cross-language parity: the SAME spec drives the TS-side <c>@dcsv-io/d2-result</c> catalog via <c>tools/ts-codegen</c>. Both sides emit the same property names byte-for-byte; cross-language wire drift is impossible.</remarks>
+/// <summary>Spec-derived JSON property-name catalog for the InputError wire shape. Every JSON serializer / deserializer in .NET references these constants for property names instead of inline string literals - drift between the wire and the code is structurally impossible.</summary>
+/// <remarks>Cross-language parity: the SAME spec drives the TS-side <c>@dcsv-io/d2-result</c> catalog through the TypeScript emitter. Both sides emit the same property names byte-for-byte; cross-language wire drift is impossible.</remarks>
 public static class InputErrorWireShape
 {
     /// <summary>JSON property name carrying the offending input field name (e.g. 'email', 'address.city'). REQUIRED on every InputError; dot-notation paths supported for nested fields.</summary>
     public const string FIELD = "field";
 
-    /// <summary>JSON property name carrying the array of TKMessage objects describing what's wrong with the field. REQUIRED; one-or-more TKMessage entries per InputError — each TKMessage uses the spec-derived 'key'/'params' shape from contracts/tk-message.</summary>
+    /// <summary>JSON property name carrying the array of TKMessage objects describing what's wrong with the field. REQUIRED; one-or-more TKMessage entries per InputError - each TKMessage uses the spec-derived 'key'/'params' shape from contracts/tk-message.</summary>
     public const string ERRORS = "errors";
 }

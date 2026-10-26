@@ -24,10 +24,10 @@ using Xunit;
 /// byte-identical hash output to the reference fixture for every case.
 /// </summary>
 /// <remarks>
-/// Hash-determinism regression pin. A byte divergence here means the hash
-/// algorithm changed — content-addressable dedup in the geo pipeline would
-/// silently produce duplicate records for entities that were previously
-/// considered identical.
+/// Hash-determinism regression pin. A byte difference here means the hash
+/// algorithm changed. Content-addressable deduplication in the geo pipeline
+/// would then produce duplicate records for entities that were previously
+/// identical.
 /// </remarks>
 public sealed class LocationHashDeterminismTests
 {
@@ -39,7 +39,7 @@ public sealed class LocationHashDeterminismTests
         if (sr_Fixture.Cases.Count == 0)
         {
             throw new InvalidOperationException(
-                $"Fixture loaded with zero cases — version='{sr_Fixture.Version}'. " +
+                $"Fixture loaded with zero cases - version='{sr_Fixture.Version}'. " +
                 $"Check the JSON file path and deserialization shape.");
         }
 
@@ -234,19 +234,17 @@ public sealed class LocationHashDeterminismTests
 
     private static LocationHashFixture LoadFixture()
     {
-        // Hermetic fixture-path resolution: derive the path from
-        // [CallerFilePath] at compile time (this source file's absolute path
-        // is baked into the test binary), then navigate to contracts/location.
-        // This avoids the filesystem-walk-up pattern's fragility under hermetic
-        // CI sandboxes and unusual AppContext.BaseDirectory layouts.
+        // ResolveFixturePath builds the fixture path from the contracts root
+        // that TestPaths.PublicContractsRoot returns, followed by
+        // location/parity-fixtures.json.
         var candidate = ResolveFixturePath();
         if (!File.Exists(candidate))
         {
             throw new FileNotFoundException(
                 $"Location hash fixture not found at expected path '{candidate}' " +
-                "(derived from [CallerFilePath]; should resolve to " +
-                "contracts/location/parity-fixtures.json " +
-                $"relative to this test source file).");
+                "(derived from TestPaths.PublicContractsRoot(); should resolve to " +
+                "location/parity-fixtures.json under the contracts folder of the " +
+                "monorepo layout or the public clone layout).");
         }
 
         var json = File.ReadAllText(candidate);
@@ -255,14 +253,18 @@ public sealed class LocationHashDeterminismTests
 
     /// <summary>
     /// Resolves the absolute path of <c>contracts/location/parity-fixtures.json</c>
-    /// using <see cref="CallerFilePathAttribute"/> on this method. The compiler
-    /// substitutes the absolute path of THIS source file (LocationHashDeterminismTests.cs)
-    /// at the call site, which is then mapped to the repo-root relative fixture path.
+    /// from the contracts root that <c>TestPaths.PublicContractsRoot</c> returns.
     /// </summary>
+    /// <remarks>
+    /// The parameter has <see cref="CallerFilePathAttribute"/>, so the compiler
+    /// fills it with the absolute path of this source file
+    /// (LocationHashDeterminismTests.cs). The method discards that value.
+    /// </remarks>
     private static string ResolveFixturePath([CallerFilePath] string thisSourcePath = "")
     {
-        // Dual-layout contracts root (monorepo public/contracts vs public OSS contracts/).
-        // thisSourcePath is only used as a walk fallback if TestPaths cannot resolve.
+        // TestPaths.PublicContractsRoot returns the contracts folder of the
+        // layout the test runs in: the monorepo layout or the public clone
+        // layout. The method does not use thisSourcePath.
         _ = thisSourcePath;
 
         return Path.Combine(
@@ -273,9 +275,9 @@ public sealed class LocationHashDeterminismTests
 
     private static LocationHashFixture ParseFixture(string json)
     {
-        // Manual parse via JsonDocument — STJ's reflection-based deserializer
-        // produced empty Cases on a struct-containing record (likely related to
-        // JsonElement field handling); manual extraction is robust + explicit.
+        // System.Text.Json's reflection deserializer returned an empty
+        // Cases list for this record, so this method parses the fixture with
+        // JsonDocument.
         using var doc = JsonDocument.Parse(json);
         if (!doc.RootElement.TryGetProperty("cases", out var casesEl))
             throw new InvalidOperationException("Root JSON does not contain 'cases'.");
@@ -316,7 +318,8 @@ public sealed class LocationHashDeterminismTests
 
         if (manual.Cases.Count == 0)
         {
-            // Diagnostic: dump the first 200 chars of JSON so the error surfaces in the runner.
+            // Diagnostic: add a preview of the JSON, cut at 200 characters, so
+            // the error shows in the runner output.
             var preview = json.Length > 200 ? json[..200] + "..." : json;
             throw new InvalidOperationException(
                 $"Deserialized fixture has zero cases. version='{manual.Version}'. " +

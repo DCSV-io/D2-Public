@@ -48,9 +48,9 @@ public sealed class MalformedActorChainExceptionTests
     [Fact]
     public void Class_IsSealed()
     {
-        // Adversarial: exceptions are sealed by default. Subclassing the
-        // parser's exception would let middleware accidentally catch / unwrap
-        // a narrower type and miss the fail-closed contract.
+        // Adversarial: the parser's exception class is sealed, so no subclass
+        // exists that middleware could catch or unwrap as a narrower type and
+        // handle outside the fail-closed contract.
         typeof(MalformedActorChainException).IsSealed.Should().BeTrue();
     }
 }

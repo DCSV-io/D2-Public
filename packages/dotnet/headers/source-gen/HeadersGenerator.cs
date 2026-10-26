@@ -20,25 +20,25 @@ using Microsoft.CodeAnalysis.Text;
 /// via <c>AdditionalFiles</c>. Dispatches per consuming assembly:
 /// <list type="bullet">
 ///   <item>
-///     <c>DcsvIo.D2.Headers.Common</c> → <c>CommonHeaders.g.cs</c>
+///     <c>DcsvIo.D2.Headers.Common</c> -> <c>CommonHeaders.g.cs</c>
 ///     (entries with applicability count &gt;= 2).
 ///   </item>
 ///   <item>
-///     <c>DcsvIo.D2.Headers.Http</c> → <c>HttpHeaders.g.cs</c>
+///     <c>DcsvIo.D2.Headers.Http</c> -> <c>HttpHeaders.g.cs</c>
 ///     (entries whose applicability includes <c>http</c>).
 ///   </item>
 ///   <item>
-///     <c>DcsvIo.D2.Headers.Amqp</c> → <c>AmqpHeaders.g.cs</c>
+///     <c>DcsvIo.D2.Headers.Amqp</c> -> <c>AmqpHeaders.g.cs</c>
 ///     (entries whose applicability includes <c>amqp</c>).
 ///   </item>
 ///   <item>
-///     <c>DcsvIo.D2.Headers.Grpc</c> → <c>GrpcHeaders.g.cs</c>
+///     <c>DcsvIo.D2.Headers.Grpc</c> -> <c>GrpcHeaders.g.cs</c>
 ///     (entries whose applicability includes <c>grpc</c>).
 ///   </item>
-///   <item>Anything else → emit nothing.</item>
+///   <item>Anything else -> emit nothing.</item>
 /// </list>
-/// Cross-transport entries appear in multiple per-transport catalogs at
-/// identical wire values, codegen-guaranteed.
+/// A cross-transport entry appears in several per-transport catalogs with
+/// the same wire value, and the code generation guarantees it.
 /// </summary>
 [Generator]
 public sealed class HeadersGenerator : IIncrementalGenerator

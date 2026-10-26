@@ -39,7 +39,7 @@ public sealed class D2ResultCombineTests
     [Fact]
     public void Combine2_OneFailure_ReturnsValidationFailedCollapsed()
     {
-        // Adversarial: r1 Ok + r2 NotFound → collapses to ValidationFailed,
+        // Adversarial: r1 Ok + r2 NotFound -> collapses to ValidationFailed,
         // NotFound's typed code is intentionally NOT preserved (per remarks).
         var r1 = D2Result<int>.Ok(1);
         var r2 = D2Result<string>.NotFound();
@@ -50,7 +50,7 @@ public sealed class D2ResultCombineTests
         combined.IsValidationFailed.Should().BeTrue();
         combined.IsNotFound.Should().BeFalse();
         combined.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        combined.ErrorCode.Should().Be(ErrorCodes.VALIDATION_FAILED);
+        combined.ErrorCode.Should().Be(ErrorCodes.GEN_VALIDATION_FAILED);
         combined.Messages.Should().ContainSingle()
             .Which.Key.Should().Be(TK.Common.Errors.NOT_FOUND.Key);
     }
@@ -178,9 +178,9 @@ public sealed class D2ResultCombineTests
         combined.IsConflict.Should().BeFalse();
         combined.IsServiceUnavailable.Should().BeFalse();
         combined.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        combined.ErrorCode.Should().Be(ErrorCodes.VALIDATION_FAILED);
+        combined.ErrorCode.Should().Be(ErrorCodes.GEN_VALIDATION_FAILED);
 
-        // Messages from ALL 5 failures aggregated, in input order.
+        // Messages from EVERY failure (r1 to r5) are aggregated, in input order.
         combined.Messages.Select(m => m.Key).Should().Equal(
             TK.Common.Errors.UNIQUE_VIOLATION.Key,
             TK.Common.Errors.NOT_FOUND.Key,
@@ -192,9 +192,9 @@ public sealed class D2ResultCombineTests
     [Fact]
     public void Combine5_ThreeSuccessTwoFailure_OnlyFailureMessagesAppearInAggregate()
     {
-        // Adversarial: success messages must NOT bleed into the failure aggregate
-        // (the source's `if (!r.Success)` gate). And success Data is dropped — it's
-        // unrecoverable from the combined result on the failure path.
+        // Adversarial: success messages must NOT appear in the failure aggregate
+        // (the source's `if (!r.Success)` gate). Success Data is also dropped, so
+        // the combined result on the failure path does not contain it.
         var r1 = D2Result<int>.Ok(1, messages: [TK.Common.Errors.NOT_AUTHENTICATED]);
         var r2 = D2Result<int>.Forbidden();
         var r3 = D2Result<int>.Ok(3);
@@ -210,12 +210,12 @@ public sealed class D2ResultCombineTests
         combined.Messages.Select(m => m.Key).Should()
             .NotContain(TK.Common.Errors.NOT_AUTHENTICATED.Key);
 
-        // Combined.Data is the tuple type, default(...) on the failure path.
+        // Combined.Data is the tuple type's default(...) value on the failure path.
         combined.Data.Should().Be(default((int, int, int, int, int)));
     }
 
     // ----------------------------------------------------------------------
-    // TraceId carry semantics
+    // TraceId propagation
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -267,7 +267,7 @@ public sealed class D2ResultCombineTests
     }
 
     // ----------------------------------------------------------------------
-    // IEnumerable overload — empty input
+    // IEnumerable overload - empty input
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -301,7 +301,7 @@ public sealed class D2ResultCombineTests
     }
 
     // ----------------------------------------------------------------------
-    // IEnumerable overload — happy path
+    // IEnumerable overload - happy path
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -348,7 +348,7 @@ public sealed class D2ResultCombineTests
     }
 
     // ----------------------------------------------------------------------
-    // IEnumerable overload — failures
+    // IEnumerable overload - failures
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -446,15 +446,15 @@ public sealed class D2ResultCombineTests
     }
 
     // ----------------------------------------------------------------------
-    // IEnumerable overload — efficiency / iteration semantics
+    // IEnumerable overload - efficiency / iteration semantics
     // ----------------------------------------------------------------------
 
     [Fact]
     public void CombineEnumerable_BackedByIReadOnlyList_DoesNotMaterializeAgain()
     {
-        // Smoke check: an IReadOnlyList backing should hit the `as IReadOnlyList<>` shortcut
-        // (no extra ToList()). We can't easily prove "no allocation," but we can prove
-        // single enumeration via a generator-like spy further down.
+        // An IReadOnlyList input should take the `as IReadOnlyList<>` shortcut
+        // (no extra ToList()). This test cannot observe allocation; the generator
+        // test below checks single enumeration.
         IReadOnlyList<D2Result<int>> input =
         [
             D2Result<int>.Ok(1),
@@ -513,10 +513,10 @@ public sealed class D2ResultCombineTests
     [Fact]
     public void Combine_NotFound_Forbidden_CollapsesCategoryToValidationFailure()
     {
-        // AggregateFailure always calls ValidationFailed(…),
+        // AggregateFailure always calls ValidationFailed(...),
         // so Category on the aggregated result is ALWAYS ValidationFailure
-        // regardless of the input failure categories (not_found, policy_denied, …).
-        // Mirrors TS combineMany([notFound(), forbidden()]) → validation_failure.
+        // regardless of the input failure categories (not_found, policy_denied, ...).
+        // Mirrors TS combineMany([notFound(), forbidden()]) -> validation_failure.
         var combined = D2Result.Combine(
             D2Result<int>.NotFound(),
             D2Result<int>.Forbidden());
@@ -540,7 +540,7 @@ public sealed class D2ResultCombineTests
     [Fact]
     public void CombineEnumerable_HeterogeneousFailures_CategoryAlwaysValidationFailure()
     {
-        // Enumerable overload: NotFound + ServiceUnavailable → ValidationFailure category.
+        // Enumerable overload: NotFound + ServiceUnavailable -> ValidationFailure category.
         var input = new[]
         {
             D2Result<int>.NotFound(),
@@ -554,7 +554,7 @@ public sealed class D2ResultCombineTests
     }
 
     // ----------------------------------------------------------------------
-    // IEnumerable overload — null/empty Messages defenses
+    // IEnumerable overload - null and empty Messages guards
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -590,7 +590,7 @@ public sealed class D2ResultCombineTests
     }
 
     // ----------------------------------------------------------------------
-    // Return shape — named tuple accessibility
+    // Return shape - named tuple accessibility
     // ----------------------------------------------------------------------
 
     [Fact]

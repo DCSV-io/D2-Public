@@ -16,11 +16,10 @@ using DcsvIo.D2.SourceGen;
 /// <summary>
 /// Pure logic for emitting the static-class source of
 /// <c>D2ProblemDetailsKeys</c> from a parsed
-/// <see cref="ProblemDetailsSpec"/>. Stateless and unit-testable in
-/// isolation. The Roslyn-host integration
-/// (<see cref="ProblemDetailsGenerator"/>) calls this and translates
-/// emit-side <see cref="EmitDiagnostic"/> records into Roslyn
-/// <c>Diagnostic</c> instances.
+/// <see cref="ProblemDetailsSpec"/>. Stateless, and testable in isolation
+/// because it reports problems as <see cref="EmitDiagnostic"/> records and
+/// never creates Roslyn <c>Diagnostic</c> instances; the Roslyn host
+/// (<see cref="ProblemDetailsGenerator"/>) converts them.
 /// </summary>
 internal static class ProblemDetailsEmitter
 {
@@ -124,7 +123,7 @@ internal static class ProblemDetailsEmitter
         sb.AppendLine();
         sb.AppendLine("/// <summary>");
         sb.AppendLine(
-            "/// Spec-derived RFC 7807 ProblemDetails wire-format catalog —");
+            "/// Spec-derived RFC 7807 ProblemDetails wire-format catalog -");
         sb.AppendLine(
             "/// <c>TYPE_URI_PREFIX</c>, <c>CONTENT_TYPE</c>, <c>EXTENSION_*</c>");
         sb.AppendLine(
@@ -134,9 +133,7 @@ internal static class ProblemDetailsEmitter
         sb.AppendLine("/// </summary>");
         sb.AppendLine("/// <remarks>");
         sb.AppendLine(
-            "/// Single source for both .NET emit paths (auth-http");
-        sb.AppendLine(
-            "/// <c>D2ProblemDetailsExtensions.ToProblemDetails</c> and aspnetcore");
+            "/// Single source for the .NET code that writes ProblemDetails bodies (such as the aspnetcore");
         sb.AppendLine(
             "/// <c>D2ProblemDetailsCustomizer</c>) and the TS-side <c>@dcsv-io/d2-problem-details-abstractions</c> (hosts may re-export the same constants)");
         sb.AppendLine(
@@ -155,7 +152,7 @@ internal static class ProblemDetailsEmitter
         sb.AppendLine();
 
         sb.AppendLine(
-            "    /// <summary>MIME type per RFC 7807 §6.1 "
+            "    /// <summary>MIME type per RFC 7807 section 6.1 "
             + "for JSON ProblemDetails bodies.</summary>");
         sb.AppendLine(
             $"    public const string CONTENT_TYPE = \"{EscapeStringLiteral(contentType)}\";");
@@ -197,7 +194,7 @@ internal static class ProblemDetailsEmitter
         sb.AppendLine(
             "    /// matches. Defaults to an empty string only when the spec carries no");
         sb.AppendLine(
-            "    /// fallback entry — codegen invariant under the schema.");
+            "    /// fallback entry - codegen invariant under the schema.");
         sb.AppendLine("    /// </summary>");
         sb.AppendLine("    /// <param name=\"statusCode\">The HTTP status code.</param>");
         sb.AppendLine("    /// <returns>The matching coarse Title.</returns>");

@@ -7,18 +7,18 @@ import { SealedFrame } from "@dcsv-io/d2-encryption-abstractions";
 import { FrameMalformedError, FrameVersionMismatchError } from "./errors.js";
 
 /**
- * Codec for the on-wire SEALED (version-2, asymmetric) encryption frame — the
+ * Codec for the on-wire sealed (version-2, asymmetric) encryption frame; the
  * twin of .NET `DcsvIo.D2.Encryption.SealedFrame`. Layout:
  * `[version=2:1][recipient_kid_len:1][recipient_kid:UTF-8 N][eph_pub_len:2 BE]`
  * `[eph_pub:SPKI M][nonce:12][ciphertext+tag:K]`.
  *
  * Version dispatch is structural: this codec hard-rejects the symmetric (v1)
- * version byte, so the two formats can never cross-parse.
+ * version byte, so the formats can never cross-parse.
  */
 
 const _utf8Encoder = new TextEncoder();
 
-// Strict decoder: an invalid UTF-8 recipient kid must THROW (surface as
+// Strict decoder: an invalid UTF-8 recipient kid must throw (surface as
 // FrameMalformedError), never silently decode to U+FFFD replacement characters
 // that would then fail keyring lookup with a misleading kid.
 const _utf8StrictDecoder = new TextDecoder("utf-8", { fatal: true });
@@ -38,7 +38,7 @@ export interface SealedFrameView {
 }
 
 /**
- * Encodes a sealed frame around an already-encrypted ciphertext+tag span.
+ * Encodes a sealed frame around an already-encrypted ciphertext and tag span.
  *
  * @param recipientKid The recipient kid to embed in the frame header.
  * @param ephemeralPublicSpki The per-message ephemeral public key (SPKI DER).
@@ -171,7 +171,7 @@ export function decodeSealedFrame(framed: Uint8Array): SealedFrameView {
 
   if (ephLength < 1) {
     throw new FrameMalformedError(
-      "Sealed frame eph_pub_len is zero — an empty ephemeral public key " +
+      "Sealed frame eph_pub_len is zero - an empty ephemeral public key " +
         "cannot exist in a valid frame.",
     );
   }

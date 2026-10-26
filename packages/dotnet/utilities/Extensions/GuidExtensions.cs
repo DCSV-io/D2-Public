@@ -8,11 +8,11 @@ namespace DcsvIo.D2.Utilities.Extensions;
 
 /// <summary>
 /// Extension methods for <see cref="Guid"/> covering the
-/// <c>Truthy</c> / <c>Falsey</c> semantics used elsewhere in the codebase
+/// <c>Truthy</c> and <c>Falsey</c> semantics used elsewhere in the codebase
 /// (a GUID is "truthy" when it is non-null and not <see cref="Guid.Empty"/>),
-/// plus a string-side <c>TryParseTruthyNull</c> for the common
-/// "parse to <see cref="Guid"/>?, collapse missing / unparseable / empty
-/// inputs to <c>null</c>" pattern.
+/// plus a string-side <c>TryParseTruthyNull</c> for the common pattern of
+/// parsing to a nullable <see cref="Guid"/> and collapsing missing,
+/// unparseable and empty inputs to <c>null</c>.
 /// </summary>
 public static class GuidExtensions
 {
@@ -20,13 +20,13 @@ public static class GuidExtensions
     extension(Guid? guid)
     {
         /// <summary>
-        /// Returns true when the nullable GUID has a value AND that value is
+        /// Returns true when the nullable GUID has a value and that value is
         /// not <see cref="Guid.Empty"/>.
         /// </summary>
         public bool Truthy() => guid is not null && (Guid)guid != Guid.Empty;
 
         /// <summary>
-        /// Returns true when the nullable GUID is null OR equal to
+        /// Returns true when the nullable GUID is null or equal to
         /// <see cref="Guid.Empty"/>.
         /// </summary>
         public bool Falsey() => guid is null || (Guid)guid == Guid.Empty;
@@ -51,14 +51,14 @@ public static class GuidExtensions
     {
         /// <summary>
         /// Tries to parse <paramref name="input"/> as a non-empty
-        /// <see cref="Guid"/>. Returns <c>true</c> + the parsed value when the
-        /// input is a valid GUID literal AND the parsed value is not
-        /// <see cref="Guid.Empty"/>; returns <c>false</c> + <c>null</c> when
-        /// the input is null, empty, whitespace, unparseable, OR resolves to
+        /// <see cref="Guid"/>. Returns <c>true</c> and the parsed value when the
+        /// input is a valid GUID literal and the parsed value is not
+        /// <see cref="Guid.Empty"/>. Returns <c>false</c> and <c>null</c> when
+        /// the input is null, empty, whitespace, unparseable, or parses to
         /// <see cref="Guid.Empty"/>.
         /// </summary>
         /// <param name="result">
-        /// The parsed GUID on success; <c>null</c> on failure.
+        /// The parsed GUID on success, or <c>null</c> on failure.
         /// </param>
         /// <returns>
         /// True on parse success of a non-empty GUID; false otherwise.

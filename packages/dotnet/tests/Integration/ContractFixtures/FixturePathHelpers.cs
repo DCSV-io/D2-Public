@@ -20,8 +20,8 @@ internal static class FixturePathHelpers
 {
     /// <summary>
     /// Synthetic-data discipline preamble. Stamped into every fixture
-    /// envelope's <c>$comment</c> field so a reader inspecting a fixture
-    /// in isolation knows the data origin and can trust there's no PII.
+    /// envelope's <c>$comment</c> field, so a reader inspecting a fixture
+    /// in isolation sees the data origin and that it holds no PII.
     /// </summary>
     public const string SYNTHETIC_DATA_NOTE =
         "Synthetic test data; no real PII."
@@ -33,11 +33,10 @@ internal static class FixturePathHelpers
     };
 
     /// <summary>
-    /// Resolve the on-disk path for a fixture file. The
-    /// <c>contract-tests/fixtures/&lt;catalog&gt;/&lt;scenario&gt;.json</c>
-    /// path lives under the TS contract-tests workspace package (the parity
-    /// tests are TS-side; the .NET emitter writes there via the
-    /// <see cref="TestPaths.RepoRoot"/> walk).
+    /// Resolve the on-disk path for a fixture file, as
+    /// <c>contract-tests/fixtures/&lt;catalog&gt;/&lt;scenario&gt;.json</c> under the
+    /// directory that <see cref="TestPaths.PublicPackagesTypescriptRoot"/> returns,
+    /// which resolves in both the monorepo and the public clone layout.
     /// </summary>
     /// <param name="catalog">Catalog directory name (e.g. <c>headers</c>).</param>
     /// <param name="scenario">Scenario base name (without <c>.json</c> suffix).</param>
@@ -79,12 +78,12 @@ internal static class FixturePathHelpers
         var json = JsonSerializer.Serialize(envelope, sr_writeOptions);
 
         // Normalize to LF line endings (System.Text.Json emits Environment.NewLine
-        // between indented lines — CRLF on Windows). The repo enforces LF via
+        // between indented lines - CRLF on Windows). The repo enforces LF via
         // .gitattributes / .editorconfig; emitted fixtures must match so
         // `pnpm exec prettier --check` (and any downstream LF-expecting tooling)
-        // stays clean across platforms. Idempotent — already-LF content is unchanged.
-        // Trailing newline keeps Unix line-tooling happy and matches the
-        // common convention for committed JSON fixtures.
+        // stays clean across platforms. Idempotent - already-LF content is unchanged.
+        // The trailing newline follows the convention for committed JSON files and
+        // is what Unix line tools expect.
         var lfNormalized = json.Replace("\r\n", "\n") + "\n";
         File.WriteAllText(path, lfNormalized);
     }

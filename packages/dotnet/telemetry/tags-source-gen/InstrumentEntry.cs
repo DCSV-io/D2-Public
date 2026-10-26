@@ -9,7 +9,7 @@ namespace DcsvIo.D2.Telemetry.Tags.SourceGen;
 using System.Collections.Immutable;
 
 /// <summary>
-/// One instrument entry on a meter — counter / histogram / gauge.
+/// One instrument entry on a meter - counter / histogram / gauge.
 /// </summary>
 /// <param name="Name">
 /// Wire-format instrument name (dot-separated). Unique within the meter.

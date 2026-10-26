@@ -17,7 +17,7 @@ using Microsoft.CodeAnalysis.Text;
 /// Roslyn incremental source generator that emits the <c>WellKnownAudiences</c>
 /// static partial class into <c>DcsvIo.D2.Auth.Abstractions</c> by reading
 /// <c>contracts/auth-protocol-audiences/protocol-audiences.spec.json</c> via
-/// <c>AdditionalFiles</c>. Single-target — only emits when the consuming assembly
+/// <c>AdditionalFiles</c>. It emits only when the assembly being compiled
 /// is <c>DcsvIo.D2.Auth.Abstractions</c>.
 /// </summary>
 [Generator]
@@ -38,15 +38,15 @@ public sealed class ProtocolAudiencesGenerator : IIncrementalGenerator
                 Content: file.GetText(ct)?.ToString() ?? string.Empty))
             .Collect();
 
-        // 2. Combine with the compilation so we can gate emission by assembly name.
+        // 2. Combine with the compilation so emission can depend on the assembly name.
         var combined = specs.Combine(context.CompilationProvider);
 
-        // 3. For each pipeline run, drive the emitter.
+        // 3. On each pipeline run, call the emitter.
         context.RegisterSourceOutput(combined, static (spc, tuple) =>
         {
             var (specFiles, compilation) = tuple;
 
-            // Only emit when the consuming assembly is DcsvIo.D2.Auth.Abstractions.
+            // Emit only when the assembly being compiled is DcsvIo.D2.Auth.Abstractions.
             if (!string.Equals(
                 compilation.AssemblyName,
                 _TARGET_ASSEMBLY_NAME,
@@ -64,7 +64,8 @@ public sealed class ProtocolAudiencesGenerator : IIncrementalGenerator
                 return;
             }
 
-            // Convention: only one protocol-audiences.spec.json per consuming project.
+            // A project declares only one protocol-audiences.spec.json. With several,
+            // the first path in ordinal order is used.
             var spec = specFiles.OrderBy(s => s.Path, StringComparer.Ordinal).First();
 
             var loadResult = ProtocolAudienceSpecLoader.Load(spec.Path, spec.Content);

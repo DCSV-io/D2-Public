@@ -2,7 +2,7 @@
 // Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 // -----------------------------------------------------------------------
 
-// Hand-written meta-records + name-resolution helpers.
+// Hand-written meta-records and name-resolution helpers.
 export type { DeprecationInfo } from "./deprecation-info.js";
 export { normalize } from "./name-resolution/name-normalizer.js";
 export { compare, isWithin } from "./name-resolution/levenshtein-comparer.js";
@@ -11,8 +11,8 @@ export { compare, isWithin } from "./name-resolution/levenshtein-comparer.js";
 export type { IGeoReference } from "./interfaces/i-geo-reference.js";
 export type { IGeoNameResolver } from "./name-resolution/i-geo-name-resolver.js";
 
-// Spec-derived closed-set code enums (`*Code` suffix names the typed
-// identifier; the bare singular is the record) + Zod schemas + closed-set
+// Spec-derived closed-set code enums (the `*Code` suffix marks the typed
+// identifier; the bare singular is the record), Zod schemas and closed-set
 // validation tables.
 export {
   CountryCode,
@@ -35,7 +35,7 @@ export {
   ALL_GEOPOLITICAL_ENTITY_CODE_SET,
 } from "./generated/typed-codes/geopolitical-entity-code.g.js";
 
-// Spec-derived open-set wrapper-code branded string types — the wrapper
+// Spec-derived open-set wrapper-code branded string types: the wrapper
 // names already disambiguate from the bare record name (e.g.
 // `SubdivisionCode` vs `Subdivision`).
 export {
@@ -75,7 +75,7 @@ export {
   GeopoliticalEntityTypeSchema,
 } from "./generated/fixed-enums.g.js";
 
-// Spec-derived record shapes — single shape per entity. Recursive nav
+// Spec-derived record shapes: a single shape per entity. Recursive nav
 // refs populated in the wire-nav step of the data emitter under
 // @dcsv-io/d2-geo-default.
 export type {

@@ -14,12 +14,12 @@ using DcsvIo.D2.Geo.Abstractions;
 using Xunit;
 
 /// <summary>
-/// Emits the parity fixture for cross-language geo record SHAPES — every
+/// Emits the parity fixture for cross-language geo record SHAPES - every
 /// record type + every field name + every field type, captured by
 /// reflecting over the codegen-emitted record types in
-/// <see cref="Country"/>'s assembly. The TS-side
-/// <c>geo-records.parity.test.ts</c> loads the fixture and compares
-/// field name sets modulo casing.
+/// <see cref="Country"/>'s assembly. The fixture lists each record's
+/// fields with PascalCase names, so a comparison with another runtime
+/// matches field name sets modulo casing.
 /// </summary>
 /// <remarks>
 /// SHAPE parity is distinct from OUTCOME parity. The OUTCOME parity
@@ -58,8 +58,8 @@ public sealed class GeoRecordsFixtureEmitter
     /// <summary>
     /// Reflect a record's public init / set properties (the codegen
     /// emits required-init scalars + internal-set nav refs). Each entry
-    /// captures the property name (PascalCase) + the resolved type name
-    /// (with nullability stripped) + the nullability flag.
+    /// holds the property name (PascalCase), the resolved type name
+    /// (with nullability stripped) and the nullability flag.
     /// </summary>
     private static List<SortedDictionary<string, object?>> ExtractRecordFields(Type type)
     {
@@ -82,13 +82,12 @@ public sealed class GeoRecordsFixtureEmitter
 
     /// <summary>
     /// Render a type name in a TS-compatible shorthand:
-    /// <c>IReadOnlySet&lt;CountryCode&gt;</c> → <c>"Set&lt;CountryCode&gt;"</c>,
-    /// <c>IReadOnlyList&lt;Subdivision&gt;</c> → <c>"List&lt;Subdivision&gt;"</c>,
+    /// <c>IReadOnlySet&lt;CountryCode&gt;</c> -> <c>"Set&lt;CountryCode&gt;"</c>,
+    /// <c>IReadOnlyList&lt;Subdivision&gt;</c> -> <c>"List&lt;Subdivision&gt;"</c>,
     /// nullable value types unwrap to their underlying form, and other
-    /// types use their bare name. The TS-side parity test consumes only
-    /// the simple name to compare; rich type-shape matching is out of
-    /// scope (different languages have different generic-constraint
-    /// surfaces).
+    /// types use their bare name. The shorthand holds only the simple
+    /// name; rich type-shape matching is out of scope, because different
+    /// languages have different generic-constraint surfaces.
     /// </summary>
     private static string FormatTypeName(Type t)
     {

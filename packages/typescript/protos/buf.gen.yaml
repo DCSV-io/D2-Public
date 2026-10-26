@@ -2,8 +2,8 @@
 # Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 # -----------------------------------------------------------------------
 # Buf generation config for the @dcsv-io/d2-protos TS package.
-# Output is committed to git so consumer packages can import without
-# triggering a separate generation step on first build.
+# The generated output is committed to git, so a first build needs no separate
+# generation step.
 
 version: v2
 plugins:

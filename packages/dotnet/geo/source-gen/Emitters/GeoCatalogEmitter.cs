@@ -15,23 +15,25 @@ using DcsvIo.D2.SourceGen;
 using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
-/// Emits the static <c>GeoCatalog</c> class with two constants surfacing
-/// the catalog metadata: <c>CatalogVersion</c> (string) +
-/// <c>CatalogPublishedAt</c> (<see cref="DateTimeOffset"/> — NOT NodaTime
-/// <c>Instant</c>, so this assembly stays NodaTime-free).
-/// Sourced from the pipeline-derived spec metadata (<c>generatedAt</c>);
-/// falls back to <c>DateTimeOffset.MinValue</c> when no pipeline-spec
-/// metadata is present (degenerate-catalog safety).
+/// Emits the static <c>GeoCatalog</c> class with the catalog metadata
+/// constants <c>CatalogVersion</c> (string) and <c>CatalogPublishedAt</c>
+/// (<see cref="DateTimeOffset"/>, not NodaTime <c>Instant</c>, so this
+/// assembly stays NodaTime-free). The values come from the pipeline-derived
+/// spec metadata (<c>generatedAt</c>). <c>CatalogPublishedAt</c> falls back to
+/// <c>DateTimeOffset.MinValue</c> when no spec metadata carries a usable
+/// <c>generatedAt</c>.
 /// </summary>
 internal static class GeoCatalogEmitter
 {
     private const string _NAMESPACE = EmitterHelpers.AbstractionsNamespace;
 
     /// <summary>
-    /// Emits the singleton <c>GeoCatalog</c> static class. Metadata is taken
-    /// from <c>countries.spec.json</c> when present (it is the largest and
-    /// always pipeline-derived); falls back to whichever pipeline spec is
-    /// available, then to defaults.
+    /// Emits the <c>GeoCatalog</c> static class. Metadata is taken from
+    /// <c>countries.spec.json</c> when present (it is the largest and always
+    /// pipeline-derived). Otherwise it comes from the first present spec in
+    /// the order subdivisions, currencies, languages, locales, timezones,
+    /// geopolitical entities, and then from the defaults (version
+    /// <c>0.0.0</c>).
     /// </summary>
     /// <param name="context">The aggregate spec context.</param>
     /// <returns>The single emit result.</returns>
@@ -56,14 +58,14 @@ internal static class GeoCatalogEmitter
         sb.AppendLine(
             "/// audit metadata). <see cref=\"CatalogPublishedAt\"/> uses");
         sb.AppendLine(
-            "/// <see cref=\"DateTimeOffset\"/> (NOT NodaTime <c>Instant</c>) — this");
+            "/// <see cref=\"DateTimeOffset\"/> (NOT NodaTime <c>Instant</c>) - this");
         sb.AppendLine(
             "/// lib stays NodaTime-free so it can be a leaf dependency.");
         sb.AppendLine("/// </summary>");
         sb.AppendLine("public static class GeoCatalog");
         sb.AppendLine("{");
         sb.AppendLine(
-            $"    /// <summary>Catalog version — surfaced from spec "
+            $"    /// <summary>Catalog version - surfaced from spec "
             + "metadata.</summary>");
         sb.AppendLine(
             $"    public const string CatalogVersion = \"{EscapeStringLiteral(version)}\";");

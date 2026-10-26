@@ -13,7 +13,7 @@ using DcsvIo.D2.Geo.Abstractions;
 namespace DcsvIo.D2.Geo.Default;
 
 /// <summary>
-/// Strongly-typed nested-class hierarchy over the subdivision catalog —
+/// Strongly-typed nested-class hierarchy over the subdivision catalog -
 /// <c>Subdivisions.US.NY</c> returns a <see cref="SubdivisionCode"/>.
 /// Short codes that start with a digit (e.g. <c>"02"</c>) carry a
 /// leading underscore (<c>Subdivisions.AD._02</c>) to satisfy C#'s

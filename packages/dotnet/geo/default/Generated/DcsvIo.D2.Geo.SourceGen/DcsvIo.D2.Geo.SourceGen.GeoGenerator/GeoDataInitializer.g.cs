@@ -25,7 +25,7 @@ internal static class GeoDataInitializer
     private static bool s_initialized;
 
     /// <summary>
-    /// Module initializer — runs once before any consumer touches
+    /// Module initializer - runs once before any consumer touches
     /// the catalogs. Idempotent: the CLR runs module initializers at most
     /// once per assembly load, and an explicit <c>s_initialized</c> flag
     /// short-circuits any defensive re-invocation (mirrors the TS
@@ -40,7 +40,7 @@ internal static class GeoDataInitializer
         s_initialized = true;
 
         // ---- First pass: force every catalog's static ctor to run. ----
-        // Order here doesn't matter — each ctor only touches its own catalog
+        // Order here doesn't matter - each ctor only touches its own catalog
         // and its own ByCode dict (no cross-catalog references in the first pass).
         RuntimeHelpers.RunClassConstructor(typeof(CountryLookup).TypeHandle);
         RuntimeHelpers.RunClassConstructor(typeof(SubdivisionLookup).TypeHandle);
@@ -52,11 +52,11 @@ internal static class GeoDataInitializer
 
         // ---- Wire-nav step: wire nav refs in dependency order. ----
         // Subdivision.Country needs Country first-pass; Country.Subdivisions
-        // needs Subdivision first-pass (the ByCountry index) — so Subdivision
+        // needs Subdivision first-pass (the ByCountry index) - so Subdivision
         // WireNav runs FIRST (mutates Subdivision.Country), then Country
         // WireNav (consumes SubdivisionLookup.ByCountry for
         // Country.Subdivisions; also needs Locale/Language/Currency/Gpe
-        // first-pass records present in their ByCode dicts — they are because
+        // first-pass records present in their ByCode dicts - they are because
         // first-pass ran for all above). Locale/Currency/Language/Timezone/Gpe
         // WireNav can run in any order after that point.
         SubdivisionLookup.WireNav();

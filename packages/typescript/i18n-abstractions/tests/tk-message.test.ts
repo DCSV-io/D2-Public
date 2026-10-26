@@ -23,10 +23,9 @@ describe("tk()", () => {
   });
 
   it("emits wire-shape property names from the spec-derived catalog", () => {
-    // Pin the property names that ship on the wire. If the spec changes
-    // these constants, the .NET side will drift to match, but this assertion
-    // pins the TS-side property names to the spec-derived constants so the
-    // tk() builder never accidentally emits ad-hoc property names.
+    // The property names of the wire message come from the spec-derived
+    // constants. This assertion compares the full key set, so it fails when
+    // tk() emits a key outside those constants or omits one of them.
     const m = tk("TK.X", { p: 1 });
     expect(Object.keys(m).sort()).toEqual(
       [TkMessageWireShape.KEY, TkMessageWireShape.PARAMS].sort(),

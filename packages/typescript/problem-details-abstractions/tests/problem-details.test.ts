@@ -40,16 +40,16 @@ describe("ProblemDetailsExtensionKeys wire pin", () => {
 });
 
 describe("PROBLEM_DETAILS_CONTENT_TYPE wire pin", () => {
-  it("matches application/problem+json (RFC 7807 §6.1)", () => {
+  it("matches application/problem+json (RFC 7807 section 6.1)", () => {
     expect(PROBLEM_DETAILS_CONTENT_TYPE).toBe("application/problem+json");
   });
 });
 
 describe("ProblemDetailsTitles wire pin", () => {
-  // Per-VALUE pins for the codegen-emitted ProblemDetailsTitles catalog.
-  // Cross-language parity with the .NET side is structurally guaranteed
-  // (same spec source); these pins protect against accidental .g.ts
-  // tampering AND against accidental spec edits.
+  // Pins for each value of the generated ProblemDetailsTitles catalog.
+  // Both languages generate from the same spec, so cross-language parity holds
+  // by construction; these pins fail on an accidental edit of the .g.ts file
+  // or of the spec.
   it.each([
     ["BAD_REQUEST", "Bad Request"],
     ["UNAUTHORIZED", "Unauthorized"],

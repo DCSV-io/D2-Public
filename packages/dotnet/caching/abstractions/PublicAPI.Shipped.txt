@@ -1,8 +1,11 @@
 #nullable enable
 DcsvIo.D2.Caching.ICacheAtomic
 DcsvIo.D2.Caching.ICacheAtomic.AcquireLockAsync(string! key, string! lockId, System.TimeSpan expiration, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result<bool>!>
+DcsvIo.D2.Caching.ICacheAtomic.ConsumeTokenAsync(string! key, long refillTokens, System.TimeSpan refillInterval, long burst, long cost = 1, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result<DcsvIo.D2.Caching.TokenBucketDecision>!>
 DcsvIo.D2.Caching.ICacheAtomic.IncrementAsync(string! key, long amount = 1, System.TimeSpan? expiration = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result<long>!>
 DcsvIo.D2.Caching.ICacheAtomic.ReleaseLockAsync(string! key, string! lockId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result!>
+DcsvIo.D2.Caching.ICacheAtomic.RemoveIfEqualAsync<T>(string! key, T expected, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result<bool>!>
+DcsvIo.D2.Caching.ICacheAtomic.SetIfEqualAsync<T>(string! key, T expected, T value, System.TimeSpan? expiration = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result<bool>!>
 DcsvIo.D2.Caching.ICacheAtomic.SetNxAsync<T>(string! key, T value, System.TimeSpan? expiration = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result<bool>!>
 DcsvIo.D2.Caching.ICacheBasic
 DcsvIo.D2.Caching.ICacheBasic.ExistsAsync(string! key, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result<bool>!>
@@ -43,7 +46,22 @@ DcsvIo.D2.Caching.LocalCacheOptions.KeyPrefix.set -> void
 DcsvIo.D2.Caching.LocalCacheOptions.LocalCacheOptions() -> void
 DcsvIo.D2.Caching.LocalCacheOptions.MaxEntries.get -> int
 DcsvIo.D2.Caching.LocalCacheOptions.MaxEntries.set -> void
+DcsvIo.D2.Caching.TokenBucketDecision
+DcsvIo.D2.Caching.TokenBucketDecision.Admitted.get -> bool
+DcsvIo.D2.Caching.TokenBucketDecision.Admitted.init -> void
+DcsvIo.D2.Caching.TokenBucketDecision.Deconstruct(out bool Admitted, out System.TimeSpan RetryAfter) -> void
+DcsvIo.D2.Caching.TokenBucketDecision.Equals(DcsvIo.D2.Caching.TokenBucketDecision other) -> bool
+DcsvIo.D2.Caching.TokenBucketDecision.RetryAfter.get -> System.TimeSpan
+DcsvIo.D2.Caching.TokenBucketDecision.RetryAfter.init -> void
+DcsvIo.D2.Caching.TokenBucketDecision.TokenBucketDecision() -> void
+DcsvIo.D2.Caching.TokenBucketDecision.TokenBucketDecision(bool Admitted, System.TimeSpan RetryAfter) -> void
+override DcsvIo.D2.Caching.TokenBucketDecision.GetHashCode() -> int
 static DcsvIo.D2.Caching.InputFailures.Invalid(string! paramName) -> DcsvIo.D2.Result.D2Result!
 static DcsvIo.D2.Caching.InputFailures.Invalid<T>(string! paramName) -> DcsvIo.D2.Result.D2Result<T>!
 static DcsvIo.D2.Caching.InputFailures.Required(string! paramName) -> DcsvIo.D2.Result.D2Result!
 static DcsvIo.D2.Caching.InputFailures.Required<T>(string! paramName) -> DcsvIo.D2.Result.D2Result<T>!
+static DcsvIo.D2.Caching.InputFailures.TokenBucket(string! key, long refillTokens, System.TimeSpan refillInterval, long burst, long cost) -> DcsvIo.D2.Result.D2Result<DcsvIo.D2.Caching.TokenBucketDecision>?
+static DcsvIo.D2.Caching.TokenBucketDecision.operator !=(DcsvIo.D2.Caching.TokenBucketDecision left, DcsvIo.D2.Caching.TokenBucketDecision right) -> bool
+static DcsvIo.D2.Caching.TokenBucketDecision.operator ==(DcsvIo.D2.Caching.TokenBucketDecision left, DcsvIo.D2.Caching.TokenBucketDecision right) -> bool
+~override DcsvIo.D2.Caching.TokenBucketDecision.Equals(object obj) -> bool
+~override DcsvIo.D2.Caching.TokenBucketDecision.ToString() -> string

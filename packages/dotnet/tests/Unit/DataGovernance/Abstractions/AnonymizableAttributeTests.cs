@@ -12,8 +12,9 @@ using DcsvIo.D2.DataGovernance.Abstractions;
 using Xunit;
 
 /// <summary>
-/// Tests for <see cref="AnonymizableAttribute"/>. Covers the three public constructors,
-/// the <c>AttributeUsage</c> declaration, and adversarial construction inputs.
+/// Tests for <see cref="AnonymizableAttribute"/>. Covers the kind-only, constant-string and
+/// template constructors, the <c>AttributeUsage</c> declaration, and adversarial
+/// construction inputs.
 /// </summary>
 [Trait("Category", "Unit")]
 public sealed class AnonymizableAttributeTests
@@ -43,7 +44,8 @@ public sealed class AnonymizableAttributeTests
     [Fact]
     public void Ctor_kind_Constant_without_value_throws_ArgumentException()
     {
-        // AnonymizeKind.Constant requires a payload — use the string ctor instead.
+        // AnonymizeKind.Constant requires a payload, so the kind-only constructor throws.
+        // The string constructor takes one.
         var act = () => new AnonymizableAttribute(AnonymizeKind.Constant);
         act.Should().Throw<ArgumentException>();
     }
@@ -51,7 +53,8 @@ public sealed class AnonymizableAttributeTests
     [Fact]
     public void Ctor_kind_Template_without_value_throws_ArgumentException()
     {
-        // AnonymizeKind.Template requires a payload — use the template ctor instead.
+        // AnonymizeKind.Template requires a payload, so the kind-only constructor throws.
+        // The template constructor takes one.
         var act = () => new AnonymizableAttribute(AnonymizeKind.Template);
         act.Should().Throw<ArgumentException>();
     }
@@ -79,7 +82,7 @@ public sealed class AnonymizableAttributeTests
     [Fact]
     public void Ctor_string_empty_constant_is_accepted_as_Kind_Constant()
     {
-        // Author intent preserved — not silently rewritten to SetEmpty.
+        // The empty string stays Kind.Constant; the constructor does not rewrite it to SetEmpty.
         var sut = new AnonymizableAttribute(string.Empty);
 
         sut.Kind.Should().Be(AnonymizeKind.Constant);
@@ -89,7 +92,7 @@ public sealed class AnonymizableAttributeTests
     [Fact]
     public void Ctor_string_whitespace_constant_is_accepted_as_literal()
     {
-        // Whitespace is a valid constant value — author intent is NOT trimmed.
+        // Whitespace is a valid constant value, and the constructor does not trim it.
         const string whitespace_constant = " ";
         var sut = new AnonymizableAttribute(whitespace_constant);
 
@@ -100,7 +103,7 @@ public sealed class AnonymizableAttributeTests
     [Fact]
     public void Ctor_string_null_constant_throws_ArgumentNullException()
     {
-        // Null is not a valid constant — use AnonymizeKind.SetNull for null overwrites.
+        // Null is not a valid constant. AnonymizeKind.SetNull overwrites a value with null.
         var act = () => new AnonymizableAttribute(null!);
         act.Should().Throw<ArgumentNullException>();
     }
@@ -112,7 +115,7 @@ public sealed class AnonymizableAttributeTests
     {
         const string template_value = "deletedUser{UserId}@deleted.user.dcsv.io";
 
-        // Form A: named argument — the preferred call-site shape.
+        // Form A: the named argument is the preferred call-site shape.
         var sut = new AnonymizableAttribute(template: template_value);
 
         sut.Kind.Should().Be(AnonymizeKind.Template);
@@ -125,8 +128,8 @@ public sealed class AnonymizableAttributeTests
     {
         const string template_value = "deleted-{Id}-user";
 
-        // Both positional forms (with explicit marker) and named-arg form produce
-        // identical instances.
+        // The form with an explicit marker produces the same instance as the
+        // named-argument form.
         var sut = new AnonymizableAttribute(
             template: template_value,
             marker: AnonymizeTemplateMarker.Template);
@@ -203,6 +206,6 @@ public sealed class AnonymizableAttributeTests
         property.Should().NotBeNull();
         property.SetMethod.Should().BeNull(
             because: $"{propertyName} must not be publicly settable "
-                + "— contradictory state must be impossible via object initializer.");
+                + "- contradictory state must be impossible via object initializer.");
     }
 }

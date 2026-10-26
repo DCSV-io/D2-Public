@@ -14,9 +14,8 @@ using Xunit;
 
 /// <summary>
 /// Adversarial coverage for <see cref="D2Result.WithTraceId"/> +
-/// <see cref="D2Result{TData}.WithTraceId"/>. The transform is the
-/// auto-injection seam used by <c>BaseHandler.RunCorePipelineAsync</c>;
-/// any defect here ripples into every handler boundary.
+/// <see cref="D2Result{TData}.WithTraceId"/>. The transform attaches a trace
+/// identifier to an existing result and must leave every other field unchanged.
 /// </summary>
 public sealed class D2ResultWithTraceIdTests
 {
@@ -24,17 +23,17 @@ public sealed class D2ResultWithTraceIdTests
     private const string _NEW_TRACE = "trace-new";
 
     // ----------------------------------------------------------------------
-    // Immutability — the original instance MUST be untouched
+    // Immutability - the original instance MUST be untouched
     // ----------------------------------------------------------------------
 
     [Fact]
     public void WithTraceId_DoesNotMutateOriginal()
     {
-        // Adversarial: the source impl uses `new D2Result(...)` to clone.
-        // If a future refactor accidentally swaps to a setter / mutation,
-        // the original instance must NOT change. D2Result is documented as
-        // immutable; that contract has to hold for the auto-injection
-        // pattern to be safe under shared references.
+        // Adversarial: the implementation clones with `new D2Result(...)`.
+        // If a refactor replaced the clone with a setter or other mutation,
+        // the original instance would change, and it must NOT. D2Result is
+        // documented as immutable, and shared references to a result stay
+        // valid only while that holds.
         var original = D2Result.Ok();
 
         var clone = original.WithTraceId(_NEW_TRACE);
@@ -57,7 +56,7 @@ public sealed class D2ResultWithTraceIdTests
     }
 
     // ----------------------------------------------------------------------
-    // Field preservation — every other property must round-trip identically
+    // Field preservation - every other property must keep its value
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -88,13 +87,13 @@ public sealed class D2ResultWithTraceIdTests
         var transformed = result.WithTraceId(_NEW_TRACE);
 
         transformed.ErrorCode.Should().Be(original_error_code);
-        transformed.ErrorCode.Should().Be(ErrorCodes.NOT_FOUND);
+        transformed.ErrorCode.Should().Be(ErrorCodes.GEN_NOT_FOUND);
     }
 
     [Fact]
     public void WithTraceId_PreservesMessages()
     {
-        // Verify the messages list survives by-value through the transform.
+        // The messages list keeps its values through the transform.
         var result = D2Result.NotFound();
         var original_message_count = result.Messages.Count;
 
@@ -107,10 +106,10 @@ public sealed class D2ResultWithTraceIdTests
     [Fact]
     public void WithTraceId_PreservesInputErrors()
     {
-        // Adversarial: ValidationFailed-with-InputErrors is the most
+        // Adversarial: ValidationFailed with InputErrors is the most
         // common failure shape that flows through Combine/aggregate paths.
-        // Losing InputErrors on a TraceId injection would silently drop
-        // per-field error context.
+        // Losing InputErrors when a TraceId is attached would drop
+        // per-field error context without any error.
         var input_errors = new[]
         {
             new InputError("email", [TK.Common.Errors.UNKNOWN]),
@@ -139,7 +138,7 @@ public sealed class D2ResultWithTraceIdTests
     public void WithTraceId_Generic_PreservesDefaultDataOnFailure()
     {
         // Failure factories on D2Result<T> set Data = default. WithTraceId
-        // must preserve that.
+        // must keep that value.
         var result = D2Result<Sample>.NotFound();
 
         var transformed = result.WithTraceId(_NEW_TRACE);
@@ -148,14 +147,14 @@ public sealed class D2ResultWithTraceIdTests
     }
 
     // ----------------------------------------------------------------------
-    // TraceId arg — null / empty / whitespace / replacement matrix
+    // TraceId argument - null, empty, whitespace and replacement cases
     // ----------------------------------------------------------------------
 
     [Fact]
     public void WithTraceId_NullArg_ResultTraceIdBecomesNull()
     {
-        // Strip a TraceId by passing null. Useful for redaction / privacy
-        // boundaries (e.g. before logging cross-tenant).
+        // Passing null removes the TraceId, for example at a redaction or
+        // privacy boundary such as before logging across tenants.
         var result = D2Result.Ok().WithTraceId(_ORIGINAL_TRACE);
 
         var stripped = result.WithTraceId(null);
@@ -169,10 +168,10 @@ public sealed class D2ResultWithTraceIdTests
     [InlineData("\t")]
     public void WithTraceId_EmptyOrWhitespaceArg_PreservedAsProvided(string trace)
     {
-        // D2Result.TraceId is a transparent string passthrough — it does
-        // NOT canonicalize empty/whitespace into null. Document the
-        // pass-through behavior so callers know to canonicalize upstream
-        // if they want "" → null semantics.
+        // D2Result.TraceId stores the string as given and does NOT convert
+        // empty or whitespace values to null. This test documents that
+        // behavior; code that needs "" -> null must convert the value before
+        // it calls WithTraceId.
         var result = D2Result.Ok().WithTraceId(trace);
 
         result.TraceId.Should().Be(trace);
@@ -204,19 +203,18 @@ public sealed class D2ResultWithTraceIdTests
     }
 
     // ----------------------------------------------------------------------
-    // Type narrowing — `new` keyword on D2Result<T>.WithTraceId
+    // Type narrowing - `new` keyword on D2Result<T>.WithTraceId
     // ----------------------------------------------------------------------
 
     [Fact]
     public void WithTraceId_GenericInstance_ReturnsGenericNotBaseType()
     {
         // Adversarial: the `new` member-hiding pattern on D2Result<T>
-        // means callers that hold a D2Result<T> reference get a
-        // D2Result<T> back — NOT D2Result. If the override accidentally
-        // gets removed (or is not `new`'d correctly), the static return
-        // type silently becomes the base, breaking callers that chain
-        // .Data access.
-        D2Result<int> original = D2Result<int>.Ok(7);
+        // means that a call through a D2Result<T> reference returns a
+        // D2Result<T>, NOT a D2Result. If the hiding member were removed
+        // (or not declared `new`), the static return type would become
+        // the base type, and code that chains .Data access would not compile.
+        var original = D2Result<int>.Ok(7);
 
         var transformed = original.WithTraceId(_NEW_TRACE);
 
@@ -227,33 +225,31 @@ public sealed class D2ResultWithTraceIdTests
     [Fact]
     public void WithTraceId_GenericCalledViaBaseReference_ReturnsBaseType()
     {
-        // Adversarial: if a caller has a D2Result base reference to a
-        // generic instance and calls WithTraceId, they get the BASE
-        // signature (no Data). Documents the `new`-hiding semantics —
-        // member resolution is by static reference type, not runtime
-        // type. Callers who care about Data must hold the generic
-        // reference.
+        // Adversarial: calling WithTraceId through a D2Result base reference to a
+        // generic instance uses the BASE signature (no Data). This documents the
+        // `new`-hiding semantics: the compiler resolves the member by the static
+        // reference type, not the runtime type. Code that needs Data must hold the
+        // generic reference.
         D2Result base_ref = D2Result<int>.Ok(7);
 
         var transformed = base_ref.WithTraceId(_NEW_TRACE);
 
-        // Runtime type is still D2Result<int> (the impl creates a new
-        // base instance via `new D2Result(...)`, so the returned object
-        // is D2Result, NOT D2Result<int>).
+        // The source instance is a D2Result<int>, but the returned object is a
+        // D2Result, NOT a D2Result<int>: the base implementation creates a new
+        // base instance via `new D2Result(...)`.
         transformed.Should().BeOfType<D2Result>();
     }
 
     // ----------------------------------------------------------------------
-    // Round-trip via the auto-injection use case
+    // Attaching a TraceId afterward equals passing it to the factory
     // ----------------------------------------------------------------------
 
     [Fact]
     public void WithTraceId_AfterFactory_BehavesLikeFactoryWithTraceIdArg()
     {
-        // Auto-injection use case: BaseHandler calls .WithTraceId on a
-        // result that already came from a factory. The result should be
-        // indistinguishable from calling the factory with the traceId
-        // arg directly.
+        // Calling .WithTraceId on a result that already came from a factory
+        // must give a result indistinguishable from calling the factory with
+        // the traceId argument directly.
         var via_transform = D2Result<int>.Ok(42).WithTraceId(_NEW_TRACE);
         var via_factory = D2Result<int>.Ok(42, traceId: _NEW_TRACE);
 

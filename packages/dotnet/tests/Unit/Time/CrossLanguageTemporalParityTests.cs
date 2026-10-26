@@ -18,7 +18,7 @@ using Xunit;
 /// <summary>
 /// Cross-language parity tests for ZonedInstant + LocalAnchoredEvent. Each
 /// fixture in <c>contracts/temporal/temporal-adversarial.fixture.json</c>
-/// pins a (scheduledLocal, iana) → expectedUtc mapping that BOTH the .NET
+/// pins a (scheduledLocal, iana) -> expectedUtc mapping that BOTH the .NET
 /// NodaTime engine AND the TypeScript Temporal engine must produce
 /// identically. If a fixture's expectedUtc diverges between languages, the
 /// adversarial cross-language contract has broken and the divergence must
@@ -122,15 +122,15 @@ public sealed class CrossLanguageTemporalParityTests
     }
 
     /// <summary>
-    /// §1.20 anti-pattern test — deliberate-drift DD-T1: proves the
-    /// <see cref="Instant"/> equality used by the parity assertions is
-    /// non-tautological. If the .NET and TypeScript engines ever diverge on
-    /// epoch interpretation by even one second, the fixture comparison will
-    /// catch it — this test verifies that catch IS possible.
+    /// Deliberate-drift test DD-T1: shows that the <see cref="Instant"/>
+    /// equality used by the parity assertions can fail. If the .NET and
+    /// TypeScript engines diverged on epoch interpretation by even one second,
+    /// the fixture comparison would fail; this test checks that the comparison
+    /// can fail.
     ///
     /// Constructs two <see cref="Instant"/> values that differ by exactly
-    /// one second and asserts they are recognized as DIFFERENT. A broken or
-    /// tautological comparator that always returned "equal" would fail here.
+    /// one second and asserts they are DIFFERENT. A comparator that always
+    /// returned "equal" would fail here.
     /// </summary>
     [Fact]
     public void Parity_DetectsDivergence_WhenInstantEpochsDifferByOneSecond()
@@ -138,9 +138,9 @@ public sealed class CrossLanguageTemporalParityTests
         var fx = LoadFixture("unambiguous-utc-noon");
         var realInstant = ParseInstant(fx.ExpectedUtc);
 
-        // Construct a deliberately-diverged instant: one second later than
-        // the real value. This simulates what would happen if the TS engine
-        // resolved to a different epoch — the parity comparator must flag it.
+        // Build an instant one second later than the real value, as a TypeScript
+        // engine with a different epoch interpretation would produce. The parity
+        // comparison must report the difference.
         var divergedInstant = realInstant + Duration.FromSeconds(1);
 
         realInstant.Should().NotBe(
@@ -150,29 +150,28 @@ public sealed class CrossLanguageTemporalParityTests
     }
 
     /// <summary>
-    /// §1.20 anti-pattern test — deliberate-drift DD-T2: proves the
-    /// DST resolution comparison is non-tautological. If the .NET
+    /// Deliberate-drift test DD-T2: shows that the DST resolution comparison
+    /// can fail. If the .NET
     /// <see cref="NodaTime.TimeZones.Resolvers.LenientResolver"/> and the
-    /// TypeScript <c>disambiguation:'compatible'</c> rule ever diverge on
-    /// which side of a DST gap to pick, the fixture comparison catches it —
-    /// this test verifies that catch IS possible.
+    /// TypeScript <c>disambiguation:'compatible'</c> rule diverged on
+    /// which side of a DST gap to pick, the fixture comparison would fail; this
+    /// test checks that the comparison can fail.
     ///
     /// Uses the US spring-forward fixture (2026-03-08 02:30 America/New_York,
     /// a skipped local time). The correct resolved UTC is 07:30Z (forward into
-    /// the post-gap). This test constructs a deliberately-wrong UTC (one hour
-    /// earlier — the pre-gap instant) and asserts it is recognized as DIFFERENT
-    /// from the correct resolved value. A tautological comparator that always
-    /// returned "equal" would fail here.
+    /// the post-gap). This test builds a wrong UTC (one hour earlier, the
+    /// pre-gap instant) and asserts it is DIFFERENT from the correct resolved
+    /// value. A comparator that always returned "equal" would fail here.
     /// </summary>
     [Fact]
     public void Parity_DetectsDivergence_WhenDstResolutionPolicyDiffers()
     {
-        // Spring-forward: 02:30 local skips to 03:30 → resolves to 07:30Z.
+        // Spring-forward: 02:30 local skips to 03:30 -> resolves to 07:30Z.
         var fx = LoadFixture("us-spring-forward-skipped-2-30");
         var correctUtc = ParseInstant(fx.ExpectedUtc); // 2026-03-08T07:30:00Z
 
-        // Simulate a resolver that incorrectly picks the pre-gap instant
-        // (one hour earlier — the "behind the gap" interpretation):
+        // A resolver that picks the pre-gap instant (one hour earlier, the
+        // "behind the gap" interpretation) would produce this value:
         var divergedPreGapUtc = correctUtc - Duration.FromHours(1);
 
         correctUtc.Should().NotBe(
@@ -182,18 +181,18 @@ public sealed class CrossLanguageTemporalParityTests
     }
 
     /// <summary>
-    /// §1.20 anti-pattern test — deliberate-drift DD-T3: proves the IANA
-    /// alias canonicalization comparison is non-tautological. If the .NET
-    /// NodaTime <c>CanonicalIdMap</c> path and the TypeScript
-    /// <c>Intl.DateTimeFormat.resolvedOptions().timeZone</c> + alias-override
-    /// map ever diverge on producing a canonical IANA name, the parity
-    /// assertion catches it — this test verifies that catch IS possible.
+    /// Deliberate-drift test DD-T3: shows that the IANA alias canonicalization
+    /// comparison can fail. If the .NET NodaTime <c>CanonicalIdMap</c> path and
+    /// the TypeScript <c>Intl.DateTimeFormat.resolvedOptions().timeZone</c> +
+    /// alias-override map diverged on producing a canonical IANA name, the
+    /// parity assertion would fail; this test checks that the assertion can
+    /// fail.
     ///
     /// Uses the US/Pacific alias fixture, where the correct canonical output
-    /// is "America/Los_Angeles". This test constructs a fake "diverged"
-    /// un-canonicalized result ("US/Pacific") and asserts it is recognized as
-    /// DIFFERENT from the canonical form. A tautological comparator that always
-    /// returned "equal" would fail here.
+    /// is "America/Los_Angeles". This test uses the un-canonicalized alias
+    /// ("US/Pacific") as the diverged result and asserts it is DIFFERENT from
+    /// the canonical form. A comparator that always returned "equal" would
+    /// fail here.
     /// </summary>
     [Fact]
     public void Parity_DetectsDivergence_WhenIanaAliasNotCanonicalized()
@@ -203,11 +202,11 @@ public sealed class CrossLanguageTemporalParityTests
             .Create(ParseLocalDateTime(fx.ScheduledLocal), fx.Iana)
             .Data!;
 
-        // Correct canonical form as produced by TimeZoneIdNormalizer:
+        // The canonical form that TimeZoneIdNormalizer produces:
         var canonicalIana = ev.IANAIdentifier; // "America/Los_Angeles"
 
-        // Simulate a TS implementation that failed to canonicalize and
-        // returned the raw alias instead:
+        // A TypeScript implementation that did not canonicalize would return
+        // the raw alias instead:
         var divergedUncanonical = fx.Iana; // "US/Pacific"
 
         canonicalIana.Should().NotBe(
@@ -252,7 +251,7 @@ public sealed class CrossLanguageTemporalParityTests
 
     private static string FindFixturePath()
     {
-        // Dual-layout: monorepo public/contracts/temporal/ or public OSS contracts/temporal/.
+        // PublicContractsRoot() locates the contracts folder.
         var monorepo = Path.Combine(
             TestPaths.PublicContractsRoot(),
             "temporal",

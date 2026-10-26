@@ -17,7 +17,7 @@ namespace DcsvIo.D2.Geo.Abstractions;
 /// <summary>
 /// O(1) lookup from <see cref="SubdivisionCode"/> string value to its
 /// owning <see cref="Country"/>. Pre-computed at codegen time from
-/// <c>subdivisions.spec.json</c> — every subdivision's parent country
+/// <c>subdivisions.spec.json</c> - every subdivision's parent country
 /// is derived once at codegen time. Consumed exclusively by
 /// <see cref="SubdivisionCode.ParentCountry"/>; not part of the public API.
 /// </summary>
@@ -5078,7 +5078,7 @@ internal static class SubdivisionParentCountryLookup
     /// Resolves the parent <see cref="CountryCode"/> for the supplied
     /// <paramref name="subdivisionCode"/>. Throws
     /// <see cref="InvalidOperationException"/> when the code is not present
-    /// in the catalog — fail-loud is intentional (every codegen-issued
+    /// in the catalog - fail-loud is intentional (every codegen-issued
     /// SubdivisionCode must be in the table; absence is a bug, not a
     /// user-input case).
     /// </summary>

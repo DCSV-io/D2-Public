@@ -3,9 +3,9 @@
 // -----------------------------------------------------------------------
 
 /**
- * Translation-key message shape. Matches the .NET `TKMessage` wire format —
- * `{ key: "...", params?: Record<string, unknown> }`. Producers obtain
- * `TKMessage` instances via the SrcGen-emitted `TK.*` constants; the type
+ * Translation-key message shape. Matches the .NET `TKMessage` wire format:
+ * `{ key: "...", params?: Record<string, unknown> }`. `TKMessage`
+ * instances come from the SrcGen-emitted `TK.*` constants; the type
  * system makes "untranslated literal in `messages`" structurally
  * unrepresentable.
  *
@@ -13,8 +13,8 @@
  * the shared `TKMessage` interface so cross-language wire round-trips stay
  * byte-identical. The JSON property names (`key`, `params`) come from the
  * spec-derived `TkMessageWireShape` catalog
- * (`./generated/tk-message.g.ts`) — `contracts/tk-message/tk-message.spec.json`
- * drives BOTH the .NET serializer AND this interface, so cross-language
+ * (`./generated/tk-message.g.ts`); `contracts/tk-message/tk-message.spec.json`
+ * drives both the .NET serializer and this interface, so cross-language
  * wire drift on the property names is structurally impossible.
  */
 export interface TKMessage {
@@ -26,8 +26,8 @@ export interface TKMessage {
 }
 
 /**
- * Constructs a TKMessage from a key + optional params. Mirrors the .NET
- * `new TKMessage(key, params)` ergonomics.
+ * Constructs a TKMessage from a key and optional params. Mirrors the .NET
+ * `new TKMessage(key, params)` call shape; `tk` returns a plain object.
  */
 export function tk(
   key: string,

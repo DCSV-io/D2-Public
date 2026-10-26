@@ -13,8 +13,9 @@ using DcsvIo.D2.Utilities.Extensions;
 /// <summary>
 /// Default <see cref="IMessageIdempotencyStore"/> implementation backed by
 /// the cluster-wide <see cref="IDistributedCache"/>. Marks a processed
-/// message id with <see cref="ICacheAtomic.SetNxAsync"/> + a 24-hour TTL —
-/// enough to cover the redelivery / retry window without growing unbounded.
+/// message id with <see cref="ICacheAtomic.SetNxAsync"/> and a 24-hour TTL,
+/// which covers the redelivery and retry window without letting the cache
+/// grow without bound.
 /// </summary>
 internal sealed class CacheIdempotencyStore : IMessageIdempotencyStore
 {

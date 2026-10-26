@@ -17,9 +17,9 @@ using global::Microsoft.Extensions.Hosting;
 
 /// <summary>
 /// Static helper that builds a fully wired AspNetCore test host suitable for
-/// driving the D² AspNetCore middleware stack end-to-end through
+/// driving the D2 AspNetCore middleware stack end-to-end through
 /// <c>Microsoft.AspNetCore.TestHost</c>. Mirrors the
-/// <c>LoggingTestHostBuilder</c> shape — accepts optional services / app /
+/// <c>LoggingTestHostBuilder</c> shape - accepts optional services / app /
 /// endpoints mutators so each test can compose its own pipeline shape.
 /// </summary>
 internal static class AspNetCoreTestHostBuilder
@@ -36,8 +36,8 @@ internal static class AspNetCoreTestHostBuilder
     /// registrations.
     /// </param>
     /// <param name="extraConfigure">
-    /// Optional middleware-pipeline mutator invoked after the default
-    /// pipeline (UseRouting + UseEndpoints).
+    /// Optional middleware-pipeline mutator invoked after UseRouting and
+    /// before UseEndpoints.
     /// </param>
     /// <param name="extraEndpoints">
     /// Optional endpoint-registration mutator invoked when the default
@@ -48,7 +48,7 @@ internal static class AspNetCoreTestHostBuilder
     /// configuration pipeline.
     /// </param>
     /// <returns>
-    /// The started <see cref="IHost"/> — caller disposes via
+    /// The started <see cref="IHost"/> - caller disposes via
     /// <c>using</c> declaration.
     /// </returns>
     internal static async Task<IHost> BuildAsync(

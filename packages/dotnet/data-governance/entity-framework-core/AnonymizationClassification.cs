@@ -10,21 +10,19 @@ using System.Collections.Generic;
 
 /// <summary>
 /// The result of classifying an EF Core entity type for anonymization. Produced by
-/// <see cref="AnonymizationTierClassifier.Classify"/> and consumed by both the
-/// anonymization engine and the startup model validator.
+/// <see cref="AnonymizationTierClassifier.Classify"/>.
 /// </summary>
 /// <remarks>
 /// <para>
 /// <see cref="Columns"/> is ordered deterministically: root entity scalars in
 /// <c>IEntityType.GetProperties()</c> order, then complex sub-properties, then owned
-/// sub-properties. This ordering makes the anonymization engine's chained
-/// <c>ExecuteUpdate.SetProperty</c> sequence and the startup validator's diagnostics
-/// stable across runs.
+/// sub-properties. This ordering keeps any sequence built from it stable across runs,
+/// such as a chained <c>ExecuteUpdate.SetProperty</c> sequence or a list of diagnostics.
 /// </para>
 /// <para>
 /// When <see cref="Tier"/> is <see cref="AnonymizationTier.TierC"/>, <see cref="TierCBlocker"/>
-/// names the first property whose shape forced the demotion. The blocker value contains only
-/// model metadata (property name, column name, shape) — never runtime user data — so it is
+/// identifies the first property whose shape forced the demotion. The blocker value contains only
+/// model metadata (property name, column name, shape) - never runtime user data - so it is
 /// safe to include in diagnostics.
 /// </para>
 /// </remarks>
@@ -44,8 +42,8 @@ public sealed record AnonymizationClassification
     /// <summary>
     /// Gets the first annotated column whose shape forced a <see cref="AnonymizationTier.TierC"/>
     /// classification, or <see langword="null"/> when <see cref="Tier"/> is not
-    /// <see cref="AnonymizationTier.TierC"/>. The startup model validator uses this to emit a
-    /// PII-safe diagnostic identifying the offending property.
+    /// <see cref="AnonymizationTier.TierC"/>. The column holds only model metadata, so a
+    /// diagnostic that identifies the offending property is PII-safe.
     /// </summary>
     public AnonymizationColumn? TierCBlocker { get; init; }
 }

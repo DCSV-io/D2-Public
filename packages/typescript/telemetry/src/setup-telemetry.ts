@@ -19,8 +19,9 @@ import { buildPropagators } from "./propagators.js";
 import type { TelemetryOptions } from "./telemetry-options.js";
 
 /**
- * Result of {@link setupTelemetry} — holds the SDK handle plus a
- * `shutdown()` for graceful flush. Disabled mode returns a no-op shutdown.
+ * Result of {@link setupTelemetry}: a `shutdown()` that shuts the SDK down and
+ * flushes pending telemetry, plus a `disabled` flag. Disabled mode returns a
+ * no-op shutdown.
  */
 export interface TelemetryHandle {
   readonly shutdown: () => Promise<void>;
@@ -29,8 +30,9 @@ export interface TelemetryHandle {
 
 /**
  * One-call OTel SDK bootstrap. Mirrors the .NET
- * `services.AddD2Telemetry(options)` shape — wires traces, metrics, logs
- * exporters; installs W3C propagator stack; honors the `disabled` flag.
+ * `services.AddD2Telemetry(options)` shape. It wires the traces, metrics and
+ * logs exporters, installs the W3C propagator stack, and returns early when the
+ * `disabled` flag is set.
  */
 export function setupTelemetry(opts: TelemetryOptions): TelemetryHandle {
   if (opts.disabled === true) {

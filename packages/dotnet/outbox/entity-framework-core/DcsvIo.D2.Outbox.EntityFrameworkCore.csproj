@@ -1,0 +1,65 @@
+<!--
+Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>DcsvIo.D2.Outbox.EntityFrameworkCore</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    DcsvIo.D2.Outbox.EntityFrameworkCore - the storage half of the transactional
+    outbox: the row, its EF configuration and mapper, the store the relay reads
+    through, and the staging implementation that joins the caller's unit of
+    work. Every implementation that touches a DbContext lives here rather than
+    in the core package, and each consumer owns the migration that creates the
+    table in its own database. The relay is in
+    DcsvIo.D2.Outbox.EntityFrameworkCore.Postgres, because the advisory lock it
+    takes is PostgreSQL-specific. The row and its mapping are provider-neutral,
+    so this package binds no provider.
+  -->
+
+  <ItemGroup>
+    <!-- DcsvIo.D2.Outbox - the message states, the ports and the options. -->
+    <ProjectReference Include="..\core\DcsvIo.D2.Outbox.csproj" />
+    <!-- DcsvIo.D2.Result - every port here returns D2Result. -->
+    <ProjectReference Include="..\..\result\core\DcsvIo.D2.Result.csproj" />
+    <!-- DcsvIo.D2.Time - IClock and the NodaTime Instant column shapes. -->
+    <ProjectReference Include="..\..\time\DcsvIo.D2.Time.csproj" />
+    <!-- DcsvIo.D2.DataGovernance.Abstractions - the erasure disposition the row
+         declares: exempt from the anonymization sweep, with the reason on the
+         payload column. -->
+    <ProjectReference
+      Include="..\..\data-governance\abstractions\DcsvIo.D2.DataGovernance.Abstractions.csproj" />
+    <!-- DcsvIo.D2.Utilities - Falsey on the caller-minted identity guard. -->
+    <ProjectReference Include="..\..\utilities\DcsvIo.D2.Utilities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Microsoft.EntityFrameworkCore - DbContext, the row set and SaveChangesAsync. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <!-- Microsoft.EntityFrameworkCore.Relational - ToTable, HasColumnName and
+         HasDatabaseName on the row's configuration. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <!-- NodaTime - Instant and Duration on the row and the states. -->
+    <PackageReference Include="NodaTime" />
+    <!-- Microsoft.Extensions.DependencyInjection.Abstractions - the Add extension. -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DcsvIo.D2.Tests" />
+  </ItemGroup>
+
+  <!-- Publish metadata (per-package semver + NuGet identity). -->
+  <PropertyGroup>
+    <Version>0.8.9</Version>
+    <PackageId>DcsvIo.D2.Outbox.EntityFrameworkCore</PackageId>
+    <Description>EF Core storage for the D2 transactional outbox.</Description>
+    <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>

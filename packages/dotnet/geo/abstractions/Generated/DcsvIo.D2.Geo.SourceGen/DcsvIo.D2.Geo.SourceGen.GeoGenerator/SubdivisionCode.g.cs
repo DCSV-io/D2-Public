@@ -37,7 +37,7 @@ public readonly partial struct SubdivisionCode : IEquatable<SubdivisionCode>
 
     /// <summary>
     /// Constructs a <see cref="SubdivisionCode"/> without catalog validation.
-    /// Use at codegen time or with caller-known-good inputs only — boundary
+    /// Use at codegen time or with caller-known-good inputs only - boundary
     /// code SHOULD prefer <see cref="TryParse(string?, out SubdivisionCode)"/>
     /// (which consults the emitted closed-set validation table).
     /// </summary>

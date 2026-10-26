@@ -15,15 +15,16 @@ using DcsvIo.D2.Result;
 /// drop their L1 copy of the affected key on receipt.
 /// </summary>
 /// <remarks>
-/// Implemented by both <see cref="IDistributedCache"/> (so callers
-/// writing directly to L2 can still bust other instances' L1) and
+/// Implemented by both <see cref="IDistributedCache"/> (so its
+/// <c>*AndBroadcast*</c> writes, which write directly to L2, can still
+/// invalidate other instances' L1) and
 /// <see cref="ITieredCache"/> (which writes both tiers and broadcasts
 /// in one call).
 /// </remarks>
 public interface ICacheBroadcast
 {
     /// <summary>
-    /// Writes a value AND publishes an invalidation message via the
+    /// Writes a value and publishes an invalidation message via the
     /// registered <see cref="ICacheInvalidationBackplane"/>.
     /// </summary>
     /// <typeparam name="T">Stored value type.</typeparam>
@@ -57,7 +58,7 @@ public interface ICacheBroadcast
         CancellationToken ct = default);
 
     /// <summary>
-    /// Removes a key AND publishes an invalidation message so other
+    /// Removes a key and publishes an invalidation message so other
     /// instances drop their L1 copies.
     /// </summary>
     /// <param name="key">Cache key.</param>

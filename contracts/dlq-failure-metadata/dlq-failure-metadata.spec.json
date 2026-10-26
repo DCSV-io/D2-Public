@@ -14,7 +14,7 @@
     {
       "constName": "DETAIL",
       "value": "detail",
-      "doc": "JSON property carrying the truncated diagnostic detail (≤256 chars). NEVER built from exception.Message — for result-failure cases this is the join of result.messages.Select(m => m.Key); for exception cases it stays null."
+      "doc": "JSON property carrying the truncated diagnostic detail (<=256 chars). NEVER built from exception.Message - for result-failure cases this is the join of result.messages.Select(m => m.Key); for exception cases it stays null."
     },
     {
       "constName": "ATTEMPT_COUNT",
@@ -41,7 +41,7 @@
     {
       "constName": "HANDLER_EXCEPTION",
       "value": "HANDLER_EXCEPTION",
-      "doc": "Handler threw an unhandled exception. The errorCode field carries the exception type's FullName (NEVER ex.Message — PII guard)."
+      "doc": "Handler threw an unhandled exception. The errorCode field carries the exception type's FullName (NEVER ex.Message - PII guard)."
     },
     {
       "constName": "DECRYPT_FAILURE",
@@ -56,7 +56,7 @@
     {
       "constName": "RETRIES_EXHAUSTED",
       "value": "RETRIES_EXHAUSTED",
-      "doc": "Tiered-retry attempt counter hit MaxAttempts; message routed direct to DLQ without invoking the handler this time. The errorCode field also carries RETRIES_EXHAUSTED."
+      "doc": "Tiered-retry attempt counter reached MaxAttempts; message routed direct to DLQ without invoking the handler this time. The errorCode field also carries RETRIES_EXHAUSTED."
     }
   ]
 }

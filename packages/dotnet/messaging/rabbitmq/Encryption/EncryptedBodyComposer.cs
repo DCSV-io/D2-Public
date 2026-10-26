@@ -19,16 +19,16 @@ using Microsoft.Extensions.DependencyInjection;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The wire body is JUST the serialized message — no envelope wrapper. For
-/// types whose <see cref="MqMessageDescriptor.Encryption"/> is a registered
+/// The wire body is only the serialized message, with no envelope wrapper.
+/// For types whose <see cref="MqMessageDescriptor.Encryption"/> is a registered
 /// domain, the message JSON is AEAD-encrypted into a frame; for
 /// <see cref="MqMessageDescriptor.IsPlaintext">plaintext</see> types the JSON
 /// ships as-is.
 /// </para>
 /// <para>
-/// Encryption here is about <strong>confidentiality of the message payload</strong>,
-/// not about identity propagation. Cross-hop trace correlation rides in the
-/// W3C <c>traceparent</c> AMQP header.
+/// Encryption here provides <strong>confidentiality of the message payload</strong>
+/// and does not propagate identity. The W3C <c>traceparent</c> AMQP header
+/// carries cross-hop trace correlation.
 /// </para>
 /// </remarks>
 internal static class EncryptedBodyComposer
@@ -57,12 +57,12 @@ internal static class EncryptedBodyComposer
         if (descriptor.IsPlaintext)
             return (json, null);
 
-        // Sealed (asymmetric) mode: seal to the recipient SERVICE's public key
-        // via the keyed IPayloadSealer resolved by the consumer service id. A
-        // producer host that never registered a sealer for that service lacks
-        // the keyed registration → GetRequiredKeyedService throws → the publish
-        // fails loud (no plaintext fallback), which is the correct fail-closed
-        // shape for a payload that must never ship unencrypted.
+        // Sealed (asymmetric) mode: seal to the recipient service's public key
+        // with the keyed IPayloadSealer that the consumer service id selects. A
+        // producer host that never registered a sealer for that service has no
+        // keyed registration, so GetRequiredKeyedService throws and the publish
+        // fails. There is no plaintext fallback, which fails closed for a
+        // payload that must never ship unencrypted.
         if (descriptor.IsSealed)
         {
             var sealer = serviceProvider.GetRequiredKeyedService<IPayloadSealer>(
@@ -80,7 +80,7 @@ internal static class EncryptedBodyComposer
     /// <summary>
     /// Decomposes incoming AMQP body bytes into the typed message using a
     /// pre-resolved <see cref="MqMessageDescriptor"/>. Throws on decrypt
-    /// failure or JSON parse error — callers map to DLQ.
+    /// failure or JSON parse error.
     /// </summary>
     /// <typeparam name="TMessage">Expected message type.</typeparam>
     /// <param name="body">Incoming body bytes.</param>
@@ -101,13 +101,14 @@ internal static class EncryptedBodyComposer
         }
         else if (descriptor.IsSealed)
         {
-            // Sealed (asymmetric) mode: open with the recipient SERVICE's
-            // private key via the keyed IPayloadOpener resolved by the consumer
-            // service id. On the legitimate consumer host that id equals its own
-            // service id, so opener-keyed-by-consumer-service IS opener-keyed-by-
-            // own-identity; a non-consumer host lacks the registration →
-            // GetRequiredKeyedService throws → the caller maps the throw to DLQ
-            // (never a silent drop, never plaintext).
+            // Sealed (asymmetric) mode: open with the recipient service's
+            // private key, using the keyed IPayloadOpener that the consumer
+            // service id selects. On the consumer host that id equals the
+            // host's own service id, so the opener keyed by the consumer
+            // service is the opener keyed by the host's own identity. A host
+            // that is not the consumer has no such registration, so
+            // GetRequiredKeyedService throws. The message is never dropped
+            // silently and never read as plaintext.
             var opener = serviceProvider.GetRequiredKeyedService<IPayloadOpener>(
                 ConsumerServiceKey(descriptor));
             json = opener.Open(body);
@@ -122,20 +123,23 @@ internal static class EncryptedBodyComposer
         return JsonSerializer.Deserialize<TMessage>(
             json, MessagingJsonOptions.Options)
             ?? throw new InvalidOperationException(
-                "Decoded body deserialized to null — wire format violation.");
+                "Decoded body deserialized to null - wire format violation.");
     }
 
     /// <summary>
-    /// Extracts the kid from an encryption frame's header bytes (used to
-    /// populate the <c>x-d2-encryption-kid</c> AMQP header alongside the
-    /// encrypted body). Version-aware: a symmetric version-1 frame yields
-    /// its keyring kid; a sealed version-2 frame yields its recipient kid —
-    /// both header families share the same
+    /// Extracts the kid from an encryption frame's header bytes. The kid is
+    /// the value of the <c>x-d2-encryption-kid</c> AMQP header that
+    /// accompanies the encrypted body.
+    /// </summary>
+    /// <remarks>
+    /// Version-aware: a symmetric version-1 frame yields its keyring kid; a
+    /// sealed version-2 frame yields its recipient kid - both header families
+    /// share the same
     /// <c>[version:1][kid_len:1][kid:UTF-8]</c> prefix shape, so the read
     /// path is identical and only the layout constants differ. For a sealed
     /// frame the recipient kid is what DLQ triage needs to identify the
     /// archive-opener key without decrypting.
-    /// </summary>
+    /// </remarks>
     /// <param name="frame">The encryption frame produced by
     /// <see cref="IPayloadCrypto.Encrypt"/> or <see cref="IPayloadSealer.Seal"/>.</param>
     /// <returns>The kid string parsed from the frame's header.</returns>
@@ -149,11 +153,12 @@ internal static class EncryptedBodyComposer
                 "Frame too short to read kid header.");
         }
 
-        // L2: version byte must match a format we know how to read.
-        // A future format bump (different field ordering, longer kid_len
-        // prefix, etc.) MUST surface here — silently parsing an unknown
-        // frame would emit a garbage `x-d2-encryption-kid` header that
-        // ops use for archive-key triage, which is worse than a hard fail.
+        // The version byte must match a frame format this method can read.
+        // A frame with an unknown version (a different field ordering or a
+        // longer kid_len prefix, for example) must fail here: parsing it
+        // anyway would emit a garbage `x-d2-encryption-kid` header, which
+        // operators use for archive-key triage, and that is worse than a
+        // hard failure.
         var version = frame[0];
 
         if (version == EncryptionFrameLayout.CURRENT_VERSION)
@@ -193,13 +198,13 @@ internal static class EncryptedBodyComposer
     // The consumer service id that keys a sealed domain's IPayloadSealer /
     // IPayloadOpener. A sealed descriptor always carries a non-null
     // ConsumerService (the spec-derived catalog binds sealed-ness and the
-    // consumer service together — one is never present without the other); a
-    // null here is a generated-catalog contradiction that must fail loud rather
-    // than silently resolve the null-keyed service.
+    // consumer service together - one is never present without the other); a
+    // null here is a generated-catalog contradiction, and it throws instead of
+    // silently resolving the null-keyed service.
     private static string ConsumerServiceKey(MqMessageDescriptor descriptor)
         => descriptor.ConsumerService
             ?? throw new InvalidOperationException(
                 $"Message domain '{descriptor.Encryption}' resolved as sealed but "
-                + "carries no consumer service — the generated encryption-domain "
+                + "carries no consumer service - the generated encryption-domain "
                 + "catalog is internally inconsistent.");
 }

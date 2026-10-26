@@ -32,7 +32,7 @@ internal static class EncryptionDomainsEmitter
     /// <summary>The emitted mode / consumer-service lookup class name.</summary>
     public const string MODES_CLASS_NAME = "EncryptionDomainModes";
 
-    // Defaults kept as public constants for existing unit tests that assert names.
+    // The mode literals the spec accepts.
     private const string _MODE_SYMMETRIC = "symmetric";
     private const string _MODE_SEALED = "sealed";
 
@@ -46,13 +46,13 @@ internal static class EncryptionDomainsEmitter
         RegexOptions.Compiled,
         TimeSpan.FromMilliseconds(50));
 
-    /// <summary>Emits the EncryptionDomains class source + diagnostics.</summary>
+    /// <summary>Emits the EncryptionDomains class source and its diagnostics.</summary>
     /// <param name="spec">Parsed encryption-domains spec.</param>
-    /// <param name="rootNamespace">Emit namespace (public or private product type).</param>
+    /// <param name="rootNamespace">Emit namespace (public or private target).</param>
     /// <param name="className">Emit domains class name.</param>
     /// <param name="modeEnumName">Emit mode enum name.</param>
     /// <param name="modesClassName">Emit modes lookup class name.</param>
-    /// <returns>Generated source + diagnostics.</returns>
+    /// <returns>The generated source and the diagnostics.</returns>
     public static EmitResult Emit(
         EncryptionDomainsSpec spec,
         string? rootNamespace = null,
@@ -146,9 +146,9 @@ internal static class EncryptionDomainsEmitter
         sb.AppendLine(
             "/// route a message to a non-existent keyring. Adding a new domain is an");
         sb.AppendLine(
-            "/// architectural decision that requires KeyCustodian provisioning,");
+            "/// architectural decision that requires key provisioning,");
         sb.AppendLine(
-            "/// key-rotation runbook updates, and operator coordination — the spec");
+            "/// key-rotation runbook updates, and operator coordination - the spec");
         sb.AppendLine("/// edit forces all parties into the loop.");
         sb.AppendLine("/// </remarks>");
         sb.AppendLine($"public static class {className}");
@@ -181,7 +181,7 @@ internal static class EncryptionDomainsEmitter
 
     /// <summary>
     /// Validates an entry's optional <c>mode</c> / <c>consumerService</c> pair.
-    /// Appends the relevant fail-loud diagnostic and returns <c>false</c> when
+    /// Appends the relevant error diagnostic and returns <c>false</c> when
     /// the pair is inconsistent; otherwise returns <c>true</c>.
     /// </summary>
     private static bool ValidateModeAndConsumer(
@@ -268,7 +268,7 @@ internal static class EncryptionDomainsEmitter
         sb.AppendLine(
             "/// A domain absent from the catalog (e.g. a test-seam synthetic domain)");
         sb.AppendLine(
-            "/// resolves to <c>Symmetric</c> — sealed-ness can originate only in the");
+            "/// resolves to <c>Symmetric</c> - sealed-ness can originate only in the");
         sb.AppendLine(
             "/// spec catalog, so a value that is not a declared sealed domain is by");
         sb.AppendLine("/// construction not sealed.");

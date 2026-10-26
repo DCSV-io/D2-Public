@@ -15,40 +15,40 @@ using Npgsql;
 
 /// <summary>
 /// PostgreSQL implementation of <see cref="IDbExceptionClassifier"/>.
-/// Classifies in two precedence-ordered passes; an exception that matches
-/// both is categorized by the first match.
+/// Classifies in the precedence-ordered passes below; an exception that
+/// matches more than one pass is categorized by the first match.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Pass 1 — server-returned <see cref="PostgresException"/> with non-null
-/// SqlState.</b> Most reliable signal: the server itself reported what went
-/// wrong. SqlState routes through <see cref="ClassifyBySqlState"/>. Reached
-/// for both raw <see cref="PostgresException"/> instances AND EF-wrapped
-/// <see cref="DbUpdateException"/> instances; the unwrap walks the inner
-/// chain via <c>PgErrorCodes.TryGetPgException</c> up to 10 levels
-/// deep (defends against <see cref="AggregateException"/> /
-/// <see cref="System.Reflection.TargetInvocationException"/> wrappers).
+/// <b>Pass 1 - server-returned <see cref="PostgresException"/> with non-null
+/// SqlState.</b> The most reliable signal: the server itself reported what
+/// went wrong. SqlState goes to <see cref="ClassifyBySqlState"/>. This pass
+/// applies to both raw <see cref="PostgresException"/> instances AND
+/// EF-wrapped <see cref="DbUpdateException"/> instances; the unwrap walks the
+/// inner chain through <c>PgErrorCodes.TryGetPgException</c> up to 10 levels
+/// deep, which also handles <see cref="AggregateException"/> and
+/// <see cref="System.Reflection.TargetInvocationException"/> wrappers.
 /// </para>
 /// <para>
-/// <b>Pass 2 — network-level <see cref="SocketException"/> /
+/// <b>Pass 2 - network-level <see cref="SocketException"/> /
 /// <see cref="IOException"/> anywhere in the inner-exception chain.</b>
 /// Indicates the connection dropped, was refused, or the OS network stack
-/// faulted — transient, retryable.
+/// faulted - transient, retryable.
 /// </para>
 /// <para>
-/// <b>Anything else returns <c>null</c></b> — including bare
+/// <b>Anything else returns <c>null</c></b> - including bare
 /// <see cref="NpgsqlException"/>s with no recognizable inner cause (bad
 /// connection-string parse, SSL handshake failure, concurrent-connection
-/// misuse, internal Npgsql state errors). These are programmer / config
+/// misuse, internal Npgsql state errors). These are programmer or config
 /// failures that should NOT be silently treated as transient and retried;
-/// the caller surfaces them as <c>UnhandledException</c> so they page ops.
+/// they surface as <c>UnhandledException</c>, which pages ops.
 /// </para>
 /// <para>
-/// <b>Client-side timeouts are NOT classified here.</b> Npgsql surfaces a
-/// blown <c>NpgsqlCommand.CommandTimeout</c> as
+/// <b>Client-side timeouts are NOT classified here.</b> Npgsql surfaces an
+/// exceeded <c>NpgsqlCommand.CommandTimeout</c> as
 /// <see cref="OperationCanceledException"/>, which
 /// <c>BaseHandler.RunCorePipelineAsync</c> already handles before
-/// <c>BaseRepoHandler</c> sees the captured exception (mapping to
+/// <c>BaseRepoHandler</c> receives the captured exception (mapping to
 /// <c>D2Result.Canceled</c> when the caller's <see cref="System.Threading.CancellationToken"/>
 /// fired, otherwise to <c>D2Result.ServiceUnavailable</c>). Only the
 /// server-side <c>statement_timeout</c> path (SQLSTATE <c>57014</c>) reaches
@@ -80,7 +80,7 @@ public sealed class PostgresDbExceptionClassifier : IDbExceptionClassifier
             return DbFailureKind.ConnectionFailure;
         }
 
-        // Unrecognized — programmer / config error, surface as UnhandledException.
+        // Unrecognized - programmer / config error, surface as UnhandledException.
         return null;
     }
 
@@ -91,9 +91,9 @@ public sealed class PostgresDbExceptionClassifier : IDbExceptionClassifier
 
             // exclusion_violation (23P01): a partial deferrable EXCLUDE
             // constraint breach (e.g. "one Active key per domain"). PostgreSQL
-            // raises this — NOT 23505 — for an EXCLUDE collision, yet it is
+            // raises this - NOT 23505 - for an EXCLUDE collision, yet it is
             // semantically a uniqueness conflict, so it shares
-            // DbFailureKind.UniqueViolation → 409 Conflict with 23505. Uses
+            // DbFailureKind.UniqueViolation -> 409 Conflict with 23505. Uses
             // Npgsql's own named constant (not a PgErrorCodes const) so this
             // internal mapping does not expand the package's public API.
             PostgresErrorCodes.ExclusionViolation => DbFailureKind.UniqueViolation,
@@ -125,10 +125,11 @@ public sealed class PostgresDbExceptionClassifier : IDbExceptionClassifier
         if (exception is T)
             return true;
 
-        // AggregateException carries N parallel inner exceptions — search every
-        // branch, not just the first. EF / TPL parallel batch operations can
+        // AggregateException has N parallel inner exceptions - search every
+        // branch, not only the first. EF / TPL parallel batch operations can
         // surface a SocketException as InnerExceptions[1+] while [0] is some
-        // unrelated wrapper, and a single-pointer walker would miss it.
+        // unrelated wrapper, and a walker that follows a single pointer would
+        // miss it.
         if (exception is AggregateException agg)
         {
             foreach (var inner in agg.InnerExceptions)

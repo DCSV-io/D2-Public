@@ -18,19 +18,20 @@ using Microsoft.Extensions.Options;
 using Xunit;
 
 /// <summary>
-/// <see cref="IMessageBus.WaitForReadyAsync"/> cancellation contract.
-/// Hosted services often gate "first publish" on this readiness signal;
-/// the cancellation path must surface as <see cref="OperationCanceledException"/>
-/// so the host shutdown sequence terminates cleanly.
+/// Tests of the <see cref="IMessageBus.WaitForReadyAsync"/> cancellation
+/// contract. When the token is canceled before the connection is ready, the
+/// method throws <see cref="OperationCanceledException"/>, so the host
+/// shutdown sequence terminates cleanly.
 /// </summary>
 public sealed class RabbitMqMessageBusReadinessTests
 {
     [Fact]
     public async Task WaitForReadyAsync_CanceledBeforeReady_ThrowsOperationCanceled()
     {
-        // Connection that never becomes ready — TaskCompletionSource left
-        // unresolved. Cancellation must surface as OperationCanceledException
-        // (not silently swallowed, not TaskCanceledException uncaught).
+        // The connection never becomes ready, because its TaskCompletionSource
+        // stays unresolved. The method must not complete normally, and the
+        // exception must be OperationCanceledException or a type derived from
+        // it.
         var bus = BuildBusWithStubConnection(neverReady: true);
         using var cts = new CancellationTokenSource();
         cts.CancelAfter(TimeSpan.FromMilliseconds(100));
@@ -60,6 +61,7 @@ public sealed class RabbitMqMessageBusReadinessTests
             pool,
             scopeFactory,
             conn,
+            MessagingCatalog.Default,
             publisherOpts,
             logger);
     }

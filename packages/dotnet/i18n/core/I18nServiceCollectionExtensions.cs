@@ -12,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 /// <summary>
-/// DI registration for <see cref="ITranslator"/> + <see cref="SupportedLocales"/>.
+/// DI registration for <see cref="ITranslator"/> and <see cref="SupportedLocales"/>.
 /// </summary>
 public static class I18nServiceCollectionExtensions
 {
@@ -20,23 +20,24 @@ public static class I18nServiceCollectionExtensions
     extension(IServiceCollection services)
     {
         /// <summary>
-        /// Registers <see cref="SupportedLocales"/> + <see cref="ITranslator"/> as
+        /// Registers <see cref="SupportedLocales"/> and <see cref="ITranslator"/> as
         /// process-wide singletons. Both are constructed eagerly on first resolve;
         /// the <see cref="Translator"/> loads every JSON catalog from
         /// <paramref name="messagesDirectory"/> at construction.
         /// </summary>
         /// <param name="configuration">
-        /// The application configuration. <c>PUBLIC_DEFAULT_LOCALE</c> + the
+        /// The application configuration. <c>PUBLIC_DEFAULT_LOCALE</c> and the
         /// indexed <c>PUBLIC_ENABLED_LOCALES</c> section drive
         /// <see cref="SupportedLocales"/> construction.
         /// </param>
         /// <param name="messagesDirectory">
         /// Optional override for the messages directory. Defaults to
-        /// <c>{AppContext.BaseDirectory}/messages</c> — populated at build time
-        /// via the consuming csproj's
-        /// <c>&lt;Content Include="...contracts/messages/*.json" /&gt;</c> item group.
+        /// <c>{AppContext.BaseDirectory}/messages</c> - populated at build time
+        /// through the
+        /// <c>&lt;Content Include="...contracts/messages/*.json" /&gt;</c> item group
+        /// of this package's csproj.
         /// </param>
-        /// <returns>The service collection for chaining.</returns>
+        /// <returns>The service collection, so calls can be chained.</returns>
         public IServiceCollection AddD2I18n(
             IConfiguration configuration,
             string? messagesDirectory = null)

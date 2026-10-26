@@ -13,79 +13,106 @@ using global::RabbitMQ.Client;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Idempotent topology declarer driven by the registered
-/// <see cref="SubscriberRegistry"/>. Acquires a single dedicated channel,
-/// declares everything, and closes it — declaration runs once per startup
-/// and the channel is not reused by the publish / consume paths.
+/// Topology declarer driven by the registered <see cref="SubscriberRegistry"/>.
+/// Acquires a single dedicated channel, declares everything, and closes it.
+/// The channel is not reused by the publish or consume paths.
 /// </summary>
+/// <remarks>
+/// Declares once per instance: a second caller awaits the first caller's
+/// declaration, so two callers do not each send a set of declare and bind
+/// commands for one topology.
+/// </remarks>
 internal sealed class DefaultTopologyDeclarer : ITopologyDeclarer
 {
     private readonly ID2Connection r_connection;
     private readonly SubscriberRegistry r_registry;
+    private readonly MessagingCatalog r_catalog;
     private readonly ILogger<DefaultTopologyDeclarer> r_logger;
+
+    // Guards _declaration. Several callers can reach DeclareAsync on this
+    // singleton at once. The gate makes the second caller join the first
+    // declaration instead of running its own.
+    private readonly Lock r_declarationGate = new();
+
+    private Task? _declaration;
 
     /// <summary>Initializes the declarer.</summary>
     /// <param name="connection">Connection wrapper.</param>
     /// <param name="registry">Subscriber registry to drive declarations.</param>
+    /// <param name="catalog">The message descriptors the declared exchanges
+    /// are read from.</param>
     /// <param name="logger">Logger.</param>
     public DefaultTopologyDeclarer(
         ID2Connection connection,
         SubscriberRegistry registry,
+        MessagingCatalog catalog,
         ILogger<DefaultTopologyDeclarer> logger)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(registry);
+        ArgumentNullException.ThrowIfNull(catalog);
         ArgumentNullException.ThrowIfNull(logger);
         r_connection = connection;
         r_registry = registry;
+        r_catalog = catalog;
         r_logger = logger;
     }
 
     /// <inheritdoc />
     public async ValueTask DeclareAsync(CancellationToken ct)
     {
-        if (r_registry.All.Count == 0)
+        Task declaration;
+
+        // The memoized declaration is shared, so it runs on a token no single
+        // caller owns. Each caller bounds its own wait through WaitAsync(ct)
+        // below; passing the first caller's token here would cancel the shared
+        // task for every joiner when that one caller was canceled, and hand a
+        // caller whose own token is fine an OperationCanceledException raised on
+        // a token it does not own.
+        //
+        // The declaration is built unstarted before the gate, published under
+        // it, and run by the caller that published it after releasing the gate.
+        // Started inside the lock, the declaration would reach its broker calls
+        // with the gate held whenever the connection answered without yielding.
+        // A caller that finds a declaration already published drops its own
+        // unstarted one.
+        var launch = new Task<Task>(() => DeclareOnceAsync(CancellationToken.None));
+        var candidate = launch.Unwrap();
+
+        lock (r_declarationGate)
+            declaration = _declaration ??= candidate;
+
+        if (ReferenceEquals(declaration, candidate))
+            launch.RunSynchronously(TaskScheduler.Default);
+
+        try
         {
-            TopologyLog.NoSubscribersToDeclare(r_logger);
-            return;
+            await declaration.WaitAsync(ct);
         }
-
-        TopologyLog.DeclarationStarted(r_logger, r_registry.All.Count);
-        var stopwatch = Stopwatch.StartNew();
-
-        // Declaration is idempotent — safe to retry across reconnects, but the
-        // hosted service runs us only once after first connection ready, so a
-        // single channel per declaration cycle is enough.
-        await using var channel = await r_connection.CreateChannelAsync(
-            options: null, ct);
-
-        foreach (var registration in r_registry.All)
+        catch (Exception)
         {
-            try
+            // Drop a declaration that faulted or was canceled, so the next caller
+            // declares again instead of inheriting the failure. A caller whose own
+            // token was canceled leaves an unfinished declaration in place for
+            // whoever is still waiting on it.
+            if (declaration.IsFaulted || declaration.IsCanceled)
             {
-                await DeclareForSubscriberAsync(channel, registration, ct);
+                lock (r_declarationGate)
+                {
+                    if (ReferenceEquals(_declaration, declaration))
+                        _declaration = null;
+                }
             }
-            catch (Exception ex)
-            {
-                // Per §3.1: pass exception type name only, never the
-                // exception itself — `OperationInterruptedException.Message`
-                // from RabbitMQ.Client can include broker-side text such as
-                // PRECONDITION_FAILED arg dumps that operators may have
-                // configured (declaration arguments, queue settings, etc.).
-                TopologyLog.DeclarationFailed(
-                    r_logger, ex.GetType().Name, registration.ResolvedQueueName);
-                throw;
-            }
-        }
 
-        stopwatch.Stop();
-        TopologyLog.DeclarationCompleted(r_logger, stopwatch.Elapsed.TotalMilliseconds);
+            throw;
+        }
     }
 
     /// <summary>
     /// Queue durability / exclusivity / auto-delete flags per <see cref="QueuePattern"/>.
-    /// Shared with consumer-channel re-declare for
-    /// <see cref="QueuePattern.FanoutExclusiveAutoDelete"/> so flags cannot drift.
+    /// A single definition keeps the flags of
+    /// <see cref="QueuePattern.FanoutExclusiveAutoDelete"/> from drifting between
+    /// declaration sites.
     /// </summary>
     /// <param name="pattern">The subscription queue pattern.</param>
     /// <returns>The declare flags for the primary queue.</returns>
@@ -99,11 +126,49 @@ internal sealed class DefaultTopologyDeclarer : ITopologyDeclarer
         _ => throw new ArgumentOutOfRangeException(nameof(pattern), pattern, null),
     };
 
-    private static string ResolveExchange(Type messageType) =>
-        MessageWireResolver.Resolve(messageType).Exchange;
+    private static string ResolveExchange(MessagingCatalog catalog, Type messageType) =>
+        MessageWireResolver.Resolve(catalog, messageType).Exchange;
 
-    private static string ResolveExchangeType(Type messageType) =>
-        MessageWireResolver.Resolve(messageType).ExchangeType;
+    private static string ResolveExchangeType(MessagingCatalog catalog, Type messageType) =>
+        MessageWireResolver.Resolve(catalog, messageType).ExchangeType;
+
+    private async Task DeclareOnceAsync(CancellationToken ct)
+    {
+        if (r_registry.All.Count == 0)
+        {
+            TopologyLog.NoSubscribersToDeclare(r_logger);
+            return;
+        }
+
+        TopologyLog.DeclarationStarted(r_logger, r_registry.All.Count);
+        var stopwatch = Stopwatch.StartNew();
+
+        // One channel for the whole declaration; it is closed on the way out.
+        await using var channel = await r_connection.CreateChannelAsync(
+            options: null, ct);
+
+        foreach (var registration in r_registry.All)
+        {
+            try
+            {
+                await DeclareForSubscriberAsync(channel, registration, ct);
+            }
+            catch (Exception ex)
+            {
+                // Pass the exception type name only, never the
+                // exception itself - `OperationInterruptedException.Message`
+                // from RabbitMQ.Client can include broker-side text such as
+                // PRECONDITION_FAILED arg dumps that operators may have
+                // configured (declaration arguments, queue settings, etc.).
+                TopologyLog.DeclarationFailed(
+                    r_logger, ex.GetType().Name, registration.ResolvedQueueName);
+                throw;
+            }
+        }
+
+        stopwatch.Stop();
+        TopologyLog.DeclarationCompleted(r_logger, stopwatch.Elapsed.TotalMilliseconds);
+    }
 
     private async ValueTask DeclareForSubscriberAsync(
         IChannel channel,
@@ -112,8 +177,8 @@ internal sealed class DefaultTopologyDeclarer : ITopologyDeclarer
     {
         var descriptor = registration.Descriptor;
         var queueName = registration.ResolvedQueueName;
-        var exchange = ResolveExchange(registration.MessageType);
-        var exchangeType = ResolveExchangeType(registration.MessageType);
+        var exchange = ResolveExchange(r_catalog, registration.MessageType);
+        var exchangeType = ResolveExchangeType(r_catalog, registration.MessageType);
 
         await channel.ExchangeDeclareAsync(
             exchange: exchange,
@@ -126,7 +191,7 @@ internal sealed class DefaultTopologyDeclarer : ITopologyDeclarer
         var dlxName = DlqNaming.DlxFor(queueName);
         var dlqName = DlqNaming.DlqFor(queueName);
 
-        // DLX (fanout — routing key irrelevant) → DLQ.
+        // DLX (fanout - routing key irrelevant) -> DLQ.
         await channel.ExchangeDeclareAsync(
             exchange: dlxName,
             type: ExchangeType.Fanout,
@@ -192,9 +257,9 @@ internal sealed class DefaultTopologyDeclarer : ITopologyDeclarer
         TieredRetryDescriptor retry,
         CancellationToken ct)
     {
-        // Retry queues TTL-expire onto a "return" fanout exchange that's bound
-        // back to the primary queue — putting the message back in front of the
-        // handler for another attempt.
+        // Retry queues dead-letter on TTL expiry onto a "return" fanout exchange
+        // that is bound back to the primary queue, which puts the message back
+        // in front of the handler for another attempt.
         var returnExchange = DlqNaming.RetryReturnExchangeFor(queueName);
         await channel.ExchangeDeclareAsync(
             exchange: returnExchange,

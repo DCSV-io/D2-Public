@@ -17,25 +17,29 @@ using Microsoft.CodeAnalysis.Text;
 /// <summary>
 /// Roslyn incremental source generator that emits scope catalogs from
 /// <c>contracts/auth-scopes/scopes.spec.json</c> via <c>AdditionalFiles</c>.
-/// Dual-target: public assembly <c>DcsvIo.D2.Auth.Abstractions</c> → <c>Scopes</c>
-/// (public values only); private Extensions assembly
-/// <c>DcsvIo.D2.Private.Auth.Abstractions.Extensions</c> → <c>ProductScopes</c>
-/// (public∪private values, distinct FQN under <c>DcsvIo.D2.Private.Auth</c>).
+/// In the public assembly <c>DcsvIo.D2.Auth.Abstractions</c> it emits
+/// <c>Scopes</c> over the values of the one spec file it is given. In another
+/// assembly that sets the MSBuild properties <c>D2ScopesExtensionNamespace</c>
+/// and <c>D2ScopesExtensionClassPrefix</c>, it emits the class named by the
+/// prefix followed by <c>Scopes</c>, under that namespace, over the union of
+/// every scope spec file the assembly lists.
 /// </summary>
 [Generator]
 public sealed class ScopesGenerator : IIncrementalGenerator
 {
-    private const string _GENERATED_SOURCE_NAME = "Scopes.g.cs";
-    private const string _PRIVATE_GENERATED_SOURCE_NAME = "ProductScopes.g.cs";
     private const string _SPEC_FILE_NAME = "scopes.spec.json";
     private const string _TARGET_ASSEMBLY_NAME = "DcsvIo.D2.Auth.Abstractions";
-    private const string _PRIVATE_TARGET_ASSEMBLY_NAME = "DcsvIo.D2.Private.Auth.Abstractions.Extensions";
     private const string _PUBLIC_ROOT_NAMESPACE = "DcsvIo.D2.Auth.Abstractions";
-    private const string _PRIVATE_ROOT_NAMESPACE = "DcsvIo.D2.Private.Auth";
     private const string _PUBLIC_CLASS_NAME = "Scopes";
-    private const string _PRIVATE_CLASS_NAME = "ProductScopes";
     private const string _ORG_TYPE_FQN = "DcsvIo.D2.Auth.Abstractions.OrgType";
     private const string _ROLE_FQN = "DcsvIo.D2.Auth.Abstractions.Role";
+
+    private static readonly ExtensionTargetSettings sr_extensionTarget = new(
+        NamespaceProperty: "D2ScopesExtensionNamespace",
+        ClassPrefixProperty: "D2ScopesExtensionClassPrefix",
+        InvalidNamespace: DiagnosticDescriptors.SR_InvalidExtensionNamespace,
+        InvalidClassPrefix: DiagnosticDescriptors.SR_InvalidExtensionClassPrefix,
+        ClassPrefixWithoutNamespace: DiagnosticDescriptors.SR_ExtensionClassPrefixWithoutNamespace);
 
     /// <inheritdoc/>
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -48,37 +52,34 @@ public sealed class ScopesGenerator : IIncrementalGenerator
                 Content: file.GetText(ct)?.ToString() ?? string.Empty))
             .Collect();
 
-        // 2. Combine with the compilation so we can gate emission by assembly name
-        //    AND extract OrgType / Role enum members at codegen time (so the
-        //    grantedTo wildcard expansion picks up new members automatically).
-        var combined = specs.Combine(context.CompilationProvider);
+        // 2. Read the extension properties the host project sets.
+        var targetOptions = context.AnalyzerConfigOptionsProvider
+            .Select(static (provider, _) =>
+                ExtensionTargetSelector.Read(provider.GlobalOptions, sr_extensionTarget));
 
-        // 3. For each pipeline run, drive the emitter.
+        // 3. Combine with the compilation, so emission can depend on the assembly name
+        //    and the OrgType / Role enum members can be read at codegen time. The
+        //    grantedTo wildcard expansion therefore includes new members automatically.
+        var combined = specs.Combine(context.CompilationProvider).Combine(targetOptions);
+
+        // 4. On each pipeline run, call the emitter.
         context.RegisterSourceOutput(combined, static (spc, tuple) =>
         {
-            var (specFiles, compilation) = tuple;
+            var ((specFiles, compilation), options) = tuple;
 
-            var isPublic = string.Equals(
-                compilation.AssemblyName,
-                _TARGET_ASSEMBLY_NAME,
-                StringComparison.Ordinal);
-            var isPrivate = string.Equals(
-                compilation.AssemblyName,
-                _PRIVATE_TARGET_ASSEMBLY_NAME,
-                StringComparison.Ordinal);
+            var target = ExtensionTargetSelector.Select(
+                compilation.AssemblyName, _TARGET_ASSEMBLY_NAME, options);
+            ExtensionTargetSelector.Report(spc, target, sr_extensionTarget);
 
-            if (!isPublic && !isPrivate)
+            if (target.Kind is not (ExtensionTargetKind.Public or ExtensionTargetKind.Extension))
                 return;
 
-            var rootNamespace = isPrivate
-                ? _PRIVATE_ROOT_NAMESPACE
-                : _PUBLIC_ROOT_NAMESPACE;
-            var className = isPrivate
-                ? _PRIVATE_CLASS_NAME
+            var isExtension = target.Kind == ExtensionTargetKind.Extension;
+            var rootNamespace = isExtension ? target.Namespace : _PUBLIC_ROOT_NAMESPACE;
+            var className = isExtension
+                ? target.ClassPrefix + _PUBLIC_CLASS_NAME
                 : _PUBLIC_CLASS_NAME;
-            var sourceName = isPrivate
-                ? _PRIVATE_GENERATED_SOURCE_NAME
-                : _GENERATED_SOURCE_NAME;
+            var sourceName = className + ".g.cs";
 
             if (specFiles.IsDefaultOrEmpty)
             {
@@ -91,8 +92,9 @@ public sealed class ScopesGenerator : IIncrementalGenerator
                 return;
             }
 
-            // Public: single public values file. Private: merge all scopes.spec.json
-            // AdditionalFiles (public∪private) by row union; fail-loud on id collision.
+            // Merge every scopes.spec.json in AdditionalFiles as a union of rows, and
+            // report an error diagnostic when two rows have the same scope name. The
+            // public assembly lists one file.
             var ordered = specFiles.OrderBy(s => s.Path, StringComparer.Ordinal).ToList();
             var loadResult = ScopeSpecLoader.Load(ordered[0].Path, ordered[0].Content);
             if (loadResult.Diagnostic is { } loadDiag)
@@ -152,7 +154,7 @@ public sealed class ScopesGenerator : IIncrementalGenerator
     /// <summary>
     /// Reads enum member names from the compilation by fully-qualified type
     /// name. Returns the member names in source order. Returns an empty list
-    /// when the type isn't in the compilation (e.g. mid-build before
+    /// when the compilation does not contain the type (for example mid-build, before
     /// auth-abstractions is fully resolved).
     /// </summary>
     private static IReadOnlyList<string> ExtractEnumMembers(
@@ -197,6 +199,8 @@ public sealed class ScopesGenerator : IIncrementalGenerator
         DiagnosticIds.TreePositionCollision => DiagnosticDescriptors.TreePositionCollision,
         DiagnosticIds.MissingGrantedTo => DiagnosticDescriptors.MissingGrantedTo,
         DiagnosticIds.MissingSpecFile => DiagnosticDescriptors.MissingSpecFile,
+        DiagnosticIds.InternalFlagPrefixDisagreement =>
+            DiagnosticDescriptors.InternalFlagPrefixDisagreement,
         _ => throw new InvalidOperationException($"Unknown EmitDiagnostic descriptor id '{id}'."),
     };
 

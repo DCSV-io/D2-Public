@@ -9,11 +9,11 @@ namespace DcsvIo.D2.ProblemDetails.SourceGen;
 /// <summary>
 /// String identifiers for the diagnostics emitted by
 /// <see cref="ProblemDetailsGenerator"/>. Kept in a separate class from
-/// <see cref="DiagnosticDescriptors"/> so non-Roslyn-host consumers
-/// (e.g. unit tests of the pure-logic <see cref="ProblemDetailsEmitter"/>
-/// / <see cref="ProblemDetailsSpecLoader"/>) can reference the IDs without
-/// dragging in <c>Microsoft.CodeAnalysis</c> (which the SrcGen csproj marks
-/// <c>PrivateAssets="all"</c>).
+/// <see cref="DiagnosticDescriptors"/> so code that runs outside the Roslyn
+/// host, such as the pure-logic <see cref="ProblemDetailsEmitter"/> and
+/// <see cref="ProblemDetailsSpecLoader"/>, can reference the IDs without
+/// referencing <c>Microsoft.CodeAnalysis</c>, which the source generator
+/// project marks <c>PrivateAssets="all"</c>.
 /// </summary>
 internal static class DiagnosticIds
 {
@@ -30,7 +30,7 @@ internal static class DiagnosticIds
     public const string DuplicateTitleConstName = "D2PRB004";
 
     /// <summary>
-    /// Two titles share the same <c>httpStatus</c> (only one entry MAY carry
+    /// Two titles share the same <c>httpStatus</c> (only one entry may carry
     /// each status; <c>null</c> marks the singular fallback entry).
     /// </summary>
     public const string DuplicateTitleHttpStatus = "D2PRB005";

@@ -15,12 +15,11 @@ using DcsvIo.D2.DataGovernance.Abstractions;
 using DcsvIo.D2.DataGovernance.EntityFrameworkCore;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Xunit;
 
 /// <summary>
 /// Tests for <see cref="AnonymizationTierClassifier"/>. All contexts use the Npgsql provider
-/// configured with a dummy connection string (model-build-only — the connection is never opened).
+/// configured with a dummy connection string (model-build-only - the connection is never opened).
 /// This gives a real relational model so <c>GetColumnName()</c>, <c>IsMappedToJson()</c>, and
 /// <c>GetTableName()</c> return production-faithful values.
 /// </summary>
@@ -39,7 +38,7 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
     public void Dispose() => AnonymizationTierClassifier.ClearCache();
 
     // =========================================================================
-    // Enum shape — pin member count + values
+    // Enum shape - pin member count + values
     // =========================================================================
 
     [Fact]
@@ -73,15 +72,15 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
     }
 
     // =========================================================================
-    // Record round-trips — required init + equality + with-mutation
+    // Record round-trips - required init + equality + with-mutation
     // =========================================================================
 
     [Fact]
     public void AnonymizationColumn_record_equality_and_with_mutation()
     {
-        using ScalarOnlyContext ctx = ScalarOnlyContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
-        IProperty prop = entityType.FindProperty(nameof(ScalarOnlyEntity.Email))!;
+        using var ctx = ScalarOnlyContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
+        var prop = entityType.FindProperty(nameof(ScalarOnlyEntity.Email))!;
         var rule = AnonymizationRule.Create(AnonymizeKind.Constant, constantValue: "[deleted]");
 
         var col = new AnonymizationColumn
@@ -115,16 +114,16 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
     }
 
     // =========================================================================
-    // Tier A — plain scalar (shape Scalar)
+    // Tier A - plain scalar (shape Scalar)
     // =========================================================================
 
     [Fact]
     public void Classify_entity_with_scalar_constant_fields_returns_TierA()
     {
-        using ScalarOnlyContext ctx = ScalarOnlyContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
+        using var ctx = ScalarOnlyContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
 
-        AnonymizationClassification result = AnonymizationTierClassifier.Classify(entityType);
+        var result = AnonymizationTierClassifier.Classify(entityType);
 
         result.Tier.Should().Be(AnonymizationTier.TierA);
     }
@@ -132,10 +131,10 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
     [Fact]
     public void Classify_scalar_entity_columns_have_Scalar_shape()
     {
-        using ScalarOnlyContext ctx = ScalarOnlyContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
+        using var ctx = ScalarOnlyContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
 
-        AnonymizationClassification result = AnonymizationTierClassifier.Classify(entityType);
+        var result = AnonymizationTierClassifier.Classify(entityType);
 
         result.Columns.Should().NotBeEmpty();
         result.Columns.All(c => c.Shape == AnonymizationColumnShape.Scalar).Should().BeTrue();
@@ -144,33 +143,33 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
     [Fact]
     public void Classify_scalar_entity_column_name_matches_npgsql_mapped_column()
     {
-        using ScalarOnlyContext ctx = ScalarOnlyContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
+        using var ctx = ScalarOnlyContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
 
-        AnonymizationClassification result = AnonymizationTierClassifier.Classify(entityType);
+        var result = AnonymizationTierClassifier.Classify(entityType);
 
         var emailCol = result.Columns
             .FirstOrDefault(c => c.PropertyName == nameof(ScalarOnlyEntity.Email));
         emailCol.Should().NotBeNull();
 
         // EF Core default convention (no explicit column mapping, no snake_case convention):
-        // the relational column name equals the property name.  Assert the EXACT column name
-        // from the Npgsql relational model — a non-relational provider would return null here,
-        // so a non-null match proves the classifier is reading the relational metadata.
+        // the relational column name equals the property name. The assertion checks the exact
+        // column name from the Npgsql relational model. A non-relational provider would return
+        // null here, so a match shows that the classifier reads the relational metadata.
         emailCol.ColumnName.Should().Be(nameof(ScalarOnlyEntity.Email));
 
         // Cross-check: classifier ColumnName matches what GetColumnName() returns on the model.
-        IProperty emailProp = entityType.FindProperty(nameof(ScalarOnlyEntity.Email))!;
+        var emailProp = entityType.FindProperty(nameof(ScalarOnlyEntity.Email))!;
         emailCol.ColumnName.Should().Be(emailProp.GetColumnName());
     }
 
     [Fact]
     public void Classify_scalar_entity_columns_carry_correct_rules()
     {
-        using ScalarOnlyContext ctx = ScalarOnlyContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
+        using var ctx = ScalarOnlyContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
 
-        AnonymizationClassification result = AnonymizationTierClassifier.Classify(entityType);
+        var result = AnonymizationTierClassifier.Classify(entityType);
 
         var emailCol = result.Columns
             .FirstOrDefault(c => c.PropertyName == nameof(ScalarOnlyEntity.Email));
@@ -186,24 +185,24 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
     [Fact]
     public void Classify_scalar_entity_TierCBlocker_is_null()
     {
-        using ScalarOnlyContext ctx = ScalarOnlyContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
+        using var ctx = ScalarOnlyContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
 
-        AnonymizationClassification result = AnonymizationTierClassifier.Classify(entityType);
+        var result = AnonymizationTierClassifier.Classify(entityType);
 
         result.TierCBlocker.Should().BeNull();
     }
 
     // =========================================================================
-    // Tier A — table-split OwnsOne (shape TableSplitOwned)
+    // Tier A - table-split OwnsOne (shape TableSplitOwned)
     // =========================================================================
 
     [Fact]
     public void Classify_table_split_owned_entity_returns_TierA_with_TableSplitOwned_shape()
     {
-        using TableSplitOwnedContext ctx = TableSplitOwnedContext.Build();
+        using var ctx = TableSplitOwnedContext.Build();
 
-        AnonymizationClassification result = AnonymizationTierClassifier.Classify(
+        var result = AnonymizationTierClassifier.Classify(
             ctx.Model.FindEntityType(typeof(TableSplitOwnerEntity))!);
 
         result.Tier.Should().Be(AnonymizationTier.TierA);
@@ -218,16 +217,16 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
     }
 
     // =========================================================================
-    // Tier A — ComplexProperty table-split (shape Complex)
+    // Tier A - ComplexProperty table-split (shape Complex)
     // =========================================================================
 
     [Fact]
     public void Classify_complex_property_table_split_returns_TierA_with_Complex_shape()
     {
-        using ComplexTableSplitContext ctx = ComplexTableSplitContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ComplexTableSplitOwner))!;
+        using var ctx = ComplexTableSplitContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ComplexTableSplitOwner))!;
 
-        AnonymizationClassification result = AnonymizationTierClassifier.Classify(entityType);
+        var result = AnonymizationTierClassifier.Classify(entityType);
 
         result.Tier.Should().Be(AnonymizationTier.TierA);
         result.Columns.Should().NotBeEmpty();
@@ -239,16 +238,16 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
     }
 
     // =========================================================================
-    // Tier A — ComplexProperty with .ToJson() (still Tier A in EF10 — shape Complex)
+    // Tier A - ComplexProperty with .ToJson() (still Tier A in EF10 - shape Complex)
     // =========================================================================
 
     [Fact]
     public void Classify_complex_json_entity_returns_TierA_with_Complex_shape()
     {
-        using ComplexJsonContext ctx = ComplexJsonContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ComplexJsonOwner))!;
+        using var ctx = ComplexJsonContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ComplexJsonOwner))!;
 
-        AnonymizationClassification result = AnonymizationTierClassifier.Classify(entityType);
+        var result = AnonymizationTierClassifier.Classify(entityType);
 
         // EF Core 10 ExecuteUpdate reaches complex-JSON; TierA is correct.
         result.Tier.Should().Be(AnonymizationTier.TierA);
@@ -257,16 +256,16 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
     }
 
     // =========================================================================
-    // Tier B — Template field demotes entity
+    // Tier B - Template field demotes entity
     // =========================================================================
 
     [Fact]
     public void Classify_entity_with_one_template_field_returns_TierB()
     {
-        using TemplateFieldContext ctx = TemplateFieldContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(TemplateFieldEntity))!;
+        using var ctx = TemplateFieldContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(TemplateFieldEntity))!;
 
-        AnonymizationClassification result = AnonymizationTierClassifier.Classify(entityType);
+        var result = AnonymizationTierClassifier.Classify(entityType);
 
         result.Tier.Should().Be(AnonymizationTier.TierB);
     }
@@ -274,25 +273,25 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
     [Fact]
     public void Classify_TierB_entity_TierCBlocker_is_null()
     {
-        using TemplateFieldContext ctx = TemplateFieldContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(TemplateFieldEntity))!;
+        using var ctx = TemplateFieldContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(TemplateFieldEntity))!;
 
-        AnonymizationClassification result = AnonymizationTierClassifier.Classify(entityType);
+        var result = AnonymizationTierClassifier.Classify(entityType);
 
         result.TierCBlocker.Should().BeNull();
     }
 
     // =========================================================================
-    // Tier C — OwnsOne(...).ToJson() (shape OwnedJson)
+    // Tier C - OwnsOne(...).ToJson() (shape OwnedJson)
     // =========================================================================
 
     [Fact]
     public void Classify_entity_with_owned_json_field_returns_TierC()
     {
-        using OwnedJsonContext ctx = OwnedJsonContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(OwnedJsonOwner))!;
+        using var ctx = OwnedJsonContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(OwnedJsonOwner))!;
 
-        AnonymizationClassification result = AnonymizationTierClassifier.Classify(entityType);
+        var result = AnonymizationTierClassifier.Classify(entityType);
 
         result.Tier.Should().Be(AnonymizationTier.TierC);
     }
@@ -300,26 +299,26 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
     [Fact]
     public void Classify_owned_json_entity_TierCBlocker_has_OwnedJson_shape()
     {
-        using OwnedJsonContext ctx = OwnedJsonContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(OwnedJsonOwner))!;
+        using var ctx = OwnedJsonContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(OwnedJsonOwner))!;
 
-        AnonymizationClassification result = AnonymizationTierClassifier.Classify(entityType);
+        var result = AnonymizationTierClassifier.Classify(entityType);
 
         result.TierCBlocker.Should().NotBeNull();
         result.TierCBlocker.Shape.Should().Be(AnonymizationColumnShape.OwnedJson);
     }
 
     // =========================================================================
-    // Tier C — OwnsMany child table (shape OwnsManyChild)
+    // Tier C - OwnsMany child table (shape OwnsManyChild)
     // =========================================================================
 
     [Fact]
     public void Classify_entity_with_OwnsMany_child_returns_TierC()
     {
-        using OwnsManyContext ctx = OwnsManyContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(OwnsManyOwner))!;
+        using var ctx = OwnsManyContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(OwnsManyOwner))!;
 
-        AnonymizationClassification result = AnonymizationTierClassifier.Classify(entityType);
+        var result = AnonymizationTierClassifier.Classify(entityType);
 
         result.Tier.Should().Be(AnonymizationTier.TierC);
     }
@@ -327,26 +326,26 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
     [Fact]
     public void Classify_OwnsMany_entity_TierCBlocker_has_OwnsManyChild_shape()
     {
-        using OwnsManyContext ctx = OwnsManyContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(OwnsManyOwner))!;
+        using var ctx = OwnsManyContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(OwnsManyOwner))!;
 
-        AnonymizationClassification result = AnonymizationTierClassifier.Classify(entityType);
+        var result = AnonymizationTierClassifier.Classify(entityType);
 
         result.TierCBlocker.Should().NotBeNull();
         result.TierCBlocker.Shape.Should().Be(AnonymizationColumnShape.OwnsManyChild);
     }
 
     // =========================================================================
-    // Mixed precedence — C beats B beats A
+    // Mixed precedence - C beats B beats A
     // =========================================================================
 
     [Fact]
     public void Classify_entity_with_constant_and_template_and_owned_json_returns_TierC()
     {
-        using MixedAllTiersContext ctx = MixedAllTiersContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(MixedAllTiersEntity))!;
+        using var ctx = MixedAllTiersContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(MixedAllTiersEntity))!;
 
-        AnonymizationClassification result = AnonymizationTierClassifier.Classify(entityType);
+        var result = AnonymizationTierClassifier.Classify(entityType);
 
         result.Tier.Should().Be(AnonymizationTier.TierC);
     }
@@ -354,42 +353,42 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
     [Fact]
     public void Classify_entity_with_constant_and_template_no_C_returns_TierB()
     {
-        using MixedAandBContext ctx = MixedAandBContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(MixedAandBEntity))!;
+        using var ctx = MixedAandBContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(MixedAandBEntity))!;
 
-        AnonymizationClassification result = AnonymizationTierClassifier.Classify(entityType);
+        var result = AnonymizationTierClassifier.Classify(entityType);
 
         result.Tier.Should().Be(AnonymizationTier.TierB);
     }
 
     // =========================================================================
-    // No annotated fields — Tier A with empty Columns
+    // No annotated fields - Tier A with empty Columns
     // =========================================================================
 
     [Fact]
     public void Classify_entity_with_no_annotated_fields_returns_TierA_with_empty_columns()
     {
-        using NoAnnotationsContext ctx = NoAnnotationsContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(NoAnnotationsEntity))!;
+        using var ctx = NoAnnotationsContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(NoAnnotationsEntity))!;
 
-        AnonymizationClassification result = AnonymizationTierClassifier.Classify(entityType);
+        var result = AnonymizationTierClassifier.Classify(entityType);
 
         result.Tier.Should().Be(AnonymizationTier.TierA);
         result.Columns.Should().BeEmpty();
     }
 
     // =========================================================================
-    // Cache — same instance, CacheCount, ClearCache
+    // Cache - same instance, CacheCount, ClearCache
     // =========================================================================
 
     [Fact]
     public void Classify_two_calls_with_same_entity_type_return_reference_equal_instance()
     {
-        using ScalarOnlyContext ctx = ScalarOnlyContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
+        using var ctx = ScalarOnlyContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
 
-        AnonymizationClassification first = AnonymizationTierClassifier.Classify(entityType);
-        AnonymizationClassification second = AnonymizationTierClassifier.Classify(entityType);
+        var first = AnonymizationTierClassifier.Classify(entityType);
+        var second = AnonymizationTierClassifier.Classify(entityType);
 
         ReferenceEquals(first, second).Should().BeTrue();
     }
@@ -397,8 +396,8 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
     [Fact]
     public void CacheCount_increments_by_one_for_two_calls_on_same_entity_type()
     {
-        using ScalarOnlyContext ctx = ScalarOnlyContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
+        using var ctx = ScalarOnlyContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
 
         var before = AnonymizationTierClassifier.CacheCount;
         AnonymizationTierClassifier.Classify(entityType);
@@ -411,8 +410,8 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
     [Fact]
     public void ClearCache_resets_CacheCount_to_zero()
     {
-        using ScalarOnlyContext ctx = ScalarOnlyContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
+        using var ctx = ScalarOnlyContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
 
         AnonymizationTierClassifier.Classify(entityType);
         AnonymizationTierClassifier.CacheCount.Should().BeGreaterThan(0);
@@ -425,8 +424,8 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
     [Fact]
     public void Classify_parallel_calls_on_same_entity_type_return_reference_equal_instance()
     {
-        using ScalarOnlyContext ctx = ScalarOnlyContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
+        using var ctx = ScalarOnlyContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ScalarOnlyEntity))!;
         const int thread_count = 16;
         var results = new AnonymizationClassification[thread_count];
 
@@ -436,11 +435,11 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
         });
 
         // ConcurrentDictionary.GetOrAdd may call the factory more than once under contention,
-        // but the stored value is always the same winner — all results must reference the
+        // but the stored value is always the same winner - all results must reference the
         // canonical cached entry (checked via cached-value equality rather than reference
         // equality, because GetOrAdd can return a race-loser on the same key).
-        AnonymizationClassification cached = AnonymizationTierClassifier.Classify(entityType);
-        foreach (AnonymizationClassification r in results)
+        var cached = AnonymizationTierClassifier.Classify(entityType);
+        foreach (var r in results)
             r.Should().BeEquivalentTo(cached);
     }
 
@@ -542,7 +541,7 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
                 e.HasKey(x => x.Id);
                 e.OwnsOne(x => x.Address, nav =>
                 {
-                    // No .ToJson() → table splitting
+                    // No .ToJson() -> table splitting
                     nav.Anonymize(a => a.Street, "[deleted]");
                     nav.AnonymizeNull(a => a.City);
                 });
@@ -597,7 +596,7 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
         }
     }
 
-    // -- ComplexProperty .ToJson() (Tier A — EF10 ExecuteUpdate reaches it) --
+    // -- ComplexProperty .ToJson() (Tier A - EF10 ExecuteUpdate reaches it) --
 
     private sealed class ComplexJsonOwner
     {
@@ -765,10 +764,10 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
         }
     }
 
-    // -- Mixed: constant + template + owned-JSON → Tier C --
-    // DisplayName carries a Constant rule; Email carries a Template rule;
+    // -- Mixed: constant + template + owned-JSON -> Tier C --
+    // DisplayName has a Constant rule; Email has a Template rule;
     // JsonPart is owned-JSON (Tier C).
-    // All three rule kinds (Constant / Template / OwnedJson) are independently represented.
+    // Each rule kind (Constant / Template / OwnedJson) is represented independently.
 
     private sealed class MixedAllTiersEntity
     {
@@ -812,11 +811,11 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
                 // Constant rule on DisplayName (Tier-A shape).
                 e.Property(x => x.DisplayName).Anonymize("[deleted]");
 
-                // Template rule on Email (Tier-B shape) — separate property from Constant above.
+                // Template rule on Email (Tier-B shape) - separate property from Constant above.
                 e.Property(x => x.Email)
                     .AnonymizeTemplate("deletedUser{UserId}@deleted.user.dcsv.io");
 
-                // Owned-JSON (Tier-C shape) — C beats B beats A.
+                // Owned-JSON (Tier-C shape) - C beats B beats A.
                 e.OwnsOne(x => x.JsonPart, nav =>
                 {
                     nav.ToJson();
@@ -826,7 +825,7 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
         }
     }
 
-    // -- Mixed: constant + template, no C → Tier B --
+    // -- Mixed: constant + template, no C -> Tier B --
 
     private sealed class MixedAandBEntity
     {
@@ -866,7 +865,7 @@ public sealed class AnonymizationTierClassifierTests : IDisposable
         }
     }
 
-    // -- No annotations → Tier A, empty Columns --
+    // -- No annotations -> Tier A, empty Columns --
 
     private sealed class NoAnnotationsEntity
     {

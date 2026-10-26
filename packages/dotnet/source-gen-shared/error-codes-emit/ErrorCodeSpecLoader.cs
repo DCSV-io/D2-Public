@@ -14,10 +14,10 @@ using DcsvIo.D2.SourceGen;
 /// <summary>
 /// Shared logic for parsing a <c>*-error-codes.spec.json</c> catalog into an
 /// <see cref="ErrorCodesSpec"/>. Responsible only for JSON-shape validation
-/// of the three always-present fields (<c>code</c> / <c>httpStatus</c> /
-/// <c>doc</c>); the four factory fields (<c>category</c> /
+/// of the always-present fields (<c>code</c> / <c>httpStatus</c> /
+/// <c>doc</c>); the factory fields (<c>category</c> /
 /// <c>userMessageKey</c> / <c>factoryName</c> / <c>factoryShape</c>) are
-/// optional — present on factory-bearing catalogs (auth), absent on the
+/// optional - present on factory-bearing catalogs (auth), absent on the
 /// generic constants-only catalog. Semantic validation (uniqueness, code
 /// regex, category enum, status coverage, etc.) lives in
 /// <see cref="ConstantsEmitter"/>.
@@ -25,7 +25,7 @@ using DcsvIo.D2.SourceGen;
 /// <remarks>
 /// The loader takes the catalog's <see cref="CatalogConfig.MalformedSpecId"/>
 /// so the malformed-spec diagnostic carries the catalog's own id
-/// (<c>D2EC001</c> / <c>D2AEC001</c>) — preserving the pre-existing
+/// (<c>D2EC001</c> / <c>D2AEC001</c>), which keeps the existing
 /// per-catalog diagnostic-id families.
 /// </remarks>
 internal static class ErrorCodeSpecLoader
@@ -155,14 +155,14 @@ internal static class ErrorCodeSpecLoader
 
         var docText = docEl.GetString()!;
 
-        // Factory fields are optional — present on factory-bearing catalogs
+        // Factory fields are optional - present on factory-bearing catalogs
         // (auth), absent on the generic constants-only catalog.
         var category = OptionalString(element, _CATEGORY_KEY);
         var userMessageKey = OptionalString(element, _USER_MESSAGE_KEY_KEY);
         var factoryName = OptionalString(element, _FACTORY_NAME_KEY);
         var factoryShape = OptionalString(element, _FACTORY_SHAPE_KEY);
 
-        // Deprecation marker — optional + additive. The schema allows but never
+        // Deprecation marker - optional + additive. The schema allows but never
         // requires these; absence means the entry is active. Only ever true.
         var deprecated = OptionalBool(element, _DEPRECATED_KEY);
         var deprecatedReason = OptionalString(element, _DEPRECATED_REASON_KEY);

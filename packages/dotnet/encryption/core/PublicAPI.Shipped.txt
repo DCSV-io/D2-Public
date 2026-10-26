@@ -10,7 +10,7 @@ DcsvIo.D2.Encryption.EncryptionException.EncryptionException(string! message) ->
 DcsvIo.D2.Encryption.EncryptionException.EncryptionException(string! message, System.Exception! inner) -> void
 DcsvIo.D2.Encryption.EncryptionFrameLayout
 DcsvIo.D2.Encryption.EncryptionKeyringSource
-DcsvIo.D2.Encryption.EncryptionKeyringSource.KeyCustodian = 1 -> DcsvIo.D2.Encryption.EncryptionKeyringSource
+DcsvIo.D2.Encryption.EncryptionKeyringSource.Managed = 1 -> DcsvIo.D2.Encryption.EncryptionKeyringSource
 DcsvIo.D2.Encryption.EncryptionKeyringSource.StaticFactory = 0 -> DcsvIo.D2.Encryption.EncryptionKeyringSource
 DcsvIo.D2.Encryption.EncryptionRegistration
 DcsvIo.D2.Encryption.EncryptionRegistration.EncryptionRegistration(string! serviceKey) -> void

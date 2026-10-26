@@ -17,9 +17,10 @@ using Xunit;
 /// <see cref="BiologicalSex"/>). Asserts each member JSON-serializes to its
 /// member-name wire string via the embedded
 /// <c>JsonStringEnumConverter</c> (round-trip serialize / deserialize) and
-/// that an unknown wire code throws — mirroring the strict-deserialization
-/// policy used by the geo enums. Drift here would break cross-language wire
-/// parity with the TS-side <c>@dcsv-io/d2-validation-abstractions</c> catalog.
+/// that an unknown wire code throws - mirroring the strict-deserialization
+/// policy used by the geo enums. A failure here is drift that breaks
+/// cross-language wire parity with the TypeScript
+/// <c>@dcsv-io/d2-validation-abstractions</c> catalog.
 /// </summary>
 public sealed class TaxonomyRuntimeEmissionTests
 {
@@ -100,8 +101,8 @@ public sealed class TaxonomyRuntimeEmissionTests
     [Fact]
     public void BiologicalSex_UnknownWireCode_ThrowsJsonException()
     {
-        // v1 used "Unknown"; the catalog locked to "Unspecified" — the old wire
-        // code must NOT silently deserialize.
+        // BiologicalSex has a member "Unspecified" and no member "Unknown", so the
+        // wire code "Unknown" must not deserialize silently.
         var act = () => JsonSerializer.Deserialize<BiologicalSex>("\"Unknown\"");
 
         act.Should().Throw<JsonException>();

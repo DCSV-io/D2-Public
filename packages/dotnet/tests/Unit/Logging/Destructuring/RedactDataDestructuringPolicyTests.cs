@@ -14,10 +14,10 @@ using Serilog.Events;
 using Xunit;
 
 /// <summary>
-/// Pure unit tests for the destructuring policy — exercises the
+/// Unit tests for the destructuring policy. They exercise the
 /// <see cref="IDestructuringPolicy.TryDestructure"/> contract directly with a
-/// stub <see cref="ILogEventPropertyValueFactory"/>. End-to-end coverage
-/// through a real Serilog pipeline lives in
+/// stub <see cref="ILogEventPropertyValueFactory"/>. The end-to-end tests
+/// through a real Serilog pipeline are in
 /// <c>Integration.Logging.SerilogPipelineRedactionTests</c>.
 /// </summary>
 public sealed class RedactDataDestructuringPolicyTests
@@ -102,7 +102,7 @@ public sealed class RedactDataDestructuringPolicyTests
 
         policy.TryDestructure(value, factory, out _);
 
-        // Non-redacted Name is forwarded to factory.CreatePropertyValue,
+        // The policy forwards the non-redacted Name to factory.CreatePropertyValue,
         // so the recording factory captures the raw value.
         factory.Recorded.Should().ContainSingle(r => "Alice".Equals(r));
     }
@@ -232,7 +232,7 @@ public sealed class RedactDataDestructuringPolicyTests
         var policy = new RedactDataDestructuringPolicy();
         var value = new RedactionFixtures.EmptyClass();
 
-        // No type-level [RedactData], no property-level → policy returns false.
+        // No type-level [RedactData], no property-level -> policy returns false.
         var ok = policy.TryDestructure(value, new RecordingFactory(), out var result);
 
         ok.Should().BeFalse();
@@ -245,10 +245,11 @@ public sealed class RedactDataDestructuringPolicyTests
         var policy = new RedactDataDestructuringPolicy();
         var value = new RedactionFixtures.MixedAccessClass();
 
-        // No [RedactData] anywhere → passthrough.
+        // The class has no [RedactData] anywhere, so the policy passes it through.
         var ok = policy.TryDestructure(value, new RecordingFactory(), out _);
 
-        // No type or property attribute → returns false (Serilog default kicks in).
+        // Without a type or property attribute the policy returns false, and
+        // Serilog uses its default destructuring.
         ok.Should().BeFalse();
     }
 
@@ -273,9 +274,9 @@ public sealed class RedactDataDestructuringPolicyTests
     [Fact]
     public void TryDestructure_FieldLevelRedacted_FieldIgnored_DocumentsLimitation()
     {
-        // Documented limitation: fields are NOT inspected. The class has no
-        // public properties, so the policy returns false (default destructurer
-        // takes over) and the field's value flows through unmasked.
+        // Documented limitation: the policy does not inspect fields. The class
+        // has no public properties, so the policy returns false, the default
+        // destructurer takes over, and the field's value is not masked.
         var policy = new RedactDataDestructuringPolicy();
         var value = new RedactionFixtures.FieldLevelRedactedClass { Email = "leak@x.co" };
 
@@ -326,11 +327,11 @@ public sealed class RedactDataDestructuringPolicyTests
     [Fact]
     public void TryDestructure_CyclicGraph_NoStackOverflow()
     {
-        // Our policy doesn't recurse on its own (it relies on
+        // The policy does not recurse on its own. It relies on
         // ILogEventPropertyValueFactory.CreatePropertyValue, which Serilog
-        // recursion-guards). A cyclic graph WITHOUT [RedactData] passes
-        // through directly; the test pins that we don't blow up at our
-        // analysis step on cycles.
+        // guards against recursion. A cyclic graph without [RedactData] passes
+        // through directly, and the test pins that the policy's own analysis
+        // step does not overflow the stack on a cycle.
         var policy = new RedactDataDestructuringPolicy();
         var a = new RedactionFixtures.CyclicNode { Name = "a" };
         var b = new RedactionFixtures.CyclicNode { Name = "b", Next = a };
@@ -343,8 +344,8 @@ public sealed class RedactDataDestructuringPolicyTests
 
     /// <summary>
     /// Stub <see cref="ILogEventPropertyValueFactory"/> that records the values
-    /// it's asked to produce property-values for, so tests can assert that
-    /// non-redacted properties are forwarded for default destructuring.
+    /// it is asked to produce property values for, so that tests can assert
+    /// that non-redacted properties are forwarded for default destructuring.
     /// </summary>
     private sealed class RecordingFactory : ILogEventPropertyValueFactory
     {

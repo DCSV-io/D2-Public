@@ -14,7 +14,7 @@ using Xunit;
 
 /// <summary>
 /// Type-system smoke tests for <see cref="IDbExceptionClassifier"/>. Pin the
-/// interface shape — the production base repo handler dispatches by interface,
+/// interface shape - the production base repo handler dispatches by interface,
 /// so an accidental signature change (e.g. async-ifying or adding a
 /// CancellationToken parameter) would silently break every provider impl.
 /// </summary>
@@ -45,7 +45,7 @@ public sealed class IDbExceptionClassifierTests
     public void CustomImplementation_CanBeWrittenAndUsed()
     {
         // Documents the implementation contract: any class implementing
-        // the single-method interface IS a valid classifier — no extra
+        // the single-method interface IS a valid classifier - no extra
         // surface area required.
         IDbExceptionClassifier impl = new AlwaysUniqueViolationClassifier();
 

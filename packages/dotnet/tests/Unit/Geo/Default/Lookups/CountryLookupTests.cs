@@ -13,16 +13,16 @@ using Xunit;
 
 /// <summary>
 /// Per-VALUE pin coverage for <see cref="CountryLookup"/> + the static
-/// <c>Countries</c> accessor wall. Hardens the catalog data wired by
+/// <c>Countries</c> accessor hierarchy. Pins the catalog data wired by
 /// the two-pass populate coordinator: every <see cref="CountryCode"/>
 /// value resolves to a <see cref="Country"/> whose primary-key field
 /// matches; sampled records expose pinned scalar + nav-rep values;
-/// uninhabited territories carry <c>null</c> primaries; cross-catalog
+/// uninhabited territories have <c>null</c> primaries; cross-catalog
 /// nav refs resolve coherently.
 /// </summary>
 public sealed class CountryLookupTests
 {
-    // §1.2 category: State-lifecycle — every enum member maps to a record.
+    // Category: State-lifecycle - every enum member maps to a record.
     [Fact]
     public void ByCode_EveryCountryCode_HasMatchingRecord()
     {
@@ -63,7 +63,7 @@ public sealed class CountryLookupTests
         byStr.Should().BeSameAs(byCode);
     }
 
-    // §1.2 category: Domain-specific — per-VALUE pins for headline countries.
+    // Category: Domain-specific - per-VALUE pins for headline countries.
     [Fact]
     public void Country_US_AllRequiredFieldsPinned()
     {
@@ -125,7 +125,7 @@ public sealed class CountryLookupTests
     [Fact]
     public void Country_US_SubdivisionsCount_AtLeast50StatesPlusDC()
     {
-        // 50 states + DC + territories — pin lower bound; ISO catalog evolves.
+        // 50 states + DC + territories - pin lower bound; ISO catalog evolves.
         Countries.US.Subdivisions.Count.Should().BeGreaterThanOrEqualTo(50);
     }
 
@@ -159,7 +159,7 @@ public sealed class CountryLookupTests
         gb.PrimaryLanguageIso6391Code.Should().Be(LanguageCode.En);
     }
 
-    // §1.2 category: Domain-specific — uninhabited territories carry null primaries.
+    // Category: Domain-specific - uninhabited territories have null primaries.
     [Fact]
     public void Country_AQ_HasNullPrimaries()
     {
@@ -176,9 +176,10 @@ public sealed class CountryLookupTests
     [Fact]
     public void Country_BV_HasNullPrimaryLanguageAndLocale()
     {
-        // Bouvet Island — uninhabited Norwegian dependency.
+        // Bouvet Island - uninhabited Norwegian dependency.
         // The spec assigns NOK as a courtesy currency carryover from Norway;
-        // language and locale are null because there's no resident population.
+        // language and locale are null because there is no resident
+        // population.
         var bv = Countries.BV;
 
         bv.PrimaryLanguage.Should().BeNull();
@@ -188,9 +189,10 @@ public sealed class CountryLookupTests
     [Fact]
     public void Country_HM_HasNullPrimaryLanguageAndLocale()
     {
-        // Heard Island and McDonald Islands — uninhabited Australian territory.
-        // Currency carries over from Australia per the spec; language and
-        // locale are null because there's no resident population.
+        // Heard Island and McDonald Islands - uninhabited Australian territory.
+        // The spec assigns the currency of Australia as a courtesy carryover;
+        // language and locale are null because there is no resident
+        // population.
         var hm = Countries.HM;
 
         hm.PrimaryLanguage.Should().BeNull();
@@ -203,14 +205,14 @@ public sealed class CountryLookupTests
         Countries.AQ.Subdivisions.Should().BeEmpty();
     }
 
-    // §1.2 category: Cross-field — every inhabited country has a wired language nav.
+    // Category: Cross-field - every inhabited country has a wired language nav.
     [Fact]
     public void Country_EveryInhabitedCountry_HasPrimaryLanguageWiredOrPrimaryCodeMatch()
     {
         // For inhabited countries with PrimaryLanguageIso6391Code set, the nav
         // either wires the matching language OR stays null when the language
-        // ISO code isn't in the LanguageCode enum (8 countries use 639-3 codes
-        // outside ISO 639-1).
+        // ISO code isn't in the LanguageCode enum (MP, NU, PW, SG, TK, TL, TV
+        // and WF use 639-3 codes outside ISO 639-1 in contracts/geo/countries.spec.json).
         foreach (var country in CountryLookup.All)
         {
             if (country.PrimaryLanguage is { } lang)
@@ -243,7 +245,7 @@ public sealed class CountryLookupTests
         first.Currency!.Iso4217AlphaCode.Should().Be(CurrencyCode.USD);
     }
 
-    // §1.2 category: Cross-field — Subdivision nav back-references match country code.
+    // Category: Cross-field - Subdivision nav back-references match country code.
     [Fact]
     public void Country_US_EverySubdivision_CountryNavBackrefMatches()
     {

@@ -13,7 +13,7 @@ using Xunit;
 
 /// <summary>
 /// Adversarial coverage for <see cref="InterfaceEmitter.Emit"/>. Asserts the
-/// emitted interface shape (sections → #region blocks, property declarations,
+/// emitted interface shape (sections -> #region blocks, property declarations,
 /// XML doc, extends clause) and the type-vocabulary diagnostic surface
 /// (D2CTX002 / D2CTX005).
 /// </summary>
@@ -63,8 +63,8 @@ public sealed class InterfaceEmitterTests
 
         result.Diagnostics.Should().BeEmpty();
 
-        // No `: BaseInterface` clause — verify the line ends right after the
-        // interface name. Normalize line endings before comparing.
+        // No `: BaseInterface` clause: verify that the line ends right after
+        // the interface name. Normalize line endings before comparing.
         var src = result.GeneratedSource.Replace("\r\n", "\n");
         src.Should().Contain("public interface IFoo\n{");
     }
@@ -111,8 +111,8 @@ public sealed class InterfaceEmitterTests
     public void Emit_TrinaryAuthBool_EmitsAsNullableBoolWithProvidedDoc()
     {
         // The generator's interface emitter does not vary structure on
-        // TrinaryAuth (it's metadata). The doc text is what calls out the
-        // null-vs-false semantics — verify it round-trips into the XML.
+        // TrinaryAuth (it is metadata). The doc text states the null-vs-false
+        // semantics, so verify that it round-trips into the XML.
         var spec = Spec(
             "IFoo",
             "X.Y",
@@ -134,8 +134,8 @@ public sealed class InterfaceEmitterTests
     [Fact]
     public void Emit_DerivedProperty_StillEmittedOnInterface()
     {
-        // Derived properties are read-only on the interface — consumers see
-        // them as computed values, not separate getter machinery.
+        // Derived properties are read-only on the interface: they appear as
+        // computed values and not as separate getter machinery.
         var spec = Spec(
             "IFoo",
             "X.Y",
@@ -151,7 +151,7 @@ public sealed class InterfaceEmitterTests
     }
 
     // ----------------------------------------------------------------------
-    // D2CTX002 — unknown type
+    // D2CTX002 - unknown type
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -174,7 +174,7 @@ public sealed class InterfaceEmitterTests
     }
 
     // ----------------------------------------------------------------------
-    // D2CTX005 — unknown derived rule (warning, not fatal)
+    // D2CTX005 - unknown derived rule (warning, not fatal)
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -193,12 +193,12 @@ public sealed class InterfaceEmitterTests
             .Single(d => d.DescriptorId == DiagnosticIds.UnknownDerivedRule);
         ((string)diag.Args[2]).Should().Be("notARealRule");
 
-        // Warning-only — property still emitted on the interface.
+        // Warning-only - property still emitted on the interface.
         result.GeneratedSource.Should().Contain("string? X { get; }");
     }
 
     // ----------------------------------------------------------------------
-    // Adversarial — boundary shapes
+    // Adversarial - boundary shapes
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -250,8 +250,9 @@ public sealed class InterfaceEmitterTests
     [Fact]
     public void Emit_AllVocabularyTypes_EmitWithoutDiagnostics()
     {
-        // Sweep every declared type in TypeVocabulary to confirm none of them
-        // trigger D2CTX002 — guards against drift between vocab + emitter.
+        // Sweep every declared type in TypeVocabulary to confirm that none
+        // triggers D2CTX002. This guards against drift between the vocabulary
+        // and the emitter.
         var spec = Spec(
             "IFoo",
             "X.Y",
@@ -357,6 +358,7 @@ public sealed class InterfaceEmitterTests
         string name,
         string type,
         string? claim = null,
+        string? claimForm = null,
         bool trinaryAuth = false,
         string? derived = null,
         string? @default = null,
@@ -369,6 +371,7 @@ public sealed class InterfaceEmitterTests
             name,
             type,
             claim,
+            claimForm,
             trinaryAuth,
             derived,
             @default,

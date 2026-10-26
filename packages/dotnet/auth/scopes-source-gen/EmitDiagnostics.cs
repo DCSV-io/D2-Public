@@ -104,4 +104,24 @@ internal static class EmitDiagnostics
     /// <returns>A new <see cref="EmitDiagnostic"/>.</returns>
     public static EmitDiagnostic MissingSpecFile() =>
         new(DiagnosticIds.MissingSpecFile, []);
+
+    /// <summary>
+    /// Constructs a
+    /// <see cref="DiagnosticDescriptors.InternalFlagPrefixDisagreement"/> diagnostic.
+    /// </summary>
+    /// <param name="scopeName">The scope whose flag and name disagree.</param>
+    /// <param name="declaredInternal">The value the entry declared.</param>
+    /// <param name="hasInternalPrefix">Whether the name has the prefix.</param>
+    /// <returns>A new <see cref="EmitDiagnostic"/>.</returns>
+    public static EmitDiagnostic InternalFlagPrefixDisagreement(
+        string scopeName,
+        bool declaredInternal,
+        bool hasInternalPrefix) =>
+        new(
+            DiagnosticIds.InternalFlagPrefixDisagreement,
+            [
+                scopeName,
+                declaredInternal ? "true" : "false",
+                hasInternalPrefix ? "carries" : "does not carry",
+            ]);
 }

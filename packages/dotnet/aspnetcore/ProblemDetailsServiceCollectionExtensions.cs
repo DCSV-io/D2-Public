@@ -12,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 /// <summary>
-/// DI registration entry point for the D² <c>ProblemDetails</c> customizer
+/// DI registration entry point for the D2 <c>ProblemDetails</c> customizer
 /// (RFC 7807 problem-details response enrichment).
 /// </summary>
 public static class ProblemDetailsServiceCollectionExtensions
@@ -23,7 +23,7 @@ public static class ProblemDetailsServiceCollectionExtensions
         /// <summary>
         /// Registers ASP.NET Core's <c>IProblemDetailsService</c> via the
         /// framework's <c>AddProblemDetails</c> extension on
-        /// <see cref="IServiceCollection"/> with the D² customizer applied as the
+        /// <see cref="IServiceCollection"/> with the D2 customizer applied as the
         /// <c>CustomizeProblemDetails</c> callback. The customizer adds
         /// <c>traceId</c> (from <see cref="System.Diagnostics.Activity.Current"/>
         /// falling back to
@@ -43,16 +43,17 @@ public static class ProblemDetailsServiceCollectionExtensions
         /// is length-capped at
         /// <see cref="D2AspNetCoreConstants.MAX_CORRELATION_ID_LENGTH"/>
         /// to prevent an arbitrary-length user header from inflating the
-        /// response body — values exceeding the cap are treated as absent
+        /// response body - values exceeding the cap are treated as absent
         /// and a fresh GUID is generated.
         /// </para>
         /// <para>
-        /// Calling <c>AddProblemDetails</c> twice on the same
-        /// <see cref="IServiceCollection"/> stacks the customizers per the
-        /// underlying ASP.NET Core convention; the LAST registered
-        /// customizer wins on conflicting <c>Extensions</c> keys. This
-        /// extension is idempotent at the options-binding level (the same
-        /// <see cref="D2ProblemDetailsOptions"/> instance is reused).
+        /// Each <c>AddProblemDetails</c> call on the same
+        /// <see cref="IServiceCollection"/> assigns the single ASP.NET Core
+        /// <c>Microsoft.AspNetCore.Http.ProblemDetailsOptions.CustomizeProblemDetails</c>
+        /// delegate, so a second call replaces the delegate set by the first and no per-key
+        /// merge of <c>Extensions</c> happens. The <paramref name="configure"/>
+        /// callback of every call runs on the same
+        /// <see cref="D2ProblemDetailsOptions"/> instance.
         /// </para>
         /// </remarks>
         /// <param name="configure">

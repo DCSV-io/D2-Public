@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import { ALL_COMMON_HEADERS, CommonHeaders } from "../src/common-headers.g.js";
 
-describe("CommonHeaders — per-VALUE pin (mirrors .NET CommonHeaders)", () => {
+describe("CommonHeaders - per-VALUE pin (mirrors .NET CommonHeaders)", () => {
   it.each([
     ["AUTHORIZATION", "Authorization"],
     ["PROPAGATED_CONTEXT", "x-d2-context"],
@@ -26,9 +26,9 @@ describe("CommonHeaders — per-VALUE pin (mirrors .NET CommonHeaders)", () => {
   });
 
   it("CommonHeaders contains exactly the cross-transport spec subset", () => {
-    // Authorization is cross-transport (http + grpc); the other three are
-    // applicable to all 3 transports. All four have applicability count >= 2
-    // and therefore appear in CommonHeaders.
+    // Authorization applies to both http and grpc, and the other members apply
+    // to every transport. Each header applies to at least two transports, so
+    // each appears in CommonHeaders.
     expect(Object.keys(CommonHeaders)).toHaveLength(4);
   });
 });

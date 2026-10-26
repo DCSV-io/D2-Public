@@ -20,7 +20,7 @@ using DcsvIo.D2.Validation.Abstractions;
 /// middle, last, and preferred (display) names. Each supplied name is cleaned
 /// (trimmed, internal whitespace collapsed) before storage. A stable
 /// correlation <see cref="HashId"/> is derived from the first, middle, and last
-/// names — the preferred name is deliberately excluded so a display-name change
+/// names - the preferred name is deliberately excluded so a display-name change
 /// does not alter the identity digest.
 /// </summary>
 /// <remarks>
@@ -28,7 +28,7 @@ using DcsvIo.D2.Validation.Abstractions;
 /// <b>Self-redacting PII.</b> <see cref="FirstName"/>, <see cref="MiddleName"/>,
 /// <see cref="LastName"/>, and <see cref="PreferredName"/> are marked
 /// <c>[RedactData(PersonalInformation)]</c> and are masked automatically by the
-/// Serilog destructuring policy — personal names are individually identifying.
+/// Serilog destructuring policy - personal names are individually identifying.
 /// <see cref="HashId"/> is left visible because it is a one-way SHA-256 digest
 /// of the normalized name fields: opaque, non-reversible, and safe for
 /// correlation in logs and traces without leaking the underlying names.
@@ -65,9 +65,9 @@ public sealed record Personal
     /// Gets the stable hash identifier:
     /// <c>"v1." + SHA-256(NormalizeForHash(FirstName) | NormalizeForHash(MiddleName)
     /// | NormalizeForHash(LastName))</c> as lowercase hex. The preferred name does
-    /// NOT participate — a display-name change leaves the identity digest stable.
+    /// not participate - a display-name change leaves the identity digest stable.
     /// Missing slots contribute <c>""</c> (deterministic positional shape).
-    /// Emitted unredacted in logs — it is a one-way SHA-256 digest (opaque,
+    /// Emitted unredacted in logs - it is a one-way SHA-256 digest (opaque,
     /// non-reversible) and is safe for correlation without leaking the names.
     /// </summary>
     public required string HashId { get; init; }
@@ -127,7 +127,7 @@ public sealed record Personal
                 messages: [TK.Contacts.Validation.PREFERRED_NAME_TOO_LONG]);
         }
 
-        // HashId excludes PreferredName — a display-name change must not alter
+        // HashId excludes PreferredName - a display-name change must not alter
         // the identity digest. Cleaned values feed NormalizeForHash (stage-2-only;
         // it does not trim, so the stage-1 CleanStr above is required).
         var hashInput =
@@ -135,7 +135,7 @@ public sealed record Personal
             cleanedMiddle.NormalizeForHash() + "|" +
             cleanedLast.NormalizeForHash();
 
-        // BCL static one-shot per §15.8 — no IDisposable instance to manage.
+        // BCL static one-shot - no IDisposable instance to manage.
         var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(hashInput));
         var hashId = "v1." + Convert.ToHexStringLower(hashBytes);
 

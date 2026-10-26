@@ -4,11 +4,11 @@
 
 import { AmqpHeaders } from "@dcsv-io/d2-headers-amqp";
 
-// Hard cap on accepted message-id length. Our publisher emits a 36-char
-// UUIDv7; an attacker controlling a queue we subscribe to could send a 64KB id
-// and bloat the idempotency store key. Anything longer falls through to "no id"
-// behavior (skips idempotency, still acks). Mirrors the .NET
-// `SubscriberChannel._MAX_MESSAGE_ID_LENGTH`.
+// Hard cap on accepted message-id length. The publisher emits a 36-char
+// UUIDv7. An attacker who controls a queue the subscriber reads could send a
+// 64KB id and bloat the idempotency store key. An id longer than the cap is
+// handled as no id (idempotency is skipped and the delivery is still acked).
+// Mirrors the .NET `SubscriberChannel._MAX_MESSAGE_ID_LENGTH`.
 const _MAX_MESSAGE_ID_LENGTH = 128;
 const _CONTROL_CHAR_MAX = 0x1f;
 const _DEL_CHAR = 0x7f;
@@ -16,12 +16,12 @@ const _COLON = 0x3a;
 const _SPACE = 0x20;
 
 /**
- * Reads and validates the delivery's message id — the mirror of the .NET
- * `SubscriberChannel.ReadMessageId`. Prefers the AMQP `message-id` property,
- * falling back to the `message-id` header. Rejects pathological lengths
- * (key-injection / store-memory DoS) and any control character / `:` / space
- * that could split the store's namespace — a rejected id returns `undefined`
- * (the delivery still acks, just without idempotency).
+ * Reads and validates the delivery's message id. It mirrors the .NET
+ * `SubscriberChannel.ReadMessageId`. It prefers the AMQP `message-id` property
+ * and falls back to the `message-id` header. It rejects lengths outside the
+ * accepted range (key injection, store-memory DoS) and any control character,
+ * `:` or space that could split the store's namespace. A rejected id returns
+ * `undefined`, and the delivery still acks, without idempotency.
  *
  * @param amqpMessageId The AMQP `message-id` property (or undefined).
  * @param headers The delivery's AMQP headers (or undefined).

@@ -45,7 +45,7 @@ public sealed class LanguageLookupTests
         byStr.Should().BeSameAs(byCode);
     }
 
-    // §1.2 category: Domain-specific — per-VALUE pins for major languages.
+    // Category: Domain-specific - per-VALUE pins for major languages.
     [Fact]
     public void Language_En_AllFieldsPinned()
     {
@@ -82,7 +82,7 @@ public sealed class LanguageLookupTests
         ja.WritingDirection.Should().Be(WritingDirection.LTR);
     }
 
-    // §1.2 category: Domain-specific — RTL writing direction sample.
+    // Category: Domain-specific - RTL writing direction sample.
     [Fact]
     public void Language_Ar_WritingDirectionRTL()
     {
@@ -98,7 +98,7 @@ public sealed class LanguageLookupTests
         he.WritingDirection.Should().Be(WritingDirection.RTL);
     }
 
-    // §1.2 category: Cross-field — reverse-FK nav populated.
+    // Category: Cross-field - reverse-FK nav populated.
     [Fact]
     public void Language_En_SpokenInCountries_ContainsGB_US_AU()
     {

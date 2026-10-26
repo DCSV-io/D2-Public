@@ -18,24 +18,24 @@ using Microsoft.CodeAnalysis.Text;
 /// Roslyn incremental source generator that emits binding-specific
 /// in-process slot-key catalog classes by reading
 /// <c>contracts/in-process-keys/keys.spec.json</c> via
-/// <c>AdditionalFiles</c>. Dispatches per consuming assembly:
+/// <c>AdditionalFiles</c>. Dispatches per assembly being compiled:
 /// <list type="bullet">
 ///   <item>
-///     <c>DcsvIo.D2.Auth.Abstractions</c> →
+///     <c>DcsvIo.D2.Auth.Abstractions</c> ->
 ///     <c>Http/D2HttpContextItems.g.cs</c> (entries with binding <c>http</c>;
 ///     class is <c>public</c>, namespace <c>DcsvIo.D2.Auth.Abstractions.Http</c>).
 ///   </item>
 ///   <item>
-///     <c>DcsvIo.D2.Auth.Grpc</c> →
+///     <c>DcsvIo.D2.Auth.Grpc</c> ->
 ///     <c>Interceptors/D2GrpcUserStateKeys.g.cs</c> (entries with binding
 ///     <c>grpc</c>; class is <c>internal</c>, namespace
 ///     <c>DcsvIo.D2.Auth.Grpc.Interceptors</c>).
 ///   </item>
-///   <item>Anything else → emit nothing.</item>
+///   <item>Any other assembly -> emit nothing.</item>
 /// </list>
 /// Cross-binding entries appear in both catalogs at identical wire values,
-/// codegen-guaranteed (verified by
-/// <c>HttpContextItemsVsGrpcUserStateKeysConsistencyTests</c>).
+/// because both catalogs are filtered from the one spec loaded in
+/// <c>Initialize</c> (this file).
 /// </summary>
 [Generator]
 public sealed class InProcessKeysGenerator : IIncrementalGenerator

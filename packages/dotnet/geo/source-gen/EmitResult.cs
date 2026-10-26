@@ -10,7 +10,7 @@ using System.Collections.Immutable;
 using DcsvIo.D2.SourceGen;
 
 /// <summary>
-/// Result of a per-emitter run. Pure data — the Roslyn host transforms the
+/// Result of a per-emitter run. Pure data - the Roslyn host transforms the
 /// diagnostics into <see cref="Microsoft.CodeAnalysis.Diagnostic"/> instances
 /// and writes the generated source via
 /// <c>Microsoft.CodeAnalysis.SourceProductionContext.AddSource</c>.

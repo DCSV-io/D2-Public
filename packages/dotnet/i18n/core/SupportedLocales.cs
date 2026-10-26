@@ -20,12 +20,12 @@ using Microsoft.Extensions.Configuration;
 /// <remarks>
 /// <para>
 /// All locales are stored in canonical BCP 47 casing (lowercase language,
-/// uppercase region — e.g. <c>"en-US"</c>, <c>"fr-CA"</c>).
+/// uppercase region - e.g. <c>"en-US"</c>, <c>"fr-CA"</c>).
 /// </para>
 /// <para>
-/// Registered as a DI singleton; captures its config at construction.
-/// Nothing mutates after — instances are safe to share across threads and
-/// across the application's lifetime.
+/// Registered as a DI singleton; reads its config at construction.
+/// Nothing mutates afterwards, so an instance is safe to share across threads
+/// and for the application's lifetime.
 /// </para>
 /// </remarks>
 public sealed class SupportedLocales
@@ -61,7 +61,7 @@ public sealed class SupportedLocales
 
         All = values.Truthy() ? values.AsReadOnly() : [_DEFAULT_BASE_LOCALE];
 
-        // Build language-prefix → first-locale map. First locale wins per language.
+        // Build language-prefix -> first-locale map. First locale wins per language.
         var langDefaults = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var locale in All)
         {
@@ -86,15 +86,15 @@ public sealed class SupportedLocales
 
     /// <summary>
     /// Gets a map of each language prefix to the first locale for that language.
-    /// For example, <c>"en" → "en-US"</c>, <c>"fr" → "fr-FR"</c>.
+    /// For example, <c>"en" -> "en-US"</c>, <c>"fr" -> "fr-FR"</c>.
     /// </summary>
     public IReadOnlyDictionary<string, string> LanguageDefaults { get; }
 
     /// <summary>
     /// Normalizes any locale tag to canonical BCP 47 casing: lowercase language,
-    /// uppercase region (e.g. <c>"en-us"</c> → <c>"en-US"</c>,
-    /// <c>"FR-CA"</c> → <c>"fr-CA"</c>). Bare language codes are lowercased
-    /// (e.g. <c>"EN"</c> → <c>"en"</c>).
+    /// uppercase region (e.g. <c>"en-us"</c> -> <c>"en-US"</c>,
+    /// <c>"FR-CA"</c> -> <c>"fr-CA"</c>). Bare language codes are lowercased
+    /// (e.g. <c>"EN"</c> -> <c>"en"</c>).
     /// </summary>
     /// <param name="tag">The locale tag to normalize.</param>
     /// <returns>The tag in canonical BCP 47 casing.</returns>
@@ -121,9 +121,9 @@ public sealed class SupportedLocales
 
     /// <summary>
     /// Resolves a locale code to its canonical BCP 47 form. Resolution order:
-    /// canonical match → language-prefix fallback (first registered locale of
-    /// the same language family) → <see cref="Base"/>. Null / empty / whitespace
-    /// input collapses to <see cref="Base"/>.
+    /// canonical match -> language-prefix fallback (first registered locale of
+    /// the same language family) -> <see cref="Base"/>. Null, empty or whitespace
+    /// input resolves to <see cref="Base"/>.
     /// </summary>
     /// <param name="locale">The locale code to resolve, or <see langword="null"/>.</param>
     /// <returns>A supported locale code in canonical BCP 47 casing.</returns>
@@ -141,7 +141,7 @@ public sealed class SupportedLocales
             return canonical;
         }
 
-        // Language-prefix fallback: "fr-CH" → "fr-FR" (the first fr-* in r_all).
+        // Language-prefix fallback: "fr-CH" -> "fr-FR" (the first fr-* in All).
         var dash = canonical.IndexOf('-');
         var lang = dash > 0 ? canonical[..dash] : canonical;
         return LanguageDefaults.GetValueOrDefault(lang, Base);

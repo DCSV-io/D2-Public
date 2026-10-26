@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 /// <summary>
 /// Per-VO complex-type mapping helpers for the DcsvIo.D2.Location value objects
-/// (<c>StreetAddress</c>, <c>AdminLocation</c>, <c>Coordinates</c>). Called from the
-/// host's <c>IEntityTypeConfiguration&lt;T&gt;</c> inside a <c>b.ComplexProperty</c>
+/// (<c>StreetAddress</c>, <c>AdminLocation</c>, <c>Coordinates</c>). Called from an
+/// <c>IEntityTypeConfiguration&lt;T&gt;</c> inside a <c>b.ComplexProperty</c>
 /// callback. Each helper: wires <c>HasMaxLength</c> from <c>FieldConstraints.*</c> (plus
 /// the encoder-intrinsic geohash / plus-code caps), applies any necessary value converters
 /// (CountryCode, SubdivisionCode), and writes the per-field anonymize defaults via the
@@ -20,8 +20,8 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The host keeps the domain aggregate completely free of EF references — a VO-typed
-/// property on a host entity is a plain CLR property; all mapping lives in the infra
+/// The domain aggregate stays completely free of EF references - a VO-typed
+/// property on an entity is a plain CLR property; all mapping lives in the infra
 /// <c>IEntityTypeConfiguration&lt;T&gt;</c> class.
 /// </para>
 /// <para>
@@ -41,10 +41,10 @@ public static class LocationMappingExtensions
     {
         /// <summary>
         /// Configures a <c>StreetAddress</c> complex-property column set: wires
-        /// <c>HasMaxLength</c> on all five address lines and <c>HashId</c>, and
+        /// <c>HasMaxLength</c> on the address lines Line1 to Line5 and <c>HashId</c>, and
         /// writes the per-field anonymize defaults.
-        /// Anonymize defaults: Line1 → <c>"[deleted]"</c> (constant); Line2–5 → SetNull;
-        /// HashId → cleared sentinel.
+        /// Anonymize defaults: Line1 -> <c>"[deleted]"</c> (constant); Line2-5 -> SetNull;
+        /// HashId -> cleared sentinel.
         /// </summary>
         /// <returns>The same builder for fluent chaining.</returns>
         public ComplexPropertyBuilder<StreetAddress> MapStreetAddress()
@@ -61,12 +61,12 @@ public static class LocationMappingExtensions
     {
         /// <summary>
         /// Configures an <c>AdminLocation</c> complex-property column set: wires
-        /// <c>HasMaxLength</c>, value converters for <c>SubdivisionCode</c> (struct →
-        /// string) and <c>CountryCode</c> (enum → alpha-2 string), and the per-field
+        /// <c>HasMaxLength</c>, value converters for <c>SubdivisionCode</c> (struct ->
+        /// string) and <c>CountryCode</c> (enum -> alpha-2 string), and the per-field
         /// anonymize defaults.
-        /// Anonymize defaults: City/PostalCode/Subdivision → SetNull;
-        /// Country → <b>KEPT</b> (coarse-grained, no annotation);
-        /// HashId → cleared sentinel.
+        /// Anonymize defaults: City/PostalCode/Subdivision -> SetNull;
+        /// Country -> <b>KEPT</b> (coarse-grained, no annotation);
+        /// HashId -> cleared sentinel.
         /// </summary>
         /// <remarks>
         /// An empty subdivision string read from the database is materialized as
@@ -89,9 +89,9 @@ public static class LocationMappingExtensions
         /// Configures a <c>Coordinates</c> complex-property column set: wires
         /// <c>HasMaxLength</c> on the <c>Geohash</c>, <c>PlusCode</c>, and <c>HashId</c>
         /// string members, and writes the per-field anonymize defaults.
-        /// Anonymize defaults: Latitude/Longitude → constant <c>"0"</c> (coerced to
-        /// <c>0.0</c> at erasure); Geohash/PlusCode → SetEmpty; AccuracyMeters → SetNull;
-        /// HashId → cleared sentinel.
+        /// Anonymize defaults: Latitude/Longitude -> constant <c>"0"</c> (coerced to
+        /// <c>0.0</c> at erasure); Geohash/PlusCode -> SetEmpty; AccuracyMeters -> SetNull;
+        /// HashId -> cleared sentinel.
         /// </summary>
         /// <returns>The same builder for fluent chaining.</returns>
         public ComplexPropertyBuilder<Coordinates> MapCoordinates()

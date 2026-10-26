@@ -36,7 +36,7 @@ public sealed class CurrencyLookupTests
         CurrencyLookup.ByCode.Count.Should().BeGreaterThanOrEqualTo(175);
     }
 
-    // §1.2 category: Domain-specific — per-VALUE pins for major currencies.
+    // Category: Domain-specific - per-VALUE pins for major currencies.
     [Fact]
     public void Currency_USD_AllFieldsPinned()
     {
@@ -63,7 +63,7 @@ public sealed class CurrencyLookupTests
     [Fact]
     public void Currency_JPY_DecimalPlacesZero()
     {
-        // JPY is zero-decimal — pin that boundary.
+        // JPY is zero-decimal - pin that boundary.
         Currencies.JPY.DecimalPlaces.Should().Be(0);
         Currencies.JPY.Iso4217AlphaCode.Should().Be(CurrencyCode.JPY);
     }
@@ -78,7 +78,7 @@ public sealed class CurrencyLookupTests
         gbp.DecimalPlaces.Should().Be(2);
     }
 
-    // §1.2 category: Cross-field — reverse-FK nav populated post wire-nav.
+    // Category: Cross-field - reverse-FK nav populated post wire-nav.
     [Fact]
     public void Currency_USD_AcceptedInCountries_ContainsUS()
     {

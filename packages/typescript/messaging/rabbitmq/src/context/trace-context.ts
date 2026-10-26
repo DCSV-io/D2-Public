@@ -17,10 +17,10 @@ const INVALID_SPAN_ID = "0".repeat(16);
 
 /**
  * Parses a W3C `traceparent` header into a remote {@link SpanContext}. A
- * missing / malformed / all-zero value returns `undefined` (the consume span
- * then starts a fresh root trace) — the exact mirror of the .NET
- * `ActivityContext.TryParse`-fails-then-default posture, so a forged header can
- * never crash a delivery.
+ * missing, malformed or all-zero value returns `undefined` (the consume span
+ * then starts a fresh root trace), which mirrors the .NET
+ * `ActivityContext.TryParse`-fails-then-default posture exactly, so a forged
+ * header can never crash a delivery.
  *
  * @param traceparent The raw `traceparent` header value (or undefined).
  */
@@ -55,7 +55,7 @@ export function parseTraceparent(
 
 /**
  * Builds the parent {@link Context} for a consume span from a parsed remote
- * span context — or `undefined` when there is no valid parent (root span).
+ * span context, or `undefined` when there is no valid parent (root span).
  *
  * @param spanContext The parsed remote span context (or undefined).
  */

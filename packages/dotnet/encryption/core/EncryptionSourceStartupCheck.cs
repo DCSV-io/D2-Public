@@ -13,24 +13,24 @@ using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Hosted service that asserts, for every registered encryption domain, that
-/// its keyring comes from a KeyCustodian source rather than a hand-wired static
+/// its keyring comes from a managed keyring source rather than a hand-wired static
 /// factory. Deny-by-default: a domain with no <see cref="EncryptionSourceMarker"/>
 /// (or one marked <see cref="EncryptionKeyringSource.StaticFactory"/>) is
-/// rejected outside a Development host — the host crashes so a static-key
-/// footgun cannot serve production traffic. In a Development host the same case
-/// logs a loud warning and proceeds, so local development without a running
-/// KeyCustodian still works.
+/// rejected outside a Development host - the host crashes, so a static key
+/// cannot serve production traffic. In a Development host the same case
+/// logs a warning and proceeds, so local development without a running
+/// managed key service still works.
 /// </summary>
 /// <remarks>
 /// The environment gate is resolved fail-closed: if no
 /// <see cref="IHostEnvironment"/> is available the host is treated as
 /// non-Development (deny). The check only sees registrations made through the
-/// library extensions (<c>AddD2EncryptionFor</c> and the KeyCustodian keyring
+/// library extensions (<c>AddD2EncryptionFor</c> and the managed keyring
 /// sources), which record an <see cref="EncryptionRegistration"/>. A host that
-/// hand-registers a keyed <see cref="IPayloadCrypto"/> directly — bypassing
-/// every library extension — records no registration and is invisible to this
-/// check. That is deliberate circumvention, not the guarded footgun; see the
-/// library README.
+/// hand-registers a keyed <see cref="IPayloadCrypto"/> directly - bypassing
+/// every library extension - records no registration and is invisible to this
+/// check. That is deliberate circumvention and not the case this check guards
+/// against; see the library README.
 /// </remarks>
 public sealed class EncryptionSourceStartupCheck : IHostedService
 {
@@ -71,7 +71,7 @@ public sealed class EncryptionSourceStartupCheck : IHostedService
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (IsKeyCustodianSourced(serviceKey))
+            if (IsManagedSourced(serviceKey))
             {
                 EncryptionSourceStartupCheckLog.SourceCheckPassed(r_logger, serviceKey);
                 continue;
@@ -81,8 +81,8 @@ public sealed class EncryptionSourceStartupCheck : IHostedService
             {
                 throw new InvalidOperationException(
                     $"Encryption domain '{serviceKey}' is backed by a static key " +
-                    "source rather than a KeyCustodian-sourced, rotation-aware " +
-                    "keyring. Register it through a KeyCustodian keyring source " +
+                    "source rather than a managed, rotation-aware keyring. " +
+                    "Register it through a managed keyring source " +
                     "(or mark it via MarkD2EncryptionSource) before starting a " +
                     "non-Development host.");
             }
@@ -97,16 +97,16 @@ public sealed class EncryptionSourceStartupCheck : IHostedService
     /// <inheritdoc />
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-    // Deny-by-default: a domain passes only if it carries at least one marker
-    // AND every marker under its key is KeyCustodian. An absent marker (the raw
+    // Deny-by-default: a domain passes only if it has at least one marker
+    // and every marker under its key is Managed. An absent marker (the raw
     // unmarked seam) or any StaticFactory marker fails closed.
-    private bool IsKeyCustodianSourced(string serviceKey)
+    private bool IsManagedSourced(string serviceKey)
     {
         var markers = r_services
             .GetKeyedServices<EncryptionSourceMarker>(serviceKey)
             .ToArray();
 
         return markers.Length > 0
-            && markers.All(static m => m.Source == EncryptionKeyringSource.KeyCustodian);
+            && markers.All(static m => m.Source == EncryptionKeyringSource.Managed);
     }
 }

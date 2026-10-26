@@ -15,7 +15,7 @@ using DcsvIo.D2.Utilities.Extensions;
 using NodaTime;
 
 /// <summary>
-/// Lossless ISO-8601 duration ↔ NodaTime <see cref="Duration"/> bridge,
+/// Lossless ISO-8601 duration &lt;-> NodaTime <see cref="Duration"/> bridge,
 /// including sub-second decimal-fraction seconds to nanosecond precision.
 /// </summary>
 /// <remarks>
@@ -26,16 +26,16 @@ using NodaTime;
 /// colon-separated <c>-D:hh:mm:ss.fffffffff</c> form, and
 /// <see cref="NodaTime.Text.PeriodPattern"/> uses explicit unit fields with
 /// no decimal-fraction seconds. The TypeScript wire counterpart
-/// (<c>Temporal.Duration</c>) round-trips ISO-8601 — including a decimal
-/// fraction on the seconds field (<c>"PT0.123456789S"</c>) — natively. This
+/// (<c>Temporal.Duration</c>) round-trips ISO-8601 - including a decimal
+/// fraction on the seconds field (<c>"PT0.123456789S"</c>) - natively. This
 /// helper is the .NET side of that cross-language wire contract: an
-/// ISO-8601 duration STRING that materializes to the equivalent
+/// ISO-8601 duration string that materializes to the equivalent
 /// <see cref="Duration"/> value in both languages, sub-second precision
 /// included.
 /// </para>
 /// <para>
 /// <b>No floating point.</b> Every quantity is computed as an
-/// <see cref="System.Int128"/> count of nanoseconds — days, hours, minutes,
+/// <see cref="System.Int128"/> count of nanoseconds - days, hours, minutes,
 /// and whole seconds are multiplied by their exact nanosecond factors, and
 /// the fractional-seconds field is right-padded to exactly nine digits and
 /// added as an integer. The result is handed to
@@ -51,11 +51,11 @@ using NodaTime;
 /// non-zero components, with the fractional-seconds field trimmed to its
 /// minimal digit count, and <c>"PT0S"</c> for a zero duration. Because a
 /// <see cref="Duration"/> is a bare nanosecond quantity (it carries no
-/// memory of which units the caller authored), the round-trip contract the
-/// suites assert is VALUE equality (total nanoseconds), not byte-identical
-/// strings — a <c>"PT90M"</c> input round-trips to the same value as its
-/// balanced <c>"PT1H30M"</c> rendering. The sub-second decimal-fraction case
-/// is byte-stable (<c>"PT0.123456789S"</c> → value → <c>"PT0.123456789S"</c>)
+/// memory of which units the caller authored), the round-trip contract is
+/// value equality (total nanoseconds), not byte-identical strings - a
+/// <c>"PT90M"</c> input round-trips to the same value as its balanced
+/// <c>"PT1H30M"</c> rendering. The sub-second decimal-fraction case
+/// is byte-stable (<c>"PT0.123456789S"</c> -> value -> <c>"PT0.123456789S"</c>)
 /// because there is no larger unit to balance into.
 /// </para>
 /// </remarks>
@@ -77,7 +77,7 @@ public static partial class IsoDuration
     /// whole days, and a time section with hours / minutes / seconds; the
     /// seconds field accepts up to nine fractional digits. Unbalanced
     /// components are accepted (e.g. <c>"PT90M"</c>, <c>"PT3600S"</c>,
-    /// <c>"PT26H"</c>) — the <c>Temporal.Duration</c> wire emits these. Year /
+    /// <c>"PT26H"</c>) - the <c>Temporal.Duration</c> wire emits these. Year /
     /// month / week designators are rejected (calendar-relative, never on the
     /// wire). At least one component must be present (a bare <c>"P"</c> /
     /// <c>"PT"</c> is rejected).
@@ -88,7 +88,7 @@ public static partial class IsoDuration
     /// <c>TK.Common.Time.INVALID_DURATION</c> when <paramref name="iso"/> is
     /// null / empty / whitespace, syntactically malformed, or resolves to a
     /// magnitude outside NodaTime's representable
-    /// <see cref="Duration"/> range. Error-as-value — never throws on bad
+    /// <see cref="Duration"/> range. Error-as-value - never throws on bad
     /// input (the codebase's smart-constructor contract).
     /// </returns>
     public static D2Result<Duration> Parse(string? iso)
@@ -101,7 +101,7 @@ public static partial class IsoDuration
             return Invalid();
 
         // Reject the no-component forms ("P", "PT", "-P", "-PT") that the
-        // optional groups would otherwise let through — a duration must name
+        // optional groups would otherwise let through - a duration must state
         // at least one unit.
         if (!HasAnyComponent(match))
             return Invalid();
@@ -136,8 +136,8 @@ public static partial class IsoDuration
     /// The ISO-8601 string. A zero duration renders as <c>"PT0S"</c>; a
     /// negative duration carries a leading <c>-</c>. Fractional seconds are
     /// emitted only when non-zero, with trailing zeros stripped
-    /// (e.g. <c>500_000_000</c> ns → <c>"PT0.5S"</c>,
-    /// <c>123_456_789</c> ns → <c>"PT0.123456789S"</c>).
+    /// (e.g. <c>500_000_000</c> ns -> <c>"PT0.5S"</c>,
+    /// <c>123_456_789</c> ns -> <c>"PT0.123456789S"</c>).
     /// </returns>
     public static string Format(Duration duration)
     {
@@ -167,8 +167,8 @@ public static partial class IsoDuration
         if (minutes != 0)
             sb.Append(minutes.ToString(CultureInfo.InvariantCulture)).Append('M');
 
-        // Emit the seconds field when it is non-zero OR when no higher unit
-        // was emitted (so a sub-second-only duration still names a unit, and a
+        // Emit the seconds field when it is non-zero or when no higher unit
+        // was emitted (so a sub-second-only duration still has a unit, and a
         // value that balances to exactly N hours/minutes never produces a
         // trailing bare "PT").
         var emittedHigher = hours != 0 || minutes != 0;
@@ -209,7 +209,7 @@ public static partial class IsoDuration
 
         // Fractional seconds: right-pad the captured digits to exactly nine
         // (nanosecond resolution), then parse as an integer count of
-        // nanoseconds. No division, no float — a right-pad is the exact
+        // nanoseconds. No division, no float - a right-pad is the exact
         // decimal-to-nanosecond conversion.
         var fractionNanos = Int128.Zero;
         var fractionGroup = match.Groups["fraction"];
@@ -269,17 +269,19 @@ public static partial class IsoDuration
     /// the wire actually carries: an optional leading sign, optional whole
     /// days, then an optional time section with optional hours / minutes /
     /// seconds, where the seconds field may carry up to nine fractional
-    /// digits. Year / month / week designators are intentionally unsupported —
+    /// digits. Year / month / week designators are intentionally unsupported -
     /// they are calendar-relative (not a fixed nanosecond quantity) and the
     /// wire never emits them. The empty-component case ("P" / "PT") is
     /// rejected by <see cref="HasAnyComponent"/> after the match.
     /// </summary>
     /// <remarks>
-    /// Bucket 2 (linear, bounded input): the pattern has no nested quantifiers
-    /// or alternation that can backtrack super-linearly, and the wire string
-    /// is bounded — no <c>matchTimeout</c> is required per the regex-ReDoS
-    /// discipline. Source-generated (compile-time) for zero per-call
-    /// construction cost.
+    /// Linear with a bounded input: the pattern has no nested quantifiers or
+    /// alternation that can backtrack super-linearly, and the wire string is
+    /// bounded. Each digit run ends at a designator letter outside its
+    /// character class, so match time grows linearly with the input length
+    /// even where this method checks no length. No <c>matchTimeout</c> is
+    /// set.
+    /// Source-generated (compile-time) for zero per-call construction cost.
     /// </remarks>
     [GeneratedRegex(
         @"^(?<sign>-)?P(?:(?<days>\d+)D)?(?:T(?:(?<hours>\d+)H)?(?:(?<minutes>\d+)M)?(?:(?<seconds>\d+)(?:\.(?<fraction>\d{1,9}))?S)?)?$",

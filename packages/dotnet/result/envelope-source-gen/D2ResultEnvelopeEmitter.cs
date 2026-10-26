@@ -16,16 +16,13 @@ using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
 /// Pure logic for emitting the <c>D2ResultEnvelopeFieldNames</c> static
-/// class carrying JSON property-name constants for the D2Result Shape B
-/// wire envelope. Stateless and unit-testable in isolation. The
-/// <c>D2Result</c> properties carry
-/// <c>[JsonPropertyName(D2ResultEnvelopeFieldNames.SUCCESS)]</c> (etc.)
-/// attributes referencing these constants — single source of truth for
-/// the wire-key strings. The companion TS emitter
-/// <c>tools/ts-codegen/src/d2result-envelope-emit.ts</c> reads the same
-/// spec and emits an identical <c>D2ResultEnvelopeFieldNames</c> catalog
-/// into <c>@dcsv-io/d2-result</c>; cross-language wire drift on these field
-/// names is structurally impossible.
+/// class, which holds JSON property-name constants for the D2Result Shape B
+/// wire envelope. Stateless, and testable in isolation. The emitted
+/// constants are the single source of truth for the wire-key strings. The
+/// TypeScript code generator reads the same spec and emits an identical
+/// <c>D2ResultEnvelopeFieldNames</c> catalog
+/// into <c>@dcsv-io/d2-result</c>, so the .NET and TypeScript field names
+/// cannot differ.
 /// </summary>
 internal static class D2ResultEnvelopeEmitter
 {
@@ -112,13 +109,15 @@ internal static class D2ResultEnvelopeEmitter
         sb.AppendLine();
         sb.AppendLine(
             "/// <summary>Spec-derived JSON property-name catalog for the D2Result Shape B "
-                + "wire envelope (the BFF gateway response shape that every frontend reads). "
+                + "wire envelope (the gateway response shape a host serializes to its "
+                + "clients). "
                 + "Every JSON serializer / deserializer references these constants for property "
-                + "names instead of inline string literals — drift between the wire and the "
+                + "names instead of inline string literals - drift between the wire and the "
                 + "code is structurally impossible.</summary>");
         sb.AppendLine(
             "/// <remarks>Cross-language parity: the SAME spec drives the TS-side "
-                + "<c>@dcsv-io/d2-result</c> catalog via <c>tools/ts-codegen</c>. Both sides emit the "
+                + "<c>@dcsv-io/d2-result</c> catalog through the TypeScript emitter. "
+                + "Both sides emit the "
                 + "same property names byte-for-byte; cross-language wire drift is "
                 + "impossible.</remarks>");
         sb.AppendLine($"public static class {CLASS_NAME}");

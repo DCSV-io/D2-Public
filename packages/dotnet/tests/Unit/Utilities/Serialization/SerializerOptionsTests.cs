@@ -26,14 +26,14 @@ public sealed class SerializerOptionsTests
     [Fact]
     public void IgnoreCycles_DoesNotThrowOnSelfReferentialGraph()
     {
-        // Adversarial: self-referential object would normally throw
+        // A self-referential object would normally throw
         // JsonException("A possible object cycle was detected.").
         var node = new CycleNode();
         node.Self = node;
 
-        // Read the back-reference before serializing so R# sees the getter
-        // as used (the JsonSerializer's reflection-based read is invisible
-        // to static analysis).
+        // Read the back-reference before serializing so ReSharper sees the getter
+        // as used (the JsonSerializer reads it through reflection, which static
+        // analysis does not see).
         node.Self.Should().BeSameAs(node);
 
         var act = () => JsonSerializer.Serialize(node, SerializerOptions.SR_IgnoreCycles);

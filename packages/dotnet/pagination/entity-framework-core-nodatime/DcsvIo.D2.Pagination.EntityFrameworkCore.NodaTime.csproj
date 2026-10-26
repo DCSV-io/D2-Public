@@ -1,0 +1,40 @@
+<!--
+Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>DcsvIo.D2.Pagination.EntityFrameworkCore.NodaTime</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    Instant sort modes for multi-mode list page. Cursor encode/decode uses
+    InstantPattern.ExtendedIso (culture-safe). Depends on Pagination.EntityFrameworkCore.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\entity-framework-core\DcsvIo.D2.Pagination.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\DcsvIo.D2.Pagination.csproj" />
+    <ProjectReference Include="..\..\result\core\DcsvIo.D2.Result.csproj" />
+    <ProjectReference Include="..\..\utilities\DcsvIo.D2.Utilities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NodaTime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DcsvIo.D2.Tests" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <Version>0.2.25</Version>
+    <PackageId>DcsvIo.D2.Pagination.EntityFrameworkCore.NodaTime</PackageId>
+    <Description>NodaTime Instant sort modes for D2 multi-mode list page (ExtendedIso cursors).</Description>
+    <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>

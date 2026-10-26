@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 // <copyright file="ErrorCodesOutputParityTests.cs" company="DCSV">
 // Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -23,8 +23,7 @@ using ResultErrorCodesGenerator =
 
 /// <summary>
 /// CI-enforced byte-parity gate for the public Result ErrorCodes / D2Result
-/// factory catalog. Auth ErrorCodes/AuthFailures parity lives on the private
-/// composition host as <c>AuthErrorCodesOutputParityTests</c>.
+/// factory catalog.
 /// </summary>
 public sealed class ErrorCodesOutputParityTests
 {

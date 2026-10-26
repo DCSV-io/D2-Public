@@ -14,10 +14,10 @@ using System.Security.Cryptography;
 /// AAD context.
 /// </summary>
 /// <remarks>
-/// Per-call <see cref="AesGcm"/> instantiation. AesGcm holds pinned native
+/// Per-call <see cref="AesGcm"/> instantiation. AesGcm uses pinned native
 /// memory for the key schedule; per-call <c>using</c> avoids leaking that
 /// across encrypts and sidesteps the documented thread-safety constraints
-/// on a shared instance. The (small) key-schedule cost is irrelevant at
+/// on a shared instance. The small key-schedule cost is not significant at
 /// realistic message rates.
 /// </remarks>
 public sealed class PayloadCrypto : IPayloadCrypto
@@ -74,7 +74,7 @@ public sealed class PayloadCrypto : IPayloadCrypto
     }
 
     /// <summary>
-    /// Returns the type name only — never includes keyring contents.
+    /// Returns the type name only - never includes keyring contents.
     /// </summary>
     public override string ToString() => nameof(PayloadCrypto);
 }

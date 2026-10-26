@@ -11,10 +11,10 @@ using DcsvIo.D2.Context.SourceGen;
 using Xunit;
 
 /// <summary>
-/// Adversarial coverage for <see cref="SpecLoader.Load"/>. The loader is
-/// responsible only for JSON-shape validation (D2CTX001 — malformed spec); all
-/// semantic validation (closed type vocab, name collisions, derived rules)
-/// happens in the emitters and is tested separately.
+/// Adversarial coverage for <see cref="SpecLoader.Load"/>. The loader
+/// validates only the JSON shape (D2CTX001 - malformed spec). The emitters
+/// perform all semantic validation (closed type vocab, name collisions,
+/// derived rules), and their tests cover that separately.
 /// </summary>
 public sealed class SpecLoaderTests
 {
@@ -173,7 +173,7 @@ public sealed class SpecLoaderTests
     }
 
     // ----------------------------------------------------------------------
-    // D2CTX001 — malformed JSON / schema-violating
+    // D2CTX001 - malformed JSON / schema-violating
     // ----------------------------------------------------------------------
 
     [Theory]
@@ -322,7 +322,7 @@ public sealed class SpecLoaderTests
     }
 
     // ----------------------------------------------------------------------
-    // Adversarial — extra unknown properties (silently allowed by loader;
+    // Adversarial - extra unknown properties (silently allowed by loader;
     // schema's additionalProperties:false catches them at editor time)
     // ----------------------------------------------------------------------
 
@@ -363,7 +363,7 @@ public sealed class SpecLoaderTests
     [Fact]
     public void Load_EmptySectionsArray_IsAccepted()
     {
-        // Schema's minItems: 1 is editor-time only.
+        // The schema's minItems: 1 applies at editor time only.
         const string json = """
         { "name": "IFoo", "namespace": "X.Y", "sections": [] }
         """;

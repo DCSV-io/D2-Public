@@ -36,7 +36,7 @@ public sealed class SecurityHeadersMiddlewareTests
             .Should().ContainSingle().Which.Should().Be("same-origin");
 
         // X-Content-Type-Options is a response header (sometimes sorted to
-        // the content headers depending on the HttpClient handler — accept
+        // the content headers depending on the HttpClient handler - accept
         // either location).
         var hasOnResponse = response.Headers.Contains("X-Content-Type-Options");
         var hasOnContent = response.Content.Headers.Contains("X-Content-Type-Options");

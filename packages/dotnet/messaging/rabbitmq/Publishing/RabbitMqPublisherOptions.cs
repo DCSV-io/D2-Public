@@ -15,15 +15,16 @@ public sealed class RabbitMqPublisherOptions
 {
     /// <summary>
     /// Gets or sets a value indicating whether publishes wait for the
-    /// broker's publisher-confirm before returning. Default true —
-    /// durability beats the per-publish round-trip cost in our context.
+    /// broker's publisher-confirm before returning. The default is true,
+    /// which accepts the per-publish round-trip cost for durability.
     /// </summary>
     public bool WaitForConfirm { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets the timeout the publisher waits for a confirm. Default
-    /// 5 seconds. On timeout, the publisher returns
-    /// <c>D2Result.ServiceUnavailable</c>.
+    /// Gets or sets the confirmation timeout. Default 5 seconds; must be positive
+    /// and at most 4294967294 milliseconds. The publisher maps timeout to
+    /// <c>D2Result.ServiceUnavailable</c>. Subscriber DLQ deadlines are configured
+    /// independently through <see cref="Subscribing.RabbitMqSubscriberOptions"/>.
     /// </summary>
     public TimeSpan ConfirmTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
@@ -31,7 +32,7 @@ public sealed class RabbitMqPublisherOptions
     /// Gets or sets the maximum publish attempts (including the initial
     /// call) on transient failure. Default 5. Per-call
     /// <see cref="PublisherOptions.MaxAttempts"/> overrides; set to 1
-    /// there for fire-and-forget semantics on a specific call.
+    /// there to disable retries on a specific call.
     /// </summary>
     public int MaxAttempts { get; set; } = 5;
 
@@ -43,8 +44,8 @@ public sealed class RabbitMqPublisherOptions
 
     /// <summary>
     /// Gets or sets the cap on exponential backoff between publish retries.
-    /// Default 5 seconds — keeps the worst-case publish latency bounded
-    /// even under sustained broker outage.
+    /// The default is 5 seconds, which keeps the worst-case publish latency
+    /// bounded even under a sustained broker outage.
     /// </summary>
     public TimeSpan MaxRetryDelay { get; set; } = TimeSpan.FromSeconds(5);
 }

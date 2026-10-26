@@ -4,7 +4,7 @@
   "$schema": "./countries.overlays.schema.json",
   "$note": "Trackable manual patches to the Tier 1 countries catalog. Applied at Tier 2 build time AFTER loading Tier 1 src-data and BEFORE cross-catalog M:M backfill. Each entry carries a `reason` + `addedAt` so the policy decision is audit-trail visible without git-archaeology. Use `pnpm geo:overlays` to list active patches with their reasons. See ./README.md for the pattern + when to add an overlay vs fix upstream.",
   "catalogVersion": "0.1.0",
-  "lastEditedAt": "2026-05-23",
+  "lastEditedAt": "2026-10-21",
   "additions": [
     {
       "id": "XK",
@@ -113,6 +113,70 @@
         "widelyAcceptedCurrencies": [
           { "isoAlphaCode": "USD", "fromDate": null }
         ]
+      }
+    },
+    {
+      "id": "MP",
+      "addedAt": "2026-10-21",
+      "reason": "The first entry of the datasets/country-codes Languages column for MP is fil, an ISO 639-3 code, and the language catalog holds ISO 639-1 codes only, so fil has no catalog entry. The primary language is set to en, the language of the primary locale en-MP.",
+      "fields": {
+        "primaryLanguageISO6391Code": "en"
+      }
+    },
+    {
+      "id": "NU",
+      "addedAt": "2026-10-21",
+      "reason": "The first entry of the datasets/country-codes Languages column for NU is niu, an ISO 639-3 code, and the language catalog holds ISO 639-1 codes only, so niu has no catalog entry. The primary language is set to en, the language of the primary locale en-NU.",
+      "fields": {
+        "primaryLanguageISO6391Code": "en"
+      }
+    },
+    {
+      "id": "PW",
+      "addedAt": "2026-10-21",
+      "reason": "The first entry of the datasets/country-codes Languages column for PW is pau, an ISO 639-3 code, and the language catalog holds ISO 639-1 codes only, so pau has no catalog entry. The primary language is set to en, the language of the primary locale en-PW.",
+      "fields": {
+        "primaryLanguageISO6391Code": "en"
+      }
+    },
+    {
+      "id": "SG",
+      "addedAt": "2026-10-21",
+      "reason": "The first entry of the datasets/country-codes Languages column for SG is cmn, an ISO 639-3 code, and the language catalog holds ISO 639-1 codes only, so cmn has no catalog entry. The primary language is set to zh, the language of the primary locale zh-Hans-SG.",
+      "fields": {
+        "primaryLanguageISO6391Code": "zh"
+      }
+    },
+    {
+      "id": "TK",
+      "addedAt": "2026-10-21",
+      "reason": "The first entry of the datasets/country-codes Languages column for TK is tkl, an ISO 639-3 code, and the language catalog holds ISO 639-1 codes only, so tkl has no catalog entry. The primary language is set to en, the language of the primary locale en-TK.",
+      "fields": {
+        "primaryLanguageISO6391Code": "en"
+      }
+    },
+    {
+      "id": "TL",
+      "addedAt": "2026-10-21",
+      "reason": "The first entry of the datasets/country-codes Languages column for TL is tet, an ISO 639-3 code, and the language catalog holds ISO 639-1 codes only, so tet has no catalog entry. The primary language is set to pt, the language of the primary locale pt-TL.",
+      "fields": {
+        "primaryLanguageISO6391Code": "pt"
+      }
+    },
+    {
+      "id": "TV",
+      "addedAt": "2026-10-21",
+      "reason": "The first entry of the datasets/country-codes Languages column for TV is tvl, an ISO 639-3 code, and the language catalog holds ISO 639-1 codes only, so tvl has no catalog entry. The primary language is set to en, the language of the primary locale en-TV.",
+      "fields": {
+        "primaryLanguageISO6391Code": "en"
+      }
+    },
+    {
+      "id": "WF",
+      "addedAt": "2026-10-21",
+      "reason": "The first entry of the datasets/country-codes Languages column for WF is wls, an ISO 639-3 code, and the language catalog holds ISO 639-1 codes only, so wls has no catalog entry. The primary language is set to fr, the language of the primary locale fr-WF.",
+      "fields": {
+        "primaryLanguageISO6391Code": "fr"
       }
     }
   ],

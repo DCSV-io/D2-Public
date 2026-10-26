@@ -7,7 +7,7 @@ namespace DcsvIo.D2.Encryption
     {
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Exception?> __NoDomainsRegisteredCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(1, nameof(NoDomainsRegistered)), "EncryptionSourceStartupCheck registered but no encryption domains were registered via AddD2EncryptionFor.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(1, nameof(NoDomainsRegistered)), "EncryptionSourceStartupCheck registered but no encryption domains were registered via AddD2EncryptionFor.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void NoDomainsRegistered(global::Microsoft.Extensions.Logging.ILogger logger)
@@ -19,7 +19,7 @@ namespace DcsvIo.D2.Encryption
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::DcsvIo.D2.Encryption.EncryptionKeyringSource, global::System.Exception?> __StaticSourceInDevelopmentCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::DcsvIo.D2.Encryption.EncryptionKeyringSource>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(2, nameof(StaticSourceInDevelopment)), "Encryption domain {ServiceKey} is backed by a static key source ({Source}). Allowed only because the host is in the Development environment — this configuration would crash a non-Development host.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::DcsvIo.D2.Encryption.EncryptionKeyringSource>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(2, nameof(StaticSourceInDevelopment)), "Encryption domain {ServiceKey} is backed by a static key source ({Source}). Allowed only because the host is in the Development environment - this configuration would crash a non-Development host.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void StaticSourceInDevelopment(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String serviceKey, global::DcsvIo.D2.Encryption.EncryptionKeyringSource source)
@@ -31,7 +31,7 @@ namespace DcsvIo.D2.Encryption
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.Exception?> __SourceCheckPassedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(3, nameof(SourceCheckPassed)), "Encryption domain {ServiceKey} passed the source-provenance check (KeyCustodian-sourced).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(3, nameof(SourceCheckPassed)), "Encryption domain {ServiceKey} passed the source-provenance check (managed source).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void SourceCheckPassed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String serviceKey)

@@ -14,8 +14,7 @@ using Xunit;
 /// <summary>
 /// Tests for the <see cref="IAnonymizationEngine"/> contract. Proves the seam's method
 /// signatures compile and dispatch correctly using a fake implementation. Pins the return
-/// type, method names, and parameter shapes so a concrete implementation cannot silently
-/// drift the seam.
+/// type, method names, and parameter shapes, so a change to any of them fails a test.
 /// </summary>
 [Trait("Category", "Unit")]
 public sealed class IAnonymizationEngineContractTests
@@ -155,7 +154,7 @@ public sealed class IAnonymizationEngineContractTests
         var result = await sut.AnonymizeUserAsync(userId);
 
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.VALIDATION_FAILED);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_VALIDATION_FAILED);
     }
 
     // ---- Test doubles --------------------------------------------------------

@@ -9,10 +9,10 @@ namespace DcsvIo.D2.DataGovernance.Abstractions;
 using DcsvIo.D2.Result;
 
 /// <summary>
-/// Engine seam — the single entry point for triggering a GDPR erasure sweep over all
+/// Engine seam and the single entry point for triggering a GDPR erasure sweep over all
 /// registered entity types. The concrete implementation lives in
-/// <c>DcsvIo.D2.DataGovernance.EntityFrameworkCore</c>; domain and host code
-/// depend on this interface without pulling in EF Core.
+/// <c>DcsvIo.D2.DataGovernance.EntityFrameworkCore</c>, so this interface has no
+/// dependency on EF Core.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -24,23 +24,23 @@ using DcsvIo.D2.Result;
 /// </para>
 /// <para>
 /// <strong>Validation:</strong> passing <see cref="Guid.Empty"/> as <c>userId</c> or
-/// <c>orgId</c> returns <c>ValidationFailed</c> immediately — no database writes are
+/// <c>orgId</c> returns <c>ValidationFailed</c> before any database write is
 /// attempted.
 /// </para>
 /// <para>
 /// <strong>Outcome counters:</strong>
-/// <see cref="AnonymizationOutcome.EntityTypesProcessed"/> — entity types examined (not
-/// exempt); <see cref="AnonymizationOutcome.RowsAnonymized"/> — rows actually overwritten;
-/// <see cref="AnonymizationOutcome.EntityTypesSkippedExempt"/> — entity types skipped
+/// <see cref="AnonymizationOutcome.EntityTypesProcessed"/> - entity types examined (not
+/// exempt); <see cref="AnonymizationOutcome.RowsAnonymized"/> - rows actually overwritten;
+/// <see cref="AnonymizationOutcome.EntityTypesSkippedExempt"/> - entity types skipped
 /// because they implement <see cref="IExemptFromAnonymization"/>;
-/// <see cref="AnonymizationOutcome.AlreadyAnonymizedRows"/> — rows skipped because
+/// <see cref="AnonymizationOutcome.AlreadyAnonymizedRows"/> - rows skipped because
 /// <see cref="IAnonymizationTrackable.IsAnonymized"/> was already <see langword="true"/>.
 /// </para>
 /// <para>
 /// <strong>Why <c>Task</c> and not <c>ValueTask</c>:</strong> the engine always performs
 /// real async I/O (EF Core <c>ExecuteUpdateAsync</c> / <c>SaveChangesAsync</c>) with no
-/// synchronous fast path, so the single-await discipline of <c>ValueTask</c> provides no
-/// benefit and adds a consumption footgun.
+/// synchronous fast path, so <c>ValueTask</c>, which may be awaited only once, provides no
+/// benefit and adds a risk of misuse.
 /// </para>
 /// </remarks>
 public interface IAnonymizationEngine

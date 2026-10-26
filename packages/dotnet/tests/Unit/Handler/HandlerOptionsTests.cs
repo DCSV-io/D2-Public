@@ -15,9 +15,9 @@ using Xunit;
 public sealed class HandlerOptionsTests
 {
     // ----------------------------------------------------------------------
-    // Defaults — every default is load-bearing for the platform-wide
-    // observability contract; document each in a dedicated test so a future
-    // accidental change to a default trips a single named failure.
+    // Defaults - every default is part of the platform-wide observability
+    // contract; a dedicated test pins each one, so a change to a default
+    // fails a single named test.
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -65,7 +65,7 @@ public sealed class HandlerOptionsTests
     }
 
     // ----------------------------------------------------------------------
-    // record `with`-expression overrides — verifies record-semantics work
+    // record `with`-expression overrides - verifies record-semantics work
     // through every property without surprise (e.g. an init-only setter
     // accidentally turned into a get-only would silently break overrides).
     // ----------------------------------------------------------------------
@@ -143,7 +143,7 @@ public sealed class HandlerOptionsTests
     }
 
     // ----------------------------------------------------------------------
-    // ScopeRequirement — null disables check; populated exposes Match + Scopes
+    // ScopeRequirement - null disables check; populated exposes Match + Scopes
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -195,7 +195,7 @@ public sealed class HandlerOptionsTests
     [Fact]
     public void With_ScopeRequirementEmptyScopes_ThrowsAtConstruction()
     {
-        // Adversarial: empty Scopes is now illegal at construction (F5 guard).
+        // Adversarial: an empty Scopes set is illegal at construction.
         // The pipeline guard `is { Scopes.Count: > 0 }` remains as defense-in-depth,
         // but the constructor guard surfaces the misconfiguration at compose time.
         IReadOnlySet<string> empty_set = new HashSet<string>();
@@ -206,11 +206,11 @@ public sealed class HandlerOptionsTests
     }
 
     // ----------------------------------------------------------------------
-    // Reflection name-pins for HandlerOptions.ScopeRequirement — the property
-    // name is load-bearing: BaseHandler pattern-matches against it and
-    // test/doc code references it symbolically. Pin via reflection so a rename
-    // trips an obvious test failure. Also pin that the OLD name (RequiredScopes)
-    // is absent — guards against accidental reintroduction.
+    // Reflection name-pins for HandlerOptions.ScopeRequirement - the property
+    // name matters: BaseHandler pattern-matches against it and
+    // test/doc code references it symbolically. The reflection pin fails the
+    // test when the property is renamed. A second pin checks that the OLD name
+    // (RequiredScopes) is absent, so it cannot be reintroduced by accident.
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -234,7 +234,7 @@ public sealed class HandlerOptionsTests
     }
 
     // ----------------------------------------------------------------------
-    // Equality — record value-semantics. Two HandlerOptions with the same
+    // Equality - record value-semantics. Two HandlerOptions with the same
     // property values must be equal; one differing property breaks equality.
     // ----------------------------------------------------------------------
 

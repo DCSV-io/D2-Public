@@ -35,12 +35,12 @@ public sealed class InProcessModuleBoundaryTests
             CallPath = [new CallPathEntry("edge", CallPathKind.Edge, sr_now.ToDateTimeOffset())],
         };
 
-        ctx.EstablishInProcessModule("edge", "key-custodian", clock);
+        ctx.EstablishInProcessModule("edge", "inventory", clock);
 
         ctx.Origin.Should().Be(RequestOrigin.InProcessModule);
         ctx.ImmediateCaller.Should().Be("edge");
         ctx.CallPath.Should().HaveCount(2);
-        ctx.CallPath[^1].Id.Should().Be("key-custodian");
+        ctx.CallPath[^1].Id.Should().Be("inventory");
         ctx.CallPath[^1].Kind.Should().Be(CallPathKind.ModuleHop);
         ctx.CallPath[^1].Timestamp.Should().Be(sr_now.ToDateTimeOffset());
     }
@@ -51,7 +51,7 @@ public sealed class InProcessModuleBoundaryTests
         var clock = new TestClock(sr_now);
         IRequestContext ctx = new TestRequestContext { Origin = RequestOrigin.Unestablished };
 
-        var act = () => ctx.EstablishInProcessModule("edge", "key-custodian", clock);
+        var act = () => ctx.EstablishInProcessModule("edge", "inventory", clock);
 
         act.Should().NotThrow("a non-mutable context is left untouched, not mutated");
         ctx.Origin.Should().Be(RequestOrigin.Unestablished);

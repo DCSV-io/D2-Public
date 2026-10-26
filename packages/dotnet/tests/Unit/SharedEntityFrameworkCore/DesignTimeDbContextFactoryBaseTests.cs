@@ -16,29 +16,26 @@ using Xunit;
 /// Unit tests for <see cref="DesignTimeDbContextFactoryBase{TContext}"/>:
 /// env-var-absent throws <see cref="InvalidOperationException"/>;
 /// env-var-present returns a concrete <c>TContext</c> instance.
-/// Uses a local probe subclass and a dedicated environment-variable key that is
-/// cleaned up after each test.
+/// Uses a local probe subclass whose environment-variable key is new for every
+/// test, so no other test or process reads or writes the variable a case sets;
+/// the case that sets one removes it again.
 /// </summary>
 [Trait("Category", "Unit")]
 public sealed class DesignTimeDbContextFactoryBaseTests
 {
-    // Env var key used only by this test class — unlikely to collide with system vars.
-    private const string _ENV_VAR = "D2_TEST_DTFACTORY_CONNSTR_1A2B3C4D";
-
-    // Connection string used when the env var is set (no real DB is opened —
+    // Connection string used when the env var is set (no real DB is opened -
     // CreateDbContext only builds options; it does not open a connection).
     private const string _CONN_STR = "Host=localhost;Database=dt_probe;Username=u;Password=p";
 
     // =========================================================================
-    // Env-var absent → InvalidOperationException
+    // Env-var absent -> InvalidOperationException
     // =========================================================================
 
     [Fact]
     public void CreateDbContext_EnvVarAbsent_ThrowsInvalidOperationException()
     {
-        Environment.SetEnvironmentVariable(_ENV_VAR, null);
-
-        var factory = new ProbeDbContextFactory();
+        // A fresh key nobody has set, so the variable is absent without a write.
+        var factory = new ProbeDbContextFactory(UniqueEnvVar());
 
         var act = () => factory.CreateDbContext([]);
 
@@ -47,16 +44,18 @@ public sealed class DesignTimeDbContextFactoryBaseTests
     }
 
     // =========================================================================
-    // Env-var present → concrete TContext returned
+    // Env-var present -> concrete TContext returned
     // =========================================================================
 
     [Fact]
     public void CreateDbContext_EnvVarPresent_ReturnsConcreteContext()
     {
-        Environment.SetEnvironmentVariable(_ENV_VAR, _CONN_STR);
+        var envVar = UniqueEnvVar();
+        Environment.SetEnvironmentVariable(envVar, _CONN_STR);
+
         try
         {
-            var factory = new ProbeDbContextFactory();
+            var factory = new ProbeDbContextFactory(envVar);
 
             using var ctx = factory.CreateDbContext([]);
 
@@ -67,21 +66,23 @@ public sealed class DesignTimeDbContextFactoryBaseTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable(_ENV_VAR, null);
+            Environment.SetEnvironmentVariable(envVar, null);
         }
     }
 
+    private static string UniqueEnvVar() => $"D2_TEST_DTFACTORY_CONNSTR_{Guid.NewGuid():N}";
+
     // =========================================================================
-    // Probe types — self-contained; no migration assembly required
+    // Probe types - self-contained; no migration assembly required
     // =========================================================================
 
     private sealed class ProbeDbContext(DbContextOptions<ProbeDbContext> options)
         : DbContext(options);
 
-    private sealed class ProbeDbContextFactory
+    private sealed class ProbeDbContextFactory(string envVar)
         : DesignTimeDbContextFactoryBase<ProbeDbContext>
     {
-        protected override string ConnectionStringEnvVar => _ENV_VAR;
+        protected override string ConnectionStringEnvVar => envVar;
 
         protected override string MigrationsAssemblyName =>
             typeof(ProbeDbContextFactory).Assembly.GetName().Name!;

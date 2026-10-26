@@ -12,8 +12,8 @@ using DcsvIo.D2.Utilities.Extensions;
 /// <summary>
 /// Shared constructor-time validation for the sealed recipient keyrings.
 /// The recipient service id grammar mirrors the workload-identity service-id
-/// grammar (lowercase <c>[a-z0-9-]</c>, at most 64 characters) — the
-/// recipient of a sealed frame IS a workload — without taking a dependency
+/// grammar (lowercase <c>[a-z0-9-]</c>, at most 64 characters) - the
+/// recipient of a sealed frame is a workload - without taking a dependency
 /// on the workload-identity library (this library stays a pure crypto
 /// primitive).
 /// </summary>
@@ -25,8 +25,8 @@ internal static class SealedKeyringValidation
     /// <summary>
     /// Validates the recipient service id grammar: non-empty, at most
     /// <see cref="MAX_SERVICE_ID_LENGTH"/> characters, every character in
-    /// lowercase <c>[a-z0-9-]</c>. No normalization — a caller holding an
-    /// unvalidated id must validate upstream; this library fails loud.
+    /// lowercase <c>[a-z0-9-]</c>. No normalization - an unvalidated id must be
+    /// validated before it reaches this method; this library throws.
     /// </summary>
     /// <param name="recipientServiceId">The candidate service id.</param>
     /// <param name="paramName">Parameter name for the thrown exception.</param>

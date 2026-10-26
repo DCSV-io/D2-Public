@@ -15,9 +15,9 @@ type ResultsToTuple<R extends readonly D2Result<unknown>[]> = {
 };
 
 /**
- * Combines 2-5 results into one. On all-success returns an Ok holding a
- * tuple of payloads (mirrors .NET `D2Result.Combine` arity overloads). On
- * any failure aggregates messages + inputErrors and returns a
+ * Combines 2-5 results into one. When all succeed, it returns an Ok holding a
+ * tuple of payloads (mirrors .NET `D2Result.Combine` arity overloads). When
+ * any fails, it aggregates messages + inputErrors and returns a
  * ValidationFailed result.
  */
 export function combine<R extends readonly D2Result<unknown>[]>(
@@ -27,7 +27,7 @@ export function combine<R extends readonly D2Result<unknown>[]>(
 }
 
 /**
- * Combines an iterable of results. Empty input → Ok with an empty array.
+ * Combines an iterable of results. Empty input -> Ok with an empty array.
  * Aggregates messages + inputErrors across all failing results; HTTP status
  * is inherited from the first failure (matches .NET behavior).
  */
@@ -54,15 +54,16 @@ export function combineMany<T>(
   const firstFail = failures[0]!;
   // statusCode is always defaulted in the D2Result constructor; errorCode may
   // be undefined when the upstream used raw `fail()` without one.
-  // category is always ValidationFailure — mirrors .NET AggregateFailure which
-  // calls ValidationFailed(…) unconditionally, collapsing any heterogeneous
-  // input categories (not_found, policy_denied, …) to validation_failure.
+  // category is always ValidationFailure. This mirrors .NET AggregateFailure,
+  // which calls ValidationFailed(...) unconditionally and so collapses any
+  // heterogeneous input categories (not_found, policy_denied, ...) to
+  // validation_failure.
   return new D2Result<readonly T[]>({
     success: false,
     messages,
     inputErrors,
     statusCode: firstFail.statusCode,
-    errorCode: firstFail.errorCode ?? ErrorCodes.VALIDATION_FAILED,
+    errorCode: firstFail.errorCode ?? ErrorCodes.GEN_VALIDATION_FAILED,
     category: ErrorCategoryWire.ValidationFailure,
   });
 }

@@ -45,7 +45,7 @@ public enum DateFormatPattern : byte
 
 /// <summary>
 /// Classification for entries in <c>CountryCurrencyAcceptance</c>
-/// — codifies the de-facto-over-politically-correct rule: enumerate
+/// - codifies the de-facto-over-politically-correct rule: enumerate
 /// every currency genuinely accepted in commerce (legal tender, widely
 /// accepted, tourist-zone), not just the sovereign currency on paper.
 /// </summary>
@@ -55,9 +55,9 @@ public enum CurrencyAcceptanceLevel : byte
     /// <summary>Official sovereign currency. Most countries have exactly one.</summary>
     LegalTender = 0,
 
-    /// <summary>De-facto commercial acceptance — ubiquitous in trade though not legally required.</summary>
+    /// <summary>De-facto commercial acceptance - ubiquitous in trade though not legally required.</summary>
     WidelyAccepted = 1,
 
-    /// <summary>Narrow tourist-zone / specialty acceptance — present in tourism economies but not broadly usable.</summary>
+    /// <summary>Narrow tourist-zone / specialty acceptance - present in tourism economies but not broadly usable.</summary>
     Tourist = 2,
 }

@@ -11,17 +11,18 @@ import {
 import { MessageBodyDecodeError } from "./message-body-decode-error.js";
 
 /**
- * Decodes a raw AMQP delivery body into the object a handler consumes. An
- * injectable seam: the default handles plaintext domains; an encrypted-domain
- * opener (WebCrypto decrypt) plugs in later (its replace-trigger is tracked in
- * the ledger). An opener MUST throw {@link MessageBodyDecodeError} — never
- * silently swallow — for any body it cannot faithfully decode.
+ * Decodes a raw AMQP delivery body into the object a handler consumes. The
+ * opener is injected: the default handles plaintext domains, and an
+ * encrypted-domain opener (WebCrypto decrypt) replaces it for those domains. An
+ * opener MUST throw {@link MessageBodyDecodeError} for any body it cannot
+ * faithfully decode, and never swallows one silently.
  */
 export interface BodyOpener {
   /**
-   * Decodes the raw body bytes into the handler's message value. May be async —
-   * a decrypting opener (WebCrypto) is inherently async; the delivery pipeline
-   * awaits the result. The default plaintext opener stays synchronous.
+   * Decodes the raw body bytes into the handler's message value. The method
+   * may return a promise, because a decrypting opener (WebCrypto) is async; the
+   * delivery pipeline awaits the result. The default plaintext opener is
+   * synchronous.
    *
    * @param body Raw AMQP body bytes (opaque `application/octet-stream`).
    * @throws MessageBodyDecodeError on an undecodable body.
@@ -30,13 +31,14 @@ export interface BodyOpener {
 }
 
 /**
- * The default {@link BodyOpener}: plaintext domains only. It parses a raw
- * UTF-8 JSON body and — critically — FAIL-LOUDS any body whose first byte is a
- * known encryption-frame version (1 = symmetric {@link EncryptionFrame}, 2 =
+ * The default {@link BodyOpener}, for plaintext domains only. It parses a raw
+ * UTF-8 JSON body. It throws for any body whose first byte is a known
+ * encryption-frame version (1 = symmetric {@link EncryptionFrame}, 2 =
  * sealed {@link SealedFrame}). An encrypted body reaching this opener means no
- * decrypting opener was registered for the domain, so it routes to the DLQ with
- * `DECRYPT_FAILURE` rather than mis-parsing ciphertext as JSON (never a silent
- * drop). A malformed plaintext body routes with `DESERIALIZE_FAILURE`.
+ * decrypting opener was registered for the domain, so the body goes to the DLQ
+ * with `DECRYPT_FAILURE` and is not parsed as JSON, and it is never dropped
+ * silently. A malformed plaintext body goes to the DLQ with
+ * `DESERIALIZE_FAILURE`.
  */
 export class PlaintextBodyOpener implements BodyOpener {
   open(body: Buffer): unknown {

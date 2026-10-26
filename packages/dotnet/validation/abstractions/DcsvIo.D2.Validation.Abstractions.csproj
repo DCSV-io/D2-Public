@@ -6,10 +6,10 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <RootNamespace>DcsvIo.D2.Validation.Abstractions</RootNamespace>
 
     <!--
-      Emit the SrcGen-emitted FieldConstraints.g.cs + Taxonomy.g.cs (driven by the
-      validation/source-gen analyzer wired below) to <project-dir>/Generated/.
-      The directory is tracked in git so PR reviewers see codegen diffs without
-      a local build.
+      Write the FieldConstraints.g.cs and Taxonomy.g.cs files that SrcGen emits
+      (driven by the validation/source-gen analyzer referenced below) to
+      <project-dir>/Generated/. Git tracks the directory, so pull request
+      reviewers see codegen diffs without a local build.
     -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
@@ -17,35 +17,35 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <ItemGroup>
     <!--
-      The SourceGen pipeline feeds the in-memory compiler with the same content
-      that lands on disk under Generated/. Without this Remove, the SDK-default
-      <Compile Include="**/*.cs" /> glob picks up the on-disk copy and the build
-      fails with duplicate-definition errors (CS0101 / CS0111). See:
+      The SourceGen pipeline gives the in-memory compiler the same content that
+      it writes to disk under Generated/. Without this Remove, the SDK-default
+      <Compile Include="**/*.cs" /> glob also includes the on-disk copy and the
+      build fails with duplicate-definition errors (CS0101 and CS0111). See:
       https://learn.microsoft.com/dotnet/core/project-sdk/msbuild-props#compilergeneratedfilesoutputpath
     -->
     <Compile Remove="$(CompilerGeneratedFilesOutputPath)\**\*.cs" />
   </ItemGroup>
 
   <!--
-    DI-free interface + shared-catalog library. Domain code anywhere in the
-    backend can take a ProjectReference here without pulling in a DI container,
-    phone-number library, or geo catalog data. The surface is the three
-    validator contracts plus the shared field-constraints catalog (the emitted
-    FieldConstraints constants + NamePrefix / NameSuffix / BiologicalSex taxonomy
-    enums) — the lowest shared vocabulary layer every consumer depends on.
+    DI-free interface and shared-catalog library. A project can take a
+    ProjectReference here without pulling in a DI container, phone-number
+    library, or geo catalog data. The surface is the email, phone and
+    postal-code validator contracts plus the shared field-constraints catalog
+    (the emitted FieldConstraints constants and the NamePrefix, NameSuffix and
+    BiologicalSex taxonomy enums). It is the lowest shared vocabulary layer.
 
-    NO Microsoft.Extensions.DependencyInjection reference.
-    NO implementation code — implementations live in DcsvIo.D2.Validation.
+    The project has no Microsoft.Extensions.DependencyInjection reference and
+    no implementation code. Implementations live in DcsvIo.D2.Validation.
   -->
   <ItemGroup>
     <!--
-      DcsvIo.D2.Result — all three validator interfaces return D2Result<string>
-      so callers can branch on Success / ValidationFailed and surface field-level
-      InputErrors via the standard envelope.
+      DcsvIo.D2.Result - the email, phone and postal-code validator interfaces
+      return D2Result<string>, which reports Success or ValidationFailed and
+      field-level InputErrors in the standard envelope.
     -->
     <ProjectReference Include="..\..\result\core\DcsvIo.D2.Result.csproj" />
     <!--
-      DcsvIo.D2.Geo.Abstractions — CountryCode is used by IPhoneValidator
+      DcsvIo.D2.Geo.Abstractions - CountryCode is used by IPhoneValidator
       (defaultRegion) and IPostalCodeValidator (countryCode) to scope
       national-format interpretation and country-specific format rules.
     -->
@@ -54,8 +54,8 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <ItemGroup>
     <!--
-      Source generator driving the codegen-emitted FieldConstraints + taxonomy
-      enums. The spec file is surfaced via AdditionalFiles so the SrcGen can
+      Source generator that emits the FieldConstraints constants and the taxonomy
+      enums. The spec file is passed in through AdditionalFiles so the SrcGen can
       read it at codegen time. Single-target dispatch on
       DcsvIo.D2.Validation.Abstractions.
     -->
@@ -69,11 +69,11 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <InternalsVisibleTo Include="DcsvIo.D2.Tests" />
   </ItemGroup>
 
-  <!-- Publish metadata (per-package semver + NuGet identity). -->
+  <!-- Publish metadata: per-package semver and NuGet identity. -->
   <PropertyGroup>
-    <Version>0.1.1</Version>
+    <Version>0.1.29</Version>
     <PackageId>DcsvIo.D2.Validation.Abstractions</PackageId>
-    <Description>Validation contract surface for D2 — email, phone, and postal-code validator interfaces, shared field-length bounds, and the name/sex taxonomy enums.</Description>
+    <Description>Validation contract surface for D2 - email, phone, and postal-code validator interfaces, shared field-length bounds, and the name/sex taxonomy enums.</Description>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

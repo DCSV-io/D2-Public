@@ -10,15 +10,15 @@ using DcsvIo.D2.Contacts.ValueObjects;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 /// <summary>
-/// Per-VO complex-type mapping helpers for the DcsvIo.D2.Contacts value objects. Called
-/// from the host's <c>IEntityTypeConfiguration&lt;T&gt;</c> inside a
+/// Per-VO complex-type mapping helpers for the DcsvIo.D2.Contacts value objects. Apply
+/// each helper in an <c>IEntityTypeConfiguration&lt;T&gt;</c>, inside a
 /// <c>b.ComplexProperty</c> callback. Each helper: wires <c>HasMaxLength</c> from
 /// <c>FieldConstraints.*</c>, applies any necessary value converters (Uri), and writes the
 /// per-field anonymize defaults via the fluent <c>.Anonymize*</c> API.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The host keeps the domain aggregate completely free of EF references — a VO-typed
+/// The host keeps the domain aggregate completely free of EF references - a VO-typed
 /// property on a host entity is a plain CLR property; all mapping lives in the infra
 /// <c>IEntityTypeConfiguration&lt;T&gt;</c> class.
 /// </para>
@@ -41,8 +41,8 @@ public static class ContactMappingExtensions
         /// Configures a <c>Personal</c> complex-property column set: wires
         /// <c>HasMaxLength</c> on all name fields and <c>HashId</c>, and writes
         /// the per-field anonymize defaults.
-        /// Anonymize defaults: FirstName → <c>"Deleted"</c> (constant);
-        /// Middle/Last/Preferred → SetNull; HashId → cleared sentinel.
+        /// Anonymize defaults: FirstName -> <c>"Deleted"</c> (constant);
+        /// Middle/Last/Preferred -> SetNull; HashId -> cleared sentinel.
         /// </summary>
         /// <returns>The same builder for fluent chaining.</returns>
         public ComplexPropertyBuilder<Personal> MapPersonal()
@@ -60,11 +60,12 @@ public static class ContactMappingExtensions
         /// <summary>
         /// Configures a <c>NameAffixes</c> complex-property column set: wires
         /// <c>HasMaxLength</c> on custom-affix fields and writes SetNull anonymize
-        /// defaults for all four fields.
+        /// defaults for <c>Prefix</c>, <c>PrefixCustom</c>, <c>Suffix</c> and
+        /// <c>SuffixCustom</c>.
         /// </summary>
         /// <remarks>
         /// <c>NameAffixes</c> has no required scalar property. EF Core requires a complex
-        /// type to be REQUIRED (non-nullable) unless it has at least one required property,
+        /// type to be required (non-nullable) unless it has at least one required property,
         /// so the host entity must declare its <c>NameAffixes</c> member as non-nullable,
         /// or EF throws at model build.
         /// </remarks>
@@ -84,11 +85,11 @@ public static class ContactMappingExtensions
         /// <summary>
         /// Configures a <c>Demographics</c> complex-property column set: writes
         /// SetNull anonymize defaults for <c>DateOfBirth</c> and
-        /// <c>BiologicalSex</c> (no length facets — date/enum fields).
+        /// <c>BiologicalSex</c> (no length facets - date/enum fields).
         /// </summary>
         /// <remarks>
         /// <c>Demographics</c> has no required scalar property. EF Core requires a complex
-        /// type to be REQUIRED (non-nullable) unless it has at least one required property,
+        /// type to be required (non-nullable) unless it has at least one required property,
         /// so the host entity must declare its <c>Demographics</c> member as non-nullable,
         /// or EF throws at model build.
         /// </remarks>
@@ -107,9 +108,9 @@ public static class ContactMappingExtensions
     {
         /// <summary>
         /// Configures a <c>Professional</c> complex-property column set: wires
-        /// <c>HasMaxLength</c>, the <c>Uri ↔ AbsoluteUri</c> value converter on
+        /// <c>HasMaxLength</c>, the <c>Uri &lt;-> AbsoluteUri</c> value converter on
         /// <c>CompanyWebsite</c>, and the per-field anonymize defaults.
-        /// Anonymize defaults: CompanyName → <c>"Deleted"</c>; Job/Dept/Website → SetNull.
+        /// Anonymize defaults: CompanyName -> <c>"Deleted"</c>; Job/Dept/Website -> SetNull.
         /// </summary>
         /// <returns>The same builder for fluent chaining.</returns>
         public ComplexPropertyBuilder<Professional> MapProfessional()

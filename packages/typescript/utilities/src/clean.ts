@@ -20,22 +20,23 @@ export type CleanEnumEmptyBehavior = "ReturnEmpty" | "ReturnNull" | "Throw";
 export type CleanValueNullBehavior = "RemoveNulls" | "ThrowOnNull";
 
 /**
- * Per-element cleaner. Returning `null` or `undefined` is a "drop" signal —
- * what happens then is governed by {@link CleanValueNullBehavior}.
+ * Per-element cleaner. Returning `null` or `undefined` is a "drop" signal;
+ * {@link CleanValueNullBehavior} governs what happens then.
  *
- * Cross-language-parity carve-out per rules.md §6.15: this type mirrors
+ * Cross-language-parity carve-out: this type mirrors
  * the .NET `Cleaner<T>` delegate (which returns `T?`), accepting BOTH
  * `null` (intentional sentinel from .NET interop call sites) and
  * `undefined` (TS-native "absent"). The dual acceptance is the .NET-parity
- * contract — narrowing to only `undefined` would break .NET-bridged
+ * contract; narrowing to only `undefined` would break .NET-bridged
  * call sites that pass `null`-returning lambdas.
  */
 export type Cleaner<T> = (item: T) => T | null | undefined;
 
 /**
- * Options bag for {@link clean}. Both behaviors default to the most permissive
- * mode (drop empties / drop nulls) so call sites can pass `clean(items, fn)`
- * for the common case.
+ * Options bag for {@link clean}. Both behaviors default to the permissive
+ * mode: a null result from the cleaner is dropped, and an empty input or an
+ * empty result yields `null`. `clean(items, fn)` therefore covers the common
+ * case.
  */
 export interface CleanOptions {
   readonly enumEmptyBehavior?: CleanEnumEmptyBehavior;
@@ -49,19 +50,18 @@ export interface CleanOptions {
  * languages produce the same outcome on identical inputs.
  *
  * Defaults:
- * - `valueNullBehavior = "RemoveNulls"` — cleaner returning null drops the
+ * - `valueNullBehavior = "RemoveNulls"` - cleaner returning null drops the
  *   element silently.
- * - `enumEmptyBehavior = "ReturnNull"` — null/empty input or all-cleaned-to-
+ * - `enumEmptyBehavior = "ReturnNull"` - null/empty input or all-cleaned-to-
  *   null output yields `null`.
  *
- * Accepts any iterable (arrays, sets, map values, generators) — matches
+ * Accepts any iterable (arrays, sets, map values, generators); matches
  * `IEnumerable<T>` parity on the .NET side.
  *
- * Cross-language-parity carve-out per rules.md §6.15: parameter accepts
+ * Cross-language-parity carve-out: parameter accepts
  * `null` and return type emits `null` because the .NET parity contract
  * (named-behavior `ReturnNull`) makes `null` the explicit sentinel; the
- * `ReturnEmpty` behavior is available for callers wanting `undefined`-
- * style "absent" semantics.
+ * `ReturnEmpty` behavior returns an empty array instead of `null`.
  *
  * @throws RangeError when `valueNullBehavior` is `"ThrowOnNull"` and a
  *   cleaner returns null/undefined.
@@ -98,7 +98,7 @@ export function clean<T>(
   return out;
 }
 
-// Internal helper for the `clean()` API — return-type `T[] | null` is the
+// Internal helper for the `clean()` API - return-type `T[] | null` is the
 // .NET-parity contract (see `clean()` JSDoc).
 function handleEmpty<T>(behavior: CleanEnumEmptyBehavior): T[] | null {
   switch (behavior) {

@@ -15,16 +15,16 @@ using DcsvIo.D2.I18n;
 using Xunit;
 
 /// <summary>
-/// Coverage for <see cref="DefaultGeoNameResolver"/> — cascade behavior,
+/// Coverage for <see cref="DefaultGeoNameResolver"/> - cascade behavior,
 /// boundary contracts, DoS guard, ambiguity sentinel, parent-context
-/// discipline. Tests on a singleton resolver instance because the
+/// handling. The tests use a singleton resolver instance because the
 /// resolver is stateless.
 /// </summary>
 public sealed class DefaultGeoNameResolverTests
 {
     private readonly DefaultGeoNameResolver _resolver = new();
 
-    // §1.2 category: Input validation
+    // Category: Input validation
     [Fact]
     public void TryResolveCountryByName_NullInput_ReturnsValidationFailed()
     {
@@ -54,7 +54,7 @@ public sealed class DefaultGeoNameResolverTests
             .Which.Key.Should().Be(TK.Common.Errors.NOT_NULL_VIOLATION.Key);
     }
 
-    // §1.2 category: Resource exhaustion / Security-adversarial
+    // Category: Resource exhaustion / Security-adversarial
     [Fact]
     public void TryResolveCountryByName_OversizedInput_ReturnsValidationFailedTooLong()
     {
@@ -70,8 +70,8 @@ public sealed class DefaultGeoNameResolverTests
     [Fact]
     public void TryResolveCountryByName_OversizedInput_OneMB_RejectsInUnderTenMs()
     {
-        // The length guard is an O(1) int comparison — any realistic machine
-        // rejects in microseconds. 500 ms gives 10 000× headroom against the
+        // The length guard is an O(1) int comparison - any realistic machine
+        // rejects in microseconds. 500 ms gives 10 000x headroom against the
         // microsecond actual cost, so this only catches a true regression
         // (e.g., the guard accidentally allocates or copies the 1 MB string)
         // without flaking under heavy CPU load.
@@ -89,7 +89,7 @@ public sealed class DefaultGeoNameResolverTests
     public void TryResolveCountryByName_InputAtMaxLength_PassesPredicate0()
     {
         // At-cap (256) input is allowed; we don't expect a match for arbitrary
-        // 256-char string — just verify the cap is INCLUSIVE.
+        // 256-char string - just verify the cap is INCLUSIVE.
         var atCap = new string('a', DefaultGeoNameResolver.MAX_NAME_LENGTH);
 
         var result = _resolver.TryResolveCountryByName(atCap);
@@ -99,7 +99,7 @@ public sealed class DefaultGeoNameResolverTests
         result.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    // §1.2 category: Domain-specific — Pass-1 exact match.
+    // Category: Domain-specific - Pass-1 exact match.
     [Fact]
     public void TryResolveCountryByName_ExactDisplayName_ReturnsCountry()
     {
@@ -146,7 +146,7 @@ public sealed class DefaultGeoNameResolverTests
         result.Data!.Iso31661Alpha2Code.Should().Be(CountryCode.US);
     }
 
-    // §1.2 category: Domain-specific — confusable pairs.
+    // Category: Domain-specific - confusable pairs.
     [Theory]
     [InlineData("Niger", "NE")]
     [InlineData("Nigeria", "NG")]
@@ -167,7 +167,7 @@ public sealed class DefaultGeoNameResolverTests
         result.Data!.Iso31661Alpha2Code.ToString().Should().Be(expectedAlpha2);
     }
 
-    // §1.2 category: Domain-specific — cascade exhausted.
+    // Category: Domain-specific - cascade exhausted.
     [Fact]
     public void TryResolveCountryByName_NoMatch_ReturnsNotFound()
     {
@@ -186,7 +186,7 @@ public sealed class DefaultGeoNameResolverTests
         result.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    // §1.2 category: Domain-specific — subdivision parent-context.
+    // Category: Domain-specific - subdivision parent-context.
     [Fact]
     public void TryResolveSubdivisionByName_GeorgiaInUS_ReturnsUSGA()
     {
@@ -251,18 +251,18 @@ public sealed class DefaultGeoNameResolverTests
         result.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    // §1.2 category: Error propagation — traceId discipline.
+    // Category: Error propagation - traceId handling.
     [Fact]
     public void TryResolveCountryByName_ResultHasNullTraceId()
     {
-        // Resolver is request-context-free — TraceId is null; callers
-        // replay handler-scoped traceId via WithTraceId at the call site.
+        // The resolver does not accept a request context, so TraceId is null.
+        // The handler-scoped traceId is set with WithTraceId at the call site.
         var result = _resolver.TryResolveCountryByName("United States");
 
         result.TraceId.Should().BeNull();
     }
 
-    // §1.2 category: Domain-specific — Pass-1 exact via additional name fields.
+    // Category: Domain-specific - Pass-1 exact via additional name fields.
     [Fact]
     public void TryResolveCountryByName_ExactNumericCode_840_ReturnsUS()
     {
@@ -338,7 +338,7 @@ public sealed class DefaultGeoNameResolverTests
         result.Data!.Iso31661Alpha2Code.Should().Be(CountryCode.DE);
     }
 
-    // §1.2 category: Domain-specific — NFD normalization.
+    // Category: Domain-specific - NFD normalization.
     [Fact]
     public void TryResolveCountryByName_NfdNormalize_TurkiyeWithoutDiacritic_ReturnsTR()
     {
@@ -364,12 +364,12 @@ public sealed class DefaultGeoNameResolverTests
         result.Data!.Iso31661Alpha2Code.Should().Be(CountryCode.TR);
     }
 
-    // §1.2 category: Domain-specific — Pass-2 startsWith.
+    // Category: Domain-specific - Pass-2 startsWith.
     [Fact]
     public void TryResolveCountryByName_Pass2Ambiguity_Unit_ReturnsNotFound()
     {
         // startsWith "unit" matches United States / United Kingdom /
-        // United Arab Emirates — multiple distinct records → fail-closed
+        // United Arab Emirates - multiple distinct records -> fail-closed
         // NotFound, never a guess.
         var result = _resolver.TryResolveCountryByName("Unit");
 
@@ -380,14 +380,14 @@ public sealed class DefaultGeoNameResolverTests
     [Fact]
     public void TryResolveCountryByName_Pass2Ambiguity_United_ReturnsNotFound()
     {
-        // startsWith "united" matches multiple distinct records → NotFound.
+        // startsWith "united" matches multiple distinct records -> NotFound.
         var result = _resolver.TryResolveCountryByName("United");
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    // §1.2 category: Domain-specific — Pass-3 contains.
+    // Category: Domain-specific - Pass-3 contains.
     [Fact]
     public void TryResolveCountryByName_Pass3Unique_Burma_ReturnsMM()
     {
@@ -402,7 +402,7 @@ public sealed class DefaultGeoNameResolverTests
     public void TryResolveCountryByName_Pass3Unique_Vatican_ReturnsVA()
     {
         // 'vatican' is a substring of DisplayName "Vatican City" + endonym
-        // "Civitas Vaticana" — both pointing at the same VA record, which
+        // "Civitas Vaticana" - both pointing at the same VA record, which
         // the cache-build de-duplicates rather than flagging ambiguous.
         var result = _resolver.TryResolveCountryByName("Vatican");
 
@@ -423,7 +423,7 @@ public sealed class DefaultGeoNameResolverTests
     [Fact]
     public void TryResolveCountryByName_Pass3Ambiguity_Korea_ReturnsNotFound()
     {
-        // 'korea' substring matches both KP and KR → fail-closed NotFound.
+        // 'korea' substring matches both KP and KR -> fail-closed NotFound.
         var result = _resolver.TryResolveCountryByName("Korea");
 
         result.Success.Should().BeFalse();
@@ -433,8 +433,8 @@ public sealed class DefaultGeoNameResolverTests
     [Fact]
     public void TryResolveCountryByName_Pass3Ambiguity_Republic_ReturnsNotFound()
     {
-        // 'republic' appears in dozens of official-name fields →
-        // fail-closed NotFound (proves Pass-3 enforces ambiguity discipline
+        // 'republic' appears in dozens of official-name fields ->
+        // fail-closed NotFound (shows that Pass-3 returns NotFound on ambiguity
         // even when many candidates exist).
         var result = _resolver.TryResolveCountryByName("Republic");
 
@@ -442,7 +442,7 @@ public sealed class DefaultGeoNameResolverTests
         result.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    // §1.2 category: Domain-specific — Pass-3 short-circuit by exact match.
+    // Category: Domain-specific - Pass-3 short-circuit by exact match.
     [Fact]
     public void TryResolveCountryByName_ExactCongo_ShortCircuitsBeforePass3()
     {
@@ -455,12 +455,12 @@ public sealed class DefaultGeoNameResolverTests
         result.Data!.Iso31661Alpha2Code.Should().Be(CountryCode.CG);
     }
 
-    // §1.2 category: Domain-specific — Pass-4 Levenshtein fuzzy.
+    // Category: Domain-specific - Pass-4 Levenshtein fuzzy.
     [Fact]
     public void TryResolveCountryByName_Pass4Fuzzy_Astralia_ReturnsAU()
     {
         // Levenshtein("astralia", "australia") = 1 (one insertion); len=8
-        // gives maxDistance = min(2, floor(8/5)) = 1 → within bound.
+        // gives maxDistance = min(2, floor(8/5)) = 1 -> within bound.
         var result = _resolver.TryResolveCountryByName("Astralia");
 
         result.Success.Should().BeTrue();
@@ -470,7 +470,7 @@ public sealed class DefaultGeoNameResolverTests
     [Fact]
     public void TryResolveCountryByName_Pass4Skipped_FourCharIram_ReturnsNotFound()
     {
-        // 'Iram' (4 chars) — Pass-3 + Pass-4 require >= 5 chars (Predicate
+        // 'Iram' (4 chars) - Pass-3 + Pass-4 require >= 5 chars (Predicate
         // 3/4 cap). Pass-1 exact misses; Pass-2 startsWith 'iram' misses.
         // Pinned behavior: 4-char fuzzy is NEVER rescued by Pass-4.
         var result = _resolver.TryResolveCountryByName("Iram");
@@ -479,7 +479,7 @@ public sealed class DefaultGeoNameResolverTests
         result.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    // §1.2 category: Resource exhaustion — Pass-4 banded bounding under load.
+    // Category: Resource exhaustion - Pass-4 banded bounding under load.
     [Fact]
     public void TryResolveCountryByName_Pass4_OversizedAtCap_CompletesWithinTimeout()
     {
@@ -494,11 +494,11 @@ public sealed class DefaultGeoNameResolverTests
         var elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(start);
         result.Success.Should().BeFalse();
 
-        // Generous bound — covers cold-cache first call + full Pass-4 sweep.
+        // Generous bound - covers cold-cache first call + full Pass-4 sweep.
         elapsed.TotalMilliseconds.Should().BeLessThan(500);
     }
 
-    // §1.2 category: Domain-specific — subdivision Pass-3 ambiguity.
+    // Category: Domain-specific - subdivision Pass-3 ambiguity.
     [Fact]
     public void TryResolveSubdivisionByName_Pass3Ambiguity_Carolina_US_ReturnsNotFound()
     {
@@ -536,8 +536,8 @@ public sealed class DefaultGeoNameResolverTests
     public void TryResolveSubdivisionByName_ParentContext_Washington_US_ReturnsWA()
     {
         // 'Washington' is the DisplayName of US-WA only; District of Columbia
-        // (US-DC) carries no 'Washington' substring in any name field, so
-        // Pass-1 exact resolves uniquely to WA — no ambiguity.
+        // (US-DC) has no 'Washington' substring in any name field, so
+        // Pass-1 exact resolves uniquely to WA - no ambiguity.
         var us = CountryLookup.ByCode[CountryCode.US];
 
         var result = _resolver.TryResolveSubdivisionByName("Washington", us);
@@ -549,8 +549,8 @@ public sealed class DefaultGeoNameResolverTests
     [Fact]
     public void TryResolveSubdivisionByName_OttawaInUS_ReturnsNotFound()
     {
-        // Ottawa is a Canadian city, not a US subdivision; parent-context
-        // discipline blocks cross-country leakage.
+        // Ottawa is a Canadian city, not a US subdivision; the parent context
+        // prevents a match in another country.
         var us = CountryLookup.ByCode[CountryCode.US];
 
         var result = _resolver.TryResolveSubdivisionByName("Ottawa", us);
@@ -559,13 +559,13 @@ public sealed class DefaultGeoNameResolverTests
         result.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    // §1.2 category: Domain-specific — Pass-4 subdivision fuzzy.
+    // Category: Domain-specific - Pass-4 subdivision fuzzy.
     [Fact]
     public void TryResolveSubdivisionByName_Pass4Fuzzy_Califrnia_US_ReturnsUSCA()
     {
         var us = CountryLookup.ByCode[CountryCode.US];
 
-        // Levenshtein("califrnia", "california") = 1; len=9 → maxDistance=1.
+        // Levenshtein("califrnia", "california") = 1; len=9 -> maxDistance=1.
         var result = _resolver.TryResolveSubdivisionByName("Califrnia", us);
 
         result.Success.Should().BeTrue();
@@ -577,7 +577,7 @@ public sealed class DefaultGeoNameResolverTests
     {
         var us = CountryLookup.ByCode[CountryCode.US];
 
-        // Levenshtein("texxas", "texas") = 1; len=6 → maxDistance=1.
+        // Levenshtein("texxas", "texas") = 1; len=6 -> maxDistance=1.
         var result = _resolver.TryResolveSubdivisionByName("Texxas", us);
 
         result.Success.Should().BeTrue();
@@ -599,7 +599,7 @@ public sealed class DefaultGeoNameResolverTests
         result.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    // §1.2 category: Domain-specific — subdivision NFD normalization.
+    // Category: Domain-specific - subdivision NFD normalization.
     [Fact]
     public void TryResolveSubdivisionByName_NfdNormalize_SaoPaulo_BR_ReturnsBRSP()
     {
@@ -626,7 +626,7 @@ public sealed class DefaultGeoNameResolverTests
         result.Data!.Iso31662Code.Value.Should().Be("FR-IDF");
     }
 
-    // §1.2 category: Resource exhaustion — subdivision oversized input.
+    // Category: Resource exhaustion - subdivision oversized input.
     [Fact]
     public void TryResolveSubdivisionByName_OversizedInput_ReturnsValidationFailedTooLong()
     {
@@ -640,13 +640,13 @@ public sealed class DefaultGeoNameResolverTests
             .Which.Key.Should().Be(TK.Common.Errors.TOO_LONG.Key);
     }
 
-    // §1.2 category: Domain-specific — TK key wiring on every NotFound branch.
+    // Category: Domain-specific - TK key wiring on every NotFound branch.
     [Fact]
     public void TryResolveCountryByName_Pass3Ambiguity_CarriesAmbiguousTkKey()
     {
         // The ambiguity branch (any pass) emits NAME_RESOLUTION_AMBIGUOUS;
         // cascade-exhausted branch emits NAME_RESOLUTION_NOT_FOUND. Pinning
-        // the message keys protects against silent TK-key drift on either
+        // the message keys fails the test when the TK key changes on either
         // branch.
         var ambiguous = _resolver.TryResolveCountryByName("Korea");
         ambiguous.Messages.Should().ContainSingle()

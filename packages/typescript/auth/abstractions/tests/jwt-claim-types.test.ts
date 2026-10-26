@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { JwtClaimTypes } from "../src/jwt-claim-types.g.js";
 
-describe("JwtClaimTypes — per-VALUE pin (mirrors .NET constants)", () => {
+describe("JwtClaimTypes - per-VALUE pin (mirrors .NET constants)", () => {
   it.each([
     ["SUB", "sub"],
     ["AUD", "aud"],

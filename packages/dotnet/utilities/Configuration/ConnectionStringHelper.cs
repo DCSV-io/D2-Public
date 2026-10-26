@@ -15,10 +15,10 @@ using DcsvIo.D2.Utilities.Extensions;
 /// clients (<c>StackExchange.Redis</c>, <c>Npgsql</c>).
 /// </summary>
 /// <remarks>
-/// Env vars use standard URI formats so the same value works for every
-/// platform we deploy to (Node.js services, container orchestrators, .NET
-/// services). The <c>Parse*Uri</c> methods convert into .NET-native shapes;
-/// values that are already in .NET shape pass through untouched.
+/// Env vars use standard URI formats so the same value works on every
+/// platform (Node.js services, container orchestrators, .NET services). The
+/// <c>Parse*Uri</c> methods convert into .NET-native shapes; values that are
+/// already in .NET shape pass through untouched.
 /// </remarks>
 public static class ConnectionStringHelper
 {
@@ -39,7 +39,7 @@ public static class ConnectionStringHelper
         var hostPort = $"{uri.Host}:{(uri.Port > 0 ? uri.Port : 6379)}";
 
         // userinfo is "redis://:password@host" or "redis://user:password@host";
-        // we only need the password.
+        // only the password is used.
         var password = Uri.UnescapeDataString(
             uri.UserInfo.Contains(':')
                 ? uri.UserInfo[(uri.UserInfo.IndexOf(':') + 1)..]
@@ -124,7 +124,7 @@ public static class ConnectionStringHelper
 
     /// <summary>
     /// Reads <c>RABBITMQ_URL</c> and returns it as-is. AMQP URIs are natively
-    /// supported by the .NET RabbitMQ client — no conversion required.
+    /// supported by the .NET RabbitMQ client - no conversion required.
     /// </summary>
     /// <returns>A RabbitMQ connection string or AMQP URI.</returns>
     /// <exception cref="InvalidOperationException">

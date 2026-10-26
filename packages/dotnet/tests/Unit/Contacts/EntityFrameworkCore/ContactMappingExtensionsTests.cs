@@ -14,7 +14,7 @@ using DcsvIo.D2.Contacts.EntityFrameworkCore;
 using DcsvIo.D2.Contacts.ValueObjects;
 using DcsvIo.D2.DataGovernance.Abstractions;
 using DcsvIo.D2.DataGovernance.EntityFrameworkCore;
-using DcsvIo.D2.Time.EfCore;
+using DcsvIo.D2.EntityFrameworkCore.Postgres;
 using DcsvIo.D2.Validation.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -317,7 +317,7 @@ public sealed class ContactMappingExtensionsTests
     [Fact]
     public void Optional_NameAffixes_complex_throws_at_model_build()
     {
-        // NameAffixes has no required scalar — EF Core 10 rejects an OPTIONAL complex type
+        // NameAffixes has no required scalar - EF Core 10 rejects an optional complex type
         // without at least one required property.
         var ex = Record.Exception(() =>
         {
@@ -339,7 +339,7 @@ public sealed class ContactMappingExtensionsTests
     }
 
     // =========================================================================
-    // MapEmailAddress — value converter + coupling
+    // MapEmailAddress - value converter + coupling
     // =========================================================================
 
     [Fact]
@@ -373,7 +373,7 @@ public sealed class ContactMappingExtensionsTests
         var entityType = ctx.Model.FindEntityType(typeof(EmailEntity))!;
         entityType.GetIndexes()
             .Where(i => i.IsUnique && i.Properties.Any(p => p.Name == nameof(EmailEntity.Email)))
-            .Should().BeEmpty(because: ".Anonymize is the non-unique path — no unique index");
+            .Should().BeEmpty(because: ".Anonymize is the non-unique path - no unique index");
     }
 
     [Fact]
@@ -447,7 +447,7 @@ public sealed class ContactMappingExtensionsTests
     }
 
     // =========================================================================
-    // MapPhoneNumber — value converter + coupling
+    // MapPhoneNumber - value converter + coupling
     // =========================================================================
 
     [Fact]
@@ -494,7 +494,7 @@ public sealed class ContactMappingExtensionsTests
         var entityType = ctx.Model.FindEntityType(typeof(PhoneEntity))!;
         entityType.GetIndexes()
             .Where(i => i.IsUnique && i.Properties.Any(p => p.Name == nameof(PhoneEntity.Phone)))
-            .Should().BeEmpty(because: ".Anonymize is the non-unique path — no unique index");
+            .Should().BeEmpty(because: ".Anonymize is the non-unique path - no unique index");
     }
 
     [Fact]
@@ -573,7 +573,7 @@ public sealed class ContactMappingExtensionsTests
     public void HasToken_returns_false_for_empty_braces()
     {
         // The regex \{[^}]+\} requires at least one character inside the braces.
-        // An empty brace pair "{}" must NOT be treated as a template token.
+        // An empty brace pair "{}" must not be treated as a template token.
         EmailPhoneMappingExtensions.HasToken("{}").Should().BeFalse();
     }
 
@@ -581,7 +581,7 @@ public sealed class ContactMappingExtensionsTests
     public void MapEmailAddress_Anonymize_empty_braces_writes_Constant_rule()
     {
         // "{}" contains no token (HasToken returns false), so Anonymize must
-        // categorize it as Constant — not Template.
+        // categorize it as Constant and not as Template.
         using var ctx = EmailEmptyBracesContext.Build();
         var rule = AnonRule(ctx.Model
             .FindEntityType(typeof(EmailEntity))!
@@ -598,12 +598,12 @@ public sealed class ContactMappingExtensionsTests
     [Fact]
     public void MapEmailAddress_dropped_coupling_object_writes_no_anonymize_annotation()
     {
-        // This test pins the DROP-COUPLING hazard: if a host calls
+        // This test pins the dropped-coupling hazard: if a host calls
         // b.MapEmailAddress(e => e.Email) but discards the returned EmailMapping
         // struct without chaining .Anonymize() or .Unique(), the anonymize
-        // annotation is never written — PII ships with no erasure rule.
-        // The assertion documents intentional behavior; a FUTURE test that
-        // wrongly expects an annotation here would be incorrect.
+        // annotation is never written, so PII ships with no erasure rule.
+        // The assertion documents intentional behavior; a test that expects an
+        // annotation here would be wrong.
         using var ctx = EmailDroppedCouplingContext.Build();
         var prop = ctx.Model
             .FindEntityType(typeof(EmailEntity))!
@@ -615,12 +615,12 @@ public sealed class ContactMappingExtensionsTests
     [Fact]
     public void MapPhoneNumber_dropped_coupling_object_writes_no_anonymize_annotation()
     {
-        // This test pins the DROP-COUPLING hazard: if a host calls
+        // This test pins the dropped-coupling hazard: if a host calls
         // b.MapPhoneNumber(e => e.Phone) but discards the returned PhoneMapping
         // struct without chaining .Anonymize() or .Unique(), the anonymize
-        // annotation is never written — PII ships with no erasure rule.
-        // The assertion documents intentional behavior; a FUTURE test that
-        // wrongly expects an annotation here would be incorrect.
+        // annotation is never written, so PII ships with no erasure rule.
+        // The assertion documents intentional behavior; a test that expects an
+        // annotation here would be wrong.
         using var ctx = PhoneDroppedCouplingContext.Build();
         var prop = ctx.Model
             .FindEntityType(typeof(PhoneEntity))!
@@ -801,7 +801,7 @@ public sealed class ContactMappingExtensionsTests
     }
 
     // =========================================================================
-    // DbContexts — model-build-only (connection never opened)
+    // DbContexts - model-build-only (connection never opened)
     // =========================================================================
 
     private sealed class PersonalContext : DbContext
@@ -1033,7 +1033,7 @@ public sealed class ContactMappingExtensionsTests
 
         protected override void OnModelCreating(ModelBuilder mb)
         {
-            // "{}" has no token (HasToken returns false) → Anonymize must write Constant.
+            // "{}" has no token (HasToken returns false) -> Anonymize must write Constant.
             mb.Entity<EmailEntity>(b =>
                 b.MapEmailAddress(e => e.Email).Anonymize("{}"));
         }
@@ -1055,7 +1055,7 @@ public sealed class ContactMappingExtensionsTests
         {
             mb.Entity<EmailEntity>(b =>
             {
-                // Deliberately drop the returned EmailMapping — no .Anonymize() chained.
+                // Deliberately drop the returned EmailMapping - no .Anonymize() chained.
                 // This replicates the dropped-coupling hazard: no anonymize annotation
                 // is written when the coupling object is discarded.
                 _ = b.MapEmailAddress(e => e.Email);
@@ -1079,7 +1079,7 @@ public sealed class ContactMappingExtensionsTests
         {
             mb.Entity<PhoneEntity>(b =>
             {
-                // Deliberately drop the returned PhoneMapping — no .Anonymize() chained.
+                // Deliberately drop the returned PhoneMapping - no .Anonymize() chained.
                 // This replicates the dropped-coupling hazard: no anonymize annotation
                 // is written when the coupling object is discarded.
                 _ = b.MapPhoneNumber(e => e.Phone);

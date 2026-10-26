@@ -14,9 +14,9 @@ using DcsvIo.D2.Validation;
 using Xunit;
 
 /// <summary>
-/// Adversarial + property tests for <see cref="DefaultPostalCodeValidator"/>
-/// beyond the cross-language parity corpus — idempotency, fast-return on
-/// garbage, the null / empty / whitespace falsey paths, and the FAIL-CLOSED
+/// Adversarial and property tests for <see cref="DefaultPostalCodeValidator"/>
+/// beyond the cross-language parity corpus: idempotency, fast return on
+/// garbage, the null / empty / whitespace falsey paths, and the fail-closed
 /// policy on a null country.
 /// </summary>
 public sealed class PostalCodeValidatorTests
@@ -31,7 +31,7 @@ public sealed class PostalCodeValidatorTests
     {
         var result = sr_Validator.Validate(input, CountryCode.US);
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be("VALIDATION_FAILED");
+        result.ErrorCode.Should().Be("GEN_VALIDATION_FAILED");
         result.InputErrors[0].Field.Should().Be("postalCode");
         result.InputErrors[0].Errors[0].Key.Should()
             .Be(TK.Common.Validation.POSTAL_CODE_INVALID.Key);
@@ -40,15 +40,15 @@ public sealed class PostalCodeValidatorTests
     [Fact]
     public void RegexMap_BuildsWithValidMatchTimeout_NoStaticInitOrderFailure()
     {
-        // Regression pin: the match-timeout literal MUST be a compile-time const
-        // (not a static readonly field) declared before the map that consumes it.
-        // A prior refactor to `static readonly TimeSpan` placed it AFTER SR_Map,
-        // so static-init order left the timeout at TimeSpan.Zero when BuildMap()
-        // ran — `new Regex(..., TimeSpan.Zero)` throws ArgumentOutOfRangeException.
-        // If a future change reintroduces `static readonly` field ordering, this
-        // test will fail with ArgumentOutOfRangeException on the first access.
-        // The count assertion is belt-and-suspenders: the map must actually build
-        // with entries (a zero-count map passes Validate() but proves nothing).
+        // Regression pin: the match-timeout literal must be a compile-time const
+        // (not a static readonly field), so declaration order cannot leave it at
+        // its default value. A `static readonly TimeSpan` declared after SR_Map
+        // is still TimeSpan.Zero when BuildMap() runs, and
+        // `new Regex(..., TimeSpan.Zero)` throws ArgumentOutOfRangeException. If
+        // a `static readonly` field ordering is introduced, this test fails with
+        // ArgumentOutOfRangeException on the first access. The count assertion
+        // is a second check: the map must actually build with entries (a
+        // zero-count map passes Validate() but proves nothing).
         PostalCodeRegexData.SR_Map.Count.Should().BeGreaterThan(0);
 
         var result = sr_Validator.Validate("90210", CountryCode.US);
@@ -59,11 +59,11 @@ public sealed class PostalCodeValidatorTests
     [Fact]
     public void FailsClosed_OnNullCountry()
     {
-        // A valid-looking US ZIP with no country must NOT validate — there is
+        // A valid-looking US ZIP with no country must not validate - there is
         // no permissive fallback. Parity with the TS side.
         var result = sr_Validator.Validate("90210", countryCode: null);
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be("VALIDATION_FAILED");
+        result.ErrorCode.Should().Be("GEN_VALIDATION_FAILED");
     }
 
     [Fact]
@@ -99,8 +99,8 @@ public sealed class PostalCodeValidatorTests
 
         result.Success.Should().BeFalse();
 
-        // 500 ms = 10x the 50 ms matchTimeout; generous enough to absorb CI
-        // scheduling jitter while still catching a genuine ReDoS hang.
+        // 500 ms is 10x the 50 ms matchTimeout. The margin absorbs CI scheduling
+        // jitter and still fails on a genuine ReDoS hang.
         sw.ElapsedMilliseconds.Should().BeLessThan(500);
     }
 }

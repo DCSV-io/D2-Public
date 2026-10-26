@@ -14,30 +14,32 @@ namespace DcsvIo.D2.Auth.Abstractions;
 public enum OrgType
 {
     /// <summary>
-    /// Administrative organization — full system access for the platform operator.
+    /// Administrative organization - full system access for the platform operator.
     /// </summary>
     Admin,
 
     /// <summary>
-    /// Support organization — basic administrative capabilities for customer-support staff.
+    /// Support organization - a root organization holding the platform
+    /// operator's customer-support staff, who work from it rather than from a
+    /// customer organization.
     /// </summary>
     Support,
 
     /// <summary>
-    /// Customer organization — standard end-user organization that consumes the platform's
+    /// Customer organization - standard end-user organization that consumes the platform's
     /// services.
     /// </summary>
     Customer,
 
     /// <summary>
-    /// Third-party organization — external client / partner associated with a customer
+    /// Third-party organization - external client / partner associated with a customer
     /// organization. More distinct naming than "CustomerClient" to avoid confusion with
     /// <see cref="Customer"/>.
     /// </summary>
     ThirdParty,
 
     /// <summary>
-    /// Affiliate organization — partner / reseller associated with the platform.
+    /// Affiliate organization - partner / reseller associated with the platform.
     /// </summary>
     Affiliate,
 }

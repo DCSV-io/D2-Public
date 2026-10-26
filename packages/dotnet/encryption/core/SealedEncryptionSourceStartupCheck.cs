@@ -12,22 +12,22 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Hosted service that asserts, for every registered SEALED recipient, that its sealing
-/// keyring comes from a KeyCustodian source rather than a hand-wired static registration —
+/// Hosted service that asserts, for every registered sealed recipient, that its sealing
+/// keyring comes from a managed keyring source rather than a hand-wired static registration -
 /// the sealed sibling of <see cref="EncryptionSourceStartupCheck"/>. Deny-by-default: a
 /// recipient with no <see cref="EncryptionSourceMarker"/> (or one marked
 /// <see cref="EncryptionKeyringSource.StaticFactory"/>) is rejected outside a Development host,
-/// so a static sealing-key footgun cannot serve production traffic. In a Development host the
-/// same case logs a loud warning and proceeds.
+/// so a static sealing key cannot serve production traffic. In a Development host the
+/// same case logs a warning and proceeds.
 /// </summary>
 /// <remarks>
-/// Registered by the KeyCustodian-backed sealing source
-/// (<c>AddD2SealedEncryptionViaKeyCustodian</c>), which also marks each registration's
-/// provenance <see cref="EncryptionKeyringSource.KeyCustodian"/>. A host that hand-registers a
-/// keyed sealer/opener directly — bypassing the library extension — records no marker and is
-/// rejected here (deny-by-default); the forgotten-CALL case is caught separately by the
-/// rabbitmq subscriber-vs-opener boot check. The environment gate is resolved fail-closed:
-/// absent <see cref="IHostEnvironment"/> ⇒ treated as non-Development (deny).
+/// The managed sealing source registers this check and also marks each
+/// registration's provenance <see cref="EncryptionKeyringSource.Managed"/>. A host that
+/// hand-registers a keyed sealer/opener directly - bypassing the library extension - records
+/// no marker and is rejected here (deny-by-default); a forgotten registration call is caught
+/// separately by the rabbitmq subscriber-vs-opener boot check. The environment gate is
+/// resolved fail-closed: an absent <see cref="IHostEnvironment"/> is treated as
+/// non-Development (deny).
 /// </remarks>
 internal sealed class SealedEncryptionSourceStartupCheck : IHostedService
 {
@@ -68,7 +68,7 @@ internal sealed class SealedEncryptionSourceStartupCheck : IHostedService
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (IsKeyCustodianSourced(recipientServiceId))
+            if (IsManagedSourced(recipientServiceId))
             {
                 SealedEncryptionSourceStartupCheckLog.SourceCheckPassed(r_logger, recipientServiceId);
                 continue;
@@ -78,9 +78,9 @@ internal sealed class SealedEncryptionSourceStartupCheck : IHostedService
             {
                 throw new InvalidOperationException(
                     $"Sealed encryption recipient '{recipientServiceId}' is backed by a static " +
-                    "sealing-key source rather than a KeyCustodian-sourced, rotation-aware " +
-                    "keyring. Register it through a KeyCustodian sealed source " +
-                    "(AddD2SealedEncryptionViaKeyCustodian) before starting a non-Development host.");
+                    "sealing-key source rather than a managed, rotation-aware keyring. " +
+                    "Back its sealer with a managed keyring and mark it Managed via " +
+                    "MarkD2EncryptionSource before starting a non-Development host.");
             }
 
             SealedEncryptionSourceStartupCheckLog.StaticSourceInDevelopment(
@@ -93,16 +93,16 @@ internal sealed class SealedEncryptionSourceStartupCheck : IHostedService
     /// <inheritdoc />
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-    // Deny-by-default: a recipient passes only if it carries at least one marker AND every
-    // marker under its key is KeyCustodian. An absent marker (a raw hand-wired sealer/opener)
+    // Deny-by-default: a recipient passes only if it has at least one marker and every
+    // marker under its key is Managed. An absent marker (a raw hand-wired sealer/opener)
     // or any StaticFactory marker fails closed.
-    private bool IsKeyCustodianSourced(string recipientServiceId)
+    private bool IsManagedSourced(string recipientServiceId)
     {
         var markers = r_services
             .GetKeyedServices<EncryptionSourceMarker>(recipientServiceId)
             .ToArray();
 
         return markers.Length > 0
-            && markers.All(static m => m.Source == EncryptionKeyringSource.KeyCustodian);
+            && markers.All(static m => m.Source == EncryptionKeyringSource.Managed);
     }
 }

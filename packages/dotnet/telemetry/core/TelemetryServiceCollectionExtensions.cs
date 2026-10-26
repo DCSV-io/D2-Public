@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
@@ -20,7 +21,7 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 /// <summary>
-/// DI registration entry point for <see cref="DcsvIo.D2.Telemetry"/> —
+/// DI registration entry point for <see cref="DcsvIo.D2.Telemetry"/> -
 /// wires the OpenTelemetry SDK (traces / metrics / logs) plus the OTLP
 /// exporters (when their canonical env vars are set), the in-process
 /// Prometheus exporter (when enabled), and the standard
@@ -36,12 +37,12 @@ public static class TelemetryServiceCollectionExtensions
     extension(IServiceCollection services)
     {
         /// <summary>
-        /// Registers the D² OpenTelemetry pipeline (traces + metrics +
+        /// Registers the D2 OpenTelemetry pipeline (traces + metrics +
         /// logs), the OTLP exporters when their canonical env vars are
         /// truthy, the in-process Prometheus exporter when
         /// <see cref="D2TelemetryOptions.EnablePrometheusExporter"/> is
         /// <c>true</c>, and the standard auto-instrumentations.
-        /// Idempotent at the IServiceCollection level — calling twice
+        /// Idempotent at the IServiceCollection level - calling twice
         /// doesn't throw, but the second call's options stack via the
         /// standard <c>IOptions</c> pipeline.
         /// </summary>
@@ -49,8 +50,8 @@ public static class TelemetryServiceCollectionExtensions
         /// <para>
         /// When <see cref="D2TelemetryConstants.OTEL_SDK_DISABLED_ENV_VAR"/>
         /// is set to <c>"true"</c> (case-insensitive), this method
-        /// short-circuits — no OpenTelemetry providers / exporters /
-        /// instrumentations are registered, and consumers MUST NOT rely on
+        /// short-circuits - no OpenTelemetry providers / exporters /
+        /// instrumentations are registered, and callers must not rely on
         /// resolving <c>MeterProvider</c> / <c>TracerProvider</c> from DI
         /// after the call returns. The
         /// <see cref="WebApplicationTelemetryExtensions.MapD2PrometheusEndpoint"/>
@@ -68,7 +69,7 @@ public static class TelemetryServiceCollectionExtensions
         /// <para>
         /// Validates options at the first
         /// <c>IOptions&lt;D2TelemetryOptions&gt;.Value</c> resolution via
-        /// <c>ValidateOnStart()</c> — invalid configuration fails the
+        /// <c>ValidateOnStart()</c> - invalid configuration fails the
         /// host build, never propagates as a runtime telemetry-emission
         /// failure.
         /// </para>
@@ -78,7 +79,7 @@ public static class TelemetryServiceCollectionExtensions
         /// canonical OTel env-var defaults.
         /// </param>
         /// <param name="configure">
-        /// Optional configuration delegate applied AFTER the env-derived
+        /// Optional configuration delegate applied after the env-derived
         /// defaults so callers can override any field.
         /// </param>
         /// <returns>
@@ -95,7 +96,7 @@ public static class TelemetryServiceCollectionExtensions
             ArgumentNullException.ThrowIfNull(services);
             ArgumentNullException.ThrowIfNull(configuration);
 
-            // Honor the OTel canonical kill-switch BEFORE any registration.
+            // Honor the OTel canonical kill-switch before any registration.
             // Returning the unmutated services collection keeps the
             // contract: callers can chain freely; resolving providers the
             // lib didn't register surfaces as a normal DI miss instead of
@@ -163,22 +164,22 @@ public static class TelemetryServiceCollectionExtensions
                     "D2TelemetryOptions.AdditionalMeters entries must not "
                     + "be empty / whitespace.")
                 .Validate(
-                    o => IsValidUriOrNull(o.OtlpTracesEndpoint),
-                    "D2TelemetryOptions.OtlpTracesEndpoint must be a "
-                    + "well-formed absolute URI when set.")
+                    o => IsHttpUrlOrNull(o.OtlpTracesEndpoint),
+                    "D2TelemetryOptions.OtlpTracesEndpoint must be an "
+                    + "absolute http or https URL when set.")
                 .Validate(
-                    o => IsValidUriOrNull(o.OtlpMetricsEndpoint),
-                    "D2TelemetryOptions.OtlpMetricsEndpoint must be a "
-                    + "well-formed absolute URI when set.")
+                    o => IsHttpUrlOrNull(o.OtlpMetricsEndpoint),
+                    "D2TelemetryOptions.OtlpMetricsEndpoint must be an "
+                    + "absolute http or https URL when set.")
                 .Validate(
-                    o => IsValidUriOrNull(o.OtlpLogsEndpoint),
-                    "D2TelemetryOptions.OtlpLogsEndpoint must be a "
-                    + "well-formed absolute URI when set.")
+                    o => IsHttpUrlOrNull(o.OtlpLogsEndpoint),
+                    "D2TelemetryOptions.OtlpLogsEndpoint must be an "
+                    + "absolute http or https URL when set.")
                 .ValidateOnStart();
 
             // Resolve the eager defaults that the OTel SDK builders need
             // at registration time (before IOptions resolution). The
-            // pattern mirrors DcsvIo.D2.Logging — walk ServiceDescriptors
+            // pattern mirrors DcsvIo.D2.Logging - walk ServiceDescriptors
             // for the host environment without materializing a temp
             // service provider.
             var serviceName = ResolveServiceName(services, configuration, configure);
@@ -263,11 +264,10 @@ public static class TelemetryServiceCollectionExtensions
                             opts.EnrichWithHttpRequestMessage = (activity, msg) =>
                             {
                                 // Strip query strings from any URI tags the SDK
-                                // may set on this activity. v1 baseline applied
-                                // a similar discipline to keep PII (potential
-                                // query-string user input) out of span tags
-                                // regardless of upstream SDK changes to default
-                                // capture behavior.
+                                // may set on this activity, to keep PII
+                                // (potential query-string user input) out of
+                                // span tags regardless of upstream SDK changes
+                                // to default capture behavior.
                                 StripUrlFullQueryString(activity, msg.RequestUri);
                             };
                         });
@@ -289,9 +289,6 @@ public static class TelemetryServiceCollectionExtensions
                 {
                     foreach (var meterName in AggregatedTelemetrySources.SR_MeterNames)
                         metrics.AddMeter(meterName);
-
-                    foreach (var extra in resolvedOptions.AdditionalMeters)
-                        metrics.AddMeter(extra);
 
                     metrics.SetResourceBuilder(resourceBuilder);
 
@@ -320,6 +317,18 @@ public static class TelemetryServiceCollectionExtensions
                     }
                 });
 
+            // AdditionalMeters is read when the provider is built, not from
+            // the registration-time snapshot above. AddD2Meter adds a name
+            // through IConfigureOptions, which the snapshot cannot see, and a
+            // host may call it either side of this method.
+            services.ConfigureOpenTelemetryMeterProvider((sp, metrics) =>
+            {
+                var options = sp.GetRequiredService<IOptions<D2TelemetryOptions>>().Value;
+
+                foreach (var extra in options.AdditionalMeters)
+                    metrics.AddMeter(extra);
+            });
+
             return services;
         }
     }
@@ -328,10 +337,9 @@ public static class TelemetryServiceCollectionExtensions
     /// Predicate used by the HttpClient instrumentation
     /// <c>FilterHttpRequestMessage</c> callback to suppress span emission
     /// for outbound calls whose URI starts with any of the configured
-    /// OTLP exporter endpoints — prevents infinite-loop instrumentation
-    /// (<c>HttpClient → OTLP → HttpClient → OTLP → ...</c>). Internal
-    /// for direct unit-test coverage; production code never calls it
-    /// directly outside the wired callback.
+    /// OTLP exporter endpoints - prevents infinite-loop instrumentation
+    /// (<c>HttpClient -> OTLP -> HttpClient -> OTLP -> ...</c>). Internal to
+    /// the assembly.
     /// </summary>
     /// <param name="requestUri">The outbound request URI.</param>
     /// <param name="tracesEndpoint">The configured OTLP traces endpoint.</param>
@@ -372,12 +380,16 @@ public static class TelemetryServiceCollectionExtensions
         }
     }
 
-    private static bool IsValidUriOrNull(string? value)
+    // An absolute check alone admits "/v1/traces" on Linux and macOS, where
+    // Uri.TryCreate reads a rooted path as file:///v1/traces.
+    private static bool IsHttpUrlOrNull(string? value)
     {
         if (value.Falsey())
             return true;
 
-        return Uri.TryCreate(value, UriKind.Absolute, out _);
+        return Uri.TryCreate(value, UriKind.Absolute, out var uri)
+            && (string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)
+                || string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal));
     }
 
     private static string? ResolveServiceName(
@@ -426,9 +438,9 @@ public static class TelemetryServiceCollectionExtensions
     private static IHostEnvironment? TryGetHostEnvironment(IServiceCollection services)
     {
         // Walk ServiceDescriptors directly per the same rationale as
-        // LoggingServiceCollectionExtensions — at AddD2Telemetry time the
+        // LoggingServiceCollectionExtensions - at AddD2Telemetry time the
         // ServiceProvider has not been built yet and BuildServiceProvider
-        // inside an extension method is the canonical "container leak"
+        // inside an extension method is the known "container leak"
         // anti-pattern.
         foreach (var descriptor in services)
         {
@@ -452,9 +464,9 @@ public static class TelemetryServiceCollectionExtensions
         // Recompose URL without query/fragment so any downstream tag
         // emission that reads from the activity's request enricher reflects
         // path-only data. The SDK's default tags already strip the query
-        // string in 1.15.x, but the explicit override locks the contract
-        // so a future SDK regression doesn't silently leak query-string
-        // PII (matches DcsvIo.D2.Logging's defense-in-depth posture for
+        // string in 1.15.x; the explicit override keeps that contract if the
+        // SDK stops doing so, so query-string PII does not leak silently
+        // (matches DcsvIo.D2.Logging's defense-in-depth posture for
         // RemoteIp on the request-completion log line).
         var sanitized = $"{requestUri.Scheme}://{requestUri.Host}"
             + (requestUri.IsDefaultPort ? string.Empty : $":{requestUri.Port}")

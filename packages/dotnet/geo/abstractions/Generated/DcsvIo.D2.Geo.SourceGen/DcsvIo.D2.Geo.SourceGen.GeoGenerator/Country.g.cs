@@ -14,7 +14,7 @@ using System.Collections.Generic;
 namespace DcsvIo.D2.Geo.Abstractions;
 
 /// <summary>
-/// Country record — single shape per entity. Universal dual-rep
+/// Country record - single shape per entity. Universal dual-rep
 /// for every relationship: typed code field (<c>FrozenSet</c>-backed
 /// for O(1) <c>Contains</c>) AND nav record list. Primary single navs
 /// (<c>PrimaryLanguage</c> / <c>PrimaryCurrency</c> / <c>PrimaryLocale</c>
@@ -93,7 +93,7 @@ public sealed record Country
     /// <summary>Owning sovereign country record; null for sovereigns themselves. Wired in the second pass.</summary>
     public Country? SovereignCountry { get; internal set; }
 
-    /// <summary>Owned dependent-territory country codes — O(1) <c>Contains</c> over the set. Code rep paired with <see cref="Territories"/>.</summary>
+    /// <summary>Owned dependent-territory country codes - O(1) <c>Contains</c> over the set. Code rep paired with <see cref="Territories"/>.</summary>
     public required IReadOnlySet<CountryCode> TerritoryIso31661Alpha2Codes { get; init; }
 
     /// <summary>Owned dependent-territory records. Wired in the second pass.</summary>

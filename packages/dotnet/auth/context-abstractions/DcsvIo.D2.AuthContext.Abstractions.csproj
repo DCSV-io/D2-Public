@@ -24,9 +24,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   </ItemGroup>
 
   <!--
-    Domain-safe slice of the request-context. Domain code references this for
-    typed access to caller identity, scopes, and impersonation context — without
-    pulling DI / AspNetCore / Configuration.
+    Domain-safe slice of the request context: typed access to caller identity,
+    scopes, and impersonation context, without DI / AspNetCore / Configuration
+    dependencies.
 
     The IAuthContext interface itself is emitted at build time by the sibling
     DcsvIo.D2.Context.SourceGen project (../context/source-gen/), referenced
@@ -41,7 +41,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <!--
       DcsvIo.D2.Utilities supplies the [RedactData] attribute + RedactReason
       enum that the spec-driven codegen places on PII-bearing properties of
-      IAuthContext. Domain-safe (zero runtime deps).
+      IAuthContext. Domain-safe, with no runtime dependencies.
     -->
     <ProjectReference Include="..\..\utilities\DcsvIo.D2.Utilities.csproj" />
     <ProjectReference Include="..\..\context\source-gen\DcsvIo.D2.Context.SourceGen.csproj"
@@ -51,9 +51,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <ItemGroup>
     <!--
-      Surface BOTH context spec files so the generator can resolve the
+      Surface both context spec files so the generator can resolve the
       `extends` chain on IRequestContext. Only IAuthContext.spec.json drives
-      emission for THIS assembly (per-assembly dispatch in ContextGenerator).
+      emission for this assembly (per-assembly dispatch in ContextGenerator).
     -->
     <AdditionalFiles Include="$(D2PublicContractsRoot)auth-context\IAuthContext.spec.json" />
     <AdditionalFiles Include="$(D2PublicContractsRoot)request-context\IRequestContext.spec.json" />
@@ -65,7 +65,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.1</Version>
+    <Version>0.2.20</Version>
     <PackageId>DcsvIo.D2.AuthContext.Abstractions</PackageId>
     <Description>Read-only IAuthContext interface for reasoning about caller identity, organization, scopes, and impersonation context in D2.</Description>
     <IsPackable>true</IsPackable>

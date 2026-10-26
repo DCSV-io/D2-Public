@@ -25,7 +25,7 @@ using System.Reflection;
 /// and reused for every destructure of an instance of the type.
 /// </param>
 /// <param name="PropertyRedactions">
-/// Map of property name → redaction reason for each property carrying
+/// Map of property name -> redaction reason for each property carrying
 /// <c>[RedactData]</c>. Empty when no property-level redactions exist.
 /// </param>
 internal sealed record TypeRedactionInfo(

@@ -1,0 +1,14 @@
+{
+  "$schema": "./schema.json",
+  "errorCodes": [
+    {
+      "code": "LIB_MESSAGING_PUBLISH_UNROUTABLE",
+      "httpStatus": 503,
+      "category": "infrastructure_unavailable",
+      "userMessageKey": "TK.Common.Errors.SERVICE_UNAVAILABLE",
+      "factoryName": "PublishUnroutable",
+      "factoryShape": "standard",
+      "doc": "The broker accepted the message and returned it because it matched no queue, and it was still matching no queue when the publisher's retries ran out. The exchange exists; nothing is bound to it for this routing key."
+    }
+  ]
+}

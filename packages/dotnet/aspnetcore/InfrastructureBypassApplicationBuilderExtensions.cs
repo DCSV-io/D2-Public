@@ -13,7 +13,7 @@ using Microsoft.Extensions.Options;
 
 /// <summary>
 /// ASP.NET Core middleware extension installing the infrastructure-path
-/// bypass middleware — tags or short-circuits requests whose path matches
+/// bypass middleware - tags or short-circuits requests whose path matches
 /// the canonical infrastructure-path list so heavy business middleware
 /// downstream can no-op early on probe / metrics / well-known requests.
 /// </summary>
@@ -47,17 +47,17 @@ public static class InfrastructureBypassApplicationBuilderExtensions
         /// and invokes its
         /// <see cref="Microsoft.AspNetCore.Http.Endpoint.RequestDelegate"/>
         /// directly when short-circuiting; if no endpoint has been routed
-        /// (caller put bypass before <c>UseRouting()</c>), the middleware
+        /// (the bypass was installed before <c>UseRouting()</c>), the middleware
         /// falls through to the next delegate so the pipeline still
         /// completes correctly.
         /// </para>
         /// <para>
-        /// Tag-only mode: services that need custom middleware to execute
-        /// on infrastructure paths set
-        /// <see cref="D2InfrastructureBypassOptions.TagOnly"/> to <c>true</c>;
+        /// Tag-only mode: setting
+        /// <see cref="D2InfrastructureBypassOptions.TagOnly"/> to <c>true</c>
+        /// lets custom middleware execute on infrastructure paths;
         /// the middleware then ONLY tags the request and continues. Business
-        /// middleware downstream can read the flag to opt-out per its own
-        /// policy.
+        /// middleware registered after it can read the flag to opt out per its
+        /// own policy.
         /// </para>
         /// </remarks>
         /// <param name="configure">

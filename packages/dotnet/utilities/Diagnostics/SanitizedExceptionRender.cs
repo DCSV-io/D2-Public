@@ -11,7 +11,7 @@ using System.Diagnostics;
 /// <summary>
 /// PII-safe rendering of an <see cref="Exception"/> for log + telemetry +
 /// DLQ-header diagnostics. Returns the type FullName and the first stack
-/// frame only — never <see cref="Exception.Message"/>, since exception
+/// frame only - never <see cref="Exception.Message"/>, since exception
 /// messages can carry arbitrary content interpolated from runtime data
 /// (request URIs, response bodies, configured secrets, JWT contents, AMQP
 /// connection URIs with embedded passwords, connection strings) that must
@@ -19,11 +19,8 @@ using System.Diagnostics;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Canonical helper consumed by every lib whose
-/// <c>[LoggerMessage]</c> delegates carry exception-derived strings —
-/// <c>DcsvIo.D2.Auth</c>, <c>DcsvIo.D2.Auth.Outbound</c>,
-/// <c>DcsvIo.D2.AspNetCore</c>, <c>DcsvIo.D2.Messaging.RabbitMq</c>, and
-/// any future logging-pipeline consumer. Pair with the
+/// Canonical helper for any <c>[LoggerMessage]</c> delegate that carries an
+/// exception-derived string. Pair with the
 /// no-<see cref="Exception"/>-parameter <c>[LoggerMessage]</c> contract
 /// (enforced by per-lib reflection-based contract tests across each log
 /// surface) to keep <see cref="Exception.Message"/> out of the log pipeline

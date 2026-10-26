@@ -10,18 +10,18 @@ using System.Formats.Asn1;
 using System.Security.Cryptography;
 
 /// <summary>
-/// Immutable keyring holding a recipient service's PUBLIC sealing keys
-/// (active + any retiring) — the producer side of the sealed encryption
+/// Immutable keyring holding a recipient service's public sealing keys
+/// (active + any retiring) - the producer side of the sealed encryption
 /// mode. Sibling of <see cref="PayloadCryptoKeyring"/> for the asymmetric
-/// family: it carries the recipient service id that anchors the AEAD
-/// binding, so producers never pass an AAD by hand.
+/// family: it holds the recipient service id that anchors the AEAD
+/// binding, so a producer never passes an AAD by hand.
 /// </summary>
 /// <remarks>
-/// Public keys are wire-public by design — NOT zeroize-sensitive, so this
+/// Public keys are wire-public by design - not zeroize-sensitive, so this
 /// type is not disposable. Key material is still never rendered by
 /// <see cref="ToString"/> (the no-key-bytes-in-logs invariant is uniform
 /// across every keyring type). The constructor validates every entry
-/// imports as a P-256 public key — a wrong-curve or garbage key fails loud
+/// imports as a P-256 public key - a wrong-curve or garbage key throws
 /// at the construction boundary, not at first <see cref="IPayloadSealer.Seal"/>.
 /// </remarks>
 public sealed class RecipientPublicKeyring
@@ -33,7 +33,7 @@ public sealed class RecipientPublicKeyring
     /// </summary>
     /// <param name="recipientServiceId">
     /// The recipient service id (lowercase <c>[a-z0-9-]</c>, at most 64
-    /// characters — the workload service-id grammar). Anchors the AEAD
+    /// characters - the workload service-id grammar). Anchors the AEAD
     /// binding and the key derivation.
     /// </param>
     /// <param name="activeKid">
@@ -83,9 +83,9 @@ public sealed class RecipientPublicKeyring
                     nameof(publicKeysByKid));
             }
 
-            // Fail loud at the boundary: the SPKI must import as a P-256
-            // public key AND complete a real agreement (catches same-size
-            // non-P-256 curves + invalid points).
+            // Throw at the boundary: the SPKI must import as a P-256
+            // public key and complete a real agreement (catches same-size
+            // non-P-256 curves and invalid points).
             try
             {
                 using var imported = EcdhP256.ImportPublicP256(spki);
@@ -100,7 +100,7 @@ public sealed class RecipientPublicKeyring
                     ex);
             }
 
-            // Defensive copy — caller may mutate their original.
+            // Defensive copy - caller may mutate their original.
             var copy = new byte[spki.Length];
             spki.CopyTo(copy, 0);
             r_publicKeys[kid] = copy;
@@ -122,7 +122,7 @@ public sealed class RecipientPublicKeyring
     public string ActiveKid { get; }
 
     /// <summary>
-    /// Returns a redacted string — never includes key bytes (uniform
+    /// Returns a redacted string - never includes key bytes (uniform
     /// no-key-bytes-in-logs invariant, even for public material).
     /// </summary>
     public override string ToString()
@@ -134,7 +134,7 @@ public sealed class RecipientPublicKeyring
     /// </summary>
     /// <param name="kid">
     /// The kid to look up. Null returns false
-    /// (defensive — callers may pass externally-sourced strings).
+    /// (defensive - callers may pass externally-sourced strings).
     /// </param>
     /// <param name="publicKeySpki">The public key bytes when found; default otherwise.</param>
     /// <returns>True when the kid is present; false otherwise.</returns>

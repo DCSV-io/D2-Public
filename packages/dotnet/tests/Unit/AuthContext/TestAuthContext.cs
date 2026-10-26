@@ -13,8 +13,8 @@ using DcsvIo.D2.AuthContext.Abstractions;
 
 /// <summary>
 /// In-memory <see cref="IAuthContext"/> for adversarial extension-method tests.
-/// Init-only properties so each test can construct adversarial shapes without
-/// the full <c>MutableRequestContext</c> ceremony.
+/// Its properties are init-only, so each test can construct adversarial shapes
+/// without building a full <c>MutableRequestContext</c>.
 /// </summary>
 internal sealed class TestAuthContext : IAuthContext
 {
@@ -55,6 +55,11 @@ internal sealed class TestAuthContext : IAuthContext
     public OrgType? OrgType { get; init; }
 
     public Role? OrgRole { get; init; }
+
+    public Guid? RootOrgId { get; init; }
+
+    public IReadOnlySet<string> AccessibleOrgIds { get; init; } =
+        new HashSet<string>(StringComparer.Ordinal);
 
     public bool? IsImpersonating { get; init; }
 

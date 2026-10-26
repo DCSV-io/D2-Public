@@ -16,10 +16,11 @@ namespace DcsvIo.D2.Messaging;
 /// <param name="MessageTypeName">Fully-qualified .NET type name of the
 /// message class that carries <c>[MqPub(MqMessages.X)]</c>.</param>
 /// <param name="Exchange">AMQP exchange name to publish to.</param>
-/// <param name="ExchangeType">AMQP exchange type — <c>fanout</c>,
+/// <param name="ExchangeType">AMQP exchange type - <c>fanout</c>,
 /// <c>topic</c>, or <c>direct</c>.</param>
 /// <param name="Encryption">Either an <c>EncryptionDomains</c> constant
-/// value (e.g. <c>"audit"</c>) — or the literal <c>"plaintext"</c>.</param>
+/// value (a registered encryption domain) - or the literal
+/// <c>"plaintext"</c>.</param>
 /// <param name="EncryptionReason">When <see cref="Encryption"/> is
 /// <c>"plaintext"</c>, the rationale (free-form string) explaining why
 /// payload confidentiality is intentionally bypassed for this type. Null
@@ -37,14 +38,14 @@ public sealed record MqMessageDescriptor(
 {
     /// <summary>Sentinel value representing "this message type publishes
     /// without payload encryption." Same wire value as
-    /// <see cref="DcsvIo.D2.Encryption.EncryptionDomains.PLAINTEXT"/> — kept
-    /// as a per-descriptor alias for backward compat with code that imports
-    /// the descriptor type without pulling the encryption assembly into scope.
+    /// <see cref="DcsvIo.D2.Encryption.EncryptionDomains.PLAINTEXT"/> - kept
+    /// as a per-descriptor alias, so code that imports the descriptor type
+    /// does not need the encryption assembly in scope.
     /// </summary>
     public const string PLAINTEXT = DcsvIo.D2.Encryption.EncryptionDomains.PLAINTEXT;
 
     /// <summary>Gets a value indicating whether this descriptor declares
-    /// plaintext (no payload encryption) — i.e. <see cref="Encryption"/>
+    /// plaintext (no payload encryption) - i.e. <see cref="Encryption"/>
     /// equals <see cref="PLAINTEXT"/>.</summary>
     public bool IsPlaintext =>
         string.Equals(Encryption, PLAINTEXT, System.StringComparison.Ordinal);
@@ -53,7 +54,7 @@ public sealed record MqMessageDescriptor(
     /// <see cref="Encryption"/> domain is in the per-consumer-service SEALED
     /// (asymmetric) mode rather than shared-keyring symmetric mode. Computed
     /// from <see cref="DcsvIo.D2.Encryption.EncryptionDomainModeCatalog"/>
-    /// (public generated baseline + product overlay registrations) — the domain
+    /// (the generated baseline plus any registrations the host adds) - the domain
     /// mode is a single-source domain fact, never a second generated field on
     /// this descriptor. A plaintext or unknown domain is <c>false</c>.</summary>
     public bool IsSealed =>
@@ -64,11 +65,11 @@ public sealed record MqMessageDescriptor(
     /// this descriptor's domain, or <see langword="null"/> for a symmetric or
     /// plaintext domain. The keyed <see cref="DcsvIo.D2.Encryption.IPayloadSealer"/>
     /// (publish) and <see cref="DcsvIo.D2.Encryption.IPayloadOpener"/> (consume)
-    /// are resolved by this value — sealed material is keyed by the recipient
+    /// are resolved by this value - sealed material is keyed by the recipient
     /// SERVICE, so two sealed domains sharing a consumer share one sealer/opener.
     /// Computed from
     /// <see cref="DcsvIo.D2.Encryption.EncryptionDomainModeCatalog.TryGetConsumerService"/>
-    /// — never a constructor/positional record parameter.</summary>
+    /// - never a constructor/positional record parameter.</summary>
     public string? ConsumerService =>
         DcsvIo.D2.Encryption.EncryptionDomainModeCatalog.TryGetConsumerService(
             Encryption,

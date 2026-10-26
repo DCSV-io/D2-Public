@@ -28,7 +28,7 @@ public sealed class IsTransientGrpcExceptionTests
 
     [Theory]
     [InlineData(StatusCode.OK)]
-    [InlineData(StatusCode.Cancelled)]
+    [InlineData(StatusCode.Cancelled)] // british-spelling:exempt-line
     [InlineData(StatusCode.InvalidArgument)]
     [InlineData(StatusCode.NotFound)]
     [InlineData(StatusCode.AlreadyExists)]

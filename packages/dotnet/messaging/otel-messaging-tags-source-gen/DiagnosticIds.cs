@@ -8,9 +8,10 @@ namespace DcsvIo.D2.OtelMessagingTags.SourceGen;
 
 /// <summary>
 /// String identifiers for the diagnostics emitted by
-/// <see cref="OtelMessagingTagsGenerator"/>. See parallel
-/// <c>DcsvIo.D2.Grpc.Trailers.SourceGen.DiagnosticIds</c> for the rationale
-/// behind the split.
+/// <see cref="OtelMessagingTagsGenerator"/>. This class is separate from
+/// <see cref="DiagnosticDescriptors"/> so that code running outside the Roslyn
+/// host can reference the IDs without referencing
+/// <c>Microsoft.CodeAnalysis</c>.
 /// </summary>
 internal static class DiagnosticIds
 {
@@ -23,7 +24,7 @@ internal static class DiagnosticIds
     /// <summary>Two entries share the same wire <c>value</c>.</summary>
     public const string DuplicateValue = "D2OMT003";
 
-    /// <summary>Entry's <c>constName</c> doesn't match the UPPER_SNAKE_CASE pattern.</summary>
+    /// <summary>Entry's <c>constName</c> does not match the UPPER_SNAKE_CASE pattern.</summary>
     public const string InvalidConstName = "D2OMT004";
 
     /// <summary>Entry's <c>value</c> is empty or whitespace-only.</summary>

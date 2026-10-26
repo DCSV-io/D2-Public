@@ -1,0 +1,13 @@
+{
+  "name": "d2-rabbitmq-client-producer",
+  "private": true,
+  "version": "0.0.0",
+  "dependencies": {
+    "rabbitmq-client": "5.0.8"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "rabbitmq-client@5.0.8": "patches/rabbitmq-client@5.0.8.patch"
+    }
+  }
+}

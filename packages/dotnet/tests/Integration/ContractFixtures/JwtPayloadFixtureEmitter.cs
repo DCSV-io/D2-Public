@@ -18,12 +18,11 @@ using Xunit;
 /// Emits JWT-payload wire-shape fixtures. The .NET side does not have a
 /// typed <c>JwtPayload</c> record (it parses claims via
 /// <c>System.Security.Claims.ClaimsPrincipal</c> + the spec-emitted
-/// <c>JwtClaimTypes</c> constants), but the wire shape — a JSON object
-/// mapping claim names to typed values — is shared. Each fixture
+/// <c>JwtClaimTypes</c> constants), but the wire shape - a JSON object
+/// mapping claim names to typed values - is shared. Each fixture
 /// scenario lists the spec-defined claim names that are populated for
-/// that scenario; the TS-side parity test asserts the
-/// codegen-emitted <c>JwtPayload</c> typed interface accepts every
-/// listed claim.
+/// that scenario; the codegen-emitted TypeScript <c>JwtPayload</c> typed
+/// interface accepts every listed claim.
 /// </summary>
 public sealed class JwtPayloadFixtureEmitter
 {
@@ -47,7 +46,7 @@ public sealed class JwtPayloadFixtureEmitter
     {
         const string scenario = "d2-custom-claims-only";
 
-        // Synthetic 10-segment fingerprint — opaque blob; value content
+        // Synthetic 10-segment fingerprint - opaque blob; value content
         // is not parity-relevant. Concatenated across source lines so no
         // single source line exceeds the 100-char cap.
         const string syntheticFingerprint =
@@ -77,7 +76,7 @@ public sealed class JwtPayloadFixtureEmitter
     {
         const string scenario = "with-act-chain";
 
-        // RFC 8693 act chain — nested object inside `act`.
+        // RFC 8693 act chain - nested object inside `act`.
         var act = new SortedDictionary<string, object?>(StringComparer.Ordinal)
         {
             ["sub"] = "00000000-0000-0000-0000-0000000000bb",
@@ -94,9 +93,9 @@ public sealed class JwtPayloadFixtureEmitter
 
     /// <summary>
     /// Wrap the scenario's claim set with the canonical list of all
-    /// spec-defined claim names — the TS-side parity test verifies (a)
+    /// spec-defined claim names. The list lets a comparison check that
     /// every claim in the fixture's <c>claims</c> map appears in the
-    /// spec's claim list, and (b) the spec's full claim list matches
+    /// spec's claim list, and that the spec's full claim list matches
     /// the .NET-emitted catalog.
     /// </summary>
     private static SortedDictionary<string, object?> BuildScenario(

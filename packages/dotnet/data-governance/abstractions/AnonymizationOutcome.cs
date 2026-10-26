@@ -8,13 +8,16 @@ namespace DcsvIo.D2.DataGovernance.Abstractions;
 
 /// <summary>
 /// Immutable summary of a completed anonymization sweep returned by
-/// <see cref="IAnonymizationEngine"/>. All four counters are non-negative integers.
+/// <see cref="IAnonymizationEngine"/>. The counters <see cref="EntityTypesProcessed"/>,
+/// <see cref="RowsAnonymized"/>, <see cref="EntityTypesSkippedExempt"/> and
+/// <see cref="AlreadyAnonymizedRows"/> are non-negative integers.
 /// </summary>
 /// <remarks>
 /// <para>
-/// A zero-valued outcome (all counters at 0) is valid — it represents the case where
-/// no entities matched the subject id (e.g. the user had no data in a particular domain).
-/// The engine returns <c>Ok(outcome)</c> with all zeros in this case, NOT a failure.
+/// A zero-valued outcome (all counters at 0) is valid. It represents the case where
+/// no entities matched the subject id (for example the user had no data in a particular
+/// domain). The engine returns <c>Ok(outcome)</c> with all zeros in this case, not a
+/// failure.
 /// </para>
 /// <para>
 /// Counter semantics:
@@ -22,30 +25,30 @@ namespace DcsvIo.D2.DataGovernance.Abstractions;
 /// <list type="bullet">
 /// <item>
 ///   <description>
-///     <see cref="EntityTypesProcessed"/> — how many distinct entity CLR types were
+///     <see cref="EntityTypesProcessed"/> - how many distinct entity CLR types were
 ///     examined (one per registered entity that implements <see cref="IUserOwned"/> or
 ///     <see cref="IOrgOwned"/> and is not <see cref="IExemptFromAnonymization"/>).
 ///   </description>
 /// </item>
 /// <item>
 ///   <description>
-///     <see cref="RowsAnonymized"/> — total row count actually overwritten across all
+///     <see cref="RowsAnonymized"/> - total row count actually overwritten across all
 ///     entity types in this sweep (excludes already-anonymized rows, see
 ///     <see cref="AlreadyAnonymizedRows"/>).
 ///   </description>
 /// </item>
 /// <item>
 ///   <description>
-///     <see cref="EntityTypesSkippedExempt"/> — how many distinct entity CLR types were
+///     <see cref="EntityTypesSkippedExempt"/> - how many distinct entity CLR types were
 ///     skipped because they implement <see cref="IExemptFromAnonymization"/>.
 ///   </description>
 /// </item>
 /// <item>
 ///   <description>
-///     <see cref="AlreadyAnonymizedRows"/> — rows excluded from the sweep because their
+///     <see cref="AlreadyAnonymizedRows"/> - rows excluded from the sweep because their
 ///     <see cref="IAnonymizationTrackable.IsAnonymized"/> flag was already
 ///     <see langword="true"/>. These rows were not touched; they are counted here to
-///     prove idempotency when the caller re-runs the engine.
+///     show idempotency when the engine runs again.
 ///   </description>
 /// </item>
 /// </list>

@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Hosted service that verifies every registered sealed recipient at host
-/// startup — the sealed sibling of <see cref="EncryptionStartupCheck"/>.
+/// startup - the sealed sibling of <see cref="EncryptionStartupCheck"/>.
 /// Crashes the host on any failure so misconfigured sealing material cannot
 /// serve traffic. Zero registrations is a logged no-op (the sealed
 /// registration-by-service sources populate the registry).
@@ -20,22 +20,21 @@ using Microsoft.Extensions.Logging;
 /// <remarks>
 /// Per registered recipient, the check resolves the keyed
 /// <see cref="IPayloadSealer"/> and <see cref="IPayloadOpener"/> (either may
-/// be absent — a producer host registers only sealers; a consumer host
+/// be absent - a producer host registers only sealers; a consumer host
 /// registers its own opener):
 /// <list type="bullet">
-/// <item>Both present → a full seal → open round-trip of a fixed harmless
+/// <item>Both present -> a full seal -> open round-trip of a fixed harmless
 /// sentinel; a mismatched keypair surfaces as an
 /// <see cref="System.Security.Cryptography.AuthenticationTagMismatchException"/>
 /// and crashes the host.</item>
-/// <item>Sealer only → the sentinel is sealed and the resulting frame is
-/// structurally decoded — proving the recipient public key imports, the
+/// <item>Sealer only -> the sentinel is sealed and the resulting frame is
+/// structurally decoded, which shows the recipient public key imports, the
 /// derivation runs, and the frame encodes. A round-trip is impossible
-/// without the recipient's private key (that is the capability split
-/// working as designed).</item>
-/// <item>Opener only → logged: no sealer exists to synthesize a frame, and
+/// without the recipient's private key, as the capability split intends.</item>
+/// <item>Opener only -> logged: no sealer exists to synthesize a frame, and
 /// the private keyring already validated its material at construction
 /// (P-256 import + agreement probe).</item>
-/// <item>Neither resolvable → the registration is broken wiring — throw
+/// <item>Neither resolvable -> the registration is broken wiring - throw
 /// (fail-closed).</item>
 /// </list>
 /// </remarks>
@@ -85,7 +84,7 @@ internal sealed class SealedEncryptionStartupCheck : IHostedService
                 throw new InvalidOperationException(
                     $"Sealed encryption self-check for recipient '{recipientServiceId}': " +
                     "neither an IPayloadSealer nor an IPayloadOpener is registered " +
-                    "under that key — the registration is broken wiring.");
+                    "under that key - the registration is broken wiring.");
             }
 
             if (sealer is null)
@@ -99,7 +98,7 @@ internal sealed class SealedEncryptionStartupCheck : IHostedService
 
             if (opener is null)
             {
-                // Producer-only host: prove the frame is structurally sound.
+                // Producer-only host: check that the frame is structurally sound.
                 // Decode throws on any malformation.
                 _ = SealedFrame.Decode(framed);
                 SealedEncryptionStartupCheckLog.SealOnlyVerified(

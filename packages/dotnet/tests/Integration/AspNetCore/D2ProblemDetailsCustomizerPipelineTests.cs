@@ -22,15 +22,15 @@ using Xunit;
 
 /// <summary>
 /// Integration tests for the D2Result-aware path B handshake:
-/// <see cref="HttpContextD2ResultExtensions.SetD2Result"/> →
-/// <c>IProblemDetailsService.TryWriteAsync</c> →
-/// <c>D2ProblemDetailsCustomizer.Apply</c> → response body.
+/// <see cref="HttpContextD2ResultExtensions.SetD2Result"/> ->
+/// <c>IProblemDetailsService.TryWriteAsync</c> ->
+/// <c>D2ProblemDetailsCustomizer.Apply</c> -> response body.
 ///
 /// Pins the full pipeline composition surface end-to-end through
-/// <c>Microsoft.AspNetCore.TestHost</c> so a future change to the wiring
+/// <c>Microsoft.AspNetCore.TestHost</c>. A change to the wiring
 /// (slot key drift, customizer registration order, missing
-/// <c>IProblemDetailsService</c> registration, etc.) fails LOUDLY rather
-/// than silently degrading to the unhandled-exception path.
+/// <c>IProblemDetailsService</c> registration, etc.) fails a test here
+/// instead of silently degrading to the unhandled-exception path.
 /// </summary>
 public sealed class D2ProblemDetailsCustomizerPipelineTests
 {
@@ -58,7 +58,7 @@ public sealed class D2ProblemDetailsCustomizerPipelineTests
             .Should().Be(D2ProblemDetailsKeys.TitleFor(HttpStatusCode.NotFound));
         root.GetProperty("status").GetInt32().Should().Be(404);
 
-        // Instance set unconditionally — covers the customizer's outer Apply()
+        // Instance set unconditionally - covers the customizer's outer Apply()
         // path regardless of whether a D2Result was stashed.
         root.GetProperty("instance").GetString().Should().Be("GET /api/not-found");
 
@@ -81,7 +81,7 @@ public sealed class D2ProblemDetailsCustomizerPipelineTests
         using var host = await BuildHostWithStashingEndpointAsync(
             path: "/api/validate",
             statusCode: HttpStatusCode.BadRequest,
-            errorCode: "VALIDATION_FAILED",
+            errorCode: "GEN_VALIDATION_FAILED",
             inputErrors:
             [
                 new InputError("email", [TK.Common.Errors.NOT_FOUND]),
@@ -105,7 +105,7 @@ public sealed class D2ProblemDetailsCustomizerPipelineTests
         using var host = await BuildHostWithStashingEndpointAsync(
             path: "/api/unauthorized",
             statusCode: HttpStatusCode.Unauthorized,
-            errorCode: "AUTH_BEARER_MISSING");
+            errorCode: "LIB_AUTH_BEARER_MISSING");
 
         var client = host.GetTestClient();
         var response = await client.GetAsync("https://localhost/api/unauthorized");
@@ -132,9 +132,9 @@ public sealed class D2ProblemDetailsCustomizerPipelineTests
         var body = await response.Content.ReadAsStringAsync();
         var doc = JsonDocument.Parse(body);
 
-        // Per-VALUE pin on the kebab-case transformation through the full
-        // pipeline (regression on the customizer's KebabCase() helper or
-        // a future refactor that drops it).
+        // Pins one value of the kebab-case transformation through the full
+        // pipeline (fails on a regression in the customizer's KebabCase()
+        // helper or on a refactor that drops it).
         doc.RootElement.GetProperty("type").GetString()
             .Should().Be(D2ProblemDetailsKeys.TYPE_URI_PREFIX + "entity-version-conflict");
     }

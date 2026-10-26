@@ -4,7 +4,10 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # DcsvIo.D2.Handler.Repo.Abstractions
 
-Vocabulary for repo-flavored handlers — what app-layer code touches when it needs to discriminate database failures (unique violation, FK violation, deadlock, concurrency conflict, connection failure, etc.). Pure abstractions: zero infrastructure dependencies. EF Core, Npgsql, and any provider knowledge live in sibling packages (`DcsvIo.D2.Handler.Repo`, `DcsvIo.D2.Handler.Repo.Postgres`).
+Types for repo handlers: the types that application code uses to tell database failures apart (unique violation, FK
+violation, deadlock, concurrency conflict, connection failure, etc.). This package contains only abstractions and has no
+infrastructure dependencies. EF Core, Npgsql, and all provider-specific code are in sibling packages
+(`DcsvIo.D2.Handler.Repo`, `DcsvIo.D2.Handler.Repo.Postgres`).
 
 ## Install
 
@@ -16,17 +19,17 @@ dotnet add package DcsvIo.D2.Handler.Repo.Abstractions
 
 ## Public API
 
-| Type | Role |
-| ---- | ---- |
-| `DbFailureKind` | Enum — `ConcurrencyConflict` / `UniqueViolation` / `ForeignKeyViolation` / `NotNullViolation` / `CheckViolation` / `Timeout` / `Deadlock` / `ConnectionFailure` |
-| `IDbExceptionClassifier` | Provider seam — `DbFailureKind? Classify(Exception)` |
-| `DbErrorCodes` | String constants (`UNIQUE_VIOLATION`, `FOREIGN_KEY_VIOLATION`, etc.) used as `D2Result.ErrorCode` values |
-| `D2Result` DB factories | Static C# 14 extension factories — `D2Result.UniqueViolation()`, `.ConcurrencyConflict()`, `.DbDeadlock()`, etc. (non-generic + generic) |
-| DB booleans | C# 14 instance extension properties — `result.IsUniqueViolation`, `result.IsConcurrencyConflict`, `result.IsTransientDbFailure`, etc. |
+| Type                     | Role                                                                                                                                                            |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DbFailureKind`          | Enum - `ConcurrencyConflict` / `UniqueViolation` / `ForeignKeyViolation` / `NotNullViolation` / `CheckViolation` / `Timeout` / `Deadlock` / `ConnectionFailure` |
+| `IDbExceptionClassifier` | Provider seam - `DbFailureKind? Classify(Exception)`                                                                                                            |
+| `DbErrorCodes`           | String constants (`UNIQUE_VIOLATION`, `FOREIGN_KEY_VIOLATION`, etc.) used as `D2Result.ErrorCode` values                                                        |
+| `D2Result` DB factories  | Static C# 14 extension factories - `D2Result.UniqueViolation()`, `.ConcurrencyConflict()`, `.DbDeadlock()`, etc. (non-generic + generic)                        |
+| DB booleans              | C# 14 instance extension properties - `result.IsUniqueViolation`, `result.IsConcurrencyConflict`, `result.IsTransientDbFailure`, etc.                           |
 
 ---
 
-## Emitting + discriminating DB failures
+## Emitting and discriminating DB failures
 
 Handler code returns typed DB failures via the extension factories:
 
@@ -36,7 +39,7 @@ return D2Result<User>.UniqueViolation(
     inputErrors: [new InputError("email", "EMAIL_ALREADY_TAKEN")]);
 ```
 
-Caller code discriminates via the boolean discriminators:
+Caller code tells the failures apart with the boolean properties:
 
 ```csharp
 var result = await createUser.HandleAsync(input);
@@ -48,15 +51,22 @@ if (result.IsConcurrencyConflict)
     return await ReloadAndMergeAsync(input);
 ```
 
-The `IsTransientDbFailure` predicate is a roll-up — `IsDbDeadlock || IsDbTimeout || IsDbConnectionFailure`. `IsConcurrencyConflict` is intentionally excluded — concurrency conflicts need reload-then-merge logic, not a blind retry.
+The `IsTransientDbFailure` predicate is a roll-up of `IsDbDeadlock || IsDbTimeout || IsDbConnectionFailure`.
+`IsConcurrencyConflict` is intentionally excluded: concurrency conflicts need reload-then-merge logic, not a blind
+retry.
 
-`IsTransientDbFailure` is a separate axis from the built-in `IsTransientRetryable` (`IsServiceUnavailable || IsRateLimited`) on `D2Result` in the result lib. They live in separate libs because not every consumer of `D2Result` deals with a database; the DB roll-up only loads when the consumer references this package. A generic retry policy that wants to catch BOTH HTTP-flavored AND DB-flavored transient failures should check the union: `result.IsTransientRetryable || result.IsTransientDbFailure`.
+`IsTransientDbFailure` is separate from the built-in `IsTransientRetryable` (`IsServiceUnavailable || IsRateLimited`) on
+`D2Result` in the result package. They are in separate packages because not every consumer of `D2Result` uses a
+database; the database roll-up is available only when the consumer references this package. A generic retry policy
+that must catch both HTTP-related and database-related transient failures should check the union:
+`result.IsTransientRetryable || result.IsTransientDbFailure`.
 
 ---
 
 ## Default messages
 
-Each factory accepts an optional `messages` parameter; when omitted, the generic fallback from `TK.Common.Errors.*` is used:
+Each factory accepts an optional `messages` parameter; when omitted, the generic fallback from `TK.Common.Errors.*` is
+used:
 
 | Factory                 | Default `TKMessage`                      |
 | ----------------------- | ---------------------------------------- |
@@ -69,7 +79,9 @@ Each factory accepts an optional `messages` parameter; when omitted, the generic
 | `DbDeadlock()`          | `TK.Common.Errors.DB_DEADLOCK`           |
 | `DbConnectionFailure()` | `TK.Common.Errors.DB_CONNECTION_FAILURE` |
 
-These defaults are deliberately generic ("This value is already in use"). Handlers that know the constraint identity should override the message — e.g. `[TK.Auth.Errors.EMAIL_ALREADY_TAKEN]` instead — and attach an `InputError` so the form UI can highlight the offending field.
+These defaults are deliberately generic ("This value is already in use"). Handlers that know the constraint identity
+should override the message, for example with `[TK.Auth.Errors.EMAIL_ALREADY_TAKEN]`, and attach an `InputError` so the
+form UI can highlight the offending field.
 
 ---
 
@@ -85,14 +97,14 @@ These defaults are deliberately generic ("This value is already in use"). Handle
 
 ## Dependencies
 
-- `DcsvIo.D2.Result` — base `D2Result` type that the factories extend
-- `DcsvIo.D2.I18n` — `TKMessage` + `TK` codegen entry point
+- `DcsvIo.D2.Result` - base `D2Result` type that the factories extend
+- `DcsvIo.D2.I18n` - `TKMessage` + `TK` codegen entry point
 
-Zero external NuGet packages. No EF Core, no Npgsql.
+No external NuGet packages: no EF Core and no Npgsql.
 
 ---
 
 ## Related packages
 
-- `DcsvIo.D2.Handler.Repo` — `BaseRepoHandler` consumes the classifier interface
-- `DcsvIo.D2.Handler.Repo.Postgres` — PostgreSQL classifier implementation
+- `DcsvIo.D2.Handler.Repo` - `BaseRepoHandler` uses the classifier interface
+- `DcsvIo.D2.Handler.Repo.Postgres` - PostgreSQL classifier implementation

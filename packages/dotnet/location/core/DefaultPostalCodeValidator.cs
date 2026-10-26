@@ -13,23 +13,23 @@ using DcsvIo.D2.Result;
 using DcsvIo.D2.Utilities.Extensions;
 
 /// <summary>
-/// Default <see cref="IPostalCodeValidator"/> — global-range shape check
+/// Default <see cref="IPostalCodeValidator"/> - global-range shape check
 /// only (3-10 alphanumeric characters; internal spaces and hyphens
 /// allowed; alphanumeric at both ends). Country-blind by design;
-/// consumers requiring per-country strict validation register an override
-/// via <c>services.Replace(...)</c>.
+/// per-country strict validation requires an override registered via
+/// <c>services.Replace(...)</c>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>ReDoS posture (§5.20).</b> The pattern is anchored at both ends,
+/// <b>ReDoS posture.</b> The pattern is anchored at both ends,
 /// the character class is bounded, and the inner repetition is
-/// bounded (<c>{1,8}</c>). Worst-case time is linear in input length —
-/// genuinely Bucket B1 shape — but DELIBERATELY reclassified to
-/// <b>B2 + defense-in-depth</b>: the <c>matchTimeout = 50ms</c> and the
-/// JIT pre-warm in the static constructor are retained as a guard-rail
-/// against future-author regex edits (a maintainer relaxing the class
-/// or removing an anchor could silently push the pattern into B3
-/// territory).
+/// bounded (<c>{1,8}</c>). Worst-case time is linear in input length, and
+/// the pattern has no catastrophic backtracking. The code DELIBERATELY
+/// treats it as a linear pattern with <b>defense-in-depth</b> anyway: the
+/// <c>matchTimeout = 50ms</c> and the JIT pre-warm in the static
+/// constructor are retained as a guard-rail against edits to the regex
+/// (relaxing the class or removing an anchor could silently make the
+/// pattern super-linear).
 /// </para>
 /// </remarks>
 public sealed class DefaultPostalCodeValidator : IPostalCodeValidator
@@ -43,8 +43,8 @@ public sealed class DefaultPostalCodeValidator : IPostalCodeValidator
 
     static DefaultPostalCodeValidator()
     {
-        // JIT pre-warm — defense-in-depth posture per §5.20.
-        _ = sr_GlobalShape.IsMatch("90210");
+        // JIT pre-warm, so the first real call does not pay the regex compile.
+        PreWarm(sr_GlobalShape);
     }
 
     /// <inheritdoc />
@@ -76,5 +76,27 @@ public sealed class DefaultPostalCodeValidator : IPostalCodeValidator
         }
 
         return D2Result<string>.Ok(trimmed);
+    }
+
+    /// <summary>
+    /// Runs a throwaway match, which forces the compiled matcher to be emitted and
+    /// jitted. The match timeout covers that emit, so on a loaded machine this first
+    /// match can exceed it; the pre-warm is an optimization, and letting that exception
+    /// leave the static constructor would fail the type initializer and make every later
+    /// use of the validator throw for the life of the process.
+    /// </summary>
+    /// <param name="regex">The regex to warm.</param>
+    internal static void PreWarm(Regex regex)
+    {
+        ArgumentNullException.ThrowIfNull(regex);
+
+        try
+        {
+            _ = regex.IsMatch("90210");
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            // Pre-warm only; the next real call pays the emit cost instead.
+        }
     }
 }

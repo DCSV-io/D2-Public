@@ -28,13 +28,11 @@ public sealed class D2InfrastructureBypassOptionsTests
     [Fact]
     public void WithExpression_OverridesProperty()
     {
-        var opts = new D2InfrastructureBypassOptions
-        {
-            TagOnly = true,
-            InfrastructurePaths = ["/internal"],
-        };
+        var original = new D2InfrastructureBypassOptions { InfrastructurePaths = ["/internal"] };
 
-        opts.TagOnly.Should().BeTrue();
-        opts.InfrastructurePaths.Should().Equal("/internal");
+        var changed = original with { TagOnly = true };
+
+        (changed.TagOnly, changed.InfrastructurePaths, original.TagOnly)
+            .Should().Be((true, original.InfrastructurePaths, false));
     }
 }

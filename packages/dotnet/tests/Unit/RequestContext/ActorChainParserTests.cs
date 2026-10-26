@@ -17,7 +17,7 @@ using Xunit;
 /// <summary>
 /// Adversarial coverage of the security-critical
 /// <see cref="ActorChainParser"/>. A malformed-token bypass on this parser is
-/// a forged-impersonation primitive — every malformation path must throw
+/// a forged-impersonation primitive - every malformation path must throw
 /// <see cref="MalformedActorChainException"/> rather than silently degrading.
 /// </summary>
 public sealed class ActorChainParserTests
@@ -28,7 +28,7 @@ public sealed class ActorChainParserTests
     private const string _ORG_GUID = "33333333-3333-3333-3333-333333333333";
 
     // ------------------------------------------------------------------
-    // Happy path — empty / null / whitespace
+    // Happy path - empty / null / whitespace
     // ------------------------------------------------------------------
 
     [Theory]
@@ -55,7 +55,7 @@ public sealed class ActorChainParserTests
     }
 
     // ------------------------------------------------------------------
-    // Happy path — single Service entry
+    // Happy path - single Service entry
     // ------------------------------------------------------------------
 
     [Fact]
@@ -87,7 +87,7 @@ public sealed class ActorChainParserTests
     }
 
     // ------------------------------------------------------------------
-    // Happy path — single Impersonation entry
+    // Happy path - single Impersonation entry
     // ------------------------------------------------------------------
 
     [Fact]
@@ -140,13 +140,13 @@ public sealed class ActorChainParserTests
     }
 
     // ------------------------------------------------------------------
-    // Happy path — nested chains
+    // Happy path - nested chains
     // ------------------------------------------------------------------
 
     [Fact]
     public void ParseFromJsonString_ThreeDeepChain_OutermostFirstOrdering()
     {
-        // Per RFC 8693 §4.1: outermost = current actor, deepest = originator.
+        // Per RFC 8693 section 4.1: outermost = current actor, deepest = originator.
         const string input = """
         {
             "sub":"outer-service",
@@ -171,7 +171,7 @@ public sealed class ActorChainParserTests
     [Fact]
     public void ParseFromJsonString_TwentyDeepChain_AtLimit_DoesNotThrow()
     {
-        // Adversarial: depth 20 is exactly the wall — must succeed.
+        // Adversarial: depth 20 is exactly the maximum depth - must succeed.
         var json = BuildNestedChain(depth: 20);
 
         var result = ActorChainParser.ParseFromJsonString(json);
@@ -182,7 +182,7 @@ public sealed class ActorChainParserTests
     }
 
     // ------------------------------------------------------------------
-    // Malformations — root-level JSON shape
+    // Malformations - root-level JSON shape
     // ------------------------------------------------------------------
 
     [Theory]
@@ -202,7 +202,7 @@ public sealed class ActorChainParserTests
     [Fact]
     public void ParseFromJsonString_TruncatedJson_ThrowsWithInnerException()
     {
-        // Mismatched braces — JsonException → wrapped MalformedActorChainException
+        // Mismatched braces - JsonException -> wrapped MalformedActorChainException
         const string input = "{\"sub\":\"x\"";
 
         var act = () => ActorChainParser.ParseFromJsonString(input);
@@ -223,7 +223,7 @@ public sealed class ActorChainParserTests
     }
 
     // ------------------------------------------------------------------
-    // Malformations — missing 'sub'
+    // Malformations - missing 'sub'
     // ------------------------------------------------------------------
 
     [Fact]
@@ -267,7 +267,7 @@ public sealed class ActorChainParserTests
     }
 
     // ------------------------------------------------------------------
-    // Malformations — impersonation entry missing required claims
+    // Malformations - impersonation entry missing required claims
     // ------------------------------------------------------------------
 
     [Theory]
@@ -299,7 +299,7 @@ public sealed class ActorChainParserTests
     [Fact]
     public void ParseFromJsonString_InvalidD2Kind_Throws()
     {
-        // Adversarial: anything that's not Consent/Force must reject — the parser
+        // Adversarial: anything that's not Consent/Force must reject - the parser
         // can't downgrade unknown kinds to "treat as Service".
         var input = $$"""
         {
@@ -322,7 +322,7 @@ public sealed class ActorChainParserTests
     public void ParseFromJsonString_LowercaseD2Kind_ParsesSuccessfully()
     {
         // DOCUMENTED BEHAVIOR: TryParseTruthyNull<TEnum> uses ignoreCase: true,
-        // so "consent" / "force" / "CONSENT" all parse. Verify + lock behavior.
+        // so "consent" / "force" / "CONSENT" all parse. This test pins that behavior.
         var input = $$"""
         {
             "sub":"{{_USER_SUB_GUID}}",
@@ -408,13 +408,13 @@ public sealed class ActorChainParserTests
     }
 
     // ------------------------------------------------------------------
-    // Malformations — depth limit / DoS
+    // Malformations - depth limit / DoS
     // ------------------------------------------------------------------
 
     [Fact]
     public void ParseFromJsonString_TwentyOneDeep_ThrowsWithDepthMessage()
     {
-        // Adversarial: depth 21 is one over the wall — must throw.
+        // Adversarial: depth 21 is one over the maximum depth - must throw.
         var json = BuildNestedChain(depth: 21);
 
         var act = () => ActorChainParser.ParseFromJsonString(json);
@@ -427,11 +427,11 @@ public sealed class ActorChainParserTests
     public void ParseFromJsonString_OneHundredDeep_ThrowsEarly_DoesNotExhaustStack()
     {
         // Adversarial DoS: 100 nested objects must not stack-overflow / exhaust
-        // memory. Either the parser bails at MaxActDepth (preferred) or
+        // memory. Either the parser stops at MaxActDepth (preferred) or
         // JsonDocument.Parse rejects the input first via its own depth limit
-        // (default 64) — both produce MalformedActorChainException (the latter
-        // wraps the JsonException), neither blows the stack. Either outcome
-        // is safe; both are accepted.
+        // (default 64) - both produce MalformedActorChainException (the latter
+        // wraps the JsonException), and neither overflows the stack. Either
+        // outcome is safe; both are accepted.
         var json = BuildNestedChain(depth: 100);
 
         var act = () => ActorChainParser.ParseFromJsonString(json);
@@ -446,7 +446,7 @@ public sealed class ActorChainParserTests
     [InlineData("true")]
     public void ParseFromJsonString_NestedActNotObject_Throws(string nonObjectAct)
     {
-        // act must be either absent OR an object — anything else is malformed.
+        // act must be either absent OR an object - anything else is malformed.
         var input = $$"""{"sub":"outer","act":{{nonObjectAct}}}""";
 
         var act = () => ActorChainParser.ParseFromJsonString(input);
@@ -458,10 +458,10 @@ public sealed class ActorChainParserTests
     [Fact]
     public void ParseFromJsonString_NestedActNull_Throws()
     {
-        // Adversarial: JSON null for nested act — parser checks ValueKind != Object
+        // Adversarial: JSON null for nested act - parser checks ValueKind != Object
         // AND != Undefined. Null ValueKind is Null, not Undefined, so it WILL throw.
-        // Pin the actual behavior so a future "treat null as absent" change is
-        // an intentional contract decision rather than a silent regression.
+        // This test pins the actual behavior: treating null as absent would
+        // change the contract, and this test fails if that change is made.
         const string input = """{"sub":"outer","act":null}""";
 
         var act = () => ActorChainParser.ParseFromJsonString(input);
@@ -471,7 +471,7 @@ public sealed class ActorChainParserTests
     }
 
     // ------------------------------------------------------------------
-    // Adversarial — DoS / unicode / overlong values
+    // Adversarial - DoS / unicode / overlong values
     // ------------------------------------------------------------------
 
     [Fact]
@@ -494,7 +494,7 @@ public sealed class ActorChainParserTests
     [InlineData("\\u0000")] // NUL
     public void ParseFromJsonString_UnicodeInSub_PassesThrough(string escapedChar)
     {
-        // Parser doesn't validate sub content beyond presence — downstream
+        // Parser doesn't validate sub content beyond presence - downstream
         // policy decides whether to scrub control / RTL chars.
         var input = $$"""{"sub":"alice{{escapedChar}}bob"}""";
 
@@ -507,7 +507,7 @@ public sealed class ActorChainParserTests
     [Fact]
     public void ParseFromJsonString_ExtraUnknownClaims_Ignored()
     {
-        // RFC 8693 §2.1 doesn't restrict the act object to known claims.
+        // RFC 8693 section 2.1 doesn't restrict the act object to known claims.
         // Unknown claims should be silently ignored.
         const string input = """
         {
@@ -537,7 +537,7 @@ public sealed class ActorChainParserTests
     }
 
     // ------------------------------------------------------------------
-    // Round-trip — string entry point and JsonElement entry point match
+    // Round-trip - string entry point and JsonElement entry point match
     // ------------------------------------------------------------------
 
     [Fact]

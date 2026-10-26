@@ -75,4 +75,16 @@ internal static class EmitDiagnostics
     /// <returns>A new <see cref="EmitDiagnostic"/>.</returns>
     public static EmitDiagnostic MissingSpecFile(string targetAssembly) =>
         new(DiagnosticIds.MissingSpecFile, [targetAssembly]);
+
+    /// <summary>
+    /// Constructs a <see cref="DiagnosticDescriptors.UnknownClaimForm"/> error.
+    /// </summary>
+    /// <param name="specName">The spec name.</param>
+    /// <param name="propertyName">The property declaring the claim form.</param>
+    /// <param name="claimForm">The unknown claim form.</param>
+    /// <param name="validForms">A comma-separated list of valid forms.</param>
+    /// <returns>A new <see cref="EmitDiagnostic"/>.</returns>
+    public static EmitDiagnostic UnknownClaimForm(
+        string specName, string propertyName, string claimForm, string validForms) =>
+        new(DiagnosticIds.UnknownClaimForm, [specName, propertyName, claimForm, validForms]);
 }

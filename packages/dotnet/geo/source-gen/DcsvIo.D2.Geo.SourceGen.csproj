@@ -15,19 +15,12 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <!-- Mark this as a Roslyn analyzer/generator component for tooling. -->
     <IsRoslynComponent>true</IsRoslynComponent>
 
-    <!-- Opt into the modern analyzer rule set. -->
+    <!-- Enable RS1035, which bans APIs an analyzer must not call, such as file and environment access. -->
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 
-    <!-- Don't ship this as a library to consumers — it's only an analyzer. -->
+    <!-- Don't ship this as a library to consumers - it's only an analyzer. -->
     <IncludeBuildOutput>false</IncludeBuildOutput>
 
-    <!-- The XML doc requirement from Directory.Build.props is overkill for
-         a generator's internal helpers; relax CS1591 here only. Public types
-         that ARE part of the (analyzer-loaded) generator surface still get
-         docs by convention.
-         RS2008: analyzer release tracking — only matters for shipped NuGet
-         analyzer packages; this analyzer ships only via project reference. -->
-    <NoWarn>$(NoWarn);CS1591;RS2008</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

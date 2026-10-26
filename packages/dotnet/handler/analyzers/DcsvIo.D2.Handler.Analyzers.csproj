@@ -1,0 +1,41 @@
+<!--
+Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>DcsvIo.D2.Handler.Analyzers</RootNamespace>
+    <!-- Roslyn analyzers target netstandard2.0 (host compiler environment). -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <!--
+      The package has no lib/ assets, so NuGet would write an empty
+      netstandard2.0 dependency group and pack would fail with NU5128 under
+      TreatWarningsAsErrors. The analyzer has no run-time dependencies.
+    -->
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <!-- Packable analyzer companion of DcsvIo.D2.Handler (portable defense-in-depth). -->
+    <IsPackable>true</IsPackable>
+    <Version>0.1.9</Version>
+    <PackageId>DcsvIo.D2.Handler.Analyzers</PackageId>
+    <Description>Roslyn analyzer for D2 handler scope DiD (D2HND001-003): product I{Op}Handler implementers must be named {Op}Handler, partial, and carry sealed DefaultOptions / D2GeneratedHandlerScope.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <DevelopmentDependency>true</DevelopmentDependency>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- NuGet analyzer packaging: place DLL under analyzers/dotnet/cs. -->
+  <ItemGroup>
+    <None Include="$(OutputPath)$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DcsvIo.D2.Tests" />
+  </ItemGroup>
+</Project>

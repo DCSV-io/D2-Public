@@ -5,7 +5,7 @@
 import { SealedFrame } from "@dcsv-io/d2-encryption-abstractions";
 
 /**
- * Shared constructor-time validation for the sealed recipient keyrings — the
+ * Shared constructor-time validation for the sealed recipient keyrings; the
  * twin of .NET `SealedKeyringValidation`. The recipient service id grammar
  * mirrors the workload-identity service-id grammar (lowercase `[a-z0-9-]`, at
  * most 64 characters) without taking a dependency on the workload-identity
@@ -21,8 +21,8 @@ const _SERVICE_ID_GRAMMAR = /^[a-z0-9-]+$/;
 /**
  * Validates the recipient service id grammar: non-empty, at most
  * {@link MAX_SERVICE_ID_LENGTH} characters, every character in lowercase
- * `[a-z0-9-]`. No normalization — a caller holding an unvalidated id must
- * validate upstream; this library fails loud.
+ * `[a-z0-9-]`. No normalization: a caller with an unvalidated id must
+ * validate it before calling; this library throws on a violation.
  *
  * @param recipientServiceId The candidate service id.
  * @param paramName Parameter name for the thrown error.

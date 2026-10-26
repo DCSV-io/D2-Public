@@ -40,8 +40,8 @@ public sealed class RetryLayerTests
     [Fact]
     public async Task WrapAsync_NullOptions_AppliesDefaults()
     {
-        // Null options → RetryHelper applies defaults via RetryOptions ctor.
-        // Sanity check: a non-throwing operation completes on first attempt.
+        // Null options -> RetryHelper applies the defaults through the RetryOptions ctor.
+        // A non-throwing operation completes on the first attempt.
         var layer = new RetryLayer<string, int>(options: null);
 
         var result = await layer.WrapAsync(
@@ -53,7 +53,7 @@ public sealed class RetryLayerTests
     [Fact]
     public async Task WrapAsync_KeyArgument_IsIgnored()
     {
-        // Retry policy is per-operation, not per-key — the key is ignored.
+        // The retry policy applies per operation, not per key, so the layer ignores the key.
         var layer = new RetryLayer<string, int>(NoDelayOptions());
 
         (await layer.WrapAsync("a", _ => ValueTask.FromResult(1), CancellationToken.None))

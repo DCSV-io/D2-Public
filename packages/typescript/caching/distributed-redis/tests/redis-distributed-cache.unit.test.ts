@@ -48,9 +48,52 @@ class FailingSerializeTestSerializer implements ICacheSerializer {
   serialize<T>(_value: T): D2Result<Uint8Array> {
     return fail({
       statusCode: HttpStatusCode.InternalServerError,
-      errorCode: ErrorCodes.COULD_NOT_BE_SERIALIZED,
+      errorCode: ErrorCodes.GEN_COULD_NOT_BE_SERIALIZED,
     });
   }
+  deserialize<T>(_bytes: Uint8Array): D2Result<T> {
+    return ok(null as T);
+  }
+}
+
+/**
+ * Serializes the first value passed to it and fails on the second, so a member
+ * that serializes twice exercises its second failure branch and not only its
+ * first.
+ */
+class FailingSecondSerializeTestSerializer implements ICacheSerializer {
+  readonly contentType = "application/json";
+  private calls = 0;
+
+  serialize<T>(value: T): D2Result<Uint8Array> {
+    this.calls++;
+
+    if (this.calls === 1) {
+      return new JsonCacheSerializer().serialize(value);
+    }
+
+    return fail({
+      statusCode: HttpStatusCode.InternalServerError,
+      errorCode: ErrorCodes.GEN_COULD_NOT_BE_SERIALIZED,
+    });
+  }
+
+  deserialize<T>(_bytes: Uint8Array): D2Result<T> {
+    return ok(null as T);
+  }
+}
+
+/**
+ * Throws out of `serialize` rather than returning a failure result, so the
+ * whole-member catch branch is exercised and not only the checked failures.
+ */
+class ThrowingSerializeTestSerializer implements ICacheSerializer {
+  readonly contentType = "application/json";
+
+  serialize<T>(_value: T): D2Result<Uint8Array> {
+    throw new Error("serializer threw");
+  }
+
   deserialize<T>(_bytes: Uint8Array): D2Result<T> {
     return ok(null as T);
   }
@@ -64,7 +107,7 @@ class FailingDeserializeTestSerializer implements ICacheSerializer {
   deserialize<T>(_bytes: Uint8Array): D2Result<T> {
     return fail({
       statusCode: HttpStatusCode.InternalServerError,
-      errorCode: ErrorCodes.COULD_NOT_BE_DESERIALIZED,
+      errorCode: ErrorCodes.GEN_COULD_NOT_BE_DESERIALIZED,
     });
   }
 }
@@ -100,7 +143,7 @@ describe("RedisDistributedCache unit", () => {
   it("get_miss_returnsNotFound", async () => {
     const r = await makeCache(createRedisTestDouble()).get("missing");
     expect(r.success).toBe(false);
-    expect(r.errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
     expect(r.statusCode).toBe(HttpStatusCode.NotFound);
   });
 
@@ -109,7 +152,7 @@ describe("RedisDistributedCache unit", () => {
     redis.throwOnNext = new Error("ECONNREFUSED");
     const r = await makeCache(redis).get("k");
     expect(r.success).toBe(false);
-    expect(r.errorCode).toBe(ErrorCodes.SERVICE_UNAVAILABLE);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_SERVICE_UNAVAILABLE);
     expect(r.statusCode).toBe(HttpStatusCode.ServiceUnavailable);
   });
 
@@ -121,7 +164,7 @@ describe("RedisDistributedCache unit", () => {
     await redis.set("k", "x");
     const r = await cache.get("k");
     expect(r.success).toBe(false);
-    expect(r.errorCode).toBe(ErrorCodes.COULD_NOT_BE_DESERIALIZED);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_COULD_NOT_BE_DESERIALIZED);
   });
 
   it("get_keyPrefix_readsPrefixedKey", async () => {
@@ -319,7 +362,7 @@ describe("RedisDistributedCache unit", () => {
     const r = await makeCache(createRedisTestDouble(), {
       serializer: new FailingSerializeTestSerializer(),
     }).set("k", 1);
-    expect(r.errorCode).toBe(ErrorCodes.COULD_NOT_BE_SERIALIZED);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_COULD_NOT_BE_SERIALIZED);
   });
 
   it("set_incrementsSetsCounter", async () => {
@@ -349,13 +392,14 @@ describe("RedisDistributedCache unit", () => {
     const r = await makeCache(createRedisTestDouble(), {
       serializer: new FailingSerializeTestSerializer(),
     }).setMany(new Map([["a", 1]]));
-    expect(r.errorCode).toBe(ErrorCodes.COULD_NOT_BE_SERIALIZED);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_COULD_NOT_BE_SERIALIZED);
   });
 
   it("setMany_pipelineCommandError_returnsServiceUnavailable_doesNotIncrementSets", async () => {
     // ioredis Pipeline.exec resolves with [err, result] tuples (does not
-    // throw). Force a per-command error via the double and assert SU + no
-    // sets counter bump — fails if production always ok() after exec.
+    // throw). Force a per-command error via the double and assert service
+    // unavailable and no sets counter increment - the test fails if production
+    // code always returns ok() after exec.
     harness = createMetricTestHarness();
     const redis = createRedisTestDouble();
     redis.throwOnNext = new Error("pipeline set fail");
@@ -366,7 +410,7 @@ describe("RedisDistributedCache unit", () => {
       ]),
     );
     expect(r.success).toBe(false);
-    expect(r.errorCode).toBe(ErrorCodes.SERVICE_UNAVAILABLE);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_SERVICE_UNAVAILABLE);
     expect(r.statusCode).toBe(HttpStatusCode.ServiceUnavailable);
     expect(await harness.counterValue("d2.cache.redis.sets")).toBe(0);
   });
@@ -429,7 +473,369 @@ describe("RedisDistributedCache unit", () => {
     const r = await makeCache(createRedisTestDouble(), {
       serializer: new FailingSerializeTestSerializer(),
     }).setNx("k", 1);
-    expect(r.errorCode).toBe(ErrorCodes.COULD_NOT_BE_SERIALIZED);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_COULD_NOT_BE_SERIALIZED);
+  });
+
+  it("setIfEqual_falseyKey_returnsValidationFailed", async () => {
+    const r = await makeCache(createRedisTestDouble()).setIfEqual("", 1, 2);
+    expect(r.success).toBe(false);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_VALIDATION_FAILED);
+  });
+
+  it("setIfEqual_invalidExpirationMs_returnsValidationFailed", async () => {
+    const r = await makeCache(createRedisTestDouble()).setIfEqual("k", 1, 2, 0);
+    expect(r.success).toBe(false);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_VALIDATION_FAILED);
+  });
+
+  it("setIfEqual_aNonPositiveDefaultExpiration_returnsValidationFailedAndWritesNothing", async () => {
+    // A resolved lifetime of zero would reach the script's no-expiry arm and
+    // write an entry Redis never expires. The .NET implementation rejects the same
+    // resolved value, so the .NET and TypeScript caches return the same result.
+    const cache = makeCache(createRedisTestDouble(), {
+      defaultExpirationMs: 0,
+    });
+    await cache.set("k", 1);
+    const r = await cache.setIfEqual("k", 1, 2);
+
+    expect(r.success).toBe(false);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_VALIDATION_FAILED);
+    expect((await cache.get<number>("k")).data).toBe(1);
+  });
+
+  it("setIfEqual_absentKey_returnsOkFalse", async () => {
+    // An absent key has nothing to compare against, so the caller's copy must
+    // not be written over the value the next reader loads in its place.
+    const r = await makeCache(createRedisTestDouble(), {
+      defaultExpirationMs: 60_000,
+    }).setIfEqual("k", 1, 2);
+    expect(r.success).toBe(true);
+    expect(r.data).toBe(false);
+  });
+
+  it("setIfEqual_storedValueMatches_writesAndReturnsOkTrue", async () => {
+    const cache = makeCache(createRedisTestDouble(), {
+      defaultExpirationMs: 60_000,
+    });
+    await cache.set("k", 1);
+    const r = await cache.setIfEqual("k", 1, 2);
+
+    expect(r.data).toBe(true);
+    expect((await cache.get<number>("k")).data).toBe(2);
+  });
+
+  it("setIfEqual_storedValueDiffers_returnsOkFalseAndLeavesTheStoredValue", async () => {
+    const cache = makeCache(createRedisTestDouble(), {
+      defaultExpirationMs: 60_000,
+    });
+    await cache.set("k", 99);
+    const r = await cache.setIfEqual("k", 1, 2);
+
+    expect(r.data).toBe(false);
+    expect((await cache.get<number>("k")).data).toBe(99);
+  });
+
+  it("setIfEqual_written_incrementsSets", async () => {
+    harness = createMetricTestHarness();
+    const cache = makeCache(createRedisTestDouble(), {
+      defaultExpirationMs: 60_000,
+    });
+    await cache.set("k", 1);
+    await cache.setIfEqual("k", 1, 2);
+
+    expect(await harness.counterValue("d2.cache.redis.sets")).toBe(2);
+  });
+
+  it("setIfEqual_comparisonLost_doesNotIncrementSets", async () => {
+    harness = createMetricTestHarness();
+    const cache = makeCache(createRedisTestDouble(), {
+      defaultExpirationMs: 60_000,
+    });
+    await cache.set("k", 99);
+    await cache.setIfEqual("k", 1, 2);
+
+    expect(await harness.counterValue("d2.cache.redis.sets")).toBe(1);
+  });
+
+  it("consumeToken_clockRecoversFromRollback_preservesAccrual", async () => {
+    let now = 1000;
+    const cache = makeCache(createRedisTestDouble(() => now));
+    expect(
+      (await cache.consumeToken("rollback", 1, 1000, 1)).data?.admitted,
+    ).toBe(true);
+    now = 0;
+    expect(
+      (await cache.consumeToken("rollback", 1, 1000, 1)).data?.admitted,
+    ).toBe(false);
+    now = 1000;
+    expect(
+      (await cache.consumeToken("rollback", 1, 1000, 1)).data?.admitted,
+    ).toBe(false);
+    now = 1999;
+    expect(
+      (await cache.consumeToken("rollback", 1, 1000, 1)).data?.retryAfterMs,
+    ).toBe(1);
+    now = 2000;
+    expect(
+      (await cache.consumeToken("rollback", 1, 1000, 1)).data?.admitted,
+    ).toBe(true);
+  });
+
+  it("consumeToken_aBucketNobodyUsed_admitsItsWholeBurst", async () => {
+    const cache = makeCache(createRedisTestDouble());
+    let admitted = 0;
+
+    for (let i = 0; i < 4; i++) {
+      const decision = await cache.consumeToken("bucket", 10, 60_000, 3);
+
+      if (decision.data?.admitted === true) {
+        admitted++;
+      }
+    }
+
+    expect(admitted).toBe(3);
+  });
+
+  it("consumeToken_pastTheBurst_reportsTheWaitForOneToken", async () => {
+    // A fixed clock: the wait for one token is exact only when no time passes
+    // between the calls that spend the burst.
+    const cache = makeCache(createRedisTestDouble(() => 1_000));
+
+    for (let i = 0; i < 3; i++) {
+      await cache.consumeToken("bucket", 10, 60_000, 3);
+    }
+
+    const refused = await cache.consumeToken("bucket", 10, 60_000, 3);
+
+    expect(refused.data?.admitted).toBe(false);
+    expect(refused.data?.retryAfterMs).toBe(6_000);
+  });
+
+  it("consumeToken_anArgumentTheBucketCannotUse_isRefusedByName", async () => {
+    const r = await makeCache(createRedisTestDouble()).consumeToken(
+      "",
+      10,
+      60_000,
+      3,
+    );
+
+    expect(r.success).toBe(false);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_VALIDATION_FAILED);
+    expect(r.inputErrors[0]?.field).toBe("key");
+  });
+
+  it("consumeToken_aKeyHoldingSomethingElse_returnsConflict", async () => {
+    const redis = createRedisTestDouble();
+    const cache = makeCache(redis);
+    await cache.set("bucket", "not a bucket");
+
+    const r = await cache.consumeToken("bucket", 10, 60_000, 3);
+
+    // The bucket is a hash, so a key holding a string raises WRONGTYPE. That
+    // is a type collision rather than a store fault, and the in-process
+    // implementation reports it as conflict.
+    expect(r.success).toBe(false);
+    expect(r.statusCode).toBe(HttpStatusCode.Conflict);
+  });
+
+  it("consumeToken_arrivalsFasterThanOneThousandthAccrues_reportsAShrinkingWait", async () => {
+    let now = 1_000;
+    const cache = makeCache(createRedisTestDouble(() => now));
+
+    for (let i = 0; i < 3; i++) {
+      await cache.consumeToken("bucket", 10, 60_000, 3);
+    }
+
+    const first = await cache.consumeToken("bucket", 10, 60_000, 3);
+
+    for (let ms = 0; ms < 3_000; ms++) {
+      now += 1;
+      await cache.consumeToken("bucket", 10, 60_000, 3);
+    }
+
+    const later = await cache.consumeToken("bucket", 10, 60_000, 3);
+
+    expect(later.data?.retryAfterMs).toBe(
+      (first.data?.retryAfterMs ?? 0) - 3_000,
+    );
+  });
+
+  it("consumeToken_redisDown_returnsServiceUnavailable", async () => {
+    const redis = createRedisTestDouble();
+    redis.throwOnNext = new Error("connection refused");
+    const r = await makeCache(redis).consumeToken("bucket", 10, 60_000, 3);
+
+    expect(r.success).toBe(false);
+    expect(r.statusCode).toBe(HttpStatusCode.ServiceUnavailable);
+  });
+
+  it("consumeToken_aborted_returnsCanceled", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const r = await makeCache(createRedisTestDouble()).consumeToken(
+      "bucket",
+      10,
+      60_000,
+      3,
+      1,
+      controller.signal,
+    );
+
+    expect(r.success).toBe(false);
+  });
+
+  it("removeIfEqual_falseyKey_returnsValidationFailed", async () => {
+    const r = await makeCache(createRedisTestDouble()).removeIfEqual("", 1);
+    expect(r.success).toBe(false);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_VALIDATION_FAILED);
+  });
+
+  it("removeIfEqual_absentKey_returnsOkFalse", async () => {
+    // A false result tells the caller that the entry it held is not the entry
+    // stored, which is the result when another writer replaced it.
+    const r = await makeCache(createRedisTestDouble()).removeIfEqual("k", 1);
+    expect(r.success).toBe(true);
+    expect(r.data).toBe(false);
+  });
+
+  it("removeIfEqual_storedValueMatches_removesAndReturnsOkTrue", async () => {
+    const cache = makeCache(createRedisTestDouble());
+    await cache.set("k", 1);
+    const r = await cache.removeIfEqual("k", 1);
+
+    expect(r.data).toBe(true);
+    expect((await cache.exists("k")).data).toBe(false);
+  });
+
+  it("removeIfEqual_storedValueDiffers_returnsOkFalseAndLeavesTheStoredValue", async () => {
+    const cache = makeCache(createRedisTestDouble());
+    await cache.set("k", 99);
+    const r = await cache.removeIfEqual("k", 1);
+
+    expect(r.data).toBe(false);
+    expect((await cache.get<number>("k")).data).toBe(99);
+  });
+
+  it("removeIfEqual_removed_incrementsRemoves", async () => {
+    harness = createMetricTestHarness();
+    const cache = makeCache(createRedisTestDouble());
+    await cache.set("k", 1);
+    await cache.removeIfEqual("k", 1);
+
+    expect(await harness.counterValue("d2.cache.redis.removes")).toBe(1);
+  });
+
+  it("removeIfEqual_comparisonLost_doesNotIncrementRemoves", async () => {
+    harness = createMetricTestHarness();
+    const cache = makeCache(createRedisTestDouble());
+    await cache.set("k", 99);
+    await cache.removeIfEqual("k", 1);
+
+    expect(await harness.counterValue("d2.cache.redis.removes")).toBe(0);
+  });
+
+  it("removeIfEqual_aborted_returnsCanceled", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const r = await makeCache(createRedisTestDouble()).removeIfEqual(
+      "k",
+      1,
+      controller.signal,
+    );
+
+    expect(r.success).toBe(false);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_CANCELED);
+  });
+
+  it("removeIfEqual_redisDown_returnsServiceUnavailable", async () => {
+    const redis = createRedisTestDouble();
+    redis.throwOnNext = new Error("connection refused");
+    const r = await makeCache(redis).removeIfEqual("k", 1);
+
+    expect(r.success).toBe(false);
+    expect(r.statusCode).toBe(HttpStatusCode.ServiceUnavailable);
+  });
+
+  it("setMany_pipelineReturnsNoResults_returnsServiceUnavailable", async () => {
+    // ioredis resolves exec with one tuple per queued command. An empty array
+    // means the batch ran nothing, which is not a completed write, so the batch
+    // must not be treated as done.
+    const redis = createRedisTestDouble();
+    redis.emptyPipelineExec = true;
+    const r = await makeCache(redis).setMany(new Map([["a", 1]]));
+
+    expect(r.success).toBe(false);
+    expect(r.statusCode).toBe(HttpStatusCode.ServiceUnavailable);
+  });
+
+  it("setMany_serializerThrows_returnsServiceUnavailable", async () => {
+    // A serializer that throws rather than returning a failure result reaches
+    // the whole-member catch, which a checked failure does not reach.
+    const r = await makeCache(createRedisTestDouble(), {
+      serializer: new ThrowingSerializeTestSerializer(),
+    }).setMany(new Map([["a", 1]]));
+
+    expect(r.success).toBe(false);
+    expect(r.statusCode).toBe(HttpStatusCode.ServiceUnavailable);
+  });
+
+  it("removeIfEqual_serializeFail_returnsBubbleFail", async () => {
+    const r = await makeCache(createRedisTestDouble(), {
+      serializer: new FailingSerializeTestSerializer(),
+    }).removeIfEqual("k", 1);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_COULD_NOT_BE_SERIALIZED);
+  });
+
+  it("setIfEqual_explicitTtl_applied", async () => {
+    const redis = createRedisTestDouble(() => 0);
+    const cache = makeCache(redis);
+    await cache.set("k", 1);
+    await cache.setIfEqual("k", 1, 2, 500);
+
+    expect((await cache.getTtl("k")).data).toBe(500);
+  });
+
+  it("setIfEqual_serializeFailOnExpected_returnsBubbleFail", async () => {
+    const r = await makeCache(createRedisTestDouble(), {
+      serializer: new FailingSerializeTestSerializer(),
+    }).setIfEqual("k", 1, 2);
+
+    expect(r.errorCode).toBe(ErrorCodes.GEN_COULD_NOT_BE_SERIALIZED);
+  });
+
+  it("setIfEqual_serializeFailOnValue_returnsBubbleFail", async () => {
+    // The member serializes twice. Exercising only the first failure would
+    // leave the second branch able to write a payload that nothing checked.
+    const r = await makeCache(createRedisTestDouble(), {
+      serializer: new FailingSecondSerializeTestSerializer(),
+    }).setIfEqual("k", 1, 2);
+
+    expect(r.errorCode).toBe(ErrorCodes.GEN_COULD_NOT_BE_SERIALIZED);
+  });
+
+  it("setIfEqual_redisDown_returnsServiceUnavailable", async () => {
+    const redis = createRedisTestDouble();
+    redis.throwOnNext = new Error("connection refused");
+    const r = await makeCache(redis, {
+      defaultExpirationMs: 60_000,
+    }).setIfEqual("k", 1, 2);
+
+    expect(r.success).toBe(false);
+    expect(r.statusCode).toBe(HttpStatusCode.ServiceUnavailable);
+  });
+
+  it("setIfEqual_aborted_returnsCanceled", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const r = await makeCache(createRedisTestDouble()).setIfEqual(
+      "k",
+      1,
+      2,
+      undefined,
+      controller.signal,
+    );
+
+    expect(r.success).toBe(false);
   });
 
   it("increment_newKey_defaultAmount_returnsOk1", async () => {
@@ -448,7 +854,7 @@ describe("RedisDistributedCache unit", () => {
   it("increment_wrongType_returnsConflict", async () => {
     const redis = createRedisTestDouble();
     await redis.set("s", "hello");
-    // mark as set kind by using store directly for WRONGTYPE on incr of string non-int
+    // Store a set entry directly, so incrementing it raises WRONGTYPE.
     redis.store.set("setkey", {
       value: "",
       kind: "set",
@@ -456,7 +862,7 @@ describe("RedisDistributedCache unit", () => {
     });
     const r = await makeCache(redis).increment("setkey");
     expect(r.success).toBe(false);
-    expect(r.errorCode).toBe(ErrorCodes.CONFLICT);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_CONFLICT);
     expect(r.statusCode).toBe(HttpStatusCode.Conflict);
   });
 
@@ -465,7 +871,7 @@ describe("RedisDistributedCache unit", () => {
     await redis.set("s", "hello");
     const r = await makeCache(redis).increment("s");
     expect(r.success).toBe(false);
-    expect(r.errorCode).toBe(ErrorCodes.CONFLICT);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_CONFLICT);
     expect(r.statusCode).toBe(HttpStatusCode.Conflict);
   });
 
@@ -479,7 +885,7 @@ describe("RedisDistributedCache unit", () => {
       const r = await makeCache(createRedisTestDouble()).increment("c", amount);
 
       expect(r.success).toBe(false);
-      expect(r.errorCode).toBe(ErrorCodes.VALIDATION_FAILED);
+      expect(r.errorCode).toBe(ErrorCodes.GEN_VALIDATION_FAILED);
       expect(r.statusCode).toBe(HttpStatusCode.BadRequest);
       expect(r.inputErrors?.[0]?.field).toBe("amount");
     },
@@ -489,7 +895,7 @@ describe("RedisDistributedCache unit", () => {
     const r = await makeCache(createRedisTestDouble()).increment("c", 0.5);
 
     expect(r.success).toBe(false);
-    expect(r.errorCode).toBe(ErrorCodes.VALIDATION_FAILED);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_VALIDATION_FAILED);
     expect(r.statusCode).toBe(HttpStatusCode.BadRequest);
     expect(r.inputErrors?.[0]?.field).toBe("amount");
   });
@@ -505,10 +911,10 @@ describe("RedisDistributedCache unit", () => {
     const r = await cache.increment("c", 1);
 
     expect(r.success).toBe(false);
-    expect(r.errorCode).toBe(ErrorCodes.VALIDATION_FAILED);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_VALIDATION_FAILED);
     expect(r.statusCode).toBe(HttpStatusCode.BadRequest);
     expect(r.inputErrors?.[0]?.field).toBe("amount");
-    // Atomic Lua reverse — no client DECRBY; store unchanged.
+    // Atomic Lua reverse - no client DECRBY; store unchanged.
     expect(redis.decrbyCalls).toEqual([]);
     expect(await redis.get("c")).toBe(String(Number.MAX_SAFE_INTEGER));
   });
@@ -524,7 +930,7 @@ describe("RedisDistributedCache unit", () => {
     const r = await cache.increment("c", -1);
 
     expect(r.success).toBe(false);
-    expect(r.errorCode).toBe(ErrorCodes.VALIDATION_FAILED);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_VALIDATION_FAILED);
     expect(r.inputErrors?.[0]?.field).toBe("amount");
     expect(redis.decrbyCalls).toEqual([]);
     expect(await redis.get("c")).toBe(String(Number.MIN_SAFE_INTEGER));
@@ -649,7 +1055,7 @@ describe("RedisDistributedCache unit", () => {
     const signal = ac.signal;
     const canceledSet = await cache.set("k", 1, undefined, signal);
     expect(canceledSet.success).toBe(false);
-    expect(canceledSet.errorCode).toBe(ErrorCodes.CANCELED);
+    expect(canceledSet.errorCode).toBe(ErrorCodes.GEN_CANCELED);
     expect(canceledSet.statusCode).toBe(HttpStatusCode.BadRequest);
     expect((await cache.remove("k", signal)).success).toBe(false);
     expect((await cache.setNx("k", 1, undefined, signal)).success).toBe(false);
@@ -772,7 +1178,7 @@ describe("RedisDistributedCache unit", () => {
       redis.throwOnNext = new Error("down");
       const r = await op(makeCache(redis));
       expect(r.success).toBe(false);
-      expect(r.errorCode).toBe(ErrorCodes.SERVICE_UNAVAILABLE);
+      expect(r.errorCode).toBe(ErrorCodes.GEN_SERVICE_UNAVAILABLE);
       expect(r.statusCode).toBe(HttpStatusCode.ServiceUnavailable);
     };
 

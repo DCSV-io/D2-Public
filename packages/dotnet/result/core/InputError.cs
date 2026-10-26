@@ -15,21 +15,20 @@ using DcsvIo.D2.I18n;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Wire format is a self-describing object —
+/// Wire format is a self-describing object -
 /// <c>{ "field": "email", "errors": [{ "key": "..." }] }</c>.
-/// Self-describing keys are easier to extend (e.g. adding a per-error
-/// <c>severity</c> field later) and don't depend on positional indexing at the
-/// consumer.
+/// Self-describing keys do not depend on positional indexing at the
+/// receiver.
 /// </para>
 /// <para>
 /// The property names (<c>field</c>, <c>errors</c>) come from the spec-derived
-/// <see cref="InputErrorWireShape"/> catalog —
+/// <see cref="InputErrorWireShape"/> catalog -
 /// <c>contracts/input-error/input-error.spec.json</c> drives both the .NET
 /// serializer and the TS-side parser, so cross-language wire drift on the
 /// property names is structurally impossible. The
 /// <c>[JsonPropertyName(InputErrorWireShape.*)]</c> attributes on the
 /// record parameters wire the camelCase wire names directly onto the
-/// PascalCase code-side properties — so the serialization is wire-correct
+/// PascalCase code-side properties - so the serialization is wire-correct
 /// regardless of whether the call site passes the SR_Web options.
 /// </para>
 /// <para>

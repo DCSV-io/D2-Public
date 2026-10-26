@@ -8,12 +8,12 @@ import { truthyOrUndefined } from "../src/truthy-or-undefined.js";
 /**
  * Adversarial coverage for `truthyOrUndefined`. Validates the wire-boundary
  * contract: null / undefined / empty / whitespace-only inputs return
- * `undefined`; truthy inputs return the TRIMMED string (so callers never
- * need a second `.trim()` call).
+ * `undefined`; truthy inputs return the trimmed string, so a second
+ * `.trim()` call is not needed.
  */
 describe("truthyOrUndefined", () => {
   // --------------------------------------------------------------------
-  // Falsey inputs → undefined
+  // Falsey inputs -> undefined
   // --------------------------------------------------------------------
 
   it("returns undefined for null input", () => {
@@ -40,7 +40,7 @@ describe("truthyOrUndefined", () => {
   });
 
   // --------------------------------------------------------------------
-  // Truthy inputs → trimmed string
+  // Truthy inputs -> trimmed string
   // --------------------------------------------------------------------
 
   it("returns the value unchanged for a plain non-empty string", () => {
@@ -64,7 +64,7 @@ describe("truthyOrUndefined", () => {
   });
 
   it("preserves internal whitespace (only outer whitespace is trimmed)", () => {
-    // Internal whitespace is NOT collapsed — that is NameNormalizer's job.
+    // Internal whitespace is not collapsed; NameNormalizer does that.
     expect(truthyOrUndefined("  united states  ")).toBe("united states");
   });
 
@@ -77,11 +77,11 @@ describe("truthyOrUndefined", () => {
   });
 
   // --------------------------------------------------------------------
-  // Wire-boundary carve-out — null / undefined from JSON / cookies / DB
+  // Wire-boundary exception - null / undefined from JSON / cookies / DB
   // --------------------------------------------------------------------
 
   it("accepts null (wire null from JSON) and returns undefined", () => {
-    // The parameter type is `string | null | undefined` by design —
+    // The parameter type is `string | null | undefined` by design -
     // null is a legitimate wire value that must normalize to undefined.
     const wireNull: string | null = null;
     expect(truthyOrUndefined(wireNull)).toBeUndefined();
@@ -93,13 +93,13 @@ describe("truthyOrUndefined", () => {
   });
 
   // --------------------------------------------------------------------
-  // Idempotency — truthyOrUndefined(truthyOrUndefined(x)) == truthyOrUndefined(x)
+  // Idempotency - truthyOrUndefined(truthyOrUndefined(x)) == truthyOrUndefined(x)
   // (when the result is a string, applying again should return the same value)
   // --------------------------------------------------------------------
 
   it("is idempotent for truthy string results (applying twice is same as once)", () => {
     const once = truthyOrUndefined("  france  ");
-    // once is "france" (string). truthyOrUndefined("france") → "france".
+    // once is "france" (string). truthyOrUndefined("france") -> "france".
     expect(truthyOrUndefined(once)).toBe(once);
   });
 });

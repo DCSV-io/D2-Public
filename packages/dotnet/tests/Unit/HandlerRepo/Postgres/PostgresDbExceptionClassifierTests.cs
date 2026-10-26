@@ -18,15 +18,15 @@ using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 /// <summary>
-/// The big one — adversarial coverage of the PG SQLSTATE → DbFailureKind
-/// matrix + every wrapper / exception-shape edge case the classifier walks.
+/// Adversarial tests of the PostgreSQL SQLSTATE -> DbFailureKind matrix and
+/// of every wrapper and exception shape that the classifier walks.
 /// </summary>
 /// <remarks>
-/// This class is the security-critical seam. A misclassification here causes
-/// either silent retries on programmer errors (e.g. a bug surfacing as a
-/// "transient" failure) or pass-through of recoverable failures as
-/// UnhandledException (which kills retries). Every behavior listed in
-/// PostgresDbExceptionClassifier's XML doc is asserted below.
+/// A misclassification in the classifier has one of two effects. A programmer
+/// error classified as a transient failure is retried. A recoverable failure
+/// that falls through as UnhandledException is not retried. The tests below
+/// assert every behavior that the XML doc of PostgresDbExceptionClassifier
+/// lists.
 /// </remarks>
 public sealed class PostgresDbExceptionClassifierTests
 {
@@ -39,7 +39,7 @@ public sealed class PostgresDbExceptionClassifierTests
     [Theory]
     [InlineData("23505", DbFailureKind.UniqueViolation)]
 
-    // exclusion_violation — deferrable EXCLUDE breach → same 409 conflict as unique_violation
+    // exclusion_violation - deferrable EXCLUDE breach -> same 409 Conflict as unique_violation
     [InlineData("23P01", DbFailureKind.UniqueViolation)]
     [InlineData("23503", DbFailureKind.ForeignKeyViolation)]
     [InlineData("23502", DbFailureKind.NotNullViolation)]
@@ -81,14 +81,14 @@ public sealed class PostgresDbExceptionClassifierTests
     }
 
     // ----------------------------------------------------------------------
-    // Unrecognized SQLSTATE → fall through to network checks → null
+    // Unrecognized SQLSTATE -> pass 2 network check -> null
     // ----------------------------------------------------------------------
 
     [Theory]
-    [InlineData("42601")] // syntax_error — programmer error
-    [InlineData("42P01")] // undefined_table — programmer error
+    [InlineData("42601")] // syntax_error - programmer error
+    [InlineData("42P01")] // undefined_table - programmer error
     [InlineData("XX000")] // internal_error
-    [InlineData("00000")] // successful_completion — never reached on real exception
+    [InlineData("00000")] // successful_completion - a real exception never carries it
     public void Classify_RawPgException_UnknownSqlState_ReturnsNull(string sqlState)
     {
         var ex = PgExceptionFactory.Create(sqlState);
@@ -96,7 +96,7 @@ public sealed class PostgresDbExceptionClassifierTests
         var kind = _sut.Classify(ex);
 
         kind.Should().BeNull(
-            "unknown SQLSTATE — surface as UnhandledException so ops sees the bug");
+            "unknown SQLSTATE - surface as UnhandledException so ops sees the bug");
     }
 
     // ----------------------------------------------------------------------
@@ -117,9 +117,9 @@ public sealed class PostgresDbExceptionClassifierTests
     [Fact]
     public void Classify_AggregateExceptionWrappingDbUpdateWrappingPg_Unwraps()
     {
-        // 3-deep wrapper chain: AggregateException → DbUpdateException → PG.
-        // The walker must dig through both wrapper layers (depth 2 on the
-        // PG node).
+        // 3-level chain: AggregateException -> DbUpdateException -> PG.
+        // The classifier unwraps both wrapper layers; the PostgreSQL
+        // exception is at depth 2.
         var pg = PgExceptionFactory.Create("23505");
         var dbu = new DbUpdateException("update failed", pg);
         var agg = new AggregateException("agg", dbu);
@@ -132,7 +132,8 @@ public sealed class PostgresDbExceptionClassifierTests
     [Fact]
     public void Classify_TargetInvocationExceptionWrappingPg_Unwraps()
     {
-        // 2-deep wrapper chain via reflection-style wrapper.
+        // 2-level chain: TargetInvocationException, the wrapper that
+        // reflection calls throw, around PG.
         var pg = PgExceptionFactory.Create("23503");
         var tie = new TargetInvocationException(pg);
 
@@ -144,8 +145,8 @@ public sealed class PostgresDbExceptionClassifierTests
     [Fact]
     public void Classify_PgAtDepth9_InsideMixedWrapperChain_StillFinds()
     {
-        // Adversarial: confirm the walker's depth-9 reach. Buried deep
-        // but still reachable.
+        // Boundary: the classifier reaches depth 9. A PostgreSQL exception
+        // buried that deep is still found.
         var pg = PgExceptionFactory.Create("40P01");
         var wrap = WrapNTimes(pg, 9);
 
@@ -157,10 +158,11 @@ public sealed class PostgresDbExceptionClassifierTests
     [Fact]
     public void Classify_PgBeyondDepth10_ReturnsNull()
     {
-        // Adversarial: walker stops at depth 10. A PG buried beyond is
-        // invisible — surfaces as null (UnhandledException downstream).
-        // This is INTENTIONAL: a wrapper chain this deep is almost
-        // certainly a bug that needs investigation, not silent retry.
+        // Boundary: the classifier stops at depth 10, so a PostgreSQL
+        // exception beyond it is not found and the result is null, which
+        // surfaces downstream as UnhandledException. A wrapper chain this
+        // deep is almost certainly a bug that needs investigation, and the
+        // result is deliberate so that it is not retried.
         var pg = PgExceptionFactory.Create("23505");
         var wrap = WrapNTimes(pg, 11);
 
@@ -199,9 +201,9 @@ public sealed class PostgresDbExceptionClassifierTests
     [Fact]
     public void Classify_BareExceptionWithIoInner_ReturnsConnectionFailure()
     {
-        // Adversarial: even a non-NpgsqlException wrapping IOException
-        // gets classified as ConnectionFailure — the network-detection
-        // pass walks ANY exception chain, not just NpgsqlException ones.
+        // A non-NpgsqlException that wraps an IOException is also classified
+        // as ConnectionFailure, because the network pass searches the chain
+        // of any exception, not only NpgsqlException chains.
         var io = new IOException("network error");
         var ex = new InvalidOperationException("wrap", io);
 
@@ -213,11 +215,9 @@ public sealed class PostgresDbExceptionClassifierTests
     [Fact]
     public void Classify_BareNpgsqlExceptionWithNoInner_ReturnsNull()
     {
-        // KEY BEHAVIOR: bare NpgsqlException with NO inner cause
-        // returns null. Used to be ConnectionFailure (per old behavior
-        // alluded to in PG classifier XML doc); current code makes this
-        // explicit programmer-error / config-failure surface that
-        // requires investigation.
+        // A bare NpgsqlException with no inner cause returns null. It
+        // surfaces as a programmer or configuration failure that needs
+        // investigation.
         var ex = new NpgsqlException("bare npgsql, no inner");
 
         var kind = _sut.Classify(ex);
@@ -229,7 +229,7 @@ public sealed class PostgresDbExceptionClassifierTests
     [Fact]
     public void Classify_PlainArgumentException_ReturnsNull()
     {
-        // Programmer error — must NOT be classified as anything DB.
+        // A programmer error is not classified as any database failure.
         var ex = new ArgumentException("bad arg");
 
         var kind = _sut.Classify(ex);
@@ -240,9 +240,11 @@ public sealed class PostgresDbExceptionClassifierTests
     [Fact]
     public void Classify_PlainBclTimeoutException_ReturnsNull()
     {
-        // Adversarial: BCL TimeoutException is NOT classified here.
-        // Only the PG SQLSTATE 57014 path counts as "DB timeout."
-        // BCL TimeoutException is handled at BaseHandler's OCE level.
+        // The classifier does not classify a BCL TimeoutException. Only
+        // PostgreSQL SQLSTATE 57014 counts as a database timeout.
+        // BaseHandler (public/packages/dotnet/handler/core/BaseHandler.cs)
+        // catches OperationCanceledException and has no TimeoutException
+        // catch.
         var ex = new TimeoutException("waited too long");
 
         var kind = _sut.Classify(ex);
@@ -265,10 +267,10 @@ public sealed class PostgresDbExceptionClassifierTests
     [Fact]
     public void Classify_PgWithSqlStateAndSocketInner_PrefersSqlStateClassification()
     {
-        // Adversarial precedence: an exception that matches BOTH
-        // pass-1 (PG with SqlState) AND pass-2 (SocketException in
-        // chain) MUST be classified by pass-1. The PG SQLSTATE is the
-        // most reliable signal — server told us what went wrong.
+        // Precedence: an exception that matches both pass 1 (PostgreSQL
+        // exception with a SqlState) and pass 2 (SocketException in the
+        // chain) is classified by pass 1, because the server reported the
+        // SQLSTATE itself.
         var sock = new SocketException((int)SocketError.ConnectionReset);
         var pg = PgExceptionFactory.CreateWithInner("23505", sock);
 
@@ -282,10 +284,9 @@ public sealed class PostgresDbExceptionClassifierTests
     [Fact]
     public void Classify_DbUpdateWrappingPgWithUnknownSqlState_FallsThroughToNetworkPass()
     {
-        // Adversarial: when the inner PG has an unknown SQLSTATE (so pass-1
-        // returns null), the classifier should fall through to pass-2.
-        // If pass-2 finds nothing in the chain, the result is null.
-        // Documents the precedence correctly.
+        // When the inner PostgreSQL exception has an unknown SQLSTATE, pass 1
+        // returns null and the classifier runs pass 2. Pass 2 finds nothing
+        // in the chain, so the result is null.
         var pg = PgExceptionFactory.Create("XX000");
         var wrap = new DbUpdateException("wrap", pg);
 
@@ -297,22 +298,22 @@ public sealed class PostgresDbExceptionClassifierTests
     [Fact]
     public void Classify_AggregateWithUnknownPgAndSocketSibling_DetectsNetwork()
     {
-        // Adversarial: AggregateException carrying TWO inner exceptions —
-        // a PG with an unknown SqlState (wouldn't classify on its own) and
-        // a SocketException sibling at InnerExceptions[1]. The walker MUST
-        // traverse every branch of AggregateException.InnerExceptions, not
-        // just the first via Exception.InnerException, otherwise EF / TPL
-        // parallel batch operations that surface a connection drop as the
-        // second inner would silently miss the network failure.
+        // An AggregateException wraps a PostgreSQL exception with an unknown
+        // SqlState, which does not classify on its own, and a SocketException
+        // sibling at InnerExceptions[1]. The classifier must search every
+        // branch of AggregateException.InnerExceptions and not only the first
+        // one through Exception.InnerException. Otherwise it misses a connection
+        // drop that EF or parallel batch operations surface as the second
+        // inner exception.
         var pg = PgExceptionFactory.Create("XX000");
         var sock = new SocketException((int)SocketError.ConnectionReset);
         var agg = new AggregateException("agg", pg, sock);
 
         var kind = _sut.Classify(agg);
 
-        // Pass 1 finds pg first, but XX000 doesn't classify → null.
-        // Pass 2 walks for SocketException; the AggregateException-aware
-        // walker descends every branch and finds the socket sibling.
+        // Pass 1 finds pg first, but XX000 does not classify, so it returns
+        // null. Pass 2 searches for a SocketException, descends every branch
+        // of the AggregateException and finds the socket sibling.
         kind.Should().Be(DbFailureKind.ConnectionFailure);
     }
 

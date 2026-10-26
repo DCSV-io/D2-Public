@@ -10,9 +10,9 @@ using System.Linq;
 using DcsvIo.D2.Auth.Abstractions;
 
 /// <summary>
-/// Convenience helpers on <see cref="IAuthContext"/>. Hand-written (not
-/// codegen-emitted) — the rules are stable enough that adding them to the
-/// spec format would be net negative complexity.
+/// Convenience helpers on <see cref="IAuthContext"/>. Hand-written, not
+/// codegen-emitted: the rules are stable, so encoding them in the spec format
+/// would add more complexity than it removes.
 /// </summary>
 public static class IAuthContextExtensions
 {
@@ -28,7 +28,7 @@ public static class IAuthContextExtensions
             auth.Scopes.Contains(scope);
 
         /// <summary>
-        /// True when <paramref name="auth"/>'s scope set contains ANY of
+        /// True when <paramref name="auth"/>'s scope set contains any of
         /// <paramref name="scopes"/>.
         /// </summary>
         /// <param name="scopes">The scopes to check for.</param>
@@ -37,7 +37,7 @@ public static class IAuthContextExtensions
             scopes.Any(auth.Scopes.Contains);
 
         /// <summary>
-        /// True when <paramref name="auth"/>'s scope set contains ALL of
+        /// True when <paramref name="auth"/>'s scope set contains all of
         /// <paramref name="scopes"/>.
         /// </summary>
         /// <param name="scopes">The scopes to check for.</param>
@@ -48,7 +48,7 @@ public static class IAuthContextExtensions
         /// <summary>
         /// True when the caller's operating organization is staff
         /// (<see cref="OrgType.Admin"/> or <see cref="OrgType.Support"/>).
-        /// Single org context — no agent/target distinction.
+        /// Single org context - no agent/target distinction.
         /// </summary>
         /// <returns>True if staff.</returns>
         public bool IsStaff() =>
@@ -78,7 +78,7 @@ public static class IAuthContextExtensions
             auth.ImpersonationKind == ImpersonationKind.Consent;
 
         /// <summary>
-        /// True when the AGENT (impersonator)'s own organization is staff. Only
+        /// True when the agent (impersonator)'s own organization is staff. Only
         /// meaningful when impersonating; returns false otherwise.
         /// </summary>
         /// <returns>True if the impersonator's org is staff.</returns>
@@ -86,7 +86,7 @@ public static class IAuthContextExtensions
             auth.ImpersonatorOrgType is OrgType.Admin or OrgType.Support;
 
         /// <summary>
-        /// True when the AGENT (impersonator)'s own organization is admin. Only
+        /// True when the agent (impersonator)'s own organization is admin. Only
         /// meaningful when impersonating; returns false otherwise.
         /// </summary>
         /// <returns>True if the impersonator's org is admin.</returns>

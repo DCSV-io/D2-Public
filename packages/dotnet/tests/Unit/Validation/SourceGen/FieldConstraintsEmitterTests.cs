@@ -17,9 +17,9 @@ using Xunit;
 /// <summary>
 /// Pure-logic tests for the field-constraints emitter. Drives the emitter
 /// directly with synthetic specs and asserts both the generated source shape
-/// (per-VALUE pins for every constant + enum member) and the diagnostics
+/// (per-value pins for every constant and enum member) and the diagnostics
 /// surfaced for invalid spec inputs. The parity test catches cross-language
-/// drift; this test catches within-emitter drift.
+/// drift; these tests catch within-emitter drift.
 /// </summary>
 public sealed class FieldConstraintsEmitterTests
 {
@@ -64,7 +64,7 @@ public sealed class FieldConstraintsEmitterTests
     {
         // A zero-entry spec is legal at the emitter layer (the loader does not
         // enforce minItems). The emitter must still produce a valid, empty
-        // FieldConstraints class body and an enum-free Taxonomy source — never
+        // FieldConstraints class body and an enum-free Taxonomy source - never
         // a malformed file or a stray diagnostic.
         var spec = MakeSpec(constraints: [], enums: []);
 
@@ -265,9 +265,9 @@ public sealed class FieldConstraintsEmitterTests
     }
 
     /// <summary>
-    /// Per-VALUE pin for every shipping field-length constant: the emitter MUST
+    /// Per-value pin for every shipping field-length constant: the emitter must
     /// produce the exact <c>public const int</c> declaration with the locked
-    /// value. A drift of any single entry's name or value flips this row red.
+    /// value. A drift of any single entry's name or value fails that test case.
     /// </summary>
     /// <param name="name">The constant name expected on the emitted const.</param>
     /// <param name="value">The locked value the emitted const must carry.</param>
@@ -298,7 +298,7 @@ public sealed class FieldConstraintsEmitterTests
     }
 
     /// <summary>
-    /// Per-VALUE pin for every shipping taxonomy enum member: the emitter MUST
+    /// Per-value pin for every shipping taxonomy enum member: the emitter must
     /// produce the exact member declaration with the expected ordinal backing.
     /// </summary>
     /// <param name="enumName">The enum the member belongs to.</param>
@@ -343,7 +343,7 @@ public sealed class FieldConstraintsEmitterTests
         string enumName, string memberName, int ordinal)
     {
         // Reconstruct just enough of the spec enum to assert the member's
-        // ordinal — the ordinal is its index in the members list.
+        // ordinal - the ordinal is its index in the members list.
         var members = SampleMembers(enumName);
         var spec = MakeSpec(
             constraints: [],
@@ -353,10 +353,10 @@ public sealed class FieldConstraintsEmitterTests
     }
 
     /// <summary>
-    /// Value-pins for the emitter's public consts — they participate in the
-    /// generator dispatch (root namespace, emitted class name) and the hint
-    /// names the Roslyn host adds the sources under. A drift in any of these
-    /// breaks the committed-output path layout or the consuming-assembly gate.
+    /// Value pins for the emitter's public consts: the root namespace, the
+    /// emitted class name, and the hint names the Roslyn host adds the sources
+    /// under. A drift in any of these breaks the committed-output path layout or
+    /// the target-assembly gate.
     /// </summary>
     /// <param name="constName">The public const field name on the emitter.</param>
     /// <param name="expected">The locked value the const must carry.</param>

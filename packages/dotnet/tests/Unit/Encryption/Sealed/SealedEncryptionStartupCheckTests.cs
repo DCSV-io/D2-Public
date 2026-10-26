@@ -88,7 +88,7 @@ public sealed class SealedEncryptionStartupCheckTests
         var act = () => RunCheckAsync(provider);
 
         await act.Should().NotThrowAsync(
-            "a producer host holds no opener by design — the capability split");
+            "a producer host holds no opener by design - the capability split");
     }
 
     [Fact]
@@ -134,7 +134,7 @@ public sealed class SealedEncryptionStartupCheckTests
     }
 
     // ---------------------------------------------------------------
-    // Registration seams (§1.3 — every seam resolved).
+    // Registration seams (every seam resolved).
     // ---------------------------------------------------------------
 
     [Fact]

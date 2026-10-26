@@ -68,7 +68,7 @@ public sealed class CorsExtensionsTests
 
         services.AddD2Cors(cfg, opts =>
         {
-            // Override env-derived value.
+            // The callback value replaces the value derived from the environment.
             opts.Origins = ["https://from-callback.example.com"];
             opts.PreflightMaxAgeSeconds = 1200;
         });
@@ -109,6 +109,28 @@ public sealed class CorsExtensionsTests
 
         var act = () => sp.GetRequiredService<IOptions<D2CorsOptions>>().Value;
         act.Should().Throw<OptionsValidationException>();
+    }
+
+    [Theory]
+    [InlineData("*")]
+    [InlineData(" * ")]
+    [InlineData("authorization")]
+    public void RejectsCredentialedAuthorizationPolicy_AllowedHeadersIncludeWildcardOrAuthorization(
+        string header)
+    {
+        var services = new ServiceCollection();
+        services.AddD2Cors(new ConfigurationBuilder().Build(), options =>
+        {
+            options.Origins = ["https://app.example.com"];
+            options.AllowedHeaders = ["Content-Type", header];
+            options.AllowCredentials = true;
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<D2CorsOptions>>();
+        var resolve = () => options.Value;
+
+        resolve.Should().Throw<OptionsValidationException>();
     }
 
     [Fact]

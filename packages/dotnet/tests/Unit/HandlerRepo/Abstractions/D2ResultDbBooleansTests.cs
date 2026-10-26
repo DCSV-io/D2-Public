@@ -14,7 +14,7 @@ using Xunit;
 /// <summary>
 /// Adversarial coverage of the per-DB-error-code boolean discriminators on
 /// <see cref="D2Result"/>. The discriminators are <see cref="D2Result.ErrorCode"/>
-/// equality checks — NOT factory-identity checks — so a hand-crafted
+/// equality checks - NOT factory-identity checks - so a hand-crafted
 /// <see cref="D2Result.Fail"/> with a matching <c>errorCode</c> MUST also
 /// trigger the boolean. Mirrors the in-lib pattern from
 /// <c>D2ResultBooleansTests</c>.
@@ -48,9 +48,8 @@ public sealed class D2ResultDbBooleansTests
     {
         // Adversarial: discriminator is errorCode-equality based, not
         // factory-identity based. A hand-crafted Fail with the matching
-        // code must trigger the boolean — that's how middleware that
-        // doesn't depend on the factories can still emit results that
-        // round-trip through the discriminator surface.
+        // code must trigger the boolean, so results created without the
+        // factories still round-trip through the discriminator surface.
         var result = D2Result.Fail(errorCode: DbErrorCodes.CONCURRENCY_CONFLICT);
 
         result.IsConcurrencyConflict.Should().BeTrue();
@@ -217,7 +216,7 @@ public sealed class D2ResultDbBooleansTests
     }
 
     // ----------------------------------------------------------------------
-    // IsTransientDbFailure — roll-up over deadlock + timeout + connection
+    // IsTransientDbFailure - roll-up over deadlock + timeout + connection
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -231,10 +230,9 @@ public sealed class D2ResultDbBooleansTests
     [Fact]
     public void IsTransientDbFailure_FalseOnNonTransientDbFailures()
     {
-        // Adversarial-load-bearing: ConcurrencyConflict is INTENTIONALLY
-        // excluded from the roll-up. It needs reload-then-merge, not a
-        // blind retry. A regression here would cause callers to loop on
-        // a stale write.
+        // Adversarial: ConcurrencyConflict is INTENTIONALLY excluded from
+        // the roll-up. It needs reload-then-merge, not a blind retry.
+        // Including it would make retrying callers loop on a stale write.
         D2Result.ConcurrencyConflict().IsTransientDbFailure.Should().BeFalse();
 
         D2Result.UniqueViolation().IsTransientDbFailure.Should().BeFalse();

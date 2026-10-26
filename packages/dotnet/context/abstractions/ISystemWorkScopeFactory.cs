@@ -9,11 +9,10 @@ namespace DcsvIo.D2.Context.Abstractions;
 using JetBrains.Annotations;
 
 /// <summary>
-/// Platform-owned entry for System-plane work. The only sanctioned way for
-/// hosted / background services to open a DI scope that carries
+/// Platform-owned entry for System-plane work. It is the only supported way for
+/// hosted and background services to open a DI scope that holds
 /// <see cref="DcsvIo.D2.Auth.Abstractions.RequestOrigin.System"/> authority.
-/// Modules consume this factory; they never register <see cref="IRequestContext"/>
-/// themselves.
+/// Modules never register <see cref="IRequestContext"/> themselves.
 /// </summary>
 public interface ISystemWorkScopeFactory
 {

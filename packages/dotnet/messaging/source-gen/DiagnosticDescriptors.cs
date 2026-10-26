@@ -10,9 +10,9 @@ using Microsoft.CodeAnalysis;
 
 /// <summary>
 /// Roslyn <see cref="DiagnosticDescriptor"/> instances for the IDs in
-/// <see cref="DiagnosticIds"/>. Lives in the Roslyn-host-aware seam so the
-/// pure-logic loader / emitter stays decoupled from
-/// <c>Microsoft.CodeAnalysis</c>.
+/// <see cref="DiagnosticIds"/>. This class references
+/// <c>Microsoft.CodeAnalysis</c>, so the loaders and emitters, which use only
+/// the IDs, do not depend on it.
 /// </summary>
 internal static class DiagnosticDescriptors
 {
@@ -57,7 +57,7 @@ internal static class DiagnosticDescriptors
         title: "Plaintext message missing encryptionReason",
         messageFormat:
             "Message '{0}' has encryption=plaintext but no encryptionReason. "
-            + "Plaintext bypasses payload confidentiality — provide a written "
+            + "Plaintext bypasses payload confidentiality - provide a written "
             + "rationale (audit log + code review) per spec.",
         category: _CATEGORY,
         defaultSeverity: DiagnosticSeverity.Error,
@@ -133,5 +133,46 @@ internal static class DiagnosticDescriptors
             + "valid TimeSpan (HH:MM:SS)",
         category: _CATEGORY,
         defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor SR_CrossFileDuplicateConstant = new(
+        id: DiagnosticIds.CrossFileDuplicateConstant,
+        title: "Constant declared in two spec files of one catalog",
+        messageFormat:
+            "Constant '{0}' is declared in both '{1}' and '{2}'. The union "
+            + "emits neither: which file wins would depend on where the "
+            + "repository sits on disk. Rename one of the two entries.",
+        category: _CATEGORY,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor SR_InvalidExtensionNamespace = new(
+        id: DiagnosticIds.InvalidExtensionNamespace,
+        title: "Extension namespace property is not a valid namespace",
+        messageFormat:
+            "MSBuild property '{0}' is '{1}', which is not a dot-separated sequence of C# "
+            + "identifiers; no extension output is generated",
+        category: _CATEGORY,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor SR_InvalidExtensionClassPrefix = new(
+        id: DiagnosticIds.InvalidExtensionClassPrefix,
+        title: "Extension class prefix property is missing or invalid",
+        messageFormat:
+            "MSBuild property '{0}' is '{1}', which is not a C# identifier; it must be one "
+            + "when '{2}' is set, and no extension output is generated",
+        category: _CATEGORY,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor SR_ExtensionClassPrefixWithoutNamespace = new(
+        id: DiagnosticIds.ExtensionClassPrefixWithoutNamespace,
+        title: "Extension class prefix property is set without a namespace",
+        messageFormat:
+            "MSBuild property '{0}' is '{1}' but '{2}' is not set; no extension output is "
+            + "generated",
+        category: _CATEGORY,
+        defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 }

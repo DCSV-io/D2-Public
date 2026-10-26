@@ -6,11 +6,12 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <RootNamespace>DcsvIo.D2.Geo.Default</RootNamespace>
 
     <!--
-      Emit the SourceGen-emitted geo catalog DATA files (per-entity static
-      instances + nested static-class hierarchies + FrozenDictionary lookup
-      tables) to <project-dir>/Generated/. Mirrors the
-      DcsvIo.D2.Geo.Abstractions wiring — the directory is tracked in git so
-      PR reviewers see codegen diffs without a local build.
+      Writes the geo catalog DATA files that the source generator emits
+      (per-entity static instances, nested static-class hierarchies and
+      FrozenDictionary lookup tables) to <project-dir>/Generated/. This
+      matches the wiring of DcsvIo.D2.Geo.Abstractions. Git tracks the
+      directory, so pull request reviewers see code generation diffs
+      without a local build.
     -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
@@ -18,64 +19,66 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <ItemGroup>
     <!--
-      The SourceGen pipeline feeds the in-memory compiler with the same content
-      that lands on disk under Generated/. Without this Remove, the SDK-default
-      <Compile Include="**/*.cs" /> glob picks up the on-disk copy and the build
-      fails with duplicate-definition errors (CS0101 / CS0111). See:
+      The source generator pipeline gives the in-memory compiler the same
+      content that it writes to disk under Generated/. Without this Remove, the
+      SDK-default <Compile Include="**/*.cs" /> glob also picks up the on-disk
+      copy, and the build fails with duplicate-definition errors
+      (CS0101 / CS0111). See:
       https://learn.microsoft.com/dotnet/core/project-sdk/msbuild-props#compilergeneratedfilesoutputpath
     -->
     <Compile Remove="$(CompilerGeneratedFilesOutputPath)\**\*.cs" />
   </ItemGroup>
 
   <!--
-    Catalog-data lib. Consumes the spec-derived types emitted into
-    DcsvIo.D2.Geo.Abstractions and emits the per-entity static instances +
-    nested static-class hierarchies + FrozenDictionary lookup tables on
-    top of them. Stays NodaTime-free (catalog data is timezone offsets +
-    metadata; temporal types belong in DcsvIo.D2.Time).
+    Catalog data library. It consumes the spec-derived types that
+    DcsvIo.D2.Geo.Abstractions emits, and emits the per-entity static
+    instances, nested static-class hierarchies and FrozenDictionary lookup
+    tables on top of them. It has no NodaTime dependency, because catalog
+    data is timezone offsets and metadata, and temporal types belong in
+    DcsvIo.D2.Time.
   -->
   <ItemGroup>
     <!--
-      Microsoft.Extensions.DependencyInjection.Abstractions — IServiceCollection
-      receiver for the AddD2GeoDefault registration extension.
+      Microsoft.Extensions.DependencyInjection.Abstractions - IServiceCollection,
+      the receiver of the AddD2GeoDefault registration extension.
     -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>
     <!--
-      DcsvIo.D2.Geo.Abstractions — provides the spec-derived record types
-      (Country / Subdivision / Currency / Language / Locale / Timezone /
-      GeopoliticalEntity) + typed code enums + wrapper structs that the
-      emitted Default-target output instantiates. Also carries the
-      IGeoNameResolver contract + NameNormalizer / LevenshteinComparer
-      helpers consumed by DefaultGeoNameResolver.
+      DcsvIo.D2.Geo.Abstractions - provides the spec-derived record types
+      (Country, Subdivision, Currency, Language, Locale, Timezone and
+      GeopoliticalEntity), the typed code enums and the wrapper structs that
+      the emitted Default-target output instantiates. It also provides the
+      IGeoNameResolver contract and the NameNormalizer and
+      LevenshteinComparer name-matching helpers.
     -->
     <ProjectReference Include="..\abstractions\DcsvIo.D2.Geo.Abstractions.csproj" />
     <!--
-      DcsvIo.D2.Utilities — Truthy() / Falsey() extension methods consumed
-      by both the emitted catalog-data code AND DefaultGeoNameResolver
-      input validation.
+      DcsvIo.D2.Utilities - the Truthy() and Falsey() extension methods that
+      both the emitted catalog data code and the input validation of this
+      project use.
     -->
     <ProjectReference Include="..\..\utilities\DcsvIo.D2.Utilities.csproj" />
     <!--
-      DcsvIo.D2.Result — D2Result envelope returned by every public
-      DefaultGeoNameResolver method.
+      DcsvIo.D2.Result - the D2Result envelope that every public
+      method of this project returns.
     -->
     <ProjectReference Include="..\..\result\core\DcsvIo.D2.Result.csproj" />
     <!--
-      DcsvIo.D2.I18n.Abstractions — TKMessage type carried in
-      D2Result message fields.
+      DcsvIo.D2.I18n.Abstractions - the TKMessage type in the message fields
+      of D2Result.
     -->
     <ProjectReference Include="..\..\i18n\abstractions\DcsvIo.D2.I18n.Abstractions.csproj" />
     <!--
-      DcsvIo.D2.I18n.Keys — the TK.* translation-key constants used by
-      DefaultGeoNameResolver.
+      DcsvIo.D2.I18n.Keys - the TK.* translation-key constants that
+      this project uses.
     -->
     <ProjectReference Include="..\..\i18n\keys\DcsvIo.D2.I18n.Keys.csproj" />
     <!--
-      DcsvIo.D2.Context.Abstractions — IRequestContext receiver for the
-      Default-layer record-returning extensions.
+      DcsvIo.D2.Context.Abstractions - IRequestContext, the receiver of the
+      Default-layer extensions that return records.
     -->
     <ProjectReference Include="..\..\context\abstractions\DcsvIo.D2.Context.Abstractions.csproj" />
   </ItemGroup>
@@ -83,11 +86,11 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   <ItemGroup>
     <!--
       Analyzer reference to DcsvIo.D2.Geo.SourceGen. OutputItemType="Analyzer"
-      + ReferenceOutputAssembly="false" wires the generator into Roslyn at
-      compile time WITHOUT producing a runtime dll dependency. GeoGenerator
-      dispatches on compilation.AssemblyName: when it sees
-      "DcsvIo.D2.Geo.Default", it emits the catalog DATA (per-entity
-      instances + nested classes + lookup tables) instead of the TYPES.
+      and ReferenceOutputAssembly="false" wire the generator into Roslyn at
+      compile time WITHOUT adding a runtime dll dependency. GeoGenerator
+      dispatches on compilation.AssemblyName: for "DcsvIo.D2.Geo.Default",
+      it emits the catalog DATA (per-entity instances, nested classes and
+      lookup tables) and not the TYPES.
     -->
     <ProjectReference Include="..\source-gen\DcsvIo.D2.Geo.SourceGen.csproj"
                       OutputItemType="Analyzer"
@@ -96,10 +99,10 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <ItemGroup>
     <!--
-      Same 7 Tier-2 geo spec files surfaced to DcsvIo.D2.Geo.SourceGen via
-      AdditionalFiles. GeoGenerator filters by both the .spec.json suffix
-      AND the parent directory name "geo" so the glob stays conservative
-      across both consumer assemblies.
+      The Tier-2 geo spec files that the glob below matches, passed to
+      DcsvIo.D2.Geo.SourceGen as AdditionalFiles. GeoGenerator filters by both
+      the .spec.json suffix AND the parent directory name "geo", so the glob
+      stays conservative across both consuming assemblies.
     -->
     <AdditionalFiles Include="$(D2PublicContractsRoot)geo\*.spec.json" />
   </ItemGroup>
@@ -110,9 +113,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.1</Version>
+    <Version>0.2.0</Version>
     <PackageId>DcsvIo.D2.Geo.Default</PackageId>
-    <Description>The D2 geo catalog data — per-entity instances, lookup tables, and nested static hierarchies bound into memory at process start.</Description>
+    <Description>The D2 geo catalog data - per-entity instances, lookup tables, and nested static hierarchies bound into memory at process start.</Description>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

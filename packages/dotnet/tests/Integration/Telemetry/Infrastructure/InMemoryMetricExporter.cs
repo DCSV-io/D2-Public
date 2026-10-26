@@ -13,7 +13,8 @@ using OpenTelemetry.Metrics;
 /// <summary>
 /// Hand-rolled <see cref="BaseExporter{T}"/> that captures every exported
 /// <see cref="Metric"/> into an in-memory <see cref="ConcurrentBag{T}"/>.
-/// Same shape and rationale as <see cref="InMemoryActivityExporter"/>.
+/// It has the same shape as <see cref="InMemoryActivityExporter"/> and is
+/// hand-rolled for the same reason.
 /// </summary>
 internal sealed class InMemoryMetricExporter : BaseExporter<Metric>
 {
@@ -21,15 +22,15 @@ internal sealed class InMemoryMetricExporter : BaseExporter<Metric>
 
     /// <summary>
     /// Gets a snapshot of every <see cref="Metric"/> captured since the
-    /// last <see cref="Reset"/>. Exposes a stable projection (the OTel
-    /// SDK reuses metric instances across export batches; we deep-copy
-    /// the relevant identity fields per-batch to keep assertions
-    /// deterministic).
+    /// last <see cref="Reset"/>. Returns a stable projection: the OTel
+    /// SDK reuses metric instances across export batches, so the exporter
+    /// copies the identity fields of each metric per batch, which keeps
+    /// assertions deterministic.
     /// </summary>
     public IReadOnlyCollection<CapturedMetric> Snapshot() => _metrics.ToArray();
 
     /// <summary>
-    /// Returns metrics filtered to those emitted by the named
+    /// Gets the captured metrics that were emitted by the named
     /// <see cref="System.Diagnostics.Metrics.Meter"/>.
     /// </summary>
     /// <param name="meterName">The meter name to filter by.</param>
@@ -40,8 +41,9 @@ internal sealed class InMemoryMetricExporter : BaseExporter<Metric>
             .ToArray();
 
     /// <summary>
-    /// Discards every captured metric so a single test method can re-use
-    /// the exporter across multiple operations without cross-talk.
+    /// Discards every captured metric, so a single test method can reuse
+    /// the exporter across several operations without metrics from an
+    /// earlier operation appearing in a later snapshot.
     /// </summary>
     public void Reset()
     {

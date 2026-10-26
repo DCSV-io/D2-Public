@@ -6,25 +6,25 @@ import { importPrivateP256 } from "./ecdh-p256.js";
 import { validateKid, validateServiceId } from "./sealed-keyring-validation.js";
 
 /**
- * Immutable keyring holding THIS service's PRIVATE sealing keys (active + any
- * retiring) — the consumer side of the sealed encryption mode, the twin of
- * .NET `RecipientPrivateKeyring`. Holds raw private key material — never log,
- * serialize, or otherwise expose a keyring instance through any I/O path.
+ * Immutable keyring containing this service's private sealing keys (active and
+ * any retiring); the consumer side of the sealed encryption mode, and the twin
+ * of .NET `RecipientPrivateKeyring`. Contains raw private key material: never
+ * log, serialize, or otherwise expose a keyring instance through any I/O path.
  *
  * The constructor copies all key bytes into private buffers so callers may
  * zeroize their own copies immediately. {@link dispose} zeroes the internal
- * buffers (`buffer.fill(0)` — best-effort per the GC-reality note on
+ * buffers (`buffer.fill(0)`; best-effort, per the zeroization note on
  * {@link PayloadCryptoKeyring}); any {@link PayloadOpener} still referencing
  * this keyring at dispose time throws on its next call. Built through the async
- * {@link create} factory, which validates every entry imports as a P-256
- * private key — public-only input, a wrong curve, or garbage fails loud at the
+ * {@link create} factory, which validates that every entry imports as a P-256
+ * private key: public-only input, a wrong curve, or garbage throws at the
  * construction boundary.
  */
 export class RecipientPrivateKeyring {
   readonly #privateKeys = new Map<string, Uint8Array>();
   #disposed = false;
 
-  /** This service's id — the recipient identity the AEAD binding anchors on. */
+  /** This service's id, the recipient identity that the AEAD binding is anchored on. */
   readonly recipientServiceId: string;
 
   private constructor(
@@ -42,9 +42,9 @@ export class RecipientPrivateKeyring {
    * Builds a validated recipient private keyring.
    *
    * @param recipientServiceId This service's id (lowercase `[a-z0-9-]`, at most
-   *   64 characters). Anchors the AEAD binding + key derivation; must equal the
+   *   64 characters). Anchors the AEAD binding and key derivation; must equal the
    *   id producers seal to.
-   * @param privateKeysByKid All recipient kids this service can open (active +
+   * @param privateKeysByKid All recipient kids this service can open (active and
    *   retiring). Each value must be a valid P-256 PKCS#8 PrivateKeyInfo. Must
    *   be non-empty.
    * @returns The validated keyring.
@@ -58,7 +58,7 @@ export class RecipientPrivateKeyring {
 
     if (privateKeysByKid.size === 0) {
       throw new RangeError(
-        "privateKeysByKid must contain at least one key — an empty private " +
+        "privateKeysByKid must contain at least one key - an empty private " +
           "keyring can never open anything.",
       );
     }
@@ -68,8 +68,8 @@ export class RecipientPrivateKeyring {
     for (const [kid, pkcs8] of privateKeysByKid) {
       validateKid(kid, "privateKeysByKid");
 
-      // Fail loud at the boundary: the bytes must import as a P-256 PRIVATE key
-      // (an SPKI/public-only blob is rejected by the PKCS#8 import).
+      // Throw at the boundary: the bytes must import as a P-256 private key
+      // (the PKCS#8 import rejects an SPKI or public-only blob).
       try {
         await importPrivateP256(pkcs8);
       } catch (err) {
@@ -79,7 +79,7 @@ export class RecipientPrivateKeyring {
         );
       }
 
-      // Defensive copy — caller may zeroize their original immediately.
+      // Defensive copy: the caller may zeroize the original immediately.
       copies.set(kid, Uint8Array.from(pkcs8));
     }
 
@@ -89,7 +89,7 @@ export class RecipientPrivateKeyring {
   /**
    * Resolves a recipient kid to its private key bytes (PKCS#8 DER).
    *
-   * @param kid The kid to look up (from the wire frame; null/undefined → undefined).
+   * @param kid The kid to look up (from the wire frame; a null or undefined kid returns undefined).
    * @returns The private key bytes when present; undefined otherwise.
    * @throws {Error} When the keyring has been disposed.
    */
@@ -113,7 +113,7 @@ export class RecipientPrivateKeyring {
     this.#disposed = true;
   }
 
-  /** Returns a redacted string — never includes key bytes. */
+  /** Returns a redacted string that never includes key bytes. */
   toString(): string {
     return this.#disposed
       ? "RecipientPrivateKeyring(disposed)"

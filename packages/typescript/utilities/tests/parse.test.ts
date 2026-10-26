@@ -26,7 +26,7 @@ describe("tryParseTruthyUndefUuid", () => {
     ["malformed", "not-a-uuid"],
     ["wrong shape", "550e8400-e29b-41d4-a716"],
     ["wrong type chars", "550e8400-e29b-41d4-a716-44665544000Z"],
-  ])("%s → undefined", (_label, input) => {
+  ])("%s -> undefined", (_label, input) => {
     expect(tryParseTruthyUndefUuid(input)).toBeUndefined();
   });
 });
@@ -37,7 +37,7 @@ describe("tryParseTruthyUndefInt", () => {
     ["happy negative", "-7", -7],
     ["zero", "0", 0],
     ["padded", "  42  ", 42],
-  ])("%s → %s", (_label, input, expected) => {
+  ])("%s -> %s", (_label, input, expected) => {
     expect(tryParseTruthyUndefInt(input)).toBe(expected);
   });
 
@@ -51,8 +51,19 @@ describe("tryParseTruthyUndefInt", () => {
     ["alpha", "abc"],
     ["mixed", "42a"],
     ["sign-only", "-"],
-  ])("%s → undefined", (_label, input) => {
+    ["one past MAX_SAFE_INTEGER", "9007199254740992"],
+    ["one past MIN_SAFE_INTEGER", "-9007199254740992"],
+    ["16 nines", "9999999999999999"],
+    ["309 digits", "1".repeat(309)],
+  ])("%s -> undefined", (_label, input) => {
     expect(tryParseTruthyUndefInt(input)).toBeUndefined();
+  });
+
+  it.each([
+    ["MAX_SAFE_INTEGER", "9007199254740991", Number.MAX_SAFE_INTEGER],
+    ["MIN_SAFE_INTEGER", "-9007199254740991", Number.MIN_SAFE_INTEGER],
+  ])("%s at the bound -> exact", (_label, input, expected) => {
+    expect(tryParseTruthyUndefInt(input)).toBe(expected);
   });
 });
 
@@ -64,7 +75,7 @@ describe("tryParseTruthyUndefEnum", () => {
     ["case-insensitive", "red", "Red"],
     ["uppercase", "BLUE", "Blue"],
     ["padded", "  Green  ", "Green"],
-  ])("%s → %s", (_label, input, expected) => {
+  ])("%s -> %s", (_label, input, expected) => {
     expect(tryParseTruthyUndefEnum(Color, input)).toBe(expected);
   });
 
@@ -74,7 +85,7 @@ describe("tryParseTruthyUndefEnum", () => {
     ["empty", ""],
     ["whitespace", "   "],
     ["unknown", "Yellow"],
-  ])("%s → undefined", (_label, input) => {
+  ])("%s -> undefined", (_label, input) => {
     expect(tryParseTruthyUndefEnum(Color, input)).toBeUndefined();
   });
 });

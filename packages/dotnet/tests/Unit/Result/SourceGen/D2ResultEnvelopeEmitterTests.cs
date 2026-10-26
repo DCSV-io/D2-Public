@@ -113,8 +113,8 @@ public sealed class D2ResultEnvelopeEmitterTests
     [Fact]
     public void Emit_PreservesSpecOrderOfFields()
     {
-        // Spec ordering drives emitted ordering — predictable diff on
-        // spec edits.
+        // The spec order is the emitted order, so a spec edit produces a
+        // predictable diff.
         var spec = MakeSpec(
             new D2ResultEnvelopeFieldEntry("Z", "z_val", "Doc."),
             new D2ResultEnvelopeFieldEntry("A", "a_val", "Doc."));
@@ -168,8 +168,8 @@ public sealed class D2ResultEnvelopeEmitterTests
     [Fact]
     public void Emit_EscapesXmlDocSpecialCharacters()
     {
-        // Doc text with <, >, & must be XML-encoded in the emitted summary
-        // otherwise the generated source won't compile.
+        // Doc text with <, >, & must be XML-encoded in the emitted summary;
+        // otherwise the generated source does not compile.
         var spec = MakeSpec(
             new D2ResultEnvelopeFieldEntry(
                 "DATA",

@@ -21,21 +21,21 @@ export type AuthErrorCode = (typeof AuthErrorCodes)[keyof typeof AuthErrorCodes]
 
 // @public
 export const AuthErrorCodes: {
-    readonly AUTH_BEARER_MALFORMED: "AUTH_BEARER_MALFORMED";
-    readonly AUTH_BEARER_MISSING: "AUTH_BEARER_MISSING";
-    readonly AUTH_JWKS_UNAVAILABLE: "AUTH_JWKS_UNAVAILABLE";
-    readonly AUTH_JWT_ACT_CHAIN_MALFORMED: "AUTH_JWT_ACT_CHAIN_MALFORMED";
-    readonly AUTH_JWT_AUDIENCE_MISMATCH: "AUTH_JWT_AUDIENCE_MISMATCH";
-    readonly AUTH_JWT_CLAIM_MISSING: "AUTH_JWT_CLAIM_MISSING";
-    readonly AUTH_JWT_EXPIRED: "AUTH_JWT_EXPIRED";
-    readonly AUTH_JWT_ISSUER_MISMATCH: "AUTH_JWT_ISSUER_MISMATCH";
-    readonly AUTH_JWT_KID_NOT_FOUND: "AUTH_JWT_KID_NOT_FOUND";
-    readonly AUTH_JWT_NOT_YET_VALID: "AUTH_JWT_NOT_YET_VALID";
-    readonly AUTH_JWT_SIGNATURE_INVALID: "AUTH_JWT_SIGNATURE_INVALID";
-    readonly AUTH_REQUEST_ORIGIN_UNESTABLISHED: "AUTH_REQUEST_ORIGIN_UNESTABLISHED";
-    readonly AUTH_SCOPE_INSUFFICIENT: "AUTH_SCOPE_INSUFFICIENT";
-    readonly AUTH_SESSION_LIVENESS_UNAVAILABLE: "AUTH_SESSION_LIVENESS_UNAVAILABLE";
-    readonly AUTH_SESSION_REVOKED: "AUTH_SESSION_REVOKED";
+    readonly LIB_AUTH_BEARER_MALFORMED: "LIB_AUTH_BEARER_MALFORMED";
+    readonly LIB_AUTH_BEARER_MISSING: "LIB_AUTH_BEARER_MISSING";
+    readonly LIB_AUTH_JWKS_UNAVAILABLE: "LIB_AUTH_JWKS_UNAVAILABLE";
+    readonly LIB_AUTH_JWT_ACT_CHAIN_MALFORMED: "LIB_AUTH_JWT_ACT_CHAIN_MALFORMED";
+    readonly LIB_AUTH_JWT_AUDIENCE_MISMATCH: "LIB_AUTH_JWT_AUDIENCE_MISMATCH";
+    readonly LIB_AUTH_JWT_CLAIM_MISSING: "LIB_AUTH_JWT_CLAIM_MISSING";
+    readonly LIB_AUTH_JWT_EXPIRED: "LIB_AUTH_JWT_EXPIRED";
+    readonly LIB_AUTH_JWT_ISSUER_MISMATCH: "LIB_AUTH_JWT_ISSUER_MISMATCH";
+    readonly LIB_AUTH_JWT_KID_NOT_FOUND: "LIB_AUTH_JWT_KID_NOT_FOUND";
+    readonly LIB_AUTH_JWT_NOT_YET_VALID: "LIB_AUTH_JWT_NOT_YET_VALID";
+    readonly LIB_AUTH_JWT_SIGNATURE_INVALID: "LIB_AUTH_JWT_SIGNATURE_INVALID";
+    readonly LIB_AUTH_REQUEST_ORIGIN_UNESTABLISHED: "LIB_AUTH_REQUEST_ORIGIN_UNESTABLISHED";
+    readonly LIB_AUTH_SCOPE_INSUFFICIENT: "LIB_AUTH_SCOPE_INSUFFICIENT";
+    readonly LIB_AUTH_SESSION_LIVENESS_UNAVAILABLE: "LIB_AUTH_SESSION_LIVENESS_UNAVAILABLE";
+    readonly LIB_AUTH_SESSION_REVOKED: "LIB_AUTH_SESSION_REVOKED";
 };
 
 // @public
@@ -125,6 +125,8 @@ export const JwtClaimTypes: {
     readonly ORG_NAME: "d2_org_name";
     readonly ORG_TYPE: "d2_org_type";
     readonly ORG_ROLE: "d2_org_role";
+    readonly ROOT_ORG_ID: "d2_root_org_id";
+    readonly ACCESSIBLE_ORG_IDS: "d2_accessible_org_ids";
     readonly ACT_KIND: "d2_kind";
     readonly ACT_SESSION_ID: "d2_session_id";
     readonly AMR: "amr";
@@ -134,15 +136,17 @@ export const JwtClaimTypes: {
 // @public
 export interface JwtPayload {
     readonly act?: Readonly<Record<string, unknown>>;
-    readonly amr?: string;
+    readonly amr?: readonly string[];
     readonly aud: readonly string[];
     readonly azp?: string;
     readonly client_id?: string;
+    readonly d2_accessible_org_ids?: readonly string[];
     readonly d2_fp?: string;
     readonly d2_org_id?: string;
     readonly d2_org_name?: string;
     readonly d2_org_role?: string;
     readonly d2_org_type?: string;
+    readonly d2_root_org_id?: string;
     readonly d2_session_id?: string;
     readonly d2_step_up_at?: string;
     readonly d2_username?: string;

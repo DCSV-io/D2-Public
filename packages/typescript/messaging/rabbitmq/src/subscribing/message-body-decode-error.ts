@@ -8,11 +8,11 @@ import {
 } from "@dcsv-io/d2-messaging-abstractions";
 
 /**
- * Raised by a {@link BodyOpener} when it cannot faithfully decode a delivery
- * body. Carries the DLQ cause discriminator so the consumer routes the message
+ * Thrown by a {@link BodyOpener} when it cannot faithfully decode a delivery
+ * body. It holds the DLQ cause discriminator, so the consumer routes the message
  * to its dead-letter queue with the correct `DlqFailureMetadata.cause`
  * (`DESERIALIZE_FAILURE` for a JSON-parse failure, `DECRYPT_FAILURE` for an
- * encrypted body with no registered opener) — the twin of the .NET
+ * encrypted body with no registered opener). It is the twin of the .NET
  * `MessageBodyDecodeException`.
  */
 export class MessageBodyDecodeError extends Error {
@@ -21,7 +21,7 @@ export class MessageBodyDecodeError extends Error {
 
   /**
    * @param decodeCause The DLQ cause discriminator.
-   * @param message Operator-facing summary (never carries body bytes / PII).
+   * @param message Operator-facing summary (never contains body bytes or PII).
    * @param innerError The underlying error, when one exists.
    */
   constructor(

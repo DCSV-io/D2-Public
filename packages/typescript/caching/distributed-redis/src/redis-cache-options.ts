@@ -3,17 +3,17 @@
 // -----------------------------------------------------------------------
 
 /**
- * Configuration knobs for the Redis-backed distributed cache and the
+ * Configuration options for the Redis-backed distributed cache and the
  * Redis-backed invalidation backplane. Twin of .NET `RedisCacheOptions`
  * with millisecond-number durations instead of `TimeSpan`.
  *
- * `connectionString` is **SECRET when credentials are embedded** - never
+ * `connectionString` is **SECRET when credentials are embedded**: never
  * log or echo it. It is required only when calling {@link connectRedis}.
  */
 export interface RedisCacheOptions {
   /**
-   * ioredis connection URL / string. Required for {@link connectRedis}.
-   * SECRET when credentials are embedded - never log.
+   * ioredis connection URL or string. Required for {@link connectRedis}.
+   * SECRET when credentials are embedded: never log.
    */
   connectionString?: string;
 
@@ -39,13 +39,13 @@ export interface RedisCacheOptions {
   connectRetries: number;
 
   /**
-   * When true, abort if the initial connection fails. Default false -
+   * When true, abort if the initial connection fails. Default false:
    * cache calls return `serviceUnavailable` until Redis is reachable.
    */
   abortOnConnectFail: boolean;
 }
 
-/** Defaults twin of .NET `RedisCacheOptions`. */
+/** Defaults, twin of the defaults of .NET `RedisCacheOptions`. */
 export const REDIS_CACHE_DEFAULTS: Readonly<RedisCacheOptions> = {
   defaultExpirationMs: 3_600_000,
   keyPrefix: "",
@@ -57,8 +57,8 @@ export const REDIS_CACHE_DEFAULTS: Readonly<RedisCacheOptions> = {
 };
 
 /**
- * Merges a partial options bag over {@link REDIS_CACHE_DEFAULTS}.
- * Does not throw - structural guards run in cache/backplane/connect paths.
+ * Merges a partial set of options over {@link REDIS_CACHE_DEFAULTS}.
+ * Does not throw; structural guards run in the cache, backplane and connect paths.
  */
 export function createRedisCacheOptions(
   partial?: Partial<RedisCacheOptions>,

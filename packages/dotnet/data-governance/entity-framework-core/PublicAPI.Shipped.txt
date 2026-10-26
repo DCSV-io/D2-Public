@@ -91,7 +91,7 @@ DcsvIo.D2.DataGovernance.EntityFrameworkCore.DataGovernanceServiceCollectionExte
 DcsvIo.D2.DataGovernance.EntityFrameworkCore.DataGovernanceServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddD2DataGovernance(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 DcsvIo.D2.DataGovernance.EntityFrameworkCore.DataGovernanceServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddD2DataGovernance(Microsoft.Extensions.Configuration.IConfiguration! configuration, System.Action<DcsvIo.D2.DataGovernance.EntityFrameworkCore.AnonymizationEngineOptions!>! configure) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 const DcsvIo.D2.DataGovernance.EntityFrameworkCore.AnonymizationAnnotations.ANONYMIZE = "D2:Anonymize" -> string!
-const DcsvIo.D2.DataGovernance.EntityFrameworkCore.AnonymizationEngineOptions.SECTION_NAME = "DATA_GOVERNANCE" -> string!
+const DcsvIo.D2.DataGovernance.EntityFrameworkCore.AnonymizationEngineOptions.SECTION = "LIB_DATA_GOVERNANCE" -> string!
 override DcsvIo.D2.DataGovernance.EntityFrameworkCore.AnonymizationClassification.Equals(object? obj) -> bool
 override DcsvIo.D2.DataGovernance.EntityFrameworkCore.AnonymizationClassification.GetHashCode() -> int
 override DcsvIo.D2.DataGovernance.EntityFrameworkCore.AnonymizationClassification.ToString() -> string!

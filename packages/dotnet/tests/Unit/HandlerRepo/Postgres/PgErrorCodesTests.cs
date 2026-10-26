@@ -13,12 +13,12 @@ using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 /// <summary>
-/// Pinning + walker tests for <see cref="PgErrorCodes"/>. The
-/// <c>SQLSTATE</c> string constants are part of the wire contract; the
-/// <see cref="PgErrorCodes.TryGetPgException"/> walker is the unwrap surface
-/// used by both the classifier and any consumer that wants the underlying
-/// PG exception (e.g. for constraint-name introspection in
-/// <c>MapDbException</c> overrides).
+/// Tests that pin the <c>SQLSTATE</c> constants of <see cref="PgErrorCodes"/>
+/// and that exercise <see cref="PgErrorCodes.TryGetPgException"/>. The
+/// <c>SQLSTATE</c> string constants are part of the wire contract.
+/// <see cref="PgErrorCodes.TryGetPgException"/> unwraps the underlying
+/// PostgreSQL exception for the classifier and for any code that needs it,
+/// such as constraint-name inspection in <c>MapDbException</c> overrides.
 /// </summary>
 public sealed class PgErrorCodesTests
 {
@@ -42,7 +42,7 @@ public sealed class PgErrorCodesTests
     }
 
     // ----------------------------------------------------------------------
-    // TryGetPgException walker — depth boundary tests
+    // TryGetPgException - depth boundary tests
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -80,10 +80,9 @@ public sealed class PgErrorCodesTests
     [Fact]
     public void TryGetPgException_Depth9_Wrappers_StillFinds()
     {
-        // Adversarial: at depth 9 the walker should still find the PG
-        // exception (loop bound is `depth < 10`, so iterations 0..9
-        // inclusive get to look — that's 10 chances, finding at depth 9
-        // counts).
+        // Boundary: the method checks only while `depth < 10`, which covers
+        // depths 0 to 9, so a PostgreSQL exception at depth 9 is found. Depth
+        // 9 is the deepest level it checks.
         var pg = PgExceptionFactory.Create("23505");
         var wrap = WrapNTimes(pg, 9);
 
@@ -95,10 +94,8 @@ public sealed class PgErrorCodesTests
     [Fact]
     public void TryGetPgException_Depth10_AtTheWall_ReturnsNull()
     {
-        // Adversarial: at depth 10 the PG exception is at level-10 of the
-        // chain. The walker stops at `depth < 10` — i.e. only checks
-        // depths 0..9. So a PG at depth 10 is NOT found. Documents the
-        // boundary precisely.
+        // Boundary: the method checks only while `depth < 10`, which covers
+        // depths 0 to 9, so a PostgreSQL exception at depth 10 is not found.
         var pg = PgExceptionFactory.Create("23505");
         var wrap = WrapNTimes(pg, 10);
 

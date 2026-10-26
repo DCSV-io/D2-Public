@@ -15,11 +15,12 @@ import {
 const _INVALID_TRACE_ID = "0".repeat(32);
 
 /**
- * Starts a `Consumer`-kind span `receive {queue}` parented to the producer's
- * publish span via the delivery's `traceparent` header — the mirror of the .NET
- * consume-span establishment. Tags come from the spec-emitted
- * `MessagingActivityTags` closed set (same values the .NET consumer emits). A
- * missing / malformed `traceparent` yields a root span (never a reject).
+ * Starts a `Consumer`-kind span `receive {queue}`, parented to the producer's
+ * publish span through the delivery's `traceparent` header. It mirrors how the
+ * .NET consumer starts its consume span. Tags come from the spec-emitted
+ * `MessagingActivityTags` closed set, with the same values the .NET consumer
+ * emits. A missing or malformed `traceparent` yields a root span and never
+ * causes a rejection.
  *
  * @param queue The resolved queue name (span destination).
  * @param msg The normalized delivery.
@@ -56,10 +57,10 @@ export function startConsumerSpan(queue: string, msg: ConsumedMessage): Span {
 }
 
 /**
- * Returns the span's trace id if it is valid (a real parent trace or an active
- * recording provider), else `undefined` — mirrors the .NET
- * `Activity.Current?.TraceId` being null when no listener is attached, so a
- * DLQ entry's `traceId` stays absent rather than all-zero.
+ * Returns the span's trace id when it is valid (a real parent trace or an
+ * active recording provider), and `undefined` otherwise. This matches the .NET
+ * `Activity.Current?.TraceId`, which is null when no listener is attached, so a
+ * DLQ entry's `traceId` stays absent and is never all zeros.
  *
  * @param span The consume span.
  */

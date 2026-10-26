@@ -63,7 +63,7 @@ public sealed class D2ResultGenericTests
             messages: [TK.Common.Errors.UNKNOWN],
             inputErrors: [new InputError("f", [TK.Common.Validation.NON_EMPTY_LIST])],
             statusCode: HttpStatusCode.Conflict,
-            errorCode: ErrorCodes.CONFLICT,
+            errorCode: ErrorCodes.GEN_CONFLICT,
             traceId: "t1");
 
         result.Success.Should().BeFalse();
@@ -71,7 +71,7 @@ public sealed class D2ResultGenericTests
         result.Messages.Should().Equal(TK.Common.Errors.UNKNOWN);
         result.InputErrors.Should().HaveCount(1);
         result.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        result.ErrorCode.Should().Be(ErrorCodes.CONFLICT);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_CONFLICT);
         result.TraceId.Should().Be("t1");
     }
 
@@ -118,7 +118,8 @@ public sealed class D2ResultGenericTests
     public void CheckFailure_OnFailure_ReturnsTrueAndExposesDataIfPresent()
     {
         // Adversarial: SomeFound is a failure that DOES carry data.
-        // CheckFailure must expose it — that's the partial-success consumer pattern.
+        // CheckFailure must expose that data, so code that handles a partial
+        // success can read it.
         var data = new Payload("partial");
         var result = D2Result<Payload>.SomeFound(data);
 
@@ -178,6 +179,28 @@ public sealed class D2ResultGenericTests
         result.Data.Should().Be(data);
     }
 
+    [Fact]
+    public void NoContent_CarriesNoDataAndStatusNoContent()
+    {
+        var result = D2Result<Payload>.NoContent();
+
+        result.Success.Should().BeTrue();
+        result.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        result.Data.Should().BeNull();
+        result.ErrorCode.Should().BeNull();
+        result.TraceId.Should().BeNull();
+    }
+
+    [Fact]
+    public void NoContent_WithTraceId_CarriesIt()
+    {
+        var result = D2Result<Payload>.NoContent(traceId: "t1");
+
+        result.Success.Should().BeTrue();
+        result.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        result.TraceId.Should().Be("t1");
+    }
+
     // ----------------------------------------------------------------------
     // BubbleFail / Bubble
     // ----------------------------------------------------------------------
@@ -195,7 +218,7 @@ public sealed class D2ResultGenericTests
         bubbled.Data.Should().BeNull();
         bubbled.Messages.Should().Equal(TK.Common.Errors.UNKNOWN);
         bubbled.StatusCode.Should().Be(HttpStatusCode.NotFound);
-        bubbled.ErrorCode.Should().Be(ErrorCodes.NOT_FOUND);
+        bubbled.ErrorCode.Should().Be(ErrorCodes.GEN_NOT_FOUND);
         bubbled.TraceId.Should().Be("t-upstream");
     }
 
@@ -216,14 +239,14 @@ public sealed class D2ResultGenericTests
     public void BubbleFail_AcrossDifferentGenericArgs_PreservesMetadata()
     {
         // Adversarial: BubbleFail goes from ANY upstream type to ANY downstream type.
-        // The generic argument of upstream doesn't constrain the bubble target.
+        // The generic argument of the upstream result does not constrain the bubble target.
         var upstream = D2Result<int>.Conflict(messages: [TK.Common.Errors.UNKNOWN]);
 
         var bubbled = D2Result<Payload>.BubbleFail(upstream);
 
         bubbled.Success.Should().BeFalse();
         bubbled.Data.Should().BeNull();
-        bubbled.ErrorCode.Should().Be(ErrorCodes.CONFLICT);
+        bubbled.ErrorCode.Should().Be(ErrorCodes.GEN_CONFLICT);
         bubbled.Messages.Should().Equal(TK.Common.Errors.UNKNOWN);
     }
 
@@ -243,8 +266,8 @@ public sealed class D2ResultGenericTests
     [Fact]
     public void Bubble_FromFailure_PreservesFailureAndAttachesData()
     {
-        // Adversarial: Bubble carries data even when the upstream failed.
-        // Useful for SomeFound-flavored partial-success propagation.
+        // Adversarial: Bubble attaches data even when the upstream failed.
+        // This covers propagating a SomeFound-style partial success.
         var upstream = D2Result.SomeFound();
         var partial = new Payload("partial");
 
@@ -252,7 +275,7 @@ public sealed class D2ResultGenericTests
 
         result.Success.Should().BeFalse();
         result.Data.Should().Be(partial);
-        result.ErrorCode.Should().Be(ErrorCodes.SOME_FOUND);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_SOME_FOUND);
         result.StatusCode.Should().Be(HttpStatusCode.PartialContent);
     }
 
@@ -268,7 +291,7 @@ public sealed class D2ResultGenericTests
     }
 
     // ----------------------------------------------------------------------
-    // Generic semantic factories — each one shapes the result correctly + Data is default
+    // Generic semantic factories - each one shapes the result correctly + Data is default
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -279,7 +302,7 @@ public sealed class D2ResultGenericTests
         result.Success.Should().BeFalse();
         result.Data.Should().BeNull();
         result.StatusCode.Should().Be(HttpStatusCode.NotFound);
-        result.ErrorCode.Should().Be(ErrorCodes.NOT_FOUND);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_NOT_FOUND);
         result.Messages.Should().Equal(TK.Common.Errors.NOT_FOUND);
     }
 
@@ -291,7 +314,7 @@ public sealed class D2ResultGenericTests
         result.Success.Should().BeFalse();
         result.Data.Should().BeNull();
         result.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        result.ErrorCode.Should().Be(ErrorCodes.FORBIDDEN);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_FORBIDDEN);
     }
 
     [Fact]
@@ -302,7 +325,7 @@ public sealed class D2ResultGenericTests
         result.Success.Should().BeFalse();
         result.Data.Should().BeNull();
         result.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        result.ErrorCode.Should().Be(ErrorCodes.UNAUTHORIZED);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_UNAUTHORIZED);
     }
 
     [Fact]
@@ -313,7 +336,7 @@ public sealed class D2ResultGenericTests
 
         result.Success.Should().BeFalse();
         result.Data.Should().BeNull();
-        result.ErrorCode.Should().Be(ErrorCodes.VALIDATION_FAILED);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_VALIDATION_FAILED);
         result.InputErrors.Should().HaveCount(1);
     }
 
@@ -333,7 +356,7 @@ public sealed class D2ResultGenericTests
         result.Success.Should().BeFalse();
         result.Data.Should().BeNull();
         result.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        result.ErrorCode.Should().Be(ErrorCodes.CONFLICT);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_CONFLICT);
     }
 
     [Fact]
@@ -343,7 +366,7 @@ public sealed class D2ResultGenericTests
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
-        result.ErrorCode.Should().Be(ErrorCodes.SERVICE_UNAVAILABLE);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_SERVICE_UNAVAILABLE);
         result.Messages.Should().Equal(TK.Common.Errors.SERVICE_UNAVAILABLE);
     }
 
@@ -362,7 +385,7 @@ public sealed class D2ResultGenericTests
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
-        result.ErrorCode.Should().Be(ErrorCodes.UNHANDLED_EXCEPTION);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_UNHANDLED_EXCEPTION);
     }
 
     [Fact]
@@ -372,7 +395,7 @@ public sealed class D2ResultGenericTests
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.RequestEntityTooLarge);
-        result.ErrorCode.Should().Be(ErrorCodes.PAYLOAD_TOO_LARGE);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_PAYLOAD_TOO_LARGE);
     }
 
     [Fact]
@@ -382,7 +405,7 @@ public sealed class D2ResultGenericTests
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
-        result.ErrorCode.Should().Be(ErrorCodes.RATE_LIMITED);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_RATE_LIMITED);
     }
 
     [Fact]
@@ -392,7 +415,17 @@ public sealed class D2ResultGenericTests
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        result.ErrorCode.Should().Be(ErrorCodes.CANCELED);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_CANCELED);
+    }
+
+    [Fact]
+    public void ForgeryRefused_Generic_Produces403()
+    {
+        var result = D2Result<Payload>.ForgeryRefused();
+
+        result.Success.Should().BeFalse();
+        result.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_FORGERY_REFUSED);
     }
 
     [Fact]
@@ -405,7 +438,7 @@ public sealed class D2ResultGenericTests
         result.Success.Should().BeFalse();
         result.Data.Should().Be(partial);
         result.StatusCode.Should().Be(HttpStatusCode.PartialContent);
-        result.ErrorCode.Should().Be(ErrorCodes.SOME_FOUND);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_SOME_FOUND);
     }
 
     [Fact]
@@ -436,7 +469,7 @@ public sealed class D2ResultGenericTests
     }
 
     // ----------------------------------------------------------------------
-    // PartialSuccess — generic-only factory; Success=true with PARTIAL_SUCCESS
+    // PartialSuccess - generic-only factory; a failure carrying PARTIAL_SUCCESS
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -446,12 +479,41 @@ public sealed class D2ResultGenericTests
 
         var result = D2Result<Payload>.PartialSuccess(data);
 
-        result.Success.Should().BeTrue();
         result.Data.Should().Be(data);
-        result.StatusCode.Should().Be(HttpStatusCode.MultiStatus);
-        result.ErrorCode.Should().Be(ErrorCodes.PARTIAL_SUCCESS);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_PARTIAL_SUCCESS);
         result.Messages.Should().Equal(TK.Common.Errors.PARTIAL_SUCCESS);
-        result.IsPartialSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void PartialSuccess_ReportsFailure()
+    {
+        // A write that reached only some of its targets is not done. If a partial
+        // success reported success, `if (result.Failed)` would be false for a
+        // write that completed only half its targets, so the result reports failure.
+        var result = D2Result<Payload>.PartialSuccess(new Payload("partial"));
+
+        result.Success.Should().BeFalse();
+    }
+
+    [Fact]
+    public void PartialSuccess_CarriesANonSuccessStatus()
+    {
+        // The status is sent on the wire as problem-details Status. A 2xx status
+        // here would make any client that checks response.ok treat a write that
+        // completed only half its targets as done.
+        var result = D2Result<Payload>.PartialSuccess(new Payload("partial"));
+
+        result.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+    }
+
+    [Fact]
+    public void PartialSuccess_IsDistinguishableFromServiceUnavailable()
+    {
+        // Same status, different meaning: a partial success wrote some targets and
+        // a service-unavailable result wrote none. The error code tells them apart.
+        var partial = D2Result<Payload>.PartialSuccess(new Payload("partial"));
+
+        partial.ErrorCode.Should().NotBe(D2Result<Payload>.ServiceUnavailable().ErrorCode);
     }
 
     [Fact]
@@ -467,11 +529,11 @@ public sealed class D2ResultGenericTests
     [Fact]
     public void PartialSuccess_NoData_AllowsDefaultPayload()
     {
-        // Adversarial: callers may want to signal partial-success with no payload
-        // (e.g. async fire-and-forget multi-target). Default(TData) must be valid.
+        // Adversarial: a partial outcome can have no payload (for example, an
+        // asynchronous multi-target write that does not wait for its result).
+        // Default(TData) must be valid.
         var result = D2Result<Payload>.PartialSuccess();
 
-        result.Success.Should().BeTrue();
         result.Data.Should().BeNull();
         result.IsPartialSuccess.Should().BeTrue();
     }
@@ -490,7 +552,6 @@ public sealed class D2ResultGenericTests
         var result = D2Result<int>.PartialSuccess(42);
 
         result.Data.Should().Be(42);
-        result.Success.Should().BeTrue();
     }
 
     private sealed record Payload(string Name);

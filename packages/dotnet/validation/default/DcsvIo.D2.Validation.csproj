@@ -7,68 +7,70 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   </PropertyGroup>
 
   <!--
-    Default validator implementations for the three DcsvIo.D2.Validation.Abstractions
-    contracts: email (regex), phone (libphonenumber-csharp), and postal code
-    (per-country regex map loaded from an embedded JSON dataset ported from
-    postcode-validator@3.10.9). All three validators are stateless and singleton-safe.
+    Default validator implementations for the email, phone and postal-code
+    contracts of DcsvIo.D2.Validation.Abstractions: email (regex), phone
+    (libphonenumber-csharp), and postal code (per-country regex map loaded from
+    an embedded JSON dataset ported from postcode-validator@3.10.9). Each
+    validator is stateless and singleton-safe.
 
-    Pull in Microsoft.Extensions.DependencyInjection.Abstractions for the
-    AddValidation() DI extension, and libphonenumber-csharp for phone-number
-    parsing + E.164 formatting.
+    The project references Microsoft.Extensions.DependencyInjection.Abstractions
+    for the AddValidation() DI extension, and libphonenumber-csharp for
+    phone-number parsing and E.164 formatting.
   -->
   <ItemGroup>
     <!--
-      Microsoft.Extensions.DependencyInjection.Abstractions — IServiceCollection
+      Microsoft.Extensions.DependencyInjection.Abstractions - IServiceCollection
       receiver for the AddValidation() registration extension.
     -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <!--
-      libphonenumber-csharp — Apache-2.0. PhoneNumberUtil.GetInstance() parses
-      and validates international + national-format numbers, then formats to E.164.
+      libphonenumber-csharp - Apache-2.0. PhoneNumberUtil.GetInstance() parses
+      and validates international and national-format numbers, then formats them
+      to E.164.
     -->
     <PackageReference Include="libphonenumber-csharp" />
   </ItemGroup>
 
   <ItemGroup>
     <!--
-      DcsvIo.D2.Validation.Abstractions — the three validator contracts this
-      project implements (IEmailValidator, IPhoneValidator, IPostalCodeValidator).
+      DcsvIo.D2.Validation.Abstractions - the validator contracts this project
+      implements: IEmailValidator, IPhoneValidator and IPostalCodeValidator.
     -->
     <ProjectReference Include="..\abstractions\DcsvIo.D2.Validation.Abstractions.csproj" />
     <!--
-      DcsvIo.D2.Result — D2Result<string> semantic factories (Ok, ValidationFailed)
-      returned by every Validate() method.
+      DcsvIo.D2.Result - the D2Result<string> semantic factories (Ok,
+      ValidationFailed) that every Validate() method returns.
     -->
     <ProjectReference Include="..\..\result\core\DcsvIo.D2.Result.csproj" />
     <!--
-      DcsvIo.D2.Geo.Abstractions — CountryCode enum (alpha-2 backed) used by
+      DcsvIo.D2.Geo.Abstractions - CountryCode enum (alpha-2 backed) used by
       IPhoneValidator (defaultRegion) and IPostalCodeValidator (countryCode).
     -->
     <ProjectReference Include="..\..\geo\abstractions\DcsvIo.D2.Geo.Abstractions.csproj" />
     <!--
-      DcsvIo.D2.Utilities — Falsey()/Truthy() null+empty+whitespace guards
-      used by all three validators on their input parameters.
+      DcsvIo.D2.Utilities - the Falsey() and Truthy() guards against null, empty
+      and whitespace, used by every validator on its input parameters.
     -->
     <ProjectReference Include="..\..\utilities\DcsvIo.D2.Utilities.csproj" />
     <!--
-      DcsvIo.D2.I18n.Abstractions — the TKMessage type the TK.* constants are
-      instances of, carried in the per-field InputError.Errors lists on
+      DcsvIo.D2.I18n.Abstractions - the TKMessage type the TK.* constants are
+      instances of, stored in the per-field InputError.Errors lists on
       validation failures.
     -->
     <ProjectReference Include="..\..\i18n\abstractions\DcsvIo.D2.I18n.Abstractions.csproj" />
     <!--
-      DcsvIo.D2.I18n.Keys — the TK.Common.Validation.* translation-key
-      constants the three validators emit on failure.
+      DcsvIo.D2.I18n.Keys - the TK.Common.Validation.* translation-key
+      constants that the validators emit on failure.
     -->
     <ProjectReference Include="..\..\i18n\keys\DcsvIo.D2.I18n.Keys.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <!--
-      Postal-code regex map — the single cross-runtime source of truth at
+      Postal-code regex map - the single cross-runtime source of truth at
       contracts/validation/postal-code-regexes.json (also read by the TS
-      @dcsv-io/d2-validation package). Embedded so the data travels with the assembly
-      without a file-system dependency at runtime. The <Link> keeps the logical
+      @dcsv-io/d2-validation package). The data is embedded in the assembly, so
+      no file-system access is needed at runtime. The <Link> keeps the logical
       manifest-resource name PostalCodeRegexData.json, so the
       DcsvIo.D2.Validation.PostalCodeRegexData.json lookup in PostalCodeRegexData.cs
       resolves unchanged regardless of the on-disk source path.
@@ -82,11 +84,11 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <InternalsVisibleTo Include="DcsvIo.D2.Tests" />
   </ItemGroup>
 
-  <!-- Publish metadata (per-package semver + NuGet identity). -->
+  <!-- Publish metadata: per-package semver and NuGet identity. -->
   <PropertyGroup>
-    <Version>0.1.1</Version>
+    <Version>0.1.30</Version>
     <PackageId>DcsvIo.D2.Validation</PackageId>
-    <Description>Default validators for D2 — email, phone, and postal-code validation backed by libphonenumber-csharp and a ported postcode dataset.</Description>
+    <Description>Default validators for D2 - email, phone, and postal-code validation backed by libphonenumber-csharp and a ported postcode dataset.</Description>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

@@ -14,14 +14,11 @@ using DcsvIo.D2.SourceGen;
 using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
-/// Build-time safety gate that ensures every country's
-/// <c>primaryLocaleIETFBCP47Tag</c> and every entry in
-/// <c>localeIETFBCP47Tags[]</c> resolves to an entry in
-/// <c>locales.spec.json</c>. Surfaces
-/// <see cref="DiagnosticIds.MissingLocaleReference"/> on drift; build fails
-/// on the diagnostic. Lets the country data emitter use direct indexer
-/// access (fail-loud) instead of defensive <c>TryGetValue + skip</c>
-/// patterns that mask spec drift.
+/// Build-time check that every country's <c>primaryLocaleIETFBCP47Tag</c> and
+/// every entry in <c>localeIETFBCP47Tags[]</c> resolves to an entry in
+/// <c>locales.spec.json</c>. It reports
+/// <see cref="DiagnosticIds.MissingLocaleReference"/> for each reference that
+/// does not resolve, and the build fails on that diagnostic.
 /// </summary>
 internal static class LocaleReferenceChecker
 {
@@ -38,10 +35,11 @@ internal static class LocaleReferenceChecker
         if (context.Countries is not { } countries)
             return diagnostics.ToImmutable();
 
-        // Build the validation set from the loaded locales catalog. When
-        // locales.spec.json is missing the loader has already surfaced
-        // D2GEO007; in that case skip the cross-catalog check so we don't
-        // double-report against an empty set.
+        // Build the validation set from the loaded locales catalog. The
+        // loader leaves Locales null when locales.spec.json is absent or
+        // fails to parse (each such failure is reported as a diagnostic).
+        // In that case skip the check, so every country reference is not
+        // reported as missing against an empty set.
         if (context.Locales is not { } locales)
             return diagnostics.ToImmutable();
 

@@ -12,30 +12,32 @@ using DcsvIo.D2.Context.Abstractions;
 using Xunit;
 
 /// <summary>
-/// Adversarial proof of the wire-shape invariants for the post-envelope-removal
-/// design:
+/// Adversarial tests of the wire-shape invariants of the propagated context
+/// header.
+/// </summary>
+/// <remarks>
 /// <list type="bullet">
-///   <item>The encoded <c>x-d2-context</c> header carries ONLY the propagated
+///   <item>The encoded <c>x-d2-context</c> header carries only the propagated
 ///     subset (RequestId / RequestPath / fingerprints / WhoIs hash). Identity
-///     and PII fields a populated <see cref="MutableRequestContext"/> may
-///     hold are NEVER projected onto the wire.</item>
+///     and PII fields that a populated <see cref="MutableRequestContext"/> may
+///     hold are never projected onto the wire.</item>
 ///   <item>Round-trip preserves the propagated subset exactly.</item>
 /// </list>
-/// These tests intentionally sit in the messaging unit-test folder (not just
-/// RequestContext) because the leak risk they prevent is the messaging-side
-/// header construction in <c>RabbitMqMessageBus.PublishOnceAsync</c>.
-/// </summary>
+/// These tests are in the messaging unit-test folder, and not only with
+/// RequestContext, because the leak they prevent would come from the
+/// messaging-side header construction in <c>RabbitMqMessageBus.PublishOnceAsync</c>.
+/// </remarks>
 public sealed class PropagatedHeaderWireShapeTests
 {
     [Fact]
     public void EncodedHeader_FromPopulatedScopeContext_OmitsIdentityAndPii()
     {
-        // Build an IRequestContext that's been populated as if by HTTP
-        // middleware on a real inbound request — every field the production
-        // edge would set, including PII (UserId, OrgId, ClientIp, location).
+        // Build an IRequestContext populated as HTTP middleware populates it
+        // on a real inbound request: every field that a production request
+        // sets, including PII (UserId, OrgId, ClientIp, location).
         var ctx = new MutableRequestContext
         {
-            // Identity (must NOT travel)
+            // Identity (must not travel)
             IsAuthenticated = true,
             UserId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             Username = "user@example.com",
@@ -43,13 +45,13 @@ public sealed class PropagatedHeaderWireShapeTests
             OrgName = "Acme",
             Scopes = new HashSet<string> { "secret.scope" },
 
-            // Network PII (must NOT travel)
+            // Network PII (must not travel)
             ClientIp = "203.0.113.42",
             City = "Seattle",
             CountryIso31661Alpha2Code = "US",
             Asn = 12345,
 
-            // Propagated subset (MAY travel)
+            // Propagated subset (may travel)
             RequestId = "req-abc",
             RequestPath = "/admin/secret/path",
             CurrentFingerprint = "fp-cur",
@@ -60,7 +62,7 @@ public sealed class PropagatedHeaderWireShapeTests
 
         var encoded = PropagatedContextSerializer.Encode(ctx.ToPropagatedContext());
 
-        // Decode the base64url manually so we can inspect the JSON wire shape.
+        // Decode the base64url by hand to inspect the JSON wire shape.
         var padded = encoded.Replace('-', '+').Replace('_', '/');
         var pad = padded.Length % 4;
         if (pad > 0) padded = padded.PadRight(padded.Length + (4 - pad), '=');
@@ -74,9 +76,9 @@ public sealed class PropagatedHeaderWireShapeTests
         json.Should().Contain("\"riskScore\":90");
         json.Should().Contain("\"whoIsHashId\":\"whois-hash\"");
 
-        // Identity / PII absent. (We assert against the field NAMES — values
-        // could happen to substring-match unrelated content, but the property
-        // names are unique to their categories.)
+        // Identity and PII are absent. The assertions check the field names,
+        // because a value could match unrelated content as a substring, while
+        // each property name belongs to one category.
         json.Should().NotContain("\"userId\"");
         json.Should().NotContain("\"username\"");
         json.Should().NotContain("\"orgId\"");
@@ -88,12 +90,12 @@ public sealed class PropagatedHeaderWireShapeTests
         json.Should().NotContain("\"asn\"");
         json.Should().NotContain("\"isAuthenticated\"");
 
-        // [JsonIgnore] on HasAnyField — the computed helper must NEVER reach the wire.
-        // If [JsonIgnore] is ever removed from the emitted PropagatedContext record,
-        // this assertion is the first line of defense.
+        // [JsonIgnore] on HasAnyField keeps the computed helper off the wire.
+        // This assertion fails if [JsonIgnore] is removed from the emitted
+        // PropagatedContext record.
         json.Should().NotContain("\"hasAnyField\"");
 
-        // And the literal sensitive values shouldn't appear anywhere either.
+        // The sensitive values themselves do not appear anywhere in the JSON.
         json.Should().NotContain("user@example.com");
         json.Should().NotContain("203.0.113.42");
         json.Should().NotContain("secret.scope");
@@ -103,7 +105,7 @@ public sealed class PropagatedHeaderWireShapeTests
     [Fact]
     public void RoundTrip_PopulatedScope_RestoresPropagatedSubsetOnly()
     {
-        // Producer side
+        // Sending side
         var producer = new MutableRequestContext
         {
             UserId = Guid.NewGuid(),
@@ -118,8 +120,8 @@ public sealed class PropagatedHeaderWireShapeTests
         };
         var encoded = PropagatedContextSerializer.Encode(producer.ToPropagatedContext());
 
-        // Consumer side — fresh empty context (representing a newly-opened
-        // per-message DI scope).
+        // Receiving side: a fresh empty context, which stands for a newly
+        // opened per-message DI scope.
         var consumer = new MutableRequestContext();
         var decoded = PropagatedContextSerializer.TryDecode(encoded);
         decoded.Should().NotBeNull();
@@ -133,7 +135,7 @@ public sealed class PropagatedHeaderWireShapeTests
         consumer.RiskScore.Should().Be(77);
         consumer.WhoIsHashId.Should().Be("rt-whois");
 
-        // Identity / PII NOT propagated — consumer-side fields stay at defaults.
+        // Identity and PII are not propagated, so these fields keep their defaults.
         consumer.UserId.Should().BeNull();
         consumer.OrgId.Should().BeNull();
         consumer.ClientIp.Should().BeNull();

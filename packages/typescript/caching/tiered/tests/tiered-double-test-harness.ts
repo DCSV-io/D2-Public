@@ -6,6 +6,7 @@ import type {
   ICacheInvalidationBackplane,
   IDistributedCache,
   ILocalCache,
+  TokenBucketDecision,
 } from "@dcsv-io/d2-caching-abstractions";
 import type { ILogger, LogBindings } from "@dcsv-io/d2-logging";
 import {
@@ -67,8 +68,8 @@ type TestCallRecord = {
 
 /**
  * Faithful in-memory {@link ILocalCache} double with call recording and
- * force-fail hooks. Replace-trigger: prefer IT when a branch is exercised
- * against real DefaultLocalCache.
+ * force-fail hooks. Prefer an integration test when a branch can be exercised
+ * against the real DefaultLocalCache.
  */
 export class LocalCacheTestDouble implements ILocalCache {
   readonly calls: TestCallRecord[] = [];
@@ -269,6 +270,68 @@ export class LocalCacheTestDouble implements ILocalCache {
     return ok(true);
   }
 
+  async setIfEqual<T>(
+    key: string,
+    expected: T,
+    value: T,
+    expirationMs?: number,
+    signal?: AbortSignal,
+  ): Promise<D2Result<boolean>> {
+    this.record("setIfEqual", [key, expected, value, expirationMs], signal);
+    const override = this.maybeOverride<boolean>("setIfEqual");
+
+    if (override !== undefined) {
+      return override;
+    }
+
+    // An absent key does not match, and neither does a stored value that is not
+    // `expected`.
+    if (!this.store.has(key)) {
+      return ok(false);
+    }
+
+    if (
+      JSON.stringify(this.store.get(key)) !==
+      JSON.stringify(expected as unknown)
+    ) {
+      return ok(false);
+    }
+
+    this.store.set(key, value);
+
+    return ok(true);
+  }
+
+  async removeIfEqual<T>(
+    key: string,
+    expected: T,
+    signal?: AbortSignal,
+  ): Promise<D2Result<boolean>> {
+    this.record("removeIfEqual", [key, expected], signal);
+    const override = this.maybeOverride<boolean>("removeIfEqual");
+
+    if (override !== undefined) {
+      return override;
+    }
+
+    // An absent key does not match, and neither does a stored value that is not
+    // `expected`.
+    if (!this.store.has(key)) {
+      return ok(false);
+    }
+
+    if (
+      JSON.stringify(this.store.get(key)) !==
+      JSON.stringify(expected as unknown)
+    ) {
+      return ok(false);
+    }
+
+    this.store.delete(key);
+
+    return ok(true);
+  }
+
   async increment(
     key: string,
     amount = 1,
@@ -287,6 +350,28 @@ export class LocalCacheTestDouble implements ILocalCache {
     this.store.set(key, next);
 
     return ok(next);
+  }
+
+  async consumeToken(
+    key: string,
+    refillTokens: number,
+    refillIntervalMs: number,
+    burst: number,
+    cost = 1,
+    signal?: AbortSignal,
+  ): Promise<D2Result<TokenBucketDecision>> {
+    this.record(
+      "consumeToken",
+      [key, refillTokens, refillIntervalMs, burst, cost],
+      signal,
+    );
+    const override = this.maybeOverride<TokenBucketDecision>("consumeToken");
+
+    if (override !== undefined) {
+      return override;
+    }
+
+    return ok({ admitted: true, retryAfterMs: 0 });
   }
 
   async acquireLock(
@@ -330,8 +415,9 @@ export function createLocalCacheTestDouble(): LocalCacheTestDouble {
 
 /**
  * Faithful in-memory {@link IDistributedCache} double with call recording.
- * Implements getMany ladder, setNx true/false, increment, locks, and
- * ICacheSet stubs. Replace-trigger: prefer IT against real Redis.
+ * Implements the getMany outcomes (not found, some found, all found), setNx
+ * true/false, increment, locks, and ICacheSet stubs. Prefer an integration
+ * test against real Redis when a branch can be exercised there.
  */
 export class DistributedCacheTestDouble implements IDistributedCache {
   readonly calls: TestCallRecord[] = [];
@@ -539,6 +625,68 @@ export class DistributedCacheTestDouble implements IDistributedCache {
     return ok(true);
   }
 
+  async setIfEqual<T>(
+    key: string,
+    expected: T,
+    value: T,
+    expirationMs?: number,
+    signal?: AbortSignal,
+  ): Promise<D2Result<boolean>> {
+    this.record("setIfEqual", [key, expected, value, expirationMs], signal);
+    const override = this.maybeOverride<boolean>("setIfEqual");
+
+    if (override !== undefined) {
+      return override;
+    }
+
+    // An absent key does not match, and neither does a stored value that is not
+    // `expected`.
+    if (!this.store.has(key)) {
+      return ok(false);
+    }
+
+    if (
+      JSON.stringify(this.store.get(key)) !==
+      JSON.stringify(expected as unknown)
+    ) {
+      return ok(false);
+    }
+
+    this.store.set(key, value);
+
+    return ok(true);
+  }
+
+  async removeIfEqual<T>(
+    key: string,
+    expected: T,
+    signal?: AbortSignal,
+  ): Promise<D2Result<boolean>> {
+    this.record("removeIfEqual", [key, expected], signal);
+    const override = this.maybeOverride<boolean>("removeIfEqual");
+
+    if (override !== undefined) {
+      return override;
+    }
+
+    // An absent key does not match, and neither does a stored value that is not
+    // `expected`.
+    if (!this.store.has(key)) {
+      return ok(false);
+    }
+
+    if (
+      JSON.stringify(this.store.get(key)) !==
+      JSON.stringify(expected as unknown)
+    ) {
+      return ok(false);
+    }
+
+    this.store.delete(key);
+
+    return ok(true);
+  }
+
   async increment(
     key: string,
     amount = 1,
@@ -557,6 +705,28 @@ export class DistributedCacheTestDouble implements IDistributedCache {
     this.store.set(key, next);
 
     return ok(next);
+  }
+
+  async consumeToken(
+    key: string,
+    refillTokens: number,
+    refillIntervalMs: number,
+    burst: number,
+    cost = 1,
+    signal?: AbortSignal,
+  ): Promise<D2Result<TokenBucketDecision>> {
+    this.record(
+      "consumeToken",
+      [key, refillTokens, refillIntervalMs, burst, cost],
+      signal,
+    );
+    const override = this.maybeOverride<TokenBucketDecision>("consumeToken");
+
+    if (override !== undefined) {
+      return override;
+    }
+
+    return ok({ admitted: true, retryAfterMs: 0 });
   }
 
   async acquireLock(
@@ -641,7 +811,7 @@ export class DistributedCacheTestDouble implements IDistributedCache {
     return ok(0);
   }
 
-  // Broadcast stubs - tiered must NOT call these
+  // Broadcast stubs - tiered must not call these
   async setAndBroadcast<T>(
     key: string,
     value: T,
@@ -707,12 +877,13 @@ type TestInvalidationHandler = (
 /**
  * Faithful multi-handler {@link ICacheInvalidationBackplane} double.
  * Everyone-acts: publish delivers to all handlers including publisher.
- * Dispose unsubscribes. Replace-trigger: prefer IT against real Redis.
+ * Dispose unsubscribes. Prefer an integration test against real Redis when a
+ * branch can be exercised there.
  */
 export class BackplaneTestDouble implements ICacheInvalidationBackplane {
   readonly handlers = new Set<TestInvalidationHandler>();
   /**
-   * Per-subscription AbortController — mirrors production backplane where
+   * Per-subscription AbortController - mirrors production backplane where
    * handlers receive the **subscription** signal, not the publish signal.
    */
   private readonly handlerControllers = new Map<

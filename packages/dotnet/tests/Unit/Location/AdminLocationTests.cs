@@ -17,15 +17,17 @@ using Xunit;
 using LocationPostalCodeValidator = DcsvIo.D2.Location.IPostalCodeValidator;
 
 /// <summary>
-/// Adversarial test coverage for <see cref="AdminLocation"/> per §7.1 matrix:
-/// all 6 country/subdivision coherence cases, all-null
-/// rejection, postal-code validator integration, city / postal cleaning,
-/// CRLF / NUL injection in city + postal, HashId invariants.
+/// Adversarial test coverage for <see cref="AdminLocation"/>:
+/// the six country and subdivision coherence cases (all-null rejection, country
+/// only, subdivision only, country with a matching subdivision, a mismatch, and
+/// city or postal code with no country or subdivision), postal-code validator
+/// integration, city and postal cleaning, CRLF
+/// injection in city and postal, and HashId invariants.
 /// </summary>
 public sealed class AdminLocationTests
 {
     // -----------------------------------------------------------------------
-    // Happy path — country + matching subdivision
+    // Happy path - country + matching subdivision
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -40,7 +42,7 @@ public sealed class AdminLocationTests
     }
 
     // -----------------------------------------------------------------------
-    // Case 1: all-null rejects
+    // Case 1: all-null input is rejected
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -75,7 +77,7 @@ public sealed class AdminLocationTests
     }
 
     // -----------------------------------------------------------------------
-    // Case 3: subdivision-only auto-populates country
+    // Case 3: subdivision-only input sets the country from the subdivision
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -90,7 +92,7 @@ public sealed class AdminLocationTests
     }
 
     // -----------------------------------------------------------------------
-    // Case 5: mismatch fails
+    // Case 5: a country and subdivision mismatch fails
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -105,7 +107,7 @@ public sealed class AdminLocationTests
     }
 
     // -----------------------------------------------------------------------
-    // City-only / postal-only — non-degenerate single-field cases
+    // City-only and postal-only input - valid single-field cases
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -231,7 +233,7 @@ public sealed class AdminLocationTests
     }
 
     // -----------------------------------------------------------------------
-    // Adversarial — CRLF / NUL in city + postal
+    // Adversarial - CRLF in city and postal
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -255,27 +257,27 @@ public sealed class AdminLocationTests
     }
 
     // -----------------------------------------------------------------------
-    // Regression: BubbleFail propagates full upstream failure metadata
+    // Regression: BubbleFail propagates the full upstream failure metadata
     //
-    // Before the fix, AdminLocation used ValidationFailed(messages: ...) which
-    // dropped InputErrors (and StatusCode/ErrorCode/TraceId) from the upstream
-    // postal-validator result. After the fix, BubbleFail is used and ALL
-    // upstream failure metadata is preserved.
+    // AdminLocation returns the postal-validator failure with BubbleFail, which
+    // keeps InputErrors, StatusCode, ErrorCode and TraceId. Rebuilding the
+    // failure with ValidationFailed(messages: ...) would drop InputErrors and
+    // that other metadata.
     // -----------------------------------------------------------------------
 
     [Fact]
     public void Create_PostalValidatorFailureWithInputErrors_InputErrorsPropagated()
     {
-        // Arrange — a stub validator that returns ValidationFailed with InputErrors.
+        // Arrange - a stub validator that returns ValidationFailed with InputErrors.
         var validator = new StubPostalCodeValidatorWithInputErrors();
 
-        // Act — before the BubbleFail fix, InputErrors would have been dropped.
+        // Act - the result must keep the InputErrors that the validator returned.
         var result = AdminLocation.Create(
             CountryCode.US,
             postalCode: "INVALID",
             postalCodeValidator: validator);
 
-        // Assert — failure AND InputErrors must be present.
+        // Assert - the result is a failure and holds the InputErrors.
         result.Success.Should().BeFalse();
         result.InputErrors.Should().NotBeNullOrEmpty();
         result.InputErrors.Should().ContainSingle()
@@ -283,7 +285,7 @@ public sealed class AdminLocationTests
     }
 
     // -----------------------------------------------------------------------
-    // Length caps — City
+    // Length caps - City
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -304,14 +306,15 @@ public sealed class AdminLocationTests
     }
 
     // -----------------------------------------------------------------------
-    // Cap is measured on the post-clean value — City (T8)
+    // The cap applies to the cleaned value - City (T8)
     // -----------------------------------------------------------------------
 
     [Fact]
     public void Create_City_RawOver_CollapsesBelowMax_ReturnsOk()
     {
-        // Raw input is CITY_MAX chars of 'a' followed by a trailing space.
-        // CleanStr() trims trailing whitespace → post-clean length == CITY_MAX → accepted.
+        // The raw input is CITY_MAX 'a' characters followed by a trailing space.
+        // CleanStr() trims trailing whitespace, so the cleaned length equals
+        // CITY_MAX and the city is accepted.
         var city = new string('a', FieldConstraints.CITY_MAX) + " ";
         var result = AdminLocation.Create(city: city);
         result.Success.Should().BeTrue();
@@ -319,17 +322,18 @@ public sealed class AdminLocationTests
     }
 
     // -----------------------------------------------------------------------
-    // Hash-stability regression — golden-value pin (T9)
+    // Hash-stability regression - golden-value pin (T9)
     // -----------------------------------------------------------------------
 
     [Fact]
     public void Create_HashId_KnownInput_MatchesGoldenValue()
     {
-        // Pin: AdminLocation.Create(CountryCode.US) →
-        //   hash input "|||US" → SHA-256(UTF-8) → v1.<64-hex>.
-        // Golden value sourced from parity-fixtures.json cases
+        // Pin: AdminLocation.Create(CountryCode.US) ->
+        //   hash input "|||US" -> SHA-256(UTF-8) -> v1.<64-hex>.
+        // The golden value comes from the parity-fixtures.json cases
         // "admin-only-us-country" and "admin-country-only-us".
-        // A hash algorithm change causes this to fail and prevents silent drift.
+        // A change to the hash algorithm fails this test and prevents silent
+        // drift.
         const string expected_hash =
             "v1.3e2a439dd69d750bc122573cfa99710970cdb7d95342a4aa731a0245cd946981";
         var result = AdminLocation.Create(CountryCode.US);
@@ -337,13 +341,14 @@ public sealed class AdminLocationTests
     }
 
     // -----------------------------------------------------------------------
-    // Length caps — PostalCode
+    // Length caps - PostalCode
     // -----------------------------------------------------------------------
 
     [Fact]
     public void Create_PostalCode_ExactlyMax_ReturnsOk()
     {
-        // POSTAL_CODE_MAX=16 — use a 16-char alphanumeric string (no validator).
+        // POSTAL_CODE_MAX=16, so use a 16-character alphanumeric string with
+        // no validator.
         var result = AdminLocation.Create(
             postalCode: new string('9', FieldConstraints.POSTAL_CODE_MAX));
         result.Success.Should().BeTrue();
@@ -361,14 +366,14 @@ public sealed class AdminLocationTests
     }
 
     // -----------------------------------------------------------------------
-    // Floor-before-validator composition
+    // The length cap runs before the validator
     // -----------------------------------------------------------------------
 
     [Fact]
     public void Create_PostalCode_OverMax_WithValidator_CapFailsBeforeValidator()
     {
-        // An over-max postal must fail with POSTAL_CODE_TOO_LONG and the
-        // validator must never be invoked — the cap is the unconditional floor.
+        // An over-max postal code fails with POSTAL_CODE_TOO_LONG and the
+        // validator is never invoked, because the cap applies unconditionally.
         var spy = new SpyPostalCodeValidator();
         var result = AdminLocation.Create(
             postalCode: new string('9', FieldConstraints.POSTAL_CODE_MAX + 1),
@@ -383,7 +388,8 @@ public sealed class AdminLocationTests
     [Fact]
     public void Create_PostalCode_ExactlyMax_WithoutValidator_ReturnsOk()
     {
-        // A 16-char postal with no validator passes the floor and is accepted.
+        // A 16-character postal code with no validator passes the cap and is
+        // accepted.
         var result = AdminLocation.Create(
             postalCode: new string('9', FieldConstraints.POSTAL_CODE_MAX));
         result.Success.Should().BeTrue();
@@ -396,10 +402,10 @@ public sealed class AdminLocationTests
 
     /// <summary>
     /// Stub validator that fails with a <see cref="D2Result{TData}.ValidationFailed"/>
-    /// carrying per-field <see cref="InputError"/> entries — used to verify that
-    /// <see cref="AdminLocation.Create"/> propagates the full upstream failure via
-    /// <see cref="D2Result{TData}.BubbleFail"/> rather than reconstructing a partial
-    /// failure that drops <c>InputErrors</c>.
+    /// that holds per-field <see cref="InputError"/> entries. It verifies that
+    /// <see cref="AdminLocation.Create"/> propagates the full upstream failure
+    /// through <see cref="D2Result{TData}.BubbleFail"/> and does not rebuild a
+    /// partial failure that drops <c>InputErrors</c>.
     /// </summary>
     private sealed class StubPostalCodeValidatorWithInputErrors : LocationPostalCodeValidator
     {
@@ -412,8 +418,8 @@ public sealed class AdminLocationTests
     }
 
     /// <summary>
-    /// Spy validator that records whether it was invoked — used to prove
-    /// that the length-cap floor fires BEFORE the validator is called.
+    /// Spy validator that records whether it was invoked. It shows that the
+    /// length cap runs before the validator is called.
     /// </summary>
     private sealed class SpyPostalCodeValidator : LocationPostalCodeValidator
     {

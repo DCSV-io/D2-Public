@@ -14,7 +14,7 @@ class TestClock {
   }
 }
 
-describe("CircuitBreaker — Closed → Open → HalfOpen → Closed", () => {
+describe("CircuitBreaker - Closed -> Open -> HalfOpen -> Closed", () => {
   it("starts Closed and stays Closed on success", async () => {
     const cb = new CircuitBreaker<number>({
       failureThreshold: 2,
@@ -55,7 +55,7 @@ describe("CircuitBreaker — Closed → Open → HalfOpen → Closed", () => {
     await expect(cb.execute(async () => 1)).rejects.toThrow(CircuitOpenError);
   });
 
-  it("transitions Open → HalfOpen after cooldown", async () => {
+  it("transitions Open -> HalfOpen after cooldown", async () => {
     const clock = new TestClock();
     const cb = new CircuitBreaker<number>({
       failureThreshold: 1,
@@ -70,7 +70,7 @@ describe("CircuitBreaker — Closed → Open → HalfOpen → Closed", () => {
     expect(cb.currentState).toBe(CircuitState.HalfOpen);
   });
 
-  it("HalfOpen success → Closed; failure → Open (cooldown re-armed)", async () => {
+  it("HalfOpen success -> Closed; failure -> Open (cooldown re-armed)", async () => {
     const clock = new TestClock();
     const cb = new CircuitBreaker<number>({
       failureThreshold: 1,
@@ -90,7 +90,7 @@ describe("CircuitBreaker — Closed → Open → HalfOpen → Closed", () => {
     ).rejects.toThrow();
     expect(cb.currentState).toBe(CircuitState.Open);
     clock.advance(100);
-    // HalfOpen failure → Open
+    // HalfOpen failure -> Open
     await expect(
       cb.execute(async () => Promise.reject(new Error("y"))),
     ).rejects.toThrow();
@@ -119,7 +119,7 @@ describe("CircuitBreaker — Closed → Open → HalfOpen → Closed", () => {
     await expect(
       cb.execute(async () => Promise.reject(new Error("x"))),
     ).rejects.toThrow();
-    // cooldownMs=0 → immediately HalfOpen
+    // cooldownMs=0 -> immediately HalfOpen
     expect(cb.currentState).toBe(CircuitState.HalfOpen);
   });
 
@@ -139,9 +139,9 @@ describe("CircuitBreaker — Closed → Open → HalfOpen → Closed", () => {
 });
 
 // ===========================================================================
-// F-17 — HalfOpen single-probe enforcement (C# Interlocked.CompareExchange
-// parity). JS is single-threaded so a synchronous check-and-set on a boolean
-// flag, performed BEFORE the first await, guarantees exactly one probe.
+// HalfOpen single-probe enforcement (C# Interlocked.CompareExchange
+// parity). JavaScript is single-threaded, so a synchronous check-and-set on a
+// boolean flag, performed before the first await, guarantees exactly one probe.
 // ===========================================================================
 
 function deferred<T>(): {
@@ -158,7 +158,7 @@ function deferred<T>(): {
   return { promise, resolve, reject };
 }
 
-describe("CircuitBreaker — F-17 HalfOpen single-probe", () => {
+describe("CircuitBreaker - HalfOpen single-probe", () => {
   it("only ONE of N concurrent HalfOpen callers runs the op; losers throw CircuitOpenError", async () => {
     const clock = new TestClock();
     const cb = new CircuitBreaker<number>({
@@ -167,13 +167,13 @@ describe("CircuitBreaker — F-17 HalfOpen single-probe", () => {
       nowFunc: () => clock.now,
     });
 
-    // Trip → Open.
+    // Trip -> Open.
     await expect(
       cb.execute(async () => Promise.reject(new Error("trip"))),
     ).rejects.toThrow();
     expect(cb.currentState).toBe(CircuitState.Open);
 
-    // Elapse cooldown → next execute will transition to HalfOpen.
+    // Elapse cooldown -> next execute will transition to HalfOpen.
     clock.advance(100);
     expect(cb.currentState).toBe(CircuitState.HalfOpen);
 
@@ -197,7 +197,7 @@ describe("CircuitBreaker — F-17 HalfOpen single-probe", () => {
     // Exactly one caller invoked the op (the single probe).
     expect(opInvocations).toBe(1);
 
-    // Release the probe → it succeeds → Closed.
+    // Release the probe -> it succeeds -> Closed.
     probe.resolve(7);
     const results = await settled;
 
@@ -244,7 +244,7 @@ describe("CircuitBreaker — F-17 HalfOpen single-probe", () => {
 
     probe.resolve(42);
     const results = await settled;
-    // The probe winner returns 42; the two losers return the fallback (-1).
+    // The probe winner returns 42; the losers return the fallback (-1).
     expect(results.filter((v) => v === 42)).toHaveLength(1);
     expect(results.filter((v) => v === -1)).toHaveLength(2);
   });
@@ -260,11 +260,11 @@ describe("CircuitBreaker — F-17 HalfOpen single-probe", () => {
       cb.execute(async () => Promise.reject(new Error("trip"))),
     ).rejects.toThrow();
     clock.advance(100);
-    // Probe succeeds → Closed → probeInFlight cleared.
+    // Probe succeeds -> Closed -> probeInFlight cleared.
     expect(await cb.execute(async () => 1)).toBe(1);
     expect(cb.currentState).toBe(CircuitState.Closed);
 
-    // Trip again, elapse cooldown — a fresh probe is admitted (flag was reset).
+    // Trip again, elapse cooldown - a fresh probe is admitted (flag was reset).
     await expect(
       cb.execute(async () => Promise.reject(new Error("trip2"))),
     ).rejects.toThrow();
@@ -274,11 +274,11 @@ describe("CircuitBreaker — F-17 HalfOpen single-probe", () => {
 });
 
 // ===========================================================================
-// F-18 — fallback parameter (C# ExecuteAsync(operation, fallback?, ct) parity)
+// Fallback parameter (C# ExecuteAsync(operation, fallback?, ct) parity)
 // ===========================================================================
 
-describe("CircuitBreaker — F-18 fallback parameter", () => {
-  it("Open + fallback → returns fallback value, no throw", async () => {
+describe("CircuitBreaker - fallback parameter", () => {
+  it("Open + fallback -> returns fallback value, no throw", async () => {
     const clock = new TestClock();
     const cb = new CircuitBreaker<number>({
       failureThreshold: 1,
@@ -303,7 +303,7 @@ describe("CircuitBreaker — F-18 fallback parameter", () => {
     expect(opRan).toBe(false);
   });
 
-  it("Open + async fallback → awaits and returns the fallback value", async () => {
+  it("Open + async fallback -> awaits and returns the fallback value", async () => {
     const clock = new TestClock();
     const cb = new CircuitBreaker<number>({
       failureThreshold: 1,
@@ -320,7 +320,7 @@ describe("CircuitBreaker — F-18 fallback parameter", () => {
     expect(value).toBe(123);
   });
 
-  it("Open + NO fallback → throws CircuitOpenError", async () => {
+  it("Open + NO fallback -> throws CircuitOpenError", async () => {
     const clock = new TestClock();
     const cb = new CircuitBreaker<number>({
       failureThreshold: 1,
@@ -335,10 +335,10 @@ describe("CircuitBreaker — F-18 fallback parameter", () => {
 });
 
 // ===========================================================================
-// F-29 — isFailure value-based failure predicate (C# parity)
+// isFailure value-based failure predicate (C# parity)
 // ===========================================================================
 
-describe("CircuitBreaker — F-29 isFailure value predicate", () => {
+describe("CircuitBreaker - isFailure value predicate", () => {
   it("a returned value satisfying isFailure trips the breaker WITHOUT throwing", async () => {
     const clock = new TestClock();
     const cb = new CircuitBreaker<{ ok: boolean }>({
@@ -348,17 +348,17 @@ describe("CircuitBreaker — F-29 isFailure value predicate", () => {
       isFailure: (r) => !r.ok,
     });
 
-    // First failing return — counts, but is returned (no throw).
+    // First failing return - counts, but is returned (no throw).
     const r1 = await cb.execute(async () => ({ ok: false }));
     expect(r1).toEqual({ ok: false });
     expect(cb.currentState).toBe(CircuitState.Closed);
 
-    // Second failing return — threshold reached → Open.
+    // Second failing return - threshold reached -> Open.
     const r2 = await cb.execute(async () => ({ ok: false }));
     expect(r2).toEqual({ ok: false });
     expect(cb.currentState).toBe(CircuitState.Open);
 
-    // Now Open → fast-fail.
+    // Now Open -> fast-fail.
     await expect(cb.execute(async () => ({ ok: true }))).rejects.toThrow(
       CircuitOpenError,
     );
@@ -373,9 +373,9 @@ describe("CircuitBreaker — F-29 isFailure value predicate", () => {
       isFailure: (r) => !r.ok,
     });
     await cb.execute(async () => ({ ok: false })); // count = 1
-    await cb.execute(async () => ({ ok: true })); // success → count reset
+    await cb.execute(async () => ({ ok: true })); // success -> count reset
     await cb.execute(async () => ({ ok: false })); // count = 1 again
-    // Still Closed — the success in between reset the counter, so two
+    // Still Closed - the success in between reset the counter, so two
     // non-consecutive failures never reach the threshold.
     expect(cb.currentState).toBe(CircuitState.Closed);
   });
@@ -396,11 +396,11 @@ describe("CircuitBreaker — F-29 isFailure value predicate", () => {
 });
 
 // ===========================================================================
-// F-19 — onStateChange callback (C# parity: fires on real transitions only)
+// onStateChange callback (C# parity: fires on real transitions only)
 // ===========================================================================
 
-describe("CircuitBreaker — F-19 onStateChange callback", () => {
-  it("fires on Closed→Open, Open→HalfOpen, HalfOpen→Closed and HalfOpen→Open", async () => {
+describe("CircuitBreaker - onStateChange callback", () => {
+  it("fires on Closed->Open, Open->HalfOpen, HalfOpen->Closed and HalfOpen->Open", async () => {
     const clock = new TestClock();
     const transitions: [CircuitState, CircuitState][] = [];
     const cb = new CircuitBreaker<number>({
@@ -410,16 +410,16 @@ describe("CircuitBreaker — F-19 onStateChange callback", () => {
       onStateChange: (from, to) => transitions.push([from, to]),
     });
 
-    // Closed → Open.
+    // Closed -> Open.
     await expect(
       cb.execute(async () => Promise.reject(new Error("x"))),
     ).rejects.toThrow();
-    // Open → HalfOpen (transition happens inside execute after cooldown) →
-    // HalfOpen → Closed (probe succeeds).
+    // Open -> HalfOpen (transition happens inside execute after cooldown) ->
+    // HalfOpen -> Closed (probe succeeds).
     clock.advance(100);
     expect(await cb.execute(async () => 1)).toBe(1);
 
-    // Trip again, then a HalfOpen failure → Open.
+    // Trip again, then a HalfOpen failure -> Open.
     await expect(
       cb.execute(async () => Promise.reject(new Error("y"))),
     ).rejects.toThrow();
@@ -438,7 +438,7 @@ describe("CircuitBreaker — F-19 onStateChange callback", () => {
     ]);
   });
 
-  it("does NOT fire on an idempotent Closed→Closed (repeated success)", async () => {
+  it("does NOT fire on an idempotent Closed->Closed (repeated success)", async () => {
     const transitions: [CircuitState, CircuitState][] = [];
     const cb = new CircuitBreaker<number>({
       failureThreshold: 2,
@@ -453,11 +453,11 @@ describe("CircuitBreaker — F-19 onStateChange callback", () => {
 });
 
 // ===========================================================================
-// F-20 — reset() (C# Reset() parity)
+// reset() (C# Reset() parity)
 // ===========================================================================
 
-describe("CircuitBreaker — F-20 reset()", () => {
-  it("reset from Open → Closed, clears the failure count, fires the callback", async () => {
+describe("CircuitBreaker - reset()", () => {
+  it("reset from Open -> Closed, clears the failure count, fires the callback", async () => {
     const clock = new TestClock();
     const transitions: [CircuitState, CircuitState][] = [];
     const cb = new CircuitBreaker<number>({
@@ -476,7 +476,7 @@ describe("CircuitBreaker — F-20 reset()", () => {
 
     cb.reset();
     expect(cb.currentState).toBe(CircuitState.Closed);
-    // The Open→Closed transition fired.
+    // The Open->Closed transition fired.
     expect(transitions).toContainEqual([
       CircuitState.Open,
       CircuitState.Closed,

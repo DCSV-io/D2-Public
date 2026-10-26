@@ -24,16 +24,16 @@ internal static class TestKeyrings
     internal static PayloadCryptoKeyring SingleKey(string kid, string aad)
         => new(kid, new Dictionary<string, byte[]> { [kid] = RandomKey() }, AadFor(aad));
 
-    internal static PayloadCryptoKeyring AuditSingleKey()
-        => SingleKey("audit-2026q2", "audit");
+    internal static PayloadCryptoKeyring OrdersSingleKey()
+        => SingleKey("orders-2026q2", "orders");
 
-    internal static PayloadCryptoKeyring AuditTwoKeys()
+    internal static PayloadCryptoKeyring OrdersTwoKeys()
         => new(
-            "audit-2026q2",
+            "orders-2026q2",
             new Dictionary<string, byte[]>
             {
-                ["audit-2026q2"] = RandomKey(),
-                ["audit-2026q1"] = RandomKey(),
+                ["orders-2026q2"] = RandomKey(),
+                ["orders-2026q1"] = RandomKey(),
             },
-            AadFor("audit"));
+            AadFor("orders"));
 }

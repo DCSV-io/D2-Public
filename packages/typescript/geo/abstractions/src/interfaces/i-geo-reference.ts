@@ -18,26 +18,25 @@ import type { SubdivisionCode } from "../generated/typed-codes/subdivision-code.
 import type { TimezoneCode } from "../generated/typed-codes/timezone-code.g.js";
 
 /**
- * Mirror of .NET `DcsvIo.D2.Geo.Abstractions.IGeoReference` —
- * strongly-typed lookup contract for the seven reference-data catalogs.
+ * Mirror of .NET `DcsvIo.D2.Geo.Abstractions.IGeoReference`:
+ * strongly-typed lookup contract for the reference-data catalogs.
  * Every method takes a typed identifier (`*Code` real enum or wrapper
- * struct) and returns the single record shape — the type system enforces
- * the absence of a NotFound branch because the typed identifier IS the
+ * struct) and returns the single record shape. The type system enforces
+ * the absence of a NotFound branch because the typed identifier is the
  * catalog.
  *
- * Implementations live in `@dcsv-io/d2-geo-default` backed by the codegen-emitted
- * static data; tests can supply ad-hoc fixtures by implementing this
+ * The implementation in `@dcsv-io/d2-geo-default` is backed by the
+ * codegen-emitted static data; an ad-hoc fixture can implement this
  * interface directly.
  *
- * The lookup methods are exact-match by primary code — they never perform
- * name-based resolution. For free-form text → entity lookups use
+ * The lookup methods are exact-match by primary code - they never perform
+ * name-based resolution. For free-form text -> entity lookups use
  * `IGeoNameResolver` from `../name-resolution/i-geo-name-resolver.js`.
  *
  * Lookups return deprecated entities by default because deprecated codes
- * (`YU`, `SU`, etc.) must remain resolvable for hash citations + audit
- * replay. UI / dropdown code that wants to filter deprecated entries out
- * should walk the catalog arrays and check `entity.deprecation === undefined`
- * explicitly.
+ * (`YU`, `SU`, etc.) must remain resolvable for hash citations and audit
+ * replay. To filter deprecated entries out, walk the catalog arrays and check
+ * `entity.deprecation === undefined` explicitly.
  */
 export interface IGeoReference {
   /** Look up a `Country` by its typed code. */

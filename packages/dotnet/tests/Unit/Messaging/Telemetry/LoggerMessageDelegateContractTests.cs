@@ -18,7 +18,7 @@ using Xunit;
 /// <summary>
 /// PII-safety contract for the messaging-stack <c>[LoggerMessage]</c> log
 /// delegates. Several real exceptions in this stack carry sensitive content
-/// in their <c>Message</c> property — most notably
+/// in their <c>Message</c> property - most notably
 /// <c>BrokerUnreachableException</c>, which embeds the AMQP URI password.
 /// Sinks (Serilog / OpenTelemetry / etc.) format the exception via
 /// <c>ex.ToString()</c> and persist the resulting string verbatim. The
@@ -31,12 +31,15 @@ public sealed class LoggerMessageDelegateContractTests
     {
         { typeof(MessagingLog), nameof(MessagingLog.PublishTransientFailure) },
         { typeof(MessagingLog), nameof(MessagingLog.PublishTerminalFailure) },
+        { typeof(MessagingLog), nameof(MessagingLog.PublishReturned) },
+        { typeof(MessagingLog), nameof(MessagingLog.PublishUnroutableTerminal) },
         { typeof(RabbitMqConnectionLog), nameof(RabbitMqConnectionLog.ReconnectAttemptFailed) },
         { typeof(RabbitMqConnectionLog), nameof(RabbitMqConnectionLog.ConnectionCloseFailed) },
         { typeof(ChannelPoolLog), nameof(ChannelPoolLog.ChannelCloseFailed) },
         { typeof(SubscriberLog), nameof(SubscriberLog.HandlerThrew) },
         { typeof(SubscriberLog), nameof(SubscriberLog.BoundaryFailure) },
         { typeof(SubscriberLog), nameof(SubscriberLog.DlqRepublishFailed) },
+        { typeof(SubscriberLog), nameof(SubscriberLog.DlqSettlementFailed) },
         { typeof(SubscriberLog), nameof(SubscriberLog.AckFailed) },
         { typeof(TopologyLog), nameof(TopologyLog.DeclarationFailed) },
     };
@@ -53,7 +56,7 @@ public sealed class LoggerMessageDelegateContractTests
             .Any(p => typeof(Exception).IsAssignableFrom(p.ParameterType));
 
         hasExceptionParam.Should().BeFalse(
-            $"{logType.Name}.{method} must take string exType, not Exception — "
+            $"{logType.Name}.{method} must take string exType, not Exception - "
             + "passing Exception causes log sinks to format ex.ToString() and "
             + "leak ex.Message contents (e.g. AMQP URI password from "
             + "BrokerUnreachableException) into structured logs.");
@@ -64,9 +67,10 @@ public sealed class LoggerMessageDelegateContractTests
     {
         // HostStartupFaulted is the ContinueWith-only sink for an unobserved
         // background-task fault, and the operator needs the full stack to
-        // debug. This fault path never sees user-input-derived exceptions,
-        // so the PII guard doesn't apply. Pin the design choice so a future
-        // "consistency" refactor doesn't strip it.
+        // debug it. This fault path never sees exceptions derived from user
+        // input, so the PII guard does not apply and the delegate takes an
+        // Exception. The test pins that choice: it fails if a later
+        // consistency refactor makes the delegate stop taking the Exception.
         var info = typeof(SubscriberLog).GetMethod(
             nameof(SubscriberLog.HostStartupFaulted),
             BindingFlags.Public | BindingFlags.Static);
@@ -81,12 +85,12 @@ public sealed class LoggerMessageDelegateContractTests
     {
         // DeclarationFailedFaultSink is the ContinueWith fault sink for the
         // background topology-declaration task in TopologyHostedService.
-        // Same rationale as HostStartupFaulted — operator needs full stack
-        // for an unobserved background fault. The INLINE catch path in
-        // DefaultTopologyDeclarer uses the sanitized DeclarationFailed
-        // delegate (pinned in LeakProneLogDelegates above) instead, since
-        // OperationInterruptedException.Message from RabbitMQ.Client can
-        // include broker-side text.
+        // The reason is the one for HostStartupFaulted: the operator needs
+        // the full stack of an unobserved background fault. The inline catch
+        // path in DefaultTopologyDeclarer uses the sanitized
+        // DeclarationFailed delegate (pinned in LeakProneLogDelegates above)
+        // instead, because OperationInterruptedException.Message from
+        // RabbitMQ.Client can include broker-side text.
         var info = typeof(TopologyLog).GetMethod(
             nameof(TopologyLog.DeclarationFailedFaultSink),
             BindingFlags.Public | BindingFlags.Static);

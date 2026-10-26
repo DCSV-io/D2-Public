@@ -7,16 +7,17 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   </PropertyGroup>
 
   <!--
-    Vocabulary for repo-flavored handlers — the seam app code touches when it
-    needs to discriminate database-specific failures (unique violation, FK
-    violation, deadlock, concurrency conflict, connection failure, etc.).
+    Vocabulary for repo handlers - the types for discriminating
+    database-specific failures (unique violation, FK violation, deadlock,
+    concurrency conflict, connection failure, etc.).
 
-    Pure abstractions: no EF Core, no Npgsql, no provider deps. Carries the
-    DbFailureKind enum + IDbExceptionClassifier interface (provider-impls live
-    in sibling packages like DcsvIo.D2.Handler.Repo.Postgres) plus extension
-    factories on D2Result so handlers can emit and callers can discriminate
-    typed DB failures via D2Result.UniqueViolation() / result.IsDeadlock /
-    etc., parallel to the built-in semantic factories on the result lib.
+    Pure abstractions: no EF Core, no Npgsql, no provider dependencies. It
+    contains the DbFailureKind enum and the IDbExceptionClassifier interface
+    (provider implementations are in sibling packages like
+    DcsvIo.D2.Handler.Repo.Postgres), plus extension factories on D2Result, so
+    handlers can emit typed DB failures with D2Result.UniqueViolation() and
+    callers can discriminate them with result.IsDbDeadlock and so on, in
+    parallel with the built-in semantic factories on the result lib.
   -->
 
   <ItemGroup>
@@ -26,9 +27,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.1</Version>
+    <Version>0.1.19</Version>
     <PackageId>DcsvIo.D2.Handler.Repo.Abstractions</PackageId>
-    <Description>Vocabulary for repo-flavored D2 handlers — the database-failure discrimination contract (unique, FK, deadlock, concurrency, connection), zero infrastructure dependencies.</Description>
+    <Description>Vocabulary for repo-flavored D2 handlers - the database-failure discrimination contract (unique, FK, deadlock, concurrency, connection), zero infrastructure dependencies.</Description>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

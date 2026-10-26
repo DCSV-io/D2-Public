@@ -16,8 +16,9 @@ public sealed class OrgTypeTests
     [Fact]
     public void Enum_HasExactlyFiveMembers()
     {
-        // Adversarial: every new OrgType triggers a Scopes.g.cs re-emission
-        // (wildcard expansion) and may need new IsStaff / IsAdmin handling.
+        // Adversarial: every new OrgType makes the generator re-emit
+        // Scopes.g.cs (wildcard expansion) and may require new IsStaff and
+        // IsAdmin handling.
         const int expected_count = 5;
 
         Enum.GetNames<OrgType>().Should().HaveCount(expected_count);
@@ -38,8 +39,9 @@ public sealed class OrgTypeTests
     [InlineData(OrgType.Affiliate, 4)]
     public void Enum_UnderlyingIntValuesAreStable(OrgType orgType, int expected)
     {
-        // Adversarial: int values land in DB columns / activity tags. Reordering
-        // would silently re-classify orgs across the platform.
+        // Adversarial: the int values are stored in DB columns and in activity
+        // tags. Reordering the members would reclassify orgs across the
+        // platform with no compiler error.
         ((int)orgType).Should().Be(expected);
     }
 

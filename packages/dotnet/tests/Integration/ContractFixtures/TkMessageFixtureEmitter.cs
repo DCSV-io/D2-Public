@@ -17,20 +17,16 @@ using Xunit;
 /// <summary>
 /// Emits one fixture per TKMessage wire-shape scenario reflected off the
 /// .NET codegen-emitted static class <see cref="TkMessageWireShape"/>.
-/// Two fixture families:
+/// The fixture families are:
 /// <list type="bullet">
 ///   <item>
-///     <c>shape</c> — the property-name catalog (KEY / PARAMS → wire
-///     values). TS-side parity test asserts byte-equality against the
-///     codegen-emitted TS catalog.
+///     <c>shape</c> - the property-name catalog (KEY / PARAMS -> wire
+///     values), as in the codegen-emitted TypeScript catalog.
 ///   </item>
 ///   <item>
-///     <c>round-trip-*</c> — round-trip JSON fixtures produced by
+///     <c>round-trip-*</c> - round-trip JSON fixtures produced by
 ///     serializing real <see cref="TKMessage"/> instances via
-///     <see cref="TKMessageJsonConverter"/>. The TS-side parity test
-///     reads the JSON bytes, parses them, and asserts the resulting
-///     shape matches the spec — closes the cross-language wire-shape
-///     loop end-to-end (serializer ↔ parser).
+///     <see cref="TKMessageJsonConverter"/>.
 ///   </item>
 /// </list>
 /// </summary>
@@ -51,9 +47,9 @@ public sealed class TkMessageFixtureEmitter
     public void Emit_RoundTripNoParams()
     {
         // Round-trip a no-params TKMessage via the .NET serializer.
-        // The fixture captures the exact JSON bytes the TS-side parser
-        // must accept and the same bytes the TS-side serializer must
-        // produce. Byte-equal on both sides → wire parity proven.
+        // The fixture holds the exact JSON the .NET serializer produces. The
+        // TypeScript parser must accept it, and the TypeScript serializer must
+        // produce the same JSON.
         var message = new TKMessage("common_errors_NOT_FOUND");
         WriteRoundTripFixture("round-trip-no-params", message);
     }
@@ -79,7 +75,7 @@ public sealed class TkMessageFixtureEmitter
     public void Emit_RoundTripMultipleParams()
     {
         // Round-trip a TKMessage with multiple parameters, exercising
-        // dictionary serialization + ordering tolerance on the TS side.
+        // dictionary serialization and the ordering of the parameters.
         var message = new TKMessage(
             "auth_errors_PASSWORD_WEAK",
             new Dictionary<string, string>(StringComparer.Ordinal)
@@ -136,8 +132,8 @@ public sealed class TkMessageFixtureEmitter
     /// <summary>
     /// Reflect every <c>public const string</c> on the wire-shape catalog
     /// type; produce a sorted map keyed by the constant name (e.g.
-    /// <c>KEY</c>) so the fixture mirrors the TS-side const-map shape
-    /// one-to-one.
+    /// <c>KEY</c>) so the fixture has the shape of the TypeScript const
+    /// map.
     /// </summary>
     private static SortedDictionary<string, object?> EnumerateConstants(Type type)
     {

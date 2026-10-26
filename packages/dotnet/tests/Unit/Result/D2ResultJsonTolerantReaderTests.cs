@@ -22,15 +22,14 @@ using Xunit;
 /// two directions:
 /// </para>
 /// <list type="bullet">
-///   <item><b>Serialize-side</b> — the serialized envelope contains only the declared catalog
+///   <item><b>Serialize-side</b> - the serialized envelope contains only the declared catalog
 ///   keys (<see cref="D2ResultEnvelopeFieldNames.AllFields"/>); extra keys are never emitted.
 ///   This is already pinned by <see cref="D2ResultJsonShapeTests.Serialize_WireKeysSubsetOfCatalog"/>.
 ///   </item>
-///   <item><b>Deserialize-side (DTO payloads)</b> — the STJ default has no
+///   <item><b>Deserialize-side (DTO payloads)</b> - the STJ default has no
 ///   <c>UnmappedMemberHandling = Disallow</c> set anywhere in the repository, so a consumer
 ///   that deserializes a <c>data</c> payload DTO from a JSON body carrying extra unknown keys
-///   does NOT throw. These tests pin that assumption on concrete DTO shapes that a service
-///   handler or BFF would receive.
+///   does NOT throw. These tests pin that assumption on concrete DTO payload shapes.
 ///   </item>
 /// </list>
 /// </summary>
@@ -48,10 +47,10 @@ public sealed class D2ResultJsonTolerantReaderTests
     [Fact]
     public void Deserialize_DtoPayload_ExtraField_IgnoredByDefaultStj()
     {
-        // Simulate a service consumer receiving a response whose data payload carries
-        // a field added by a newer server version.  STJ's default UnmappedMemberHandling
-        // is JsonUnmappedMemberHandling.Skip; the extra field is silently discarded and
-        // the known fields populate correctly.
+        // Simulates a response whose data payload carries a field added by a newer
+        // server version.  STJ's default UnmappedMemberHandling is
+        // JsonUnmappedMemberHandling.Skip, so STJ discards the extra field without an
+        // error and fills the known fields.
         const string json =
             """
             {
@@ -95,7 +94,7 @@ public sealed class D2ResultJsonTolerantReaderTests
 
     // ---------------------------------------------------------------------------
     // TR-JSON-3: the D2Result envelope wire shape never emits more than the declared
-    //            catalog — this pins the serialize-side of the Tolerant Reader contract
+    //            catalog - this pins the serialize-side of the Tolerant Reader contract
     //            (no accidental extra fields get emitted that could surprise a reader).
     // ---------------------------------------------------------------------------
 
@@ -121,15 +120,15 @@ public sealed class D2ResultJsonTolerantReaderTests
 
     // ---------------------------------------------------------------------------
     // TR-JSON-4: STJ options without explicit UnmappedMemberHandling=Disallow do NOT
-    //            disallow unknown members — pins the tolerant default is active.
+    //            disallow unknown members - pins the tolerant default is active.
     // ---------------------------------------------------------------------------
 
     [Fact]
     public void Deserialize_WithCamelCaseOptions_ExtraField_StillIgnoredByDefault()
     {
         // Even under a custom JsonSerializerOptions (e.g. CamelCase naming policy),
-        // the default UnmappedMemberHandling.Skip applies and extra fields are silently
-        // dropped.  If any caller had set Disallow this would throw.
+        // the default UnmappedMemberHandling.Skip applies and STJ discards extra
+        // fields without an error.  With Disallow set, this would throw.
         const string json = """{ "name": "widget", "count": 2, "unknownKey": "surprise" }""";
 
         var dto = JsonSerializer.Deserialize<WidgetData>(json, sr_camelCaseOptions);

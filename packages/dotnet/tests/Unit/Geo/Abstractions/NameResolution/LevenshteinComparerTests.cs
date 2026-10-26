@@ -21,7 +21,7 @@ using Xunit;
 public sealed class LevenshteinComparerTests
 {
     // ------------------------------------------------------------------
-    // Compare — identical strings
+    // Compare - identical strings
     // ------------------------------------------------------------------
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed class LevenshteinComparerTests
     }
 
     // ------------------------------------------------------------------
-    // Compare — null inputs treated as empty string
+    // Compare - null inputs treated as empty string
     // ------------------------------------------------------------------
 
     [Fact]
@@ -49,7 +49,7 @@ public sealed class LevenshteinComparerTests
     [Fact]
     public void Compare_FirstNull_TreatsAsEmpty()
     {
-        // null vs "abc" — edit distance 3 (three insertions).
+        // null vs "abc" - edit distance 3 (one insertion per character).
         LevenshteinComparer.Compare(null, "abc", maxDistance: 5).Should().Be(3);
     }
 
@@ -60,7 +60,7 @@ public sealed class LevenshteinComparerTests
     }
 
     // ------------------------------------------------------------------
-    // Compare — one side empty
+    // Compare - one side empty
     // ------------------------------------------------------------------
 
     [Theory]
@@ -74,65 +74,66 @@ public sealed class LevenshteinComparerTests
     }
 
     // ------------------------------------------------------------------
-    // Compare — single edit operations
+    // Compare - single edit operations
     // ------------------------------------------------------------------
 
     [Fact]
     public void Compare_SingleSubstitution_ReturnsOne()
     {
-        // "france" vs "fraace" — one substitution (n → a).
+        // "france" vs "fraace" - one substitution (n -> a).
         LevenshteinComparer.Compare("france", "fraace", maxDistance: 2).Should().Be(1);
     }
 
     [Fact]
     public void Compare_SingleInsertion_ReturnsOne()
     {
-        // "abc" vs "abbc" — one insertion.
+        // "abc" vs "abbc" - one insertion.
         LevenshteinComparer.Compare("abc", "abbc", maxDistance: 2).Should().Be(1);
     }
 
     [Fact]
     public void Compare_SingleDeletion_ReturnsOne()
     {
-        // "france" vs "frnce" — one deletion.
+        // "france" vs "frnce" - one deletion.
         LevenshteinComparer.Compare("france", "frnce", maxDistance: 2).Should().Be(1);
     }
 
     // ------------------------------------------------------------------
-    // Compare — transposition (NOT damerau — two ops, not one)
+    // Compare - transposition (NOT damerau - two ops, not one)
     // ------------------------------------------------------------------
 
     [Fact]
     public void Compare_Transposition_TwoOps()
     {
-        // "ab" vs "ba" — standard Levenshtein counts as 2 ops (no transposition op).
+        // "ab" vs "ba" - standard Levenshtein counts as 2 ops (no transposition op).
         LevenshteinComparer.Compare("ab", "ba", maxDistance: 3).Should().Be(2);
     }
 
     // ------------------------------------------------------------------
-    // Compare — case sensitivity
+    // Compare - case sensitivity
     // ------------------------------------------------------------------
 
     [Fact]
     public void Compare_DifferentCase_CountsAsEdits()
     {
-        // The comparer is case-sensitive — callers pre-normalize via NameNormalizer.
+        // The comparer is case-sensitive; input is pre-normalized through
+        // NameNormalizer.
         LevenshteinComparer.Compare("France", "france", maxDistance: 10).Should().Be(1);
     }
 
     // ------------------------------------------------------------------
-    // Compare — length-difference shortcut returns ceiling
+    // Compare - length-difference shortcut returns ceiling
     // ------------------------------------------------------------------
 
     [Fact]
     public void Compare_LengthDiffExceedsCap_ReturnsCeiling()
     {
-        // |"france".Length - "fr".Length| = 4 > maxDistance 2 → ceiling = 3.
+        // |"france".Length - "fr".Length| = 4 > maxDistance 2 -> ceiling = 3.
         LevenshteinComparer.Compare("france", "fr", maxDistance: 2).Should().Be(3);
     }
 
     // ------------------------------------------------------------------
-    // Compare — negative maxDistance sentinel
+    // Compare - negative maxDistance sentinel
     // ------------------------------------------------------------------
 
     [Fact]
@@ -152,32 +153,32 @@ public sealed class LevenshteinComparerTests
     }
 
     // ------------------------------------------------------------------
-    // Compare — early-termination cap (rowMin exceeds cap)
+    // Compare - early-termination cap (rowMin exceeds cap)
     // ------------------------------------------------------------------
 
     [Fact]
     public void Compare_HighlyDifferentStringsWithTightCap_ReturnsCeiling()
     {
-        // "abcdef" vs "xyz" — actual distance >= 4 but cap = 1, so ceiling = 2.
+        // "abcdef" vs "xyz" - actual distance >= 4 but cap = 1, so ceiling = 2.
         LevenshteinComparer.Compare("abcdef", "xyz", maxDistance: 1).Should().Be(2);
     }
 
     [Fact]
     public void Compare_DistanceExactlyAtCap_ReturnsExactDistance()
     {
-        // "abc" vs "xyz" — distance = 3, cap = 3 → returns 3.
+        // "abc" vs "xyz" - distance = 3, cap = 3 -> returns 3.
         LevenshteinComparer.Compare("abc", "xyz", maxDistance: 3).Should().Be(3);
     }
 
     [Fact]
     public void Compare_DistanceOneAboveCap_ReturnsCeiling()
     {
-        // "abcd" vs "xyz " — distance = 4, cap = 3 → ceiling = 4.
+        // "abcd" vs "xyz " - distance = 4, cap = 3 -> ceiling = 4.
         LevenshteinComparer.Compare("abcd", "xyz ", maxDistance: 3).Should().Be(4);
     }
 
     // ------------------------------------------------------------------
-    // IsWithin — happy path
+    // IsWithin - happy path
     // ------------------------------------------------------------------
 
     [Fact]
@@ -199,7 +200,7 @@ public sealed class LevenshteinComparerTests
     }
 
     // ------------------------------------------------------------------
-    // IsWithin — null inputs
+    // IsWithin - null inputs
     // ------------------------------------------------------------------
 
     [Fact]
@@ -209,13 +210,13 @@ public sealed class LevenshteinComparerTests
     }
 
     // ------------------------------------------------------------------
-    // IsWithin — negative maxDistance always false
+    // IsWithin - negative maxDistance always false
     // ------------------------------------------------------------------
 
     [Fact]
     public void IsWithin_NegativeMaxDistance_IdenticalStrings_ReturnsFalse()
     {
-        // Even "x" vs "x" is false when maxDistance < 0 — matches .NET short-circuit.
+        // Even "x" vs "x" is false when maxDistance < 0 - matches .NET short-circuit.
         LevenshteinComparer.IsWithin("x", "x", maxDistance: -1).Should().BeFalse();
     }
 
@@ -226,7 +227,7 @@ public sealed class LevenshteinComparerTests
     }
 
     // ------------------------------------------------------------------
-    // IsWithin — resolver usage pattern (cap = 1, 2, 3)
+    // IsWithin - cap boundaries (cap = 1, 2, 3)
     // ------------------------------------------------------------------
 
     [Theory]

@@ -7,12 +7,12 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   </PropertyGroup>
 
   <!--
-    Domain-safe slice of the handler stack — interfaces + the HandlerOptions
-    record. Domain code references this for typed handler contracts without
-    pulling DI / OpenTelemetry / AspNetCore.
+    Domain-safe slice of the handler stack: the interfaces and the
+    HandlerOptions record. A reference to this project gives typed handler
+    contracts without a dependency on DI, OpenTelemetry or AspNetCore.
 
-    The runtime piece (BaseHandler + HandlerContext + HandlerTelemetry +
-    AddD2Handler) lives in the sibling DcsvIo.D2.Handler project.
+    The runtime piece (BaseHandler, HandlerContext, HandlerTelemetry and
+    AddD2Handler) is in the sibling DcsvIo.D2.Handler project.
   -->
 
   <ItemGroup>
@@ -30,9 +30,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.1</Version>
+    <Version>0.2.20</Version>
     <PackageId>DcsvIo.D2.Handler.Abstractions</PackageId>
-    <Description>Domain-safe slice of the D2 handler stack — IHandler, IHandlerContext, and HandlerOptions.</Description>
+    <Description>Domain-safe slice of the D2 handler stack - IHandler, IHandlerContext, and HandlerOptions.</Description>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "D² protocol-audiences spec",
-  "description": "Schema for contracts/auth-protocol-audiences/protocol-audiences.spec.json — the single source of truth for the PROTOCOL audiences (d2.internal, d2-edge). These are NOT token-exchange targets (those live in auth-audiences/audiences.spec.json as URL-shaped entries); they are bare-token protocol constants. The C# WellKnownAudiences.g.cs is emitted by DcsvIo.D2.Auth.ProtocolAudiences.SourceGen; the TS ProtocolAudiences const-object is emitted by the TypeScript codegen pipeline. The @d2Audience validator accepts a value iff it appears here.",
+  "title": "D2 protocol-audiences spec",
+  "description": "Schema for contracts/auth-protocol-audiences/protocol-audiences.spec.json - the single source of truth for the PROTOCOL audiences (d2.internal, d2-edge). These are NOT token-exchange targets (those live in auth-audiences/audiences.spec.json as URL-shaped entries); they are bare-token protocol constants. The C# WellKnownAudiences.g.cs is emitted by DcsvIo.D2.Auth.ProtocolAudiences.SourceGen; the TS ProtocolAudiences const-object is emitted by the TypeScript codegen pipeline. The @d2Audience validator accepts a value iff it appears here.",
   "type": "object",
   "required": ["protocolAudiences"],
   "additionalProperties": false,
@@ -22,12 +22,12 @@
         "name": {
           "type": "string",
           "pattern": "^[A-Z][A-Z0-9_]*$",
-          "description": "SCREAMING_SNAKE_CASE identifier — emitted as the const name (e.g. 'D2_INTERNAL_AUDIENCE' → WellKnownAudiences.D2_INTERNAL_AUDIENCE / ProtocolAudiences.D2_INTERNAL_AUDIENCE). Must start with an uppercase letter and contain only uppercase letters, digits, and underscores."
+          "description": "SCREAMING_SNAKE_CASE identifier - emitted as the const name (e.g. 'D2_INTERNAL_AUDIENCE' -> WellKnownAudiences.D2_INTERNAL_AUDIENCE / ProtocolAudiences.D2_INTERNAL_AUDIENCE). Must start with an uppercase letter and contain only uppercase letters, digits, and underscores."
         },
         "value": {
           "type": "string",
           "minLength": 1,
-          "description": "The bare-token aud-claim value (e.g. 'd2.internal', 'd2-edge'). The const's value is this string. Intentionally NOT URL-shaped — protocol audiences are bare tokens, unlike the URL-shaped token-exchange targets in auth-audiences."
+          "description": "The bare-token aud-claim value (e.g. 'd2.internal', 'd2-edge'). The const's value is this string. Intentionally NOT URL-shaped - protocol audiences are bare tokens, unlike the URL-shaped token-exchange targets in auth-audiences."
         },
         "description": {
           "type": "string",
@@ -35,7 +35,7 @@
         },
         "deprecated": {
           "type": "boolean",
-          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive — the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
+          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive - the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
         },
         "deprecatedReason": {
           "type": "string",
@@ -49,7 +49,7 @@
         "sunset": {
           "type": "string",
           "format": "date",
-          "description": "ISO-8601 date for the future RFC 8594 Sunset response header. Edge-runtime-deferred: carried on the contract now, consumed by the Edge response middleware when it exists. Inert until then."
+          "description": "ISO-8601 date for the RFC 8594 Sunset response header. A host whose response pipeline emits that header reads the date from here; a host that does not ignores it."
         }
       }
     }

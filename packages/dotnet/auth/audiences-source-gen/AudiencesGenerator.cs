@@ -17,23 +17,27 @@ using Microsoft.CodeAnalysis.Text;
 /// <summary>
 /// Roslyn incremental source generator that emits audience catalogs from
 /// <c>contracts/auth-audiences/audiences.spec.json</c> via <c>AdditionalFiles</c>.
-/// Dual-target: public assembly <c>DcsvIo.D2.Auth.Abstractions</c> → <c>Audiences</c>
-/// (public values only); private Extensions assembly
-/// <c>DcsvIo.D2.Private.Auth.Abstractions.Extensions</c> → <c>ProductAudiences</c>
-/// (public∪private values, distinct FQN under <c>DcsvIo.D2.Private.Auth</c>).
+/// In the public assembly <c>DcsvIo.D2.Auth.Abstractions</c> it emits
+/// <c>Audiences</c> over the values of the one spec file it is given. In another
+/// assembly that sets the MSBuild properties <c>D2AudiencesExtensionNamespace</c>
+/// and <c>D2AudiencesExtensionClassPrefix</c>, it emits the class named by the
+/// prefix followed by <c>Audiences</c>, under that namespace, over the union of
+/// every audience spec file the assembly lists.
 /// </summary>
 [Generator]
 public sealed class AudiencesGenerator : IIncrementalGenerator
 {
-    private const string _GENERATED_SOURCE_NAME = "Audiences.g.cs";
-    private const string _PRIVATE_GENERATED_SOURCE_NAME = "ProductAudiences.g.cs";
     private const string _SPEC_FILE_NAME = "audiences.spec.json";
     private const string _TARGET_ASSEMBLY_NAME = "DcsvIo.D2.Auth.Abstractions";
-    private const string _PRIVATE_TARGET_ASSEMBLY_NAME = "DcsvIo.D2.Private.Auth.Abstractions.Extensions";
     private const string _PUBLIC_ROOT_NAMESPACE = "DcsvIo.D2.Auth.Abstractions";
-    private const string _PRIVATE_ROOT_NAMESPACE = "DcsvIo.D2.Private.Auth";
     private const string _PUBLIC_CLASS_NAME = "Audiences";
-    private const string _PRIVATE_CLASS_NAME = "ProductAudiences";
+
+    private static readonly ExtensionTargetSettings sr_extensionTarget = new(
+        NamespaceProperty: "D2AudiencesExtensionNamespace",
+        ClassPrefixProperty: "D2AudiencesExtensionClassPrefix",
+        InvalidNamespace: DiagnosticDescriptors.SR_InvalidExtensionNamespace,
+        InvalidClassPrefix: DiagnosticDescriptors.SR_InvalidExtensionClassPrefix,
+        ClassPrefixWithoutNamespace: DiagnosticDescriptors.SR_ExtensionClassPrefixWithoutNamespace);
 
     /// <inheritdoc/>
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -46,31 +50,34 @@ public sealed class AudiencesGenerator : IIncrementalGenerator
                 Content: file.GetText(ct)?.ToString() ?? string.Empty))
             .Collect();
 
-        // 2. Combine with the compilation so we can gate emission by assembly name.
-        var combined = specs.Combine(context.CompilationProvider);
+        // 2. Read the extension properties the host project sets.
+        var targetOptions = context.AnalyzerConfigOptionsProvider
+            .Select(static (provider, _) =>
+                ExtensionTargetSelector.Read(provider.GlobalOptions, sr_extensionTarget));
 
-        // 3. For each pipeline run, drive the emitter.
+        // 3. Combine with the compilation so emission depends on the assembly name.
+        var combined = specs.Combine(context.CompilationProvider).Combine(targetOptions);
+
+        // 4. For each pipeline run, drive the emitter.
         context.RegisterSourceOutput(combined, static (spc, tuple) =>
         {
-            var (specFiles, compilation) = tuple;
+            var ((specFiles, compilation), options) = tuple;
 
-            var isPublic = string.Equals(
-                compilation.AssemblyName,
-                _TARGET_ASSEMBLY_NAME,
-                StringComparison.Ordinal);
-            var isPrivate = string.Equals(
-                compilation.AssemblyName,
-                _PRIVATE_TARGET_ASSEMBLY_NAME,
-                StringComparison.Ordinal);
+            var target = ExtensionTargetSelector.Select(
+                compilation.AssemblyName, _TARGET_ASSEMBLY_NAME, options);
+            ExtensionTargetSelector.Report(spc, target, sr_extensionTarget);
 
-            if (!isPublic && !isPrivate)
+            if (target.Kind is not (ExtensionTargetKind.Public or ExtensionTargetKind.Extension))
             {
                 return;
             }
 
-            var rootNamespace = isPrivate ? _PRIVATE_ROOT_NAMESPACE : _PUBLIC_ROOT_NAMESPACE;
-            var className = isPrivate ? _PRIVATE_CLASS_NAME : _PUBLIC_CLASS_NAME;
-            var sourceName = isPrivate ? _PRIVATE_GENERATED_SOURCE_NAME : _GENERATED_SOURCE_NAME;
+            var isExtension = target.Kind == ExtensionTargetKind.Extension;
+            var rootNamespace = isExtension ? target.Namespace : _PUBLIC_ROOT_NAMESPACE;
+            var className = isExtension
+                ? target.ClassPrefix + _PUBLIC_CLASS_NAME
+                : _PUBLIC_CLASS_NAME;
+            var sourceName = className + ".g.cs";
 
             if (specFiles.IsDefaultOrEmpty)
             {

@@ -12,18 +12,18 @@ using DcsvIo.D2.Telemetry.Internal;
 using Xunit;
 
 /// <summary>
-/// Process-wide env-var mutation — every test wraps the mutation in a
-/// try/finally that restores the prior value to avoid cross-test
-/// contamination. Pinned into the <c>LogLoggerStaticState</c> collection
-/// alongside the integration tests that touch the same env var.
+/// The value cases pin the gate for their own flow, so no case writes the
+/// process environment; one case reads the variable to show the unpinned gate
+/// reads it. Pinned into the <c>LogLoggerStaticState</c> collection alongside
+/// the integration tests that build a host through the same gate.
 /// </summary>
 [Collection("LogLoggerStaticState")]
 public sealed class OtelSdkDisabledGateTests
 {
     [Fact]
-    public void IsDisabled_EnvUnset_ReturnsFalse()
+    public void IsDisabled_Unset_ReturnsFalse()
     {
-        WithEnvVar(null, () =>
+        WithPinnedValue(null, () =>
         {
             OtelSdkDisabledGate.IsDisabled().Should().BeFalse();
         });
@@ -34,9 +34,9 @@ public sealed class OtelSdkDisabledGateTests
     [InlineData("True")]
     [InlineData("TRUE")]
     [InlineData("tRuE")]
-    public void IsDisabled_EnvTrueCaseInsensitive_ReturnsTrue(string raw)
+    public void IsDisabled_TrueCaseInsensitive_ReturnsTrue(string raw)
     {
-        WithEnvVar(raw, () =>
+        WithPinnedValue(raw, () =>
         {
             OtelSdkDisabledGate.IsDisabled().Should().BeTrue();
         });
@@ -53,35 +53,90 @@ public sealed class OtelSdkDisabledGateTests
     [InlineData("enabled")]
     [InlineData(" true")]
     [InlineData("true ")]
-    public void IsDisabled_EnvAnyOtherValue_ReturnsFalse(string raw)
+    public void IsDisabled_AnyOtherValue_ReturnsFalse(string raw)
     {
-        WithEnvVar(raw, () =>
+        WithPinnedValue(raw, () =>
         {
             OtelSdkDisabledGate.IsDisabled().Should().BeFalse();
         });
     }
 
     [Fact]
-    public void IsDisabled_EnvEmptyString_ReturnsFalse()
+    public void IsDisabled_EmptyString_ReturnsFalse()
     {
-        WithEnvVar(string.Empty, () =>
+        WithPinnedValue(string.Empty, () =>
         {
             OtelSdkDisabledGate.IsDisabled().Should().BeFalse();
         });
     }
 
-    private static void WithEnvVar(string? value, Action body)
+    [Fact]
+    public void IsDisabled_Unpinned_ReadsTheEnvironmentVariable()
     {
-        var name = D2TelemetryConstants.OTEL_SDK_DISABLED_ENV_VAR;
-        var prior = Environment.GetEnvironmentVariable(name);
-        try
+        var raw = Environment.GetEnvironmentVariable(
+            D2TelemetryConstants.OTEL_SDK_DISABLED_ENV_VAR);
+
+        OtelSdkDisabledGate.IsDisabled().Should().Be(
+            string.Equals(raw, "true", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Pin_WhileOpen_ReadsThePinnedValueInPlaceOfTheEnvironment()
+    {
+        // The pin overrides the value in the environment, so the case gives the
+        // same result on a host with the variable set or unset and writes nothing.
+        var fromEnvironment = OtelSdkDisabledGate.IsDisabled();
+
+        using (OtelSdkDisabledGate.Pin(fromEnvironment ? null : "TRUE"))
         {
-            Environment.SetEnvironmentVariable(name, value);
-            body();
+            OtelSdkDisabledGate.IsDisabled().Should().Be(!fromEnvironment);
         }
-        finally
+
+        OtelSdkDisabledGate.IsDisabled().Should().Be(fromEnvironment);
+    }
+
+    [Fact]
+    public void Pin_Disposed_RestoresThePreviousPin()
+    {
+        using var outer = OtelSdkDisabledGate.Pin("true");
+
+        using (OtelSdkDisabledGate.Pin(null))
         {
-            Environment.SetEnvironmentVariable(name, prior);
+            OtelSdkDisabledGate.IsDisabled().Should().BeFalse();
         }
+
+        OtelSdkDisabledGate.IsDisabled().Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Pin_InOneFlow_DoesNotReachAFlowStartedBeforeItAsync()
+    {
+        using var outer = OtelSdkDisabledGate.Pin(null);
+
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var other = Task.Run(
+            async () =>
+            {
+                await release.Task;
+
+                return OtelSdkDisabledGate.IsDisabled();
+            },
+            TestContext.Current.CancellationToken);
+
+        using (OtelSdkDisabledGate.Pin("true"))
+        {
+            OtelSdkDisabledGate.IsDisabled().Should().BeTrue();
+            release.SetResult();
+
+            (await other).Should().BeFalse("a pin reaches only the flow that set it");
+        }
+    }
+
+    private static void WithPinnedValue(string? value, Action body)
+    {
+        using var pin = OtelSdkDisabledGate.Pin(value);
+
+        body();
     }
 }

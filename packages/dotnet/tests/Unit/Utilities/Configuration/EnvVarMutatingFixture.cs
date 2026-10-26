@@ -10,8 +10,9 @@ using Xunit;
 
 /// <summary>
 /// Serializes any test class decorated with <c>[Collection("EnvVarMutating")]</c>.
-/// xUnit runs collections single-threaded; tests within remain isolated from
-/// each other's environment-variable mutations.
+/// xUnit runs the tests of one collection one at a time, and
+/// <c>DisableParallelization</c> stops other collections from running at the same
+/// time, so one test's environment-variable changes do not overlap another test's.
 /// </summary>
 [CollectionDefinition("EnvVarMutating", DisableParallelization = true)]
 public sealed class EnvVarMutatingFixture

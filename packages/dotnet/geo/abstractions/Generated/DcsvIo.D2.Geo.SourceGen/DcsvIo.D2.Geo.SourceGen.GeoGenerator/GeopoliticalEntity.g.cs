@@ -12,7 +12,7 @@ using System.Collections.Generic;
 
 namespace DcsvIo.D2.Geo.Abstractions;
 
-/// <summary>GeopoliticalEntity record — member countries with O(1) <c>Contains</c> over the typed code set.</summary>
+/// <summary>GeopoliticalEntity record - member countries with O(1) <c>Contains</c> over the typed code set.</summary>
 public sealed record GeopoliticalEntity
 {
     /// <summary>Typed identifier (PK, e.g. <c>"NATO"</c>, <c>"EU"</c>).</summary>
@@ -21,10 +21,10 @@ public sealed record GeopoliticalEntity
     /// <summary>English display name.</summary>
     public required string DisplayName { get; init; }
 
-    /// <summary>Type classification — drives filtering UI.</summary>
+    /// <summary>Type classification - drives filtering UI.</summary>
     public required GeopoliticalEntityType Type { get; init; }
 
-    /// <summary>Member country codes — O(1) <c>Contains</c> over the set. Code rep paired with <see cref="MemberCountries"/>.</summary>
+    /// <summary>Member country codes - O(1) <c>Contains</c> over the set. Code rep paired with <see cref="MemberCountries"/>.</summary>
     public required IReadOnlySet<CountryCode> MemberCountryIso31661Alpha2Codes { get; init; }
 
     /// <summary>Member country records. Wired in the second pass of the two-pass populate pattern.</summary>

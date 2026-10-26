@@ -4,17 +4,17 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # Contributing
 
-Thanks for your interest in **D2**.
+This file explains how to report problems with, and suggest changes to, the open libraries and contracts of **D2**.
 
 ## How contributions work
 
-This repository is a **public source mirror** of DCSV’s open libraries and
-contracts. Development and merge authority live upstream — **pull requests
-opened here are not merged into production source**.
+This repository is a **public source mirror** of DCSV's open libraries and
+contracts. Development and merging happen upstream, so pull requests
+opened here are not merged into production source.
 
 1. **Open an [issue](https://github.com/DCSV-io/D2-Public/issues)**  
    - Bug reports: package name, version, runtime, minimal repro  
-   - Docs: link + what’s wrong or missing  
+   - Docs: link + what's wrong or missing  
    - Ideas: problem statement and intended consumer  
 
 2. Optionally attach a **patch or sketch** to the issue as discussion
@@ -30,7 +30,7 @@ state otherwise.
 
 ## Finding package docs
 
-Start at the [root README](README.md), then each package’s own `README.md`
+Start at the [root README](README.md), then each package's own `README.md`
 under `packages/dotnet/` and `packages/typescript/`.
 
 ## Releases

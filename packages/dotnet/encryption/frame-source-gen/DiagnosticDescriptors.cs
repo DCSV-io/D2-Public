@@ -46,7 +46,7 @@ internal static class DiagnosticDescriptors
         title: "Encryption-frame field has invalid length",
         messageFormat:
             "Encryption-frame field '{0}' has invalid length {1} "
-                + "(must be ≥ 1 or the -1 variable sentinel)",
+                + "(must be >= 1 or the -1 variable sentinel)",
         category: _CATEGORY,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -56,7 +56,7 @@ internal static class DiagnosticDescriptors
         id: DiagnosticIds.InvalidVersion,
         title: "Encryption-frame spec version is invalid",
         messageFormat:
-            "Encryption-frame spec version {0} is invalid (must be ≥ 1)",
+            "Encryption-frame spec version {0} is invalid (must be >= 1)",
         category: _CATEGORY,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -96,7 +96,7 @@ internal static class DiagnosticDescriptors
         title: "Sealed encryption-frame field has invalid length",
         messageFormat:
             "Sealed encryption-frame field '{0}' has invalid length {1} "
-                + "(must be ≥ 1 or the -1 variable sentinel)",
+                + "(must be >= 1 or the -1 variable sentinel)",
         category: _CATEGORY,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -107,7 +107,7 @@ internal static class DiagnosticDescriptors
         title: "Sealed encryption-frame spec version is invalid",
         messageFormat:
             "Sealed encryption-frame spec version {0} is invalid "
-                + "(must be ≥ 2 — version 1 is the symmetric frame)",
+                + "(must be >= 2 - version 1 is the symmetric frame)",
         category: _CATEGORY,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

@@ -7,7 +7,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Telemetry
     {
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String, global::System.String, global::System.Int32, global::System.Int32, global::System.String?, global::System.Exception?> __PublishAttemptCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String, global::System.String, global::System.Int32, global::System.Int32, global::System.String?>(global::Microsoft.Extensions.Logging.LogLevel.Debug, new global::Microsoft.Extensions.Logging.EventId(100, nameof(PublishAttempt)), "Publish to {Exchange}/{RoutingKey} (msgType={MessageType}, attempt={Attempt}/{MaxAttempts}, kid={Kid}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String, global::System.String, global::System.Int32, global::System.Int32, global::System.String?>(global::Microsoft.Extensions.Logging.LogLevel.Debug, new global::Microsoft.Extensions.Logging.EventId(100, nameof(PublishAttempt)), "Publish to {Exchange}/{RoutingKey} (msgType={MessageType}, attempt={Attempt}/{MaxAttempts}, kid={Kid}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void PublishAttempt(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String exchange, global::System.String routingKey, global::System.String messageType, global::System.Int32 attempt, global::System.Int32 maxAttempts, global::System.String? kid)
@@ -19,7 +19,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Telemetry
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String, global::System.String, global::System.Int32, global::System.Double, global::System.Exception?> __PublishSucceededCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String, global::System.String, global::System.Int32, global::System.Double>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(101, nameof(PublishSucceeded)), "Published to {Exchange}/{RoutingKey} (msgType={MessageType}, attempts={Attempts}, durationMs={DurationMs:F1}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String, global::System.String, global::System.Int32, global::System.Double>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(101, nameof(PublishSucceeded)), "Published to {Exchange}/{RoutingKey} (msgType={MessageType}, attempts={Attempts}, durationMs={DurationMs:F1}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void PublishSucceeded(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String exchange, global::System.String routingKey, global::System.String messageType, global::System.Int32 attempts, global::System.Double durationMs)
@@ -31,7 +31,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Telemetry
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String, global::System.Int32, global::System.Int32, global::System.String, global::System.Exception?> __PublishTransientFailureCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String, global::System.Int32, global::System.Int32, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(102, nameof(PublishTransientFailure)), "Publish to {Exchange}/{RoutingKey} failed (transient) on attempt {Attempt}/{MaxAttempts} (exType={ExType}); retrying.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String, global::System.Int32, global::System.Int32, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(102, nameof(PublishTransientFailure)), "Publish to {Exchange}/{RoutingKey} failed (transient) on attempt {Attempt}/{MaxAttempts} (exType={ExType}); retrying.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void PublishTransientFailure(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String exchange, global::System.String routingKey, global::System.Int32 attempt, global::System.Int32 maxAttempts, global::System.String exType)
@@ -118,7 +118,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Telemetry
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Double, global::System.String, global::System.String, global::System.Exception?> __PublishConfirmTimeoutCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.Double, global::System.String, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(104, nameof(PublishConfirmTimeout)), "Publish confirm wait timed out after {TimeoutMs:F0}ms on {Exchange}/{RoutingKey}; treating as transient.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.Double, global::System.String, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(104, nameof(PublishConfirmTimeout)), "Publish confirm wait timed out after {TimeoutMs:F0}ms on {Exchange}/{RoutingKey}; treating as transient.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void PublishConfirmTimeout(global::Microsoft.Extensions.Logging.ILogger logger, global::System.Double timeoutMs, global::System.String exchange, global::System.String routingKey)
@@ -126,6 +126,101 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Telemetry
             if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
             {
                 __PublishConfirmTimeoutCallback(logger, timeoutMs, exchange, routingKey, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String, global::System.Int32, global::System.Int32, global::System.Int32, global::System.String, global::System.Exception?> __PublishReturnedCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String, global::System.Int32, global::System.Int32, global::System.Int32, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(105, nameof(PublishReturned)), "Publish to {Exchange}/{RoutingKey} was returned by the broker on attempt {Attempt}/{MaxAttempts} (replyCode={ReplyCode}, replyText={ReplyText}); nothing is bound to that exchange for that routing key.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void PublishReturned(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String exchange, global::System.String routingKey, global::System.Int32 attempt, global::System.Int32 maxAttempts, global::System.Int32 replyCode, global::System.String replyText)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
+            {
+                __PublishReturnedCallback(logger, exchange, routingKey, attempt, maxAttempts, replyCode, replyText, null);
+            }
+        }
+        /// <summary> This API supports the logging infrastructure and is not intended to be used directly from your code. It is subject to change in the future. </summary>
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Never)]
+        private readonly struct __PublishUnroutableTerminalStruct : global::System.Collections.Generic.IReadOnlyList<global::System.Collections.Generic.KeyValuePair<string, object?>>
+        {
+            private readonly global::System.String _exchange;
+            private readonly global::System.String _routingKey;
+            private readonly global::System.String _messageType;
+            private readonly global::System.Int32 _attempts;
+
+            public __PublishUnroutableTerminalStruct(global::System.String exchange, global::System.String routingKey, global::System.String messageType, global::System.Int32 attempts)
+            {
+                this._exchange = exchange;
+                this._routingKey = routingKey;
+                this._messageType = messageType;
+                this._attempts = attempts;
+
+            }
+
+            public override string ToString()
+            {
+                var Exchange = this._exchange;
+                var RoutingKey = this._routingKey;
+                var Attempts = this._attempts;
+                var MessageType = this._messageType;
+
+                return string.Create(global::System.Globalization.CultureInfo.InvariantCulture, $"Publish to {Exchange}/{RoutingKey} matched no queue on every one of {Attempts} attempt(s) (msgType={MessageType}); the message was not delivered anywhere. Declare a queue bound to that exchange for that routing key, or stop publishing to it.");
+            }
+
+            public static readonly global::System.Func<__PublishUnroutableTerminalStruct, global::System.Exception?, string> Format = (state, ex) => state.ToString();
+
+            public int Count => 5;
+
+            public global::System.Collections.Generic.KeyValuePair<string, object?> this[int index]
+            {
+                get => index switch
+                {
+                    0 => new global::System.Collections.Generic.KeyValuePair<string, object?>("Exchange", this._exchange),
+                    1 => new global::System.Collections.Generic.KeyValuePair<string, object?>("RoutingKey", this._routingKey),
+                    2 => new global::System.Collections.Generic.KeyValuePair<string, object?>("MessageType", this._messageType),
+                    3 => new global::System.Collections.Generic.KeyValuePair<string, object?>("Attempts", this._attempts),
+                    4 => new global::System.Collections.Generic.KeyValuePair<string, object?>("{OriginalFormat}", "Publish to {Exchange}/{RoutingKey} matched no queue on every one of {Attempts} attempt(s) (msgType={MessageType}); the message was not delivered anywhere. Declare a queue bound to that exchange for that routing key, or stop publishing to it."),
+
+                    _ => throw new global::System.IndexOutOfRangeException(nameof(index)),  // return the same exception LoggerMessage.Define returns in this case
+                };
+            }
+
+            public global::System.Collections.Generic.IEnumerator<global::System.Collections.Generic.KeyValuePair<string, object?>> GetEnumerator()
+            {
+                for (int i = 0; i < 5; i++)
+                {
+                    yield return this[i];
+                }
+            }
+
+            global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void PublishUnroutableTerminal(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String exchange, global::System.String routingKey, global::System.String messageType, global::System.Int32 attempts)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Error))
+            {
+                logger.Log(
+                    global::Microsoft.Extensions.Logging.LogLevel.Error,
+                    new global::Microsoft.Extensions.Logging.EventId(106, nameof(PublishUnroutableTerminal)),
+                    new __PublishUnroutableTerminalStruct(exchange, routingKey, messageType, attempts),
+                    null,
+                    __PublishUnroutableTerminalStruct.Format);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String, global::System.Int32, global::System.String, global::System.Exception?> __PublishReturnedUntrackedCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String, global::System.Int32, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(107, nameof(PublishReturnedUntracked)), "Broker returned a publish to {Exchange}/{RoutingKey} on a channel with publisher-confirmation tracking off (replyCode={ReplyCode}, replyText={ReplyText}); the publish could not be failed, so the message is gone. Enable ChannelPoolOptions.PublisherConfirmsEnabled to have the publisher retry this.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void PublishReturnedUntracked(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String exchange, global::System.String routingKey, global::System.Int32 replyCode, global::System.String replyText)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
+            {
+                __PublishReturnedUntrackedCallback(logger, exchange, routingKey, replyCode, replyText, null);
             }
         }
     }

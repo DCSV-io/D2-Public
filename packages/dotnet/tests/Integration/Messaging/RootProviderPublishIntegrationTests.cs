@@ -13,27 +13,21 @@ using Xunit;
 
 /// <summary>
 /// Pins the "publish from root provider without a wrapping scope" contract
-/// — <see cref="IMessageBus"/> is registered as Singleton + builds its own
+/// - <see cref="IMessageBus"/> is registered as Singleton + builds its own
 /// transient scope per <c>PublishAsync</c> to resolve scoped dependencies
-/// (keyed crypto, IRequestContext). Background hosted services + other
-/// singletons can therefore publish without
-/// <c>await using var scope = sp.CreateAsyncScope()</c> ceremony.
+/// (keyed crypto, IRequestContext). A publish from the root provider therefore
+/// needs no <c>await using var scope = sp.CreateAsyncScope()</c> wrapper.
 /// </summary>
 [Collection("RabbitMq")]
 public sealed class RootProviderPublishIntegrationTests
 {
-    // Genuine-stuck guard for the async-delivery waits below: a poll-ATTEMPT
-    // budget, never a wall-clock deadline. The prior flake was a DateTime.UtcNow
-    // deadline in the success path — xUnit runs the RabbitMq collection in parallel
-    // with the Unit-test collections, and under that thread-pool saturation the wall
-    // clock elapsed while the starved pool deferred the handler-dispatch continuation
-    // and the broker's async dead-lettering, tripping the deadline mid-progress. An
-    // attempt budget caps the number of polls, not elapsed time: each iteration
-    // awaits pollInterval, so under load the effective wait GROWS with the slowdown
-    // instead of expiring. At 50 ms/attempt this floor is ~2 min of real progress —
-    // far above any healthy delivery (which resolves in well under a second, <20
-    // attempts), so it is never load-reachable, yet a permanently-stuck test still
-    // terminates (this project ships no xunit.runner.json / framework test timeout).
+    // Stuck-guard for the async-delivery waits below: a poll-ATTEMPT budget, not
+    // a wall-clock deadline. Each iteration awaits pollInterval, so a slow machine
+    // lengthens the wait instead of expiring it mid-progress. A healthy delivery
+    // resolves in well under a second; exhausting this budget means the message is
+    // not arriving at all, so raise the budget only after establishing that the
+    // delivery is slow rather than absent. The budget is also what terminates a
+    // permanently stuck test - this project ships no framework test timeout.
     private const int _POLL_ATTEMPT_BUDGET = 2400;
 
     private readonly RabbitMqFixture r_fixture;
@@ -52,7 +46,7 @@ public sealed class RootProviderPublishIntegrationTests
         var queue = "rootpub." + Guid.NewGuid().ToString("N")[..8];
         TestCollector.Reset<AuditCapturingHandler>();
 
-        using var host = await MessagingHostBuilder.BuildAndStartAsync(
+        await using var host = await MessagingHostBuilder.BuildAndStartAsync(
             r_fixture,
             services =>
             {
@@ -75,7 +69,7 @@ public sealed class RootProviderPublishIntegrationTests
         TestCollector.Count<AuditCapturingHandler>().Should().Be(1);
     }
 
-    // Attempt-budgeted stuck-guard — see _POLL_ATTEMPT_BUDGET; no wall-clock deadline.
+    // Attempt-budgeted stuck-guard - see _POLL_ATTEMPT_BUDGET; no wall-clock deadline.
     private static async Task WaitFor(
         Func<bool> predicate, TimeSpan? pollInterval = null)
     {

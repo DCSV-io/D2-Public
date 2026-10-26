@@ -7,7 +7,7 @@
 namespace DcsvIo.D2.Utilities.Extensions;
 
 /// <summary>
-/// String-side parse helpers for <see cref="System.Enum"/>-typed values.
+/// Parse helpers that turn a string into a <see cref="System.Enum"/> value.
 /// </summary>
 public static class EnumExtensions
 {
@@ -15,11 +15,10 @@ public static class EnumExtensions
     extension(string? input)
     {
         /// <summary>
-        /// Tries to parse <paramref name="input"/> as <typeparamref name="TEnum"/>
-        /// (case-insensitively). Returns <c>true</c> + the parsed value when
-        /// the input matches a defined enum member; returns <c>false</c> +
-        /// <c>null</c> when the input is null, empty, whitespace, or doesn't
-        /// match any member.
+        /// Tries to parse <paramref name="input"/> as <typeparamref name="TEnum"/>,
+        /// ignoring case. Returns <c>true</c> and the parsed value when the input
+        /// matches a defined enum member. Returns <c>false</c> and <c>null</c>
+        /// when the input is null, empty, whitespace, or matches no member.
         /// </summary>
         /// <typeparam name="TEnum">The target enum type.</typeparam>
         /// <param name="value">

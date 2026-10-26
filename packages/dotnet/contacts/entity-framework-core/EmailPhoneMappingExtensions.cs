@@ -15,19 +15,19 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 /// <summary>
 /// Value-converter mapping helpers for the single-value contact VOs
-/// (<see cref="EmailAddress"/> and <see cref="PhoneNumber"/>). Called from the host's
-/// <c>IEntityTypeConfiguration&lt;T&gt;</c> on a property expression.
+/// (<see cref="EmailAddress"/> and <see cref="PhoneNumber"/>). Apply each helper in an
+/// <c>IEntityTypeConfiguration&lt;T&gt;</c>, on a property expression.
 /// Returns a coupling object (<see cref="EmailMapping"/> / <see cref="PhoneMapping"/>)
 /// whose methods require the caller to supply an anonymize value or template.
 /// </summary>
 /// <remarks>
 /// <para>
 /// Both helpers extend <see cref="EntityTypeBuilder{TEntity}"/> so they can apply the
-/// value converter on the property AND declare a unique index on the entity.
+/// value converter on the property and declare a unique index on the entity.
 /// </para>
 /// <para>
 /// <b>Caller-supplied anonymize.</b> No default tombstone is written automatically
-/// — the caller must chain <c>.Anonymize(value)</c> or <c>.Unique(template)</c> on the
+/// - the caller must chain <c>.Anonymize(value)</c> or <c>.Unique(template)</c> on the
 /// returned coupling object. This makes "unique-without-a-uniqueness-template"
 /// unrepresentable at the type level: the only path to a unique index is
 /// <c>.Unique(template)</c>, which requires a token-bearing template string.
@@ -36,17 +36,17 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 public static partial class EmailPhoneMappingExtensions
 {
     // =========================================================================
-    // EntityTypeBuilder<TEntity> — MapEmailAddress / MapPhoneNumber
+    // EntityTypeBuilder<TEntity> - MapEmailAddress / MapPhoneNumber
     // =========================================================================
     extension<TEntity>(EntityTypeBuilder<TEntity> entity)
         where TEntity : class
     {
         /// <summary>
         /// Applies the <see cref="EmailAddress"/> value converter
-        /// (<c>EmailAddress ↔ string</c> via <see cref="EmailAddress.FromTrusted"/>)
+        /// (<c>EmailAddress &lt;-> string</c> via <see cref="EmailAddress.FromTrusted"/>)
         /// and <c>HasMaxLength(<see cref="FieldConstraints.EMAIL_MAX"/>)</c> to the
         /// selected property. Returns an <see cref="EmailMapping"/> coupling object
-        /// on which the caller MUST choose the anonymize policy
+        /// on which the caller must choose the anonymize policy
         /// (<c>.Anonymize</c> or <c>.Unique</c>).
         /// </summary>
         /// <param name="propertySelector">
@@ -75,10 +75,10 @@ public static partial class EmailPhoneMappingExtensions
 
         /// <summary>
         /// Applies the <see cref="PhoneNumber"/> value converter
-        /// (<c>PhoneNumber ↔ string</c> via <see cref="PhoneNumber.FromTrusted"/>)
+        /// (<c>PhoneNumber &lt;-> string</c> via <see cref="PhoneNumber.FromTrusted"/>)
         /// and <c>HasMaxLength(<see cref="FieldConstraints.PHONE_E164_MAX"/>)</c> to
         /// the selected property. Returns a <see cref="PhoneMapping"/> coupling object
-        /// on which the caller MUST choose the anonymize policy
+        /// on which the caller must choose the anonymize policy
         /// (<c>.Anonymize</c> or <c>.Unique</c>).
         /// </summary>
         /// <param name="propertySelector">
@@ -112,18 +112,21 @@ public static partial class EmailPhoneMappingExtensions
 
     /// <summary>
     /// Returns <see langword="true"/> when <paramref name="template"/> contains at
-    /// least one <c>{…}</c> placeholder token.
+    /// least one <c>{...}</c> placeholder token.
     /// </summary>
     /// <param name="template">The string to check for tokens.</param>
     /// <returns>
-    /// <see langword="true"/> if a <c>{…}</c> token is present; otherwise
+    /// <see langword="true"/> if a <c>{...}</c> token is present; otherwise
     /// <see langword="false"/>.
     /// </returns>
     internal static bool HasToken(string template) =>
         TokenPattern().IsMatch(template);
 
-    // Token pattern: matches {…} placeholders.
-    // Bucket 1 (no-backtrack, linear scan): no timeout needed.
+    /// <summary>
+    /// Token pattern: matches <c>{...}</c> placeholders. No backtracking (a linear
+    /// scan): no timeout needed.
+    /// </summary>
+    /// <returns>The compiled token pattern.</returns>
     [GeneratedRegex(@"\{[^}]+\}")]
     private static partial Regex TokenPattern();
 }

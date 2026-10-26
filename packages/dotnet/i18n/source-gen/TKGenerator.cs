@@ -18,35 +18,38 @@ using Microsoft.CodeAnalysis.Text;
 /// <summary>
 /// Roslyn incremental source generator that emits translation-key catalogs from
 /// <c>contracts/messages/*.json</c> via <c>AdditionalFiles</c>.
-/// Dual-target: public assembly <c>DcsvIo.D2.I18n.Keys</c> → <c>TK</c>
-/// (public messages only); private Extensions assembly
-/// <c>DcsvIo.D2.Private.I18n.Keys.Extensions</c> → <c>ProductTK</c>
-/// (public∪private messages, distinct FQN under <c>DcsvIo.D2.Private.I18n</c>).
+/// The public assembly <c>DcsvIo.D2.I18n.Keys</c> receives <c>TK</c> over the
+/// messages of the catalogs it lists. Another assembly that sets the MSBuild
+/// properties <c>D2TkExtensionNamespace</c> and <c>D2TkExtensionClassPrefix</c>
+/// receives the class named by the prefix followed by <c>TK</c>, under that
+/// namespace, over the union of the catalogs it lists.
 /// </summary>
 /// <remarks>
 /// The generator filters AdditionalFiles to <c>.json</c> files whose
 /// containing directory is named <c>messages</c>. That directory convention
 /// matches the consuming csproj's
 /// <c>&lt;AdditionalFiles Include="...contracts/messages/*.json" /&gt;</c>
-/// glob and avoids accidentally treating unrelated AdditionalFiles as catalogs.
-/// Private host PackageId = <c>DcsvIo.D2.Private.I18n.Keys.Extensions</c> (1:1 with the
-/// public twin). Emitted dual-types keep the <c>DcsvIo.D2.Private.I18n.ProductTK</c>
-/// FQN; <c>TKMessage</c> remains the shared public primitive (IVT grant).
+/// glob and prevents unrelated AdditionalFiles from being treated as catalogs.
+/// The extension class calls the internal <c>TKMessage</c> constructor, so an
+/// assembly that sets the properties needs an <c>InternalsVisibleTo</c> grant
+/// from <c>DcsvIo.D2.I18n.Abstractions</c>.
 /// </remarks>
 [Generator]
 public sealed class TKGenerator : IIncrementalGenerator
 {
-    private const string _GENERATED_SOURCE_NAME = "TK.g.cs";
     private const string _MESSAGES_DIRECTORY_NAME = "messages";
     private const string _EN_US_LOCALE = "en-US";
 
-    private const string _PRIVATE_GENERATED_SOURCE_NAME = "ProductTK.g.cs";
     private const string _PUBLIC_TARGET_ASSEMBLY = "DcsvIo.D2.I18n.Keys";
-    private const string _PRIVATE_TARGET_ASSEMBLY = "DcsvIo.D2.Private.I18n.Keys.Extensions";
     private const string _PUBLIC_ROOT_NAMESPACE = "DcsvIo.D2.I18n";
-    private const string _PRIVATE_ROOT_NAMESPACE = "DcsvIo.D2.Private.I18n";
     private const string _PUBLIC_CLASS_NAME = "TK";
-    private const string _PRIVATE_CLASS_NAME = "ProductTK";
+
+    private static readonly ExtensionTargetSettings sr_extensionTarget = new(
+        NamespaceProperty: "D2TkExtensionNamespace",
+        ClassPrefixProperty: "D2TkExtensionClassPrefix",
+        InvalidNamespace: DiagnosticDescriptors.SR_InvalidExtensionNamespace,
+        InvalidClassPrefix: DiagnosticDescriptors.SR_InvalidExtensionClassPrefix,
+        ClassPrefixWithoutNamespace: DiagnosticDescriptors.SR_ExtensionClassPrefixWithoutNamespace);
 
     /// <inheritdoc/>
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -59,36 +62,36 @@ public sealed class TKGenerator : IIncrementalGenerator
                 Content: file.GetText(ct)?.ToString() ?? string.Empty))
             .Collect();
 
-        // 2. Combine with compilation for dual-target assembly gate.
-        var combined = catalogs.Combine(context.CompilationProvider);
+        // 2. Read the extension properties the host project sets.
+        var targetOptions = context.AnalyzerConfigOptionsProvider
+            .Select(static (provider, _) =>
+                ExtensionTargetSelector.Read(provider.GlobalOptions, sr_extensionTarget));
 
-        // 3. For each pipeline run, drive the emitter.
+        // 3. Combine with the compilation so the assembly name selects the target.
+        var combined = catalogs.Combine(context.CompilationProvider).Combine(targetOptions);
+
+        // 4. On each pipeline run, call the emitter.
         context.RegisterSourceOutput(combined, static (spc, tuple) =>
         {
-            var (files, compilation) = tuple;
+            var ((files, compilation), options) = tuple;
 
-            var isPublic = string.Equals(
-                compilation.AssemblyName,
-                _PUBLIC_TARGET_ASSEMBLY,
-                StringComparison.Ordinal);
-            var isPrivate = string.Equals(
-                compilation.AssemblyName,
-                _PRIVATE_TARGET_ASSEMBLY,
-                StringComparison.Ordinal);
+            var target = ExtensionTargetSelector.Select(
+                compilation.AssemblyName, _PUBLIC_TARGET_ASSEMBLY, options);
+            ExtensionTargetSelector.Report(spc, target, sr_extensionTarget);
 
-            // Assembly-agnostic public Keys still works when assembly name matches.
-            // If neither public nor private host, no emit (prevents CS0433 dual TK).
-            if (!isPublic && !isPrivate)
+            // Any other assembly, such as a test project that also hosts the
+            // generator, gets no output, which prevents CS0433 from two TK types.
+            if (target.Kind is not (ExtensionTargetKind.Public or ExtensionTargetKind.Extension))
             {
-                // Backward-compat: when hosted only by public Keys historically the
-                // generator was assembly-agnostic. Public host IS DcsvIo.D2.I18n.Keys.
-                // Any other host (tests double-hosting) does not emit.
                 return;
             }
 
-            var rootNamespace = isPrivate ? _PRIVATE_ROOT_NAMESPACE : _PUBLIC_ROOT_NAMESPACE;
-            var className = isPrivate ? _PRIVATE_CLASS_NAME : _PUBLIC_CLASS_NAME;
-            var sourceName = isPrivate ? _PRIVATE_GENERATED_SOURCE_NAME : _GENERATED_SOURCE_NAME;
+            var isExtension = target.Kind == ExtensionTargetKind.Extension;
+            var rootNamespace = isExtension ? target.Namespace : _PUBLIC_ROOT_NAMESPACE;
+            var className = isExtension
+                ? target.ClassPrefix + _PUBLIC_CLASS_NAME
+                : _PUBLIC_CLASS_NAME;
+            var sourceName = className + ".g.cs";
 
             // Multi-dir AdditionalFiles: merge all en-US catalogs by key union.
             var enUsFiles = files
@@ -108,7 +111,7 @@ public sealed class TKGenerator : IIncrementalGenerator
                 return;
             }
 
-            // Merge en-US key sets (public∪private on private host; single dir on public).
+            // Merge the en-US key sets of every catalog directory the assembly lists.
             var mergedEnUs = MergeLocaleJson(enUsFiles.Select(f => f.Content));
 
             var others = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -154,7 +157,8 @@ public sealed class TKGenerator : IIncrementalGenerator
 
                 if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.String)
                 {
-                    // First write wins for stable merge (public then private if ordered).
+                    // The first value for a key wins, so the merge is stable
+                    // when the public catalog comes before the private one.
                     if (!merged.ContainsKey(prop.Name))
                     {
                         merged[prop.Name] = prop.Value.GetString()!;

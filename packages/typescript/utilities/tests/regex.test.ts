@@ -34,6 +34,23 @@ describe("EMAIL_RE", () => {
   it.each(["", "no-at", "a@b", "@b.c", "a b@c.d"])("rejects %s", (email) => {
     expect(EMAIL_RE.test(email)).toBe(false);
   });
+  it.each(["a@b..c", "a@b.", "a@b.c.", "a@.b.c", "a@@b.c"])(
+    "rejects the malformed domain %s",
+    (email) => {
+      expect(EMAIL_RE.test(email)).toBe(false);
+    },
+  );
+  it.each(["a.b@c.d.e", "first.last+tag@sub.example.co.uk"])(
+    "matches the multi-label address %s",
+    (email) => {
+      expect(EMAIL_RE.test(email)).toBe(true);
+    },
+  );
+  it("has the linear pattern text", () => {
+    // A change to the pattern fails here, so it is reviewed against the linearity its
+    // comment states.
+    expect(EMAIL_RE.source).toBe(String.raw`^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+$`);
+  });
 });
 
 describe("UUID_RE / EMPTY_UUID", () => {

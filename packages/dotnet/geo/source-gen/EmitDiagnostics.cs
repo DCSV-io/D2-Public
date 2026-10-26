@@ -38,15 +38,6 @@ internal static class EmitDiagnostics
         new(DiagnosticIds.UnknownFk, [fieldName, entityName, code]);
 
     /// <summary>
-    /// Constructs a <see cref="DiagnosticDescriptors.FkAmbiguity"/>
-    /// diagnostic.
-    /// </summary>
-    /// <param name="fieldName">The unclassifiable field name.</param>
-    /// <returns>A new <see cref="EmitDiagnostic"/>.</returns>
-    public static EmitDiagnostic FkAmbiguity(string fieldName) =>
-        new(DiagnosticIds.FkAmbiguity, [fieldName]);
-
-    /// <summary>
     /// Constructs a <see cref="DiagnosticDescriptors.InvalidIdentifier"/>
     /// diagnostic.
     /// </summary>
@@ -55,16 +46,6 @@ internal static class EmitDiagnostics
     /// <returns>A new <see cref="EmitDiagnostic"/>.</returns>
     public static EmitDiagnostic InvalidIdentifier(string code, string emissionTarget) =>
         new(DiagnosticIds.InvalidIdentifier, [code, emissionTarget]);
-
-    /// <summary>
-    /// Constructs a <see cref="DiagnosticDescriptors.VocabularyViolation"/>
-    /// diagnostic.
-    /// </summary>
-    /// <param name="specName">The spec file name.</param>
-    /// <param name="forbiddenIdentifier">The forbidden identifier surfaced.</param>
-    /// <returns>A new <see cref="EmitDiagnostic"/>.</returns>
-    public static EmitDiagnostic VocabularyViolation(string specName, string forbiddenIdentifier) =>
-        new(DiagnosticIds.VocabularyViolation, [specName, forbiddenIdentifier]);
 
     /// <summary>
     /// Constructs a <see cref="DiagnosticDescriptors.MissingCatalogMetadata"/>
@@ -85,29 +66,6 @@ internal static class EmitDiagnostics
     /// <returns>A new <see cref="EmitDiagnostic"/>.</returns>
     public static EmitDiagnostic MissingSpec(string specName, string assemblyName) =>
         new(DiagnosticIds.MissingSpec, [specName, assemblyName]);
-
-    /// <summary>
-    /// Constructs a <see cref="DiagnosticDescriptors.LocaleMessageMismatch"/>
-    /// diagnostic.
-    /// </summary>
-    /// <param name="tag">The unmatched IETF tag.</param>
-    /// <returns>A new <see cref="EmitDiagnostic"/>.</returns>
-    public static EmitDiagnostic LocaleMessageMismatch(string tag) =>
-        new(DiagnosticIds.LocaleMessageMismatch, [tag]);
-
-    /// <summary>
-    /// Constructs a <see cref="DiagnosticDescriptors.StructuralParityMismatch"/>
-    /// diagnostic.
-    /// </summary>
-    /// <param name="specName">The spec name.</param>
-    /// <param name="fieldName">The spec field that was not matched.</param>
-    /// <param name="recordName">The emitted record that should have carried it.</param>
-    /// <returns>A new <see cref="EmitDiagnostic"/>.</returns>
-    public static EmitDiagnostic StructuralParityMismatch(
-        string specName,
-        string fieldName,
-        string recordName) =>
-        new(DiagnosticIds.StructuralParityMismatch, [specName, fieldName, recordName]);
 
     /// <summary>
     /// Constructs a <see cref="DiagnosticDescriptors.DuplicateNormalizedName"/>

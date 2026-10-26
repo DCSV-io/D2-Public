@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { clean } from "../src/clean.js";
 
-describe("clean — happy path", () => {
+describe("clean - happy path", () => {
   it("applies cleaner to every element", () => {
     expect(clean([1, 2, 3], (n) => n * 2)).toEqual([2, 4, 6]);
   });
@@ -25,65 +25,65 @@ describe("clean — happy path", () => {
   });
 });
 
-describe("clean — null / undefined input", () => {
-  it("null input → null when ReturnNull (default)", () => {
+describe("clean - null / undefined input", () => {
+  it("null input -> null when ReturnNull (default)", () => {
     expect(clean<number>(null, (n) => n)).toBeNull();
   });
 
-  it("undefined input → null when ReturnNull (default)", () => {
+  it("undefined input -> null when ReturnNull (default)", () => {
     expect(clean<number>(undefined, (n) => n)).toBeNull();
   });
 
-  it("null input → empty array when ReturnEmpty", () => {
+  it("null input -> empty array when ReturnEmpty", () => {
     expect(
       clean<number>(null, (n) => n, { enumEmptyBehavior: "ReturnEmpty" }),
     ).toEqual([]);
   });
 
-  it("null input → throws when Throw", () => {
+  it("null input -> throws when Throw", () => {
     expect(() =>
       clean<number>(null, (n) => n, { enumEmptyBehavior: "Throw" }),
     ).toThrow(RangeError);
   });
 });
 
-describe("clean — empty input", () => {
-  it("empty array → null by default", () => {
+describe("clean - empty input", () => {
+  it("empty array -> null by default", () => {
     expect(clean([], (n: number) => n)).toBeNull();
   });
 
-  it("empty array → empty array when ReturnEmpty", () => {
+  it("empty array -> empty array when ReturnEmpty", () => {
     expect(
       clean([], (n: number) => n, { enumEmptyBehavior: "ReturnEmpty" }),
     ).toEqual([]);
   });
 
-  it("empty array → throws when Throw", () => {
+  it("empty array -> throws when Throw", () => {
     expect(() =>
       clean([], (n: number) => n, { enumEmptyBehavior: "Throw" }),
     ).toThrow(RangeError);
   });
 });
 
-describe("clean — all-cleaned-to-null", () => {
-  it("all cleaner returns null → null when ReturnNull (default)", () => {
+describe("clean - all-cleaned-to-null", () => {
+  it("all cleaner returns null -> null when ReturnNull (default)", () => {
     expect(clean([1, 2, 3], () => null)).toBeNull();
   });
 
-  it("all cleaner returns null → empty array when ReturnEmpty", () => {
+  it("all cleaner returns null -> empty array when ReturnEmpty", () => {
     expect(
       clean([1, 2, 3], () => null, { enumEmptyBehavior: "ReturnEmpty" }),
     ).toEqual([]);
   });
 
-  it("all cleaner returns null → throws when Throw", () => {
+  it("all cleaner returns null -> throws when Throw", () => {
     expect(() =>
       clean([1, 2, 3], () => null, { enumEmptyBehavior: "Throw" }),
     ).toThrow(RangeError);
   });
 });
 
-describe("clean — ThrowOnNull behavior", () => {
+describe("clean - ThrowOnNull behavior", () => {
   it("any cleaner result of null throws when ThrowOnNull", () => {
     expect(() =>
       clean([1, 2, 3], (n) => (n === 2 ? null : n), {
@@ -105,13 +105,13 @@ describe("clean — ThrowOnNull behavior", () => {
   });
 });
 
-describe("clean — mixed input shapes", () => {
+describe("clean - mixed input shapes", () => {
   it("nulls inside the input are still passed to the cleaner", () => {
-    // The cleaner OWNS null handling for elements; clean() only handles
-    // null INPUTS to the function as a whole. Cross-language-parity
-    // carve-out per rules.md §6.15: this test models a .NET nullable
-    // value-type element sequence (`int?[]`) where `null` is the wire
-    // sentinel; the `clean()` parity contract preserves the .NET shape.
+    // The cleaner handles null elements; clean() handles only a null input to
+    // the function as a whole. Cross-language parity exception: this test
+    // models a .NET nullable value-type element sequence (`int?[]`) in which
+    // `null` is the wire sentinel; the `clean()` parity contract keeps the
+    // .NET shape.
     type N = number | null;
     const items: N[] = [1, null, 2];
     expect(clean<N>(items, (n) => (n === null ? null : n * 10))).toEqual<N[]>([
@@ -126,7 +126,7 @@ describe("clean — mixed input shapes", () => {
     ).toEqual(["a", "b"]);
   });
 
-  it("oversized input — 10K elements", () => {
+  it("oversized input - 10K elements", () => {
     const items = Array.from({ length: 10_000 }, (_, i) => i);
     const result = clean(items, (n) => (n % 2 === 0 ? n : null));
     expect(result).not.toBeNull();
@@ -136,7 +136,7 @@ describe("clean — mixed input shapes", () => {
   });
 });
 
-describe("clean — Iterable parity (.NET IEnumerable<T>)", () => {
+describe("clean - Iterable parity (.NET IEnumerable<T>)", () => {
   it("accepts a Set", () => {
     const items = new Set([1, 2, 3, 4]);
     expect(clean(items, (n) => (n % 2 === 0 ? n : null))).toEqual([2, 4]);
@@ -159,7 +159,7 @@ describe("clean — Iterable parity (.NET IEnumerable<T>)", () => {
     expect(clean(gen(), (n) => n + 1)).toEqual([2, 3, 4]);
   });
 
-  it("empty generator → null by default", () => {
+  it("empty generator -> null by default", () => {
     function* gen(): Generator<number> {
       // intentionally empty
     }
@@ -167,7 +167,7 @@ describe("clean — Iterable parity (.NET IEnumerable<T>)", () => {
   });
 });
 
-describe("clean — cross-type input", () => {
+describe("clean - cross-type input", () => {
   it("operates on objects", () => {
     interface Item {
       readonly id: string;
@@ -192,16 +192,16 @@ describe("clean — cross-type input", () => {
   });
 });
 
-describe("clean — boundary cases", () => {
+describe("clean - boundary cases", () => {
   it("single-element array, kept", () => {
     expect(clean([1], (n) => n)).toEqual([1]);
   });
 
-  it("single-element array, dropped → null", () => {
+  it("single-element array, dropped -> null", () => {
     expect(clean([1], () => null)).toBeNull();
   });
 
-  it("ReturnEmpty + ThrowOnNull together — value-null still throws", () => {
+  it("ReturnEmpty + ThrowOnNull together - value-null still throws", () => {
     expect(() =>
       clean([1], () => null, {
         enumEmptyBehavior: "ReturnEmpty",

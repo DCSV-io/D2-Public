@@ -7,33 +7,34 @@
 namespace DcsvIo.D2.Auth.Abstractions;
 
 /// <summary>
-/// Per-scope discriminator that captures "how dangerous is this action if it
-/// succeeds?" — used to drive audit verbosity, OTP step-up triggers,
-/// impersonation defaults, and alerting thresholds. Lives on every scope (the
-/// claims-driven source of truth) including anonymous (<c>anon.*</c>) ones.
+/// How dangerous an action is if it succeeds, used to drive audit verbosity,
+/// step-up triggers and alerting thresholds. It is declared on the operation and
+/// reaches the runtime as endpoint metadata. A scope has no sensitivity of
+/// its own, because one scope can be granted to several operations and a scope
+/// entry declaring one would be a second statement of what the operation
+/// already says.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This is <b>distinct from</b> the rate-limit tier (an Edge-side endpoint
-/// concern documented in <c>docs/RATE-LIMITING.md</c>; that enum lives in
-/// the Edge / rate-limit lib, not here in <c>auth-abstractions</c>). Action
-/// sensitivity captures the security / blast-radius dimension; rate limit
-/// captures the resource-cost / abuse-surface dimension. The two are
-/// orthogonal: a sign-in endpoint is <see cref="Routine"/> in sensitivity
-/// (just an authentication attempt — nothing sensitive happens unless it
-/// succeeds and creates a session) but tightly capped on rate limit
-/// (brute-force surface). An admin destructive endpoint is
-/// <see cref="Critical"/> in sensitivity but standard on rate limit
+/// This is <b>distinct from</b> the rate-limit tier, an endpoint-level concern
+/// whose enum is declared outside this package, not here in
+/// <c>auth-abstractions</c>. Action sensitivity captures the security /
+/// blast-radius dimension; rate limit captures the resource-cost /
+/// abuse-surface dimension. The two are orthogonal: a sign-in endpoint is
+/// <see cref="Routine"/> in sensitivity (just an authentication attempt -
+/// nothing sensitive happens unless it succeeds and creates a session) but
+/// tightly capped on rate limit (brute-force surface). An admin destructive
+/// endpoint is <see cref="Critical"/> in sensitivity but standard on rate limit
 /// (low call volume).
 /// </para>
 /// <para>
-/// Sensitivity is informational metadata — it drives audit verbosity and
-/// risk-score thresholds, NOT runtime impersonation gating. Impersonation
-/// gating is per-scope (the <c>impersonationBlocked</c> field in
-/// <c>contracts/auth-scopes/scopes.spec.json</c>) and is enforced at Edge
-/// mint time by stripping blocked scopes from impersonation tokens. There
-/// is no <c>[ImpersonationAllowed]</c> attribute; to opt a Sensitive scope
-/// into being available during impersonation, set
+/// Sensitivity is informational metadata - it drives audit verbosity and
+/// risk-score thresholds, not runtime impersonation gating. Impersonation
+/// gating is per scope (the <c>impersonationBlocked</c> field in
+/// <c>contracts/auth-scopes/scopes.spec.json</c>) and is enforced at token mint
+/// time by stripping blocked scopes from impersonation tokens. There
+/// is no <c>[ImpersonationAllowed]</c> attribute; to make a Sensitive scope
+/// available during impersonation, set
 /// <c>impersonationBlocked: false</c> on that scope in the spec.
 /// </para>
 /// </remarks>

@@ -13,12 +13,12 @@ using DcsvIo.D2.Validation;
 using Xunit;
 
 /// <summary>
-/// Asserts the .NET <see cref="DefaultPhoneValidator"/> produces the SAME
-/// verdict + E.164 normalization as the hand-authored cross-language corpus
+/// Asserts the .NET <see cref="DefaultPhoneValidator"/> produces the same
+/// verdict and E.164 normalization as the hand-authored cross-language corpus
 /// at <c>contracts/validation/fixtures/phone.json</c>. The TypeScript
 /// <c>@dcsv-io/d2-validation</c> parity test asserts the identical corpus, so any
 /// metadata or normalization drift between libphonenumber-csharp and
-/// libphonenumber-js fails one side.
+/// libphonenumber-js fails the test on one side.
 /// </summary>
 public sealed class PhoneValidatorParityTests
 {
@@ -30,7 +30,7 @@ public sealed class PhoneValidatorParityTests
         if (sr_Corpus.Rows.Falsey())
         {
             throw new InvalidOperationException(
-                $"Phone corpus loaded with zero rows — version='{sr_Corpus.Version}'.");
+                $"Phone corpus loaded with zero rows - version='{sr_Corpus.Version}'.");
         }
 
         foreach (var row in sr_Corpus.Rows)
@@ -45,7 +45,7 @@ public sealed class PhoneValidatorParityTests
         var row = sr_Corpus.Rows.Single(r => r.Name == rowName);
         var input = ValidationFixture.SynthInput(row);
 
-        // An absent / unparseable country maps to null — the no-default-region
+        // An absent / unparseable country maps to null - the no-default-region
         // path. (Every country string in the phone corpus is a real alpha-2.)
         _ = row.Country.TryParseTruthyNull<CountryCode>(out var country);
 
@@ -59,7 +59,7 @@ public sealed class PhoneValidatorParityTests
         else
         {
             result.Success.Should().BeFalse(rowName);
-            result.ErrorCode.Should().Be("VALIDATION_FAILED", rowName);
+            result.ErrorCode.Should().Be("GEN_VALIDATION_FAILED", rowName);
             result.InputErrors.SelectMany(e => e.Errors).Select(m => m.Key)
                 .Should().Contain(row.ErrorKey, rowName);
         }

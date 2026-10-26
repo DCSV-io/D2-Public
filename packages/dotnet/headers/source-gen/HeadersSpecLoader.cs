@@ -13,10 +13,10 @@ using DcsvIo.D2.SourceGen;
 
 /// <summary>
 /// Pure logic for parsing <c>headers.spec.json</c> into a
-/// <see cref="HeadersSpec"/> record. Responsible only for JSON-shape
-/// validation; semantic validation (transport closed-enum, applicability
-/// non-empty, constName pattern, per-catalog uniqueness) lives in
-/// <see cref="HeadersEmitter"/>.
+/// <see cref="HeadersSpec"/> record. The loader validates only the JSON
+/// shape. <see cref="HeadersEmitter"/> performs the semantic validation
+/// (transport closed enum, non-empty applicability, constName pattern,
+/// per-catalog uniqueness).
 /// </summary>
 internal static class HeadersSpecLoader
 {

@@ -7,18 +7,18 @@ import { EncryptionFrame } from "@dcsv-io/d2-encryption-abstractions";
 import { FrameMalformedError, FrameVersionMismatchError } from "./errors.js";
 
 /**
- * Codec for the on-wire SYMMETRIC (version-1) encryption frame — the twin of
+ * Codec for the on-wire symmetric (version-1) encryption frame; the twin of
  * .NET `DcsvIo.D2.Encryption.EncryptionFrame`. Layout:
  * `[version=1:1][kid_len:1][kid:UTF-8 N][nonce:12][ciphertext+tag:M]`.
  *
  * Version dispatch is structural: this codec hard-rejects the sealed (v2)
- * version byte, so the two formats can never cross-parse.
+ * version byte, so the formats can never cross-parse.
  */
 
 const _utf8Encoder = new TextEncoder();
 
 // v1 kid decode mirrors .NET `Encoding.UTF8.GetString` (lenient replacement),
-// NOT the strict decode the sealed frame uses.
+// not the strict decode the sealed frame uses.
 const _utf8LenientDecoder = new TextDecoder("utf-8");
 
 /** Decoded view over a version-1 frame buffer. Spans alias the source. */
@@ -34,7 +34,7 @@ export interface FrameView {
 }
 
 /**
- * Encodes a version-1 frame around an already-encrypted ciphertext+tag span.
+ * Encodes a version-1 frame around an already-encrypted ciphertext and tag span.
  *
  * @param kid The kid to embed in the frame header.
  * @param nonce The nonce used for encryption (exactly 12 bytes).

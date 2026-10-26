@@ -16,7 +16,8 @@ import {
 } from "../../src/name-resolution/default-geo-name-resolver.js";
 
 /**
- * Wire-shape carve-out per rules.md §6.15: these interfaces mirror the
+ * Wire-shape exception to the `field?: T` form, which this codebase uses in
+ * place of a `T | null` union: these interfaces mirror the
  * literal JSON shape of `contracts/geo/fixtures/confusables.fixture.json`.
  * The fixture file uses JSON `null` as the "expected NOT FOUND" sentinel
  * (the .NET parity test on the same fixture branches on the same `null`).
@@ -70,13 +71,13 @@ function loadFixture(): ConfusablesFixture {
   );
 }
 
-describe("confusables fixture parity (TS resolver ↔ .NET resolver)", () => {
+describe("confusables fixture parity (TS resolver <-> .NET resolver)", () => {
   const fixture = loadFixture();
 
   describe("country cases", () => {
     for (const row of fixture.countryCases) {
       const expected = row.expectedIso31661Alpha2Code ?? "notFound";
-      const caseName = `${row.comment}: '${row.input}' → ${expected}`;
+      const caseName = `${row.comment}: '${row.input}' -> ${expected}`;
       it(caseName, () => {
         const result = tryResolveCountryByName(row.input);
         if (row.expectedIso31661Alpha2Code === null) {
@@ -96,7 +97,7 @@ describe("confusables fixture parity (TS resolver ↔ .NET resolver)", () => {
       const expected = row.expectedIso31662Code ?? "notFound";
       const label =
         `${row.comment}: '${row.input}' in ` +
-        `${row.parentCountryIso31661Alpha2Code} → ${expected}`;
+        `${row.parentCountryIso31661Alpha2Code} -> ${expected}`;
       it(label, () => {
         const parentCode = row.parentCountryIso31661Alpha2Code as CountryCode;
         const parent = CountryLookup.byCode[parentCode];

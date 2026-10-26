@@ -16,8 +16,9 @@ public sealed class ImpersonationKindTests
     [Fact]
     public void Enum_HasExactlyTwoMembers()
     {
-        // Adversarial: adding a new ImpersonationKind value affects scope
-        // mint stripping (Force is admin-only); silent additions are dangerous.
+        // Adversarial: adding an ImpersonationKind value affects scope
+        // stripping at mint (Force is admin-only), so an addition that goes
+        // unnoticed is dangerous.
         const int expected_count = 2;
 
         Enum.GetNames<ImpersonationKind>().Should().HaveCount(expected_count);

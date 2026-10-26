@@ -13,18 +13,18 @@ namespace DcsvIo.D2.Auth.Abstractions;
 /// <summary>
 /// Well-known PROTOCOL audiences generated from <c>contracts/auth-protocol-audiences/protocol-audiences.spec.json</c>.
 /// These are bare-token <c>aud</c> values (the universal internal receive
-/// audience and the Edge self-audience), distinct from the URL-shaped
+/// audience and the entry service's self-audience), distinct from the URL-shaped
 /// token-exchange targets in the spec-generated <see cref="Audiences"/>.
 /// </summary>
 public static partial class WellKnownAudiences
 {
     /// <summary>
-    /// The Edge self-audience for the Edge's own operations — the aud the Edge accepts on tokens minted for itself.
+    /// The self-audience for the operations of the entry service - the aud the entry service accepts on tokens minted for itself.
     /// </summary>
     public const string D2_EDGE_SELF_AUDIENCE = "d2-edge";
 
     /// <summary>
-    /// The single universal internal receive audience. The Edge mints exactly one internal transaction-token with aud=this value, and every hop validates aud == this value. It is NOT a token-exchange target (those live in auth-audiences/audiences.spec.json) — it is the universal receive audience that makes forward-unchanged possible.
+    /// The single universal internal receive audience. The entry service mints exactly one internal transaction-token with aud=this value, and every hop validates aud == this value. It is NOT a token-exchange target. As the universal receive audience, it makes forward-unchanged possible.
     /// </summary>
     public const string D2_INTERNAL_AUDIENCE = "d2.internal";
 }

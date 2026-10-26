@@ -176,7 +176,7 @@ describe("PayloadCrypto", () => {
     );
   });
 
-  it("binds the AAD context — a wrong AAD fails authentication", async () => {
+  it("binds the AAD context - a wrong AAD fails authentication", async () => {
     const shared = key32(9);
     const encryptor = new PayloadCrypto(
       new PayloadCryptoKeyring(

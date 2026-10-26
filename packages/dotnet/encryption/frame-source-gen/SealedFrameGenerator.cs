@@ -16,9 +16,10 @@ using Microsoft.CodeAnalysis.Text;
 /// <summary>
 /// Roslyn incremental source generator that emits the
 /// <c>SealedFrameLayout</c> static class into <c>DcsvIo.D2.Encryption</c>
-/// from the sealed-frame sibling spec. Single-target. Lives beside
+/// from the sealed-frame sibling spec. It emits only when the assembly being
+/// compiled is <c>DcsvIo.D2.Encryption</c>. It sits beside
 /// <see cref="EncryptionFrameGenerator"/> (the symmetric version-1 catalog);
-/// the two generators filter on different spec file names so neither ever
+/// the generators filter on different spec file names so neither ever
 /// reads the other's catalog.
 /// </summary>
 [Generator]

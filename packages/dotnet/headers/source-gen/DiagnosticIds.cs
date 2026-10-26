@@ -8,11 +8,11 @@ namespace DcsvIo.D2.Headers.SourceGen;
 
 /// <summary>
 /// String identifiers for the diagnostics emitted by <see cref="HeadersGenerator"/>.
-/// Kept in a separate class from <see cref="DiagnosticDescriptors"/> so
-/// non-Roslyn-host consumers (e.g. unit tests of the pure-logic
-/// <see cref="HeadersEmitter"/> / <see cref="HeadersSpecLoader"/>) can
-/// reference the IDs without dragging in <c>Microsoft.CodeAnalysis</c> (which
-/// the SrcGen csproj marks <c>PrivateAssets="all"</c>).
+/// This class is separate from <see cref="DiagnosticDescriptors"/> so that code
+/// running outside the Roslyn host, such as <see cref="HeadersEmitter"/> and
+/// <see cref="HeadersSpecLoader"/>, can reference the IDs without referencing
+/// <c>Microsoft.CodeAnalysis</c> (which the SrcGen csproj marks
+/// <c>PrivateAssets="all"</c>).
 /// </summary>
 internal static class DiagnosticIds
 {
@@ -41,7 +41,7 @@ internal static class DiagnosticIds
     public const string EmptyApplicability = "D2HDR005";
 
     /// <summary>
-    /// <c>convention</c> is outside the closed enum (typo guard — emitter falls
+    /// <c>convention</c> is outside the closed enum (typo guard - emitter falls
     /// back to documenting the value verbatim). Warning severity.
     /// </summary>
     public const string UnknownConvention = "D2HDR006";

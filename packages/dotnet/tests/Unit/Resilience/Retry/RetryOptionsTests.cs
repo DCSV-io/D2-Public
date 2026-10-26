@@ -15,11 +15,10 @@ public sealed class RetryOptionsTests
     [Fact]
     public void Defaults_MatchInternalConstants()
     {
-        // RetryOptions<T> + RetryDefaults together are the single source of
-        // truth for defaults (RetryHelper.RetryAsync defers to them). Verify
-        // every property defaults to the corresponding internal constant /
-        // cached delegate rather than a re-stated literal — would fail if
-        // the two ever drift.
+        // RetryOptions<T> and RetryDefaults together are the single source of
+        // truth for defaults (RetryHelper.RetryAsync uses them). Every property
+        // defaults to the matching internal constant or cached delegate, not to
+        // a copy of the literal. The test fails if the two drift apart.
         var options = new RetryOptions<int>();
 
         options.MaxAttempts.Should().Be(RetryDefaults.MAX_ATTEMPTS);
@@ -35,8 +34,8 @@ public sealed class RetryOptionsTests
     [Fact]
     public void DefaultShouldRetry_NeverRetries()
     {
-        // Sanity check on the cached default predicate's behavior — accepts
-        // every returned value (i.e. retries are exception-driven only).
+        // The cached default predicate returns false for every value, so retries
+        // are driven by exceptions only.
         RetryOptions<int>.SR_DefaultShouldRetry(0).Should().BeFalse();
         RetryOptions<int>.SR_DefaultShouldRetry(int.MaxValue).Should().BeFalse();
     }
@@ -52,7 +51,7 @@ public sealed class RetryOptionsTests
     [Fact]
     public void DefaultDelayFunc_DelegatesToTaskDelay()
     {
-        // Behavior check: zero delay completes ~immediately (matches Task.Delay).
+        // A zero delay completes immediately, like Task.Delay.
         RetryDefaults.SR_DelayFunc(TimeSpan.Zero, CancellationToken.None)
             .IsCompletedSuccessfully.Should().BeTrue();
     }

@@ -11,14 +11,13 @@ namespace DcsvIo.D2.Auth.Audiences.SourceGen;
 /// </summary>
 /// <param name="Name">
 /// PascalCase identifier emitted as a <c>public const string</c> on the
-/// generated <c>Audiences</c> class (e.g. <c>"Files"</c> →
-/// <c>Audiences.Files</c>). Must match <c>^[A-Z][A-Za-z0-9]*$</c>.
+/// generated <c>Audiences</c> class (e.g. <c>"Example"</c> ->
+/// <c>Audiences.Example</c>). Must match <c>^[A-Z][A-Za-z0-9]*$</c>.
 /// </param>
 /// <param name="Url">
-/// Absolute URI used as the JWT <c>aud</c> claim value AND as the
-/// <c>targetAudience</c> argument to <c>TokenExchangeClient.ExchangeAsync</c>.
-/// The const's value is this URL string. Must parse as an absolute
-/// <see cref="System.Uri"/>.
+/// Absolute URI used as the JWT <c>aud</c> claim value and as the target
+/// audience of a token exchange. The const's value is this URL string. Must
+/// parse as an absolute <see cref="System.Uri"/>.
 /// </param>
 /// <param name="Description">
 /// Free-form description rendered as XML doc on the emitted constant.

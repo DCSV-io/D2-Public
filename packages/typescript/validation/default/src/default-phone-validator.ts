@@ -19,7 +19,7 @@ import {
 
 /**
  * Default `IPhoneValidator` implementation. Mirrors the .NET
- * `DcsvIo.D2.Validation.DefaultPhoneValidator` — both delegate to a
+ * `DcsvIo.D2.Validation.DefaultPhoneValidator`: both delegate to a
  * libphonenumber port (libphonenumber-js here, libphonenumber-csharp on the
  * .NET side), validate, and normalize to E.164. Same per-field `D2Result`
  * contract on both runtimes.
@@ -44,8 +44,8 @@ export class DefaultPhoneValidator implements IPhoneValidator {
     if (falsey(phone)) return DefaultPhoneValidator.invalid();
 
     // The `CountryCode` brand erases to its underlying alpha-2 string at
-    // runtime, which is exactly the region identifier libphonenumber-js
-    // expects; the cast is the compile-time bridge between the two brands.
+    // runtime, which is the region identifier libphonenumber-js expects; the
+    // cast bridges `CountryCode` and `LibCountryCode` at compile time.
     const region = defaultRegion as LibCountryCode | undefined;
 
     // `falsey` already excluded undefined / empty / whitespace.

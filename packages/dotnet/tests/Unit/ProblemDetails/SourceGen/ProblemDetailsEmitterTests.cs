@@ -26,7 +26,7 @@ public sealed class ProblemDetailsEmitterTests
             "application/problem+json",
             extensions: [new ExtensionKeyEntry("ERROR_CODE", "d2_error_code", "Doc.")],
             titles: [
-                new TitleEntry("UNAUTHORIZED", 401, "Unauthorized", "401 doc."),
+                new TitleEntry("GEN_UNAUTHORIZED", 401, "Unauthorized", "401 doc."),
                 new TitleEntry("REQUEST_FAILED", null, "Request Failed", "Fallback doc."),
             ]);
 
@@ -82,14 +82,14 @@ public sealed class ProblemDetailsEmitterTests
 
     [Theory]
     [InlineData("BAD_REQUEST", 400, "Bad Request")]
-    [InlineData("UNAUTHORIZED", 401, "Unauthorized")]
-    [InlineData("FORBIDDEN", 403, "Forbidden")]
-    [InlineData("NOT_FOUND", 404, "Not Found")]
-    [InlineData("CONFLICT", 409, "Conflict")]
-    [InlineData("PAYLOAD_TOO_LARGE", 413, "Payload Too Large")]
+    [InlineData("GEN_UNAUTHORIZED", 401, "Unauthorized")]
+    [InlineData("GEN_FORBIDDEN", 403, "Forbidden")]
+    [InlineData("GEN_NOT_FOUND", 404, "Not Found")]
+    [InlineData("GEN_CONFLICT", 409, "Conflict")]
+    [InlineData("GEN_PAYLOAD_TOO_LARGE", 413, "Payload Too Large")]
     [InlineData("TOO_MANY_REQUESTS", 429, "Too Many Requests")]
     [InlineData("INTERNAL_SERVER_ERROR", 500, "Internal Server Error")]
-    [InlineData("SERVICE_UNAVAILABLE", 503, "Service Unavailable")]
+    [InlineData("GEN_SERVICE_UNAVAILABLE", 503, "Service Unavailable")]
     public void Emit_TitleWithHttpStatus_EmitsConstantAndSwitchArm(
         string constName,
         int status,
@@ -133,7 +133,7 @@ public sealed class ProblemDetailsEmitterTests
             "https://problems.d2.dcsv.io/",
             "application/problem+json",
             extensions: [],
-            titles: [new TitleEntry("UNAUTHORIZED", 401, "Unauthorized", "Doc.")]);
+            titles: [new TitleEntry("GEN_UNAUTHORIZED", 401, "Unauthorized", "Doc.")]);
 
         var result = ProblemDetailsEmitter.Emit(spec);
 
@@ -203,8 +203,8 @@ public sealed class ProblemDetailsEmitterTests
             extensions: [],
             titles:
             [
-                new TitleEntry("UNAUTHORIZED", 401, "Unauthorized", "Doc."),
-                new TitleEntry("UNAUTHORIZED", 403, "Forbidden", "Doc."),
+                new TitleEntry("GEN_UNAUTHORIZED", 401, "Unauthorized", "Doc."),
+                new TitleEntry("GEN_UNAUTHORIZED", 403, "Forbidden", "Doc."),
             ]);
 
         var result = ProblemDetailsEmitter.Emit(spec);
@@ -258,7 +258,7 @@ public sealed class ProblemDetailsEmitterTests
             "https://problems.d2.dcsv.io/",
             "application/problem+json",
             extensions: [new ExtensionKeyEntry("ERROR_CODE", "d2_error_code", "Doc.")],
-            titles: [new TitleEntry("UNAUTHORIZED", 401, "Unauthorized", "Doc.")]);
+            titles: [new TitleEntry("GEN_UNAUTHORIZED", 401, "Unauthorized", "Doc.")]);
 
         var first = ProblemDetailsEmitter.Emit(spec);
         var second = ProblemDetailsEmitter.Emit(spec);
@@ -269,9 +269,9 @@ public sealed class ProblemDetailsEmitterTests
     [Fact]
     public void Emit_PreservesSpecOrderOfEntries()
     {
-        // Spec ordering drives emitted ordering — predictable diff on spec
-        // edits. Mirrors the auth-error-codes emitter's preserve-order
-        // discipline.
+        // The emitted order follows the spec order, so a spec edit produces a
+        // predictable diff. The auth-error-codes emitter also preserves the
+        // spec order.
         var spec = MakeSpec(
             "https://problems.d2.dcsv.io/",
             "application/problem+json",

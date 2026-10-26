@@ -9,11 +9,11 @@ namespace DcsvIo.D2.WireShapes.SourceGen;
 /// <summary>
 /// String identifiers for the diagnostics emitted by
 /// <see cref="WireShapesGenerator"/>. Kept in a separate class from
-/// <see cref="DiagnosticDescriptors"/> so non-Roslyn-host consumers
-/// (e.g. unit tests of the pure-logic <see cref="WireShapeEmitter"/> /
-/// <see cref="WireShapeSpecLoader"/>) can reference the IDs without
-/// dragging in <c>Microsoft.CodeAnalysis</c> (which the SrcGen csproj
-/// marks <c>PrivateAssets="all"</c>).
+/// <see cref="DiagnosticDescriptors"/> so code that runs outside the Roslyn
+/// host, such as the pure-logic <see cref="WireShapeEmitter"/> and
+/// <see cref="WireShapeSpecLoader"/>, can reference the IDs without
+/// referencing <c>Microsoft.CodeAnalysis</c>, which the source generator
+/// project marks <c>PrivateAssets="all"</c>.
 /// </summary>
 internal static class DiagnosticIds
 {

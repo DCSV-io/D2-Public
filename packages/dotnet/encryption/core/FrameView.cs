@@ -7,7 +7,7 @@
 namespace DcsvIo.D2.Encryption;
 
 /// <summary>
-/// Decoded view over a frame buffer. All spans alias the source — the
+/// Decoded view over a frame buffer. All spans alias the source - the
 /// caller must not mutate the source while the view is in use.
 /// </summary>
 internal readonly ref struct FrameView

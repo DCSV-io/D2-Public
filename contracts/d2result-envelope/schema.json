@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "D2 D2Result envelope spec",
-  "description": "Schema for contracts/d2result-envelope/d2result-envelope.spec.json — the source-of-truth catalog of JSON property names for the D2Result Shape B wire envelope (the BFF gateway response shape that every frontend reads). DcsvIo.D2.Result.Envelope.SourceGen emits D2ResultEnvelopeFieldNames into DcsvIo.D2.Result; the TypeScript codegen pipeline emits the same catalog into @dcsv-io/d2-result. Both sides reference the codegen-emitted constants for the wire property names — the .NET D2Result properties carry [JsonPropertyName(D2ResultEnvelopeFieldNames.*)] attributes, and the TS gateway parser reads via the same camelCase constants. Cross-language wire drift is structurally impossible.",
+  "description": "Schema for contracts/d2result-envelope/d2result-envelope.spec.json - the source-of-truth catalog of JSON property names for the D2Result Shape B wire envelope, which is the response shape a client of this API parses. DcsvIo.D2.Result.Envelope.SourceGen emits D2ResultEnvelopeFieldNames into DcsvIo.D2.Result; the TypeScript codegen pipeline emits the same catalog into @dcsv-io/d2-result. Both sides reference the codegen-emitted constants for the wire property names - the .NET D2Result properties carry [JsonPropertyName(D2ResultEnvelopeFieldNames.*)] attributes, and the TypeScript client parser reads through the same camelCase constants. Cross-language wire drift is structurally impossible.",
   "type": "object",
   "required": ["fields"],
   "additionalProperties": false,
@@ -23,17 +23,17 @@
         "constName": {
           "type": "string",
           "pattern": "^[A-Z][A-Z0-9_]*$",
-          "description": "Public C# / TS constant identifier — UPPER_SNAKE_CASE. Must be unique across the catalog."
+          "description": "Public C# / TS constant identifier - UPPER_SNAKE_CASE. Must be unique across the catalog."
         },
         "value": {
           "type": "string",
           "pattern": "^[a-z][a-zA-Z0-9]*$",
-          "description": "Wire-format JSON property name — camelCase. Must be unique across the catalog."
+          "description": "Wire-format JSON property name - camelCase. Must be unique across the catalog."
         },
         "doc": { "type": "string", "minLength": 1 },
         "deprecated": {
           "type": "boolean",
-          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive — the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
+          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive - the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
         },
         "deprecatedReason": {
           "type": "string",
@@ -47,7 +47,7 @@
         "sunset": {
           "type": "string",
           "format": "date",
-          "description": "ISO-8601 date for the future RFC 8594 Sunset response header. Edge-runtime-deferred: carried on the contract now, consumed by the Edge response middleware when it exists. Inert until then."
+          "description": "ISO-8601 date for the RFC 8594 Sunset response header. A host whose response pipeline emits that header reads the date from here; a host that does not ignores it."
         }
       }
     }

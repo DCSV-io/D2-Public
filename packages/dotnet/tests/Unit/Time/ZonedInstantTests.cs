@@ -154,9 +154,9 @@ public sealed class ZonedInstantTests
     [Fact]
     public void Create_EtcGMTPlusN_IsAcceptedAsValidTzdbZone()
     {
-        // Etc/GMT+N IS in tzdb (as fixed-offset IANA zones). Documents the
-        // acceptance contract — IANA-only does NOT mean "no fixed-offset
-        // zones", it means "no offset NOTATION as a substitute for IANA."
+        // Etc/GMT+N is in tzdb (as fixed-offset IANA zones). This test documents
+        // that IANA-only does not mean "no fixed-offset zones"; it means "no offset
+        // notation as a substitute for IANA."
         var result = ZonedInstant.Create(Instant.FromUnixTimeSeconds(0), "Etc/GMT+5");
 
         result.Success.Should().BeTrue();
@@ -182,9 +182,10 @@ public sealed class ZonedInstantTests
     [InlineData("AMERICA/NEW_YORK")]
     public void Create_LowercaseCanonicalName_BehaviorDocumented(string nonCanonicalCase)
     {
-        // NodaTime tzdb lookup IS case-sensitive — GetZoneOrNull returns null
-        // for these. Document the contract: callers must pass the canonical
-        // case form. Case-insensitive matching would be a different feature.
+        // NodaTime tzdb lookup IS case-sensitive: GetZoneOrNull returns null
+        // for these names. This test documents that callers must pass the
+        // canonical case form. Case-insensitive matching would be a different
+        // feature.
         var result = ZonedInstant.Create(
             Instant.FromUnixTimeSeconds(0),
             nonCanonicalCase);
@@ -197,9 +198,9 @@ public sealed class ZonedInstantTests
     [Fact]
     public void Create_TrailingWhitespaceIANA_ReturnsValidationFailed()
     {
-        // GetZoneOrNull does NOT trim — documents that callers must trim
-        // BEFORE calling Create. Whitespace-bounded inputs that survive the
-        // Falsey() guard (e.g. " UTC ") still fail at the tzdb lookup.
+        // GetZoneOrNull does NOT trim. This test documents that callers must trim
+        // BEFORE calling Create. Inputs with surrounding whitespace that pass the
+        // Falsey() guard (for example " UTC ") still fail at the tzdb lookup.
         var result = ZonedInstant.Create(
             Instant.FromUnixTimeSeconds(0),
             "America/New_York ");
@@ -291,9 +292,8 @@ public sealed class ZonedInstantTests
     public void Create_ZuluUTCAlias_NormalizesToCanonicalUTC_BehaviorDocumented()
     {
         // The "Zulu" alias is in tzdb. NodaTime's TzdbDateTimeZoneSource
-        // canonicalizes it to "Etc/UTC". This test documents the resolved
-        // canonical name without hard-coding a specific casing for the
-        // future-proofing case where the tzdb might change canonical naming.
+        // canonicalizes it to "Etc/UTC". The assertion accepts either Etc/UTC
+        // or UTC, so a change of the canonical tzdb name does not fail the test.
         var result = ZonedInstant.Create(Instant.FromUnixTimeSeconds(0), "Zulu");
 
         result.Success.Should().BeTrue();

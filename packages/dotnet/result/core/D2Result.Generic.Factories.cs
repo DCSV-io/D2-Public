@@ -11,13 +11,13 @@ using DcsvIo.D2.ErrorCodes.Category;
 using DcsvIo.D2.I18n;
 
 /// <summary>
-/// Hand-rolled factory methods on <see cref="D2Result{TData}"/> that are NOT
-/// derived from the error-code spec — the success / raw / propagation /
+/// Hand-rolled factory methods on <see cref="D2Result{TData}"/> that are not
+/// derived from the error-code spec - the success / raw / propagation /
 /// data-carrying factories (<see cref="Ok"/> / <see cref="Created"/> /
 /// <see cref="Fail"/> / <see cref="BubbleFail"/> / <see cref="Bubble"/> /
 /// <see cref="SomeFound"/> / <see cref="PartialSuccess"/>). The spec-derived
-/// semantic failure factories (the typed twins of <c>NotFound</c> / … carrying
-/// <c>default</c> data) are generated onto the same partial class — see
+/// semantic failure factories (the typed twins of <c>NotFound</c> / ... carrying
+/// <c>default</c> data) are generated onto the same partial class - see
 /// <c>D2Result.Generic.Factories.g.cs</c>.
 /// </summary>
 public sealed partial class D2Result<TData>
@@ -43,6 +43,16 @@ public sealed partial class D2Result<TData>
     /// <returns>A created <see cref="D2Result{TData}"/>.</returns>
     public static D2Result<TData> Created(TData? data = default, string? traceId = null)
         => new(true, data, statusCode: HttpStatusCode.Created, traceId: traceId);
+
+    /// <summary>
+    /// Creates a successful result with HTTP status
+    /// <see cref="HttpStatusCode.NoContent"/> and no payload. Use when the
+    /// operation succeeded and the protocol says the response carries no body.
+    /// </summary>
+    /// <param name="traceId">Optional trace identifier.</param>
+    /// <returns>A no-content <see cref="D2Result{TData}"/>.</returns>
+    public static new D2Result<TData> NoContent(string? traceId = null)
+        => new(true, statusCode: HttpStatusCode.NoContent, traceId: traceId);
 
     /// <summary>
     /// Creates a failure result. Use only when no semantic factory matches.
@@ -83,7 +93,7 @@ public sealed partial class D2Result<TData>
             d2Result.Category);
 
     /// <summary>
-    /// Propagates an upstream <see cref="D2Result"/> (success OR failure) into a typed
+    /// Propagates an upstream <see cref="D2Result"/> (success or failure) into a typed
     /// <see cref="D2Result{TData}"/>, preserving its <see cref="D2Result.Success"/>
     /// flag and all metadata, with the supplied <paramref name="data"/> attached.
     /// </summary>
@@ -103,9 +113,9 @@ public sealed partial class D2Result<TData>
 
     /// <summary>
     /// Creates a partial-success result (HTTP 206, error code
-    /// <see cref="ErrorCodes.SOME_FOUND"/>) carrying the partial
+    /// <see cref="ErrorCodes.GEN_SOME_FOUND"/>) carrying the partial
     /// <paramref name="data"/>. <see cref="D2Result.Success"/> is <c>false</c> on the
-    /// partial-success ladder (NOT_FOUND → SOME_FOUND → OK) — only fully-found
+    /// partial-success ladder (NOT_FOUND -> SOME_FOUND -> OK) - only fully-found
     /// queries succeed.
     /// </summary>
     /// <param name="data">Optional partial payload.</param>
@@ -125,25 +135,31 @@ public sealed partial class D2Result<TData>
             data,
             messages,
             statusCode: HttpStatusCode.PartialContent,
-            errorCode: ErrorCodes.SOME_FOUND,
+            errorCode: ErrorCodes.GEN_SOME_FOUND,
             traceId: traceId,
             category: ErrorCategory.PartialSuccess);
     }
 
     /// <summary>
-    /// Creates a partial-success result (HTTP 207 Multi-Status, error code
-    /// <see cref="ErrorCodes.PARTIAL_SUCCESS"/>) for a multi-target write
-    /// where some targets succeeded and others failed.
-    /// <see cref="D2Result.Success"/> is <c>true</c> — the operation did
-    /// partially succeed. Callers inspect <c>IsPartialSuccess</c> and the
-    /// payload to decide on retry / compensation for the failed target(s).
+    /// Creates a partial result (HTTP 503, error code
+    /// <see cref="ErrorCodes.GEN_PARTIAL_SUCCESS"/>) for a multi-target write
+    /// that applied to some targets and not others.
+    /// <see cref="D2Result.Success"/> is <c>false</c>: anything short of every
+    /// target is reported as a failure, so a caller that only asks
+    /// <see cref="D2Result.Failed"/> treats the operation as not done. A caller
+    /// that accepts a partial outcome tests <c>IsPartialSuccess</c> and reads
+    /// <paramref name="data"/> to see which targets were left. The status is
+    /// 503 rather than a 2xx because the operation is not done and the correct
+    /// move is to retry; the error code is
+    /// what distinguishes it from <see cref="ErrorCodes.GEN_SERVICE_UNAVAILABLE"/>,
+    /// where no target was written at all.
     /// </summary>
-    /// <param name="data">Outcome payload describing which targets succeeded.</param>
+    /// <param name="data">Outcome payload describing which targets were written.</param>
     /// <param name="messages">
     /// Optional translation messages; defaults to <c>[TK.Common.Errors.PARTIAL_SUCCESS]</c>.
     /// </param>
     /// <param name="traceId">Optional trace identifier.</param>
-    /// <returns>A partial-success <see cref="D2Result{TData}"/>.</returns>
+    /// <returns>A partial <see cref="D2Result{TData}"/> failure.</returns>
     public static D2Result<TData> PartialSuccess(
         TData? data = default,
         IReadOnlyList<TKMessage>? messages = null,
@@ -151,11 +167,11 @@ public sealed partial class D2Result<TData>
     {
         messages ??= [TK.Common.Errors.PARTIAL_SUCCESS];
         return new(
-            true,
+            false,
             data,
             messages,
-            statusCode: HttpStatusCode.MultiStatus,
-            errorCode: ErrorCodes.PARTIAL_SUCCESS,
+            statusCode: HttpStatusCode.ServiceUnavailable,
+            errorCode: ErrorCodes.GEN_PARTIAL_SUCCESS,
             traceId: traceId,
             category: ErrorCategory.PartialSuccess);
     }

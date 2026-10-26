@@ -15,12 +15,10 @@ using DcsvIo.D2.Result;
 using Xunit;
 
 /// <summary>
-/// Contract pinning for <see cref="IJwksProvider"/>. The interface is the
-/// versioned contract every consumer-side service depends on; signature
-/// drift here is a breaking change. Failures here mean any downstream impl
-/// (the in-tree <c>HttpJwksProvider</c> + Edge's issuer-side impl) will
-/// fail to compile — that's the desired surface, but we want the regression
-/// to land at the abstractions test layer first.
+/// Contract pinning for <see cref="IJwksProvider"/>. The interface is a
+/// versioned contract, and a signature change here is a breaking change. A
+/// signature change also stops every implementation of the interface from
+/// compiling. These tests fail first, in the abstractions test layer.
 /// </summary>
 public sealed class IJwksProviderContractTests
 {
@@ -64,9 +62,9 @@ public sealed class IJwksProviderContractTests
     [Fact]
     public void Interface_HasExactlyTwoMethods()
     {
-        // Adversarial: catches accidental method additions / removals on the
-        // contract surface. A future expansion is fine — bump this count
-        // intentionally and add a corresponding shape test.
+        // Adversarial: fails on an accidental method addition or removal on the
+        // contract surface. To expand the contract on purpose, change this
+        // count and add a corresponding shape test.
         var methods = typeof(IJwksProvider).GetMethods(
             BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 

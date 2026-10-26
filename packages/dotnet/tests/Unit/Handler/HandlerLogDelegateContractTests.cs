@@ -17,14 +17,13 @@ using Xunit;
 /// Pins the no-Exception-parameter contract on <c>BaseHandlerLog</c>'s
 /// <c>[LoggerMessage]</c> delegates. Exception messages can interpolate
 /// broker URIs, connection strings, OAuth tokens, presigned URLs, raw
-/// user input, and similar PII — none of which must reach the log
+/// user input, and similar PII - none of which must reach the log
 /// pipeline. Callers pass <c>SanitizedExceptionRender.TypeName(ex)</c>
 /// + <c>FirstFrame(ex)</c> as separate strings instead.
 /// </summary>
 /// <remarks>
-/// Mirrors <c>DcsvIo.D2.Tests.Unit.Auth.Inbound.Telemetry.AuthLogDelegateContractTests</c>
-/// and <c>DcsvIo.D2.Tests.Unit.AuthOutbound.Telemetry.OutboundLogDelegateContractTests</c>.
-/// Same enforcement pattern across every log surface in the codebase.
+/// The log-delegate contract tests of every log surface in the codebase follow
+/// the same enforcement pattern.
 /// </remarks>
 public sealed class HandlerLogDelegateContractTests
 {

@@ -8,9 +8,10 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 **Input contract:** [`contracts/dlq-failure-metadata/`](../../../../contracts/dlq-failure-metadata/README.md)
 
-Roslyn incremental source generator that emits the DLQ failure-metadata catalogs from `contracts/dlq-failure-metadata/dlq-failure-metadata.spec.json`.
+Roslyn incremental source generator that emits the dead-letter queue (DLQ) failure-metadata catalogs from
+`contracts/dlq-failure-metadata/dlq-failure-metadata.spec.json`.
 
-**Convention**: spec-driven Roslyn `IIncrementalGenerator` (netstandard2.0 analyzer; spec via `<AdditionalFiles>`).
+Convention: spec-driven Roslyn `IIncrementalGenerator` (netstandard2.0 analyzer; spec via `<AdditionalFiles>`).
 
 ## Multi-target dispatch
 
@@ -18,18 +19,24 @@ Roslyn incremental source generator that emits the DLQ failure-metadata catalogs
 | ---------------------------------- | ------------------------------- | ------------------------------------------------ |
 | `DcsvIo.D2.Messaging.Abstractions` | `DlqFailureMetadataFields.g.cs` | `DlqFailureMetadataFields` (JSON property names) |
 | `DcsvIo.D2.Messaging.RabbitMq`     | `DlqFailureCauses.g.cs`         | `DlqFailureCauses` (closed-enum cause strings)   |
-| any other                          | (nothing)                       | —                                                |
+| any other                          | (nothing)                       | -                                                |
 
-The two catalogs co-live in one spec because they describe two facets of the same wire shape, but they emit into different consumers because the producer of the cause strings (`DlqFailureHeaderBuilder`) lives in the RabbitMq csproj while the consumer-of-the-record (`DlqFailureMetadata`) lives in the abstractions csproj.
+The fields and the causes are in one spec because they describe the same wire shape. They are emitted into different
+assemblies because `DlqFailureHeaderBuilder`, which produces the cause strings, is in the `DcsvIo.D2.Messaging.RabbitMq`
+project, while `DlqFailureMetadata`, the record whose properties the field names match, is in the
+`DcsvIo.D2.Messaging.Abstractions` project.
 
 ## What the catalog contains
 
-- **6 fields**: `CAUSE`, `ERROR_CODE`, `DETAIL`, `ATTEMPT_COUNT`, `TRACE_ID`, `NACKED_BY` (mirrors the `DlqFailureMetadata` record properties).
-- **5 causes**: `HANDLER_RESULT_FAILURE`, `HANDLER_EXCEPTION`, `DECRYPT_FAILURE`, `DESERIALIZE_FAILURE`, `RETRIES_EXHAUSTED`.
+- Fields: `CAUSE`, `ERROR_CODE`, `DETAIL`, `ATTEMPT_COUNT`, `TRACE_ID`, `NACKED_BY` (these match the `DlqFailureMetadata`
+  record properties).
+- Causes: `HANDLER_RESULT_FAILURE`, `HANDLER_EXCEPTION`, `DECRYPT_FAILURE`, `DESERIALIZE_FAILURE`, `RETRIES_EXHAUSTED`.
 
 ## Cross-language parity
 
-The SAME spec drives `@dcsv-io/d2-messaging-abstractions` (sources committed). The TS package exposes the same field-name and cause-string catalogs; any TS consumer (DLQ ops tooling, RabbitMQ subscribers) reads byte-equal identifiers shared with the .NET producers.
+The same spec drives `@dcsv-io/d2-messaging-abstractions` (`dlq-failure-metadata.g.ts`, sources committed). That package
+exposes the same field-name and cause-string catalogs, so a TypeScript consumer, such as DLQ operations tooling or a
+RabbitMQ subscriber, reads the same identifiers as the .NET producers.
 
 ## Diagnostics
 

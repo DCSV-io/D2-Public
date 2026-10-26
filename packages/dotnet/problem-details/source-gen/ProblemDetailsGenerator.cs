@@ -20,11 +20,9 @@ using Microsoft.CodeAnalysis.Text;
 /// <c>TITLE_*</c>) + the <c>TitleFor</c> switch into
 /// <c>DcsvIo.D2.ProblemDetails.Abstractions</c> by reading
 /// <c>contracts/problem-details/problem-details.spec.json</c> via
-/// <c>AdditionalFiles</c>. Single-target — only emits when the consuming
-/// assembly is <c>DcsvIo.D2.ProblemDetails.Abstractions</c>. The abstractions
-/// csproj is referenced by both <c>DcsvIo.D2.Auth.Http</c> (path A emitter)
-/// and <c>DcsvIo.D2.AspNetCore</c> (path B Customizer), so a single emitted
-/// constant set serves both .NET ProblemDetails wire paths.
+/// <c>AdditionalFiles</c>. Single-target - only emits when the consuming
+/// assembly is <c>DcsvIo.D2.ProblemDetails.Abstractions</c>, so every project
+/// that references that assembly shares one emitted constant set.
 /// </summary>
 [Generator]
 public sealed class ProblemDetailsGenerator : IIncrementalGenerator
@@ -44,7 +42,7 @@ public sealed class ProblemDetailsGenerator : IIncrementalGenerator
                 Content: file.GetText(ct)?.ToString() ?? string.Empty))
             .Collect();
 
-        // 2. Combine with the compilation so we can gate emission by assembly name.
+        // 2. Combine with the compilation to gate emission by assembly name.
         var combined = specs.Combine(context.CompilationProvider);
 
         // 3. For each pipeline run, drive the loader + emitter.

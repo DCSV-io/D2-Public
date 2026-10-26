@@ -16,7 +16,7 @@ using Microsoft.CodeAnalysis.Text;
 /// <summary>
 /// Roslyn incremental source generator that emits the
 /// <c>EncryptionFrameLayout</c> static class into <c>DcsvIo.D2.Encryption</c>.
-/// Single-target.
+/// It emits only when the assembly being compiled is <c>DcsvIo.D2.Encryption</c>.
 /// </summary>
 [Generator]
 public sealed class EncryptionFrameGenerator : IIncrementalGenerator

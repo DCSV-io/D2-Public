@@ -12,14 +12,14 @@ using DcsvIo.D2.SourceGen;
 /// <summary>
 /// Result of
 /// <see cref="ScopesEmitter.Emit"/>.
-/// Pure data — the Roslyn host transforms the diagnostics into
+/// Pure data. The Roslyn host transforms the diagnostics into
 /// <see cref="Microsoft.CodeAnalysis.Diagnostic"/> instances and writes the
 /// generated source to <c>Scopes.g.cs</c>.
 /// </summary>
 /// <param name="GeneratedSource">
 /// The generated C# source for the <c>Scopes</c> static partial class.
 /// </param>
-/// <param name="Diagnostics">Diagnostics emitted during validation + emission.</param>
+/// <param name="Diagnostics">Diagnostics emitted during validation and emission.</param>
 internal sealed record EmitResult(
     string GeneratedSource,
     ImmutableArray<EmitDiagnostic> Diagnostics);

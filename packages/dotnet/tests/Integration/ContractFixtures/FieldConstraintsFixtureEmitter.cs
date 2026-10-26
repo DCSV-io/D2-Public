@@ -17,22 +17,21 @@ using Xunit;
 /// <summary>
 /// Emits the parity fixture for the codegen-emitted field-constraints catalog
 /// reflected off the <c>DcsvIo.D2.Validation.Abstractions</c> assembly. The
-/// fixture carries two top-level groups:
+/// fixture has these top-level groups:
 /// <list type="bullet">
 ///   <item>
-///     <c>constraints</c> — one <c>{ NAME: intValue }</c> map over every
-///     <see cref="FieldConstraints"/> <c>public const int</c> (the integer IS
+///     <c>constraints</c> - one <c>{ NAME: intValue }</c> map over every
+///     <see cref="FieldConstraints"/> <c>public const int</c> (the integer is
 ///     the value on both runtimes).
 ///   </item>
 ///   <item>
-///     <c>enums</c> — one sub-map per taxonomy enum keyed by enum-member name;
-///     the value is the wire form (the member name itself — all three enums
+///     <c>enums</c> - one sub-map per taxonomy enum keyed by enum-member name;
+///     the value is the wire form (the member name itself - all enums
 ///     serialize via <c>JsonStringEnumConverter</c> so the wire form equals
-///     the member name, matching the TS-side string-valued const-objects).
+///     the member name, matching the TypeScript string-valued const objects).
 ///   </item>
 /// </list>
-/// The TS-side parity test loads <c>fixtures/validation/field-constraints.json</c>
-/// and asserts per-VALUE byte-equivalence against the TS catalog shapes.
+/// The emitter writes the fixture to <c>fixtures/validation/field-constraints.json</c>.
 /// </summary>
 public sealed class FieldConstraintsFixtureEmitter
 {
@@ -58,9 +57,9 @@ public sealed class FieldConstraintsFixtureEmitter
 
     /// <summary>
     /// Reflect every <c>public const int</c> field declared on the supplied
-    /// static class into a sorted <c>{ NAME: intValue }</c> map. Mirrors the
-    /// TS-side numeric const-object shape (TS object keys ARE the constant
-    /// names; the values are the integers).
+    /// static class into a sorted <c>{ NAME: intValue }</c> map. The map has the
+    /// shape of the TypeScript numeric const object (its keys are the constant
+    /// names; its values are the integers).
     /// </summary>
     private static SortedDictionary<string, object?> EnumerateConstInts(Type type)
     {
@@ -83,8 +82,8 @@ public sealed class FieldConstraintsFixtureEmitter
     /// Reflect every member of a string-wire enum (the wire form is the member
     /// name via <c>JsonStringEnumConverter</c>) into a sorted
     /// <c>{ memberName: memberName }</c> map. Keying by the wire form matches
-    /// the TS-side const-object shape (TS object keys ARE the wire-form
-    /// strings) — the parity test compares fixture keys vs TS keys directly.
+    /// the shape of the TypeScript const object, whose keys are the wire-form
+    /// strings.
     /// </summary>
     private static SortedDictionary<string, object?> EnumerateStringWireEnum(Type enumType)
     {

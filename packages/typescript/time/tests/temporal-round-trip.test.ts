@@ -2,20 +2,20 @@
 // Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 // -----------------------------------------------------------------------
 
-// Temporal-adversarial round-trip suite — TypeScript half.
+// Temporal-adversarial round-trip suite - TypeScript half.
 //
-// Drives the SAME contracts/temporal/temporal-adversarial.fixture.json as the
-// C# half (host TemporalRoundTripTests twin), so an identical wire value
-// materializes to the equivalent domain value in BOTH languages. Each test maps
-// a wire string (the shape the TypeSpec DTO emitter produces — ISO-8601 instant
+// Drives the same contracts/temporal/temporal-adversarial.fixture.json as the
+// C# half of the suite, so an identical wire value
+// materializes to the equivalent domain value in both languages. Each test maps
+// a wire string (the shape the TypeSpec DTO emitter produces - ISO-8601 instant
 // / offset-free local / ISO-8601 duration) to the @dcsv-io/d2-time + Temporal domain
-// value and back, asserting nothing is lost. The composite cases prove the IANA
-// zone NAME survives the wire (a bare offset cannot carry it).
+// value and back, asserting nothing is lost. The composite cases show that the IANA
+// zone name survives the wire (a bare offset cannot carry it).
 //
 // This suite lives in @dcsv-io/d2-time (not the emitter package) because @dcsv-io/d2-time owns
-// the temporal domain types being round-tripped and already carries
-// temporal-polyfill + the cross-language fixture loader. Cross-language parity
-// is preserved by both halves consuming the identical shared fixture file.
+// the temporal domain types being round-tripped and already has
+// temporal-polyfill and the cross-language fixture loader. Cross-language parity
+// holds because both halves read the identical shared fixture file.
 
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -91,7 +91,7 @@ const composite = (id: string): CompositeFixture => {
   return fx;
 };
 
-// Offset string ("-05:00") → signed minutes.
+// Offset string ("-05:00") -> signed minutes.
 function offsetMinutes(iso: string): number {
   const m = /([+-])(\d{2}):(\d{2})$/.exec(iso);
   if (m === null) throw new Error(`no offset in '${iso}'`);
@@ -100,7 +100,7 @@ function offsetMinutes(iso: string): number {
 }
 
 // ---------------------------------------------------------------------------
-// RT-1..6 — per-type round-trip (wire → domain → wire == original)
+// RT-1..6 - per-type round-trip (wire -> domain -> wire == original)
 // ---------------------------------------------------------------------------
 
 describe("temporalRoundTrip_PerType", () => {
@@ -119,16 +119,17 @@ describe("temporalRoundTrip_PerType", () => {
 
   it("RT2_offsetDateTime_preservesOffsetAndInstant_notNormalizedToUtc", () => {
     for (const fx of scalars("offset")) {
-      // Temporal.Instant normalizes to UTC; to PRESERVE the offset we parse the
-      // wall-clock + offset into a ZonedDateTime pinned to the fixed offset zone.
+      // Temporal.Instant normalizes to UTC. To check that the offset survives,
+      // the test re-emits the instant with `toString` in a time zone given as
+      // the fixed offset (see offsetZone).
       const exactInstant = Temporal.Instant.from(fx.wire);
       const declaredOffset = offsetMinutes(fx.wire);
 
       expect(declaredOffset, "fixture uses a non-UTC offset").not.toBe(0);
       expect(declaredOffset).toBe(fx.expectedOffsetMinutes);
 
-      // Re-emit at the SAME offset and confirm the instant is unchanged (the
-      // offset survives the wire — not normalized away).
+      // Re-emit at the same offset and confirm the instant is unchanged (the
+      // offset survives the wire and is not normalized away).
       const reEmitted = exactInstant.toString({
         timeZone: offsetZone(declaredOffset),
       });
@@ -152,7 +153,7 @@ describe("temporalRoundTrip_PerType", () => {
         roundTripped.equals(domain),
         `fixture '${fx.id}' date must survive`,
       ).toBe(true);
-      // AD-10 — no offset / zone marker.
+      // AD-10 - no offset / zone marker.
       expect(wire).not.toMatch(/[+Z]/);
       expect(wire).toBe(fx.wire);
     }
@@ -182,7 +183,7 @@ describe("temporalRoundTrip_PerType", () => {
         roundTripped.equals(domain),
         `fixture '${fx.id}' wall-clock must survive`,
       ).toBe(true);
-      // AD-10 — the wall-clock string carries NO offset.
+      // AD-10 - the wall-clock string has no offset.
       expect(wire).not.toMatch(/[+Z]/);
     }
   });
@@ -203,7 +204,7 @@ describe("temporalRoundTrip_PerType", () => {
 });
 
 // ---------------------------------------------------------------------------
-// RT-7 — ZonedInstant composite (IANA NAME survives — load-bearing proof)
+// RT-7 - ZonedInstant composite (the IANA NAME survives)
 // ---------------------------------------------------------------------------
 
 describe("temporalRoundTrip_ZonedInstantComposite", () => {
@@ -211,7 +212,7 @@ describe("temporalRoundTrip_ZonedInstantComposite", () => {
     const instant = Temporal.Instant.from("2026-05-27T16:30:00Z");
     const domain = ZonedInstant.create(instant, "America/Los_Angeles").data!;
 
-    // Domain → wire record { instant, zoneId } → domain (mirrors the handler).
+    // Domain -> wire record { instant, zoneId } -> domain (mirrors the handler).
     const wire = {
       instant: domain.instant.toString(),
       zoneId: domain.ianaIdentifier,
@@ -225,7 +226,7 @@ describe("temporalRoundTrip_ZonedInstantComposite", () => {
       0,
     );
 
-    // THE load-bearing assertion: the IANA NAME survives — not merely the offset.
+    // The assertion this test exists for: the IANA name survives, not merely the offset.
     expect(
       roundTripped.ianaIdentifier,
       "the canonical IANA name must survive the ZonedInstant round-trip",
@@ -252,7 +253,7 @@ describe("temporalRoundTrip_ZonedInstantComposite", () => {
 });
 
 // ---------------------------------------------------------------------------
-// RT-8 — LocalAnchoredEvent composite (all 3 fields + recomputed next-fire)
+// RT-8 - LocalAnchoredEvent composite (every field + recomputed next-fire)
 // ---------------------------------------------------------------------------
 
 describe("temporalRoundTrip_LocalAnchoredEventComposite", () => {
@@ -295,7 +296,7 @@ describe("temporalRoundTrip_LocalAnchoredEventComposite", () => {
 });
 
 // ---------------------------------------------------------------------------
-// AD-1..3 — DST gap / overlap across US / Europe / Australia (fixture-driven)
+// AD-1..3 - DST gap / overlap across US / Europe / Australia (fixture-driven)
 // ---------------------------------------------------------------------------
 
 describe("temporalRoundTrip_DstGapOverlap", () => {
@@ -333,7 +334,7 @@ describe("temporalRoundTrip_DstGapOverlap", () => {
 });
 
 // ---------------------------------------------------------------------------
-// AD-4 — invalid IANA → validationFailed (NOT a throw)
+// AD-4 - invalid IANA -> validationFailed (not a throw)
 // ---------------------------------------------------------------------------
 
 describe("temporalRoundTrip_InvalidIana", () => {
@@ -356,7 +357,7 @@ describe("temporalRoundTrip_InvalidIana", () => {
 });
 
 // ---------------------------------------------------------------------------
-// AD-5 — fixed-offset notation rejected as IANA (the core reason for the composite)
+// AD-5 - fixed-offset notation rejected as IANA (the core reason for the composite)
 // ---------------------------------------------------------------------------
 
 describe("temporalRoundTrip_FixedOffsetRejected", () => {
@@ -378,7 +379,7 @@ describe("temporalRoundTrip_FixedOffsetRejected", () => {
 });
 
 // ---------------------------------------------------------------------------
-// AD-6 — IANA alias normalization survives the wire (canonical name)
+// AD-6 - IANA alias normalization survives the wire (canonical name)
 // ---------------------------------------------------------------------------
 
 describe("temporalRoundTrip_IanaAliasNormalization", () => {
@@ -416,7 +417,7 @@ describe("temporalRoundTrip_IanaAliasNormalization", () => {
 });
 
 // ---------------------------------------------------------------------------
-// AD-7 — leap year / leap day / impossible calendar date (TS divergence documented)
+// AD-7 - leap year / leap day / impossible calendar date (TS divergence documented)
 // ---------------------------------------------------------------------------
 
 describe("temporalRoundTrip_LeapDay", () => {
@@ -433,10 +434,10 @@ describe("temporalRoundTrip_LeapDay", () => {
   });
 
   it("AD7_impossibleCalendarDate_throwsRangeError", () => {
-    // DOCUMENTED CROSS-LANGUAGE DIVERGENCE: C# NodaTime throws
-    // ArgumentOutOfRangeException at the LocalDateTime ctor; TS Temporal throws
-    // RangeError. Each language asserts ITS documented behavior — they are NOT
-    // forced equal. The emitter does not change either.
+    // Documented cross-language divergence: C# NodaTime throws
+    // ArgumentOutOfRangeException at the LocalDateTime constructor; TS Temporal
+    // throws RangeError. Each language asserts its own documented behavior, and
+    // the two are not forced equal. The emitter changes neither.
     expect(() => Temporal.PlainDateTime.from("2026-02-29T12:00:00")).toThrow(
       RangeError,
     );
@@ -444,7 +445,7 @@ describe("temporalRoundTrip_LeapDay", () => {
 });
 
 // ---------------------------------------------------------------------------
-// AD-8 — year boundary instant round-trips through the wire
+// AD-8 - year boundary instant round-trips through the wire
 // ---------------------------------------------------------------------------
 
 describe("temporalRoundTrip_YearBoundary", () => {
@@ -464,16 +465,16 @@ describe("temporalRoundTrip_YearBoundary", () => {
 });
 
 // ---------------------------------------------------------------------------
-// AD-9 — sub-second precision (Duration nanosecond ISO; Instant sub-second)
+// AD-9 - sub-second precision (Duration nanosecond ISO; Instant sub-second)
 // ---------------------------------------------------------------------------
 
 describe("temporalRoundTrip_SubSecondPrecision", () => {
   it("AD9_duration_subSecondNanos_roundTripsLossless_bothLanguages", () => {
     // Temporal.Duration round-trips ISO-8601 decimal-fraction seconds losslessly
-    // to nanoseconds. The .NET half now matches via the DcsvIo.D2.Time IsoDuration
-    // helper (int64-nanosecond, no float), so the SAME shared-fixture wire string
-    // materializes to the SAME 123_456_789 ns value in both languages — the wire
-    // stays an ISO-8601 STRING, sub-second precision included.
+    // to nanoseconds. The .NET half matches through the DcsvIo.D2.Time IsoDuration
+    // helper (int64 nanoseconds, no float), so the same shared-fixture wire string
+    // materializes to the same 123_456_789 ns value in both languages. The wire
+    // stays an ISO-8601 string, sub-second precision included.
     const fx = scalars("duration").find(
       (f) => f.id === "duration-subsecond-nanos",
     )!;
@@ -483,13 +484,13 @@ describe("temporalRoundTrip_SubSecondPrecision", () => {
     expect(d.total({ unit: "nanoseconds" })).toBe(123_456_789);
     const roundTripped = Temporal.Duration.from(d.toString());
     expect(roundTripped.total({ unit: "nanoseconds" })).toBe(123_456_789);
-    // Sub-second-only is byte-stable: "PT0.123456789S" → toString → identical.
+    // Sub-second-only is byte-stable: "PT0.123456789S" -> toString -> identical.
     expect(d.toString()).toBe("PT0.123456789S");
   });
 
   it("AD9_duration_hmsWithSubSecond_roundTripsLossless", () => {
     // Combined H/M/S + fractional, driven by the shared fixture the .NET half
-    // also consumes — cross-language value parity (total nanoseconds).
+    // also consumes - cross-language value parity (total nanoseconds).
     const fx = scalars("duration").find(
       (f) => f.id === "duration-hms-with-subsecond",
     )!;
@@ -507,7 +508,7 @@ describe("temporalRoundTrip_SubSecondPrecision", () => {
       (f) => f.id === "utc-instant-subsecond-7digit",
     )!;
     const domain = Temporal.Instant.from(fx.wire);
-    // 7-digit fractional (100ns) — the cross-language floor with .NET DateTimeOffset "O".
+    // 7-digit fractional (100ns) - the cross-language floor with .NET DateTimeOffset "O".
     expect(
       Temporal.Instant.compare(
         Temporal.Instant.from(domain.toString()),
@@ -518,7 +519,7 @@ describe("temporalRoundTrip_SubSecondPrecision", () => {
 });
 
 // ---------------------------------------------------------------------------
-// AD-10 — no-invented-offset on plain-local types
+// AD-10 - no-invented-offset on plain-local types
 // ---------------------------------------------------------------------------
 
 describe("temporalRoundTrip_NoInventedOffset", () => {
@@ -540,7 +541,7 @@ describe("temporalRoundTrip_NoInventedOffset", () => {
 });
 
 // ---------------------------------------------------------------------------
-// AD-11 — optional nextFireUtc absent → undefined (null→undefined contract)
+// AD-11 - optional nextFireUtc absent -> undefined (null->undefined contract)
 // ---------------------------------------------------------------------------
 
 describe("temporalRoundTrip_OptionalNextFire", () => {
@@ -550,7 +551,7 @@ describe("temporalRoundTrip_OptionalNextFire", () => {
     expect(domain.nextFireUtc).toBeUndefined();
 
     // Wire carries undefined for the absent optional (JSON null normalizes to
-    // undefined at the deserialization boundary — the TS prefer-undefined rule).
+    // undefined at the deserialization boundary - the TS prefer-undefined rule).
     const wire: {
       scheduledLocal: string;
       ianaZone: string;
@@ -574,7 +575,7 @@ describe("temporalRoundTrip_OptionalNextFire", () => {
 });
 
 // ---------------------------------------------------------------------------
-// AD-12 — historical tzdb offset change (pre-DST-era date)
+// AD-12 - historical tzdb offset change (pre-DST-era date)
 // ---------------------------------------------------------------------------
 
 describe("temporalRoundTrip_HistoricalTzdb", () => {
@@ -598,13 +599,13 @@ describe("temporalRoundTrip_HistoricalTzdb", () => {
 
     expect(
       Temporal.Instant.compare(roundTripped.computeNextFire().data!, expected),
-      "the historical tzdb offset is used (tzdb-version-sensitive — surface if shifted)",
+      "the historical tzdb offset is used (tzdb-version-sensitive - surface if shifted)",
     ).toBe(0);
   });
 });
 
 // ---------------------------------------------------------------------------
-// NV-2 — round-trip comparator non-tautology (epoch / DST-policy / IANA divergences detected)
+// NV-2 - round-trip comparator non-tautology (epoch / DST-policy / IANA divergences detected)
 // ---------------------------------------------------------------------------
 
 describe("temporalRoundTrip_ComparatorNonTautology", () => {
@@ -634,7 +635,7 @@ describe("temporalRoundTrip_ComparatorNonTautology", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Cross-language equivalence — same fixture wire values consumed here as in C#
+// Cross-language equivalence - same fixture wire values consumed here as in C#
 // ---------------------------------------------------------------------------
 
 describe("temporalRoundTrip_CrossLanguageEquivalence", () => {

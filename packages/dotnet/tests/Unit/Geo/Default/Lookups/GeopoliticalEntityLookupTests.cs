@@ -38,7 +38,7 @@ public sealed class GeopoliticalEntityLookupTests
         GeopoliticalEntityLookup.ByCode.Count.Should().BeGreaterThanOrEqualTo(50);
     }
 
-    // §1.2 category: Domain-specific — per-VALUE pins for headline groupings.
+    // Category: Domain-specific - per-VALUE pins for headline groupings.
     [Fact]
     public void GeopoliticalEntity_EU_HeadlineFieldsPinned()
     {
@@ -48,7 +48,7 @@ public sealed class GeopoliticalEntityLookupTests
         eu.DisplayName.Should().NotBeNullOrEmpty();
 
         // EU continent / continental-Europe member set (per current spec
-        // hand-rolled catalog) — pinned lower bound covers core members.
+        // hand-rolled catalog) - pinned lower bound covers core members.
         eu.MemberCountryIso31661Alpha2Codes.Count.Should().BeGreaterThanOrEqualTo(27);
     }
 
@@ -100,7 +100,7 @@ public sealed class GeopoliticalEntityLookupTests
         un.MemberCountryIso31661Alpha2Codes.Count.Should().Be(193);
     }
 
-    // §1.2 category: Cross-field — every entity's nav matches code count.
+    // Category: Cross-field - every entity's nav matches code count.
     [Fact]
     public void GeopoliticalEntity_EveryRecord_NavCountMatchesCodeCount()
     {

@@ -22,7 +22,7 @@ using DcsvIo.D2.SourceGen.Polyfills;
 /// </summary>
 internal static class JwtClaimsEmitter
 {
-    /// <summary>The namespace the <c>JwtClaimTypes</c> static class lives in.</summary>
+    /// <summary>The namespace of the <c>JwtClaimTypes</c> static class.</summary>
     public const string ROOT_NAMESPACE = "DcsvIo.D2.Auth.Abstractions";
 
     /// <summary>The emitted class name.</summary>
@@ -44,7 +44,7 @@ internal static class JwtClaimsEmitter
     /// supplied spec.
     /// </summary>
     /// <param name="spec">Parsed JWT claims spec.</param>
-    /// <returns>Generated source + diagnostics.</returns>
+    /// <returns>Generated source and diagnostics.</returns>
     public static EmitResult Emit(JwtClaimsSpec spec)
     {
         var diagnostics = ImmutableArray.CreateBuilder<EmitDiagnostic>();
@@ -117,7 +117,7 @@ internal static class JwtClaimsEmitter
         sb.AppendLine("/// </summary>");
         sb.AppendLine("/// <remarks>");
         sb.AppendLine(
-            "/// Generated from <c>contracts/jwt-claims/jwt-claims.spec.json</c> — the single");
+            "/// Generated from <c>contracts/jwt-claims/jwt-claims.spec.json</c> - the single");
         sb.AppendLine(
             "/// source of truth for every JWT claim D2 reads or writes. The same spec drives");
         sb.AppendLine(

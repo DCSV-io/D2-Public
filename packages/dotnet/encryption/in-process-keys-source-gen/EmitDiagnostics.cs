@@ -46,7 +46,7 @@ internal static class EmitDiagnostics
         new(DiagnosticIds.InvalidConstName, [constName]);
 
     /// <summary>Constructs a <see cref="DiagnosticDescriptors.MissingSpec"/> diagnostic.</summary>
-    /// <param name="assemblyName">The consuming assembly name.</param>
+    /// <param name="assemblyName">The name of the assembly being compiled.</param>
     /// <returns>A new <see cref="EmitDiagnostic"/>.</returns>
     public static EmitDiagnostic MissingSpec(string assemblyName) =>
         new(DiagnosticIds.MissingSpec, [assemblyName]);

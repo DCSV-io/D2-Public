@@ -11,12 +11,12 @@ using DcsvIo.D2.AspNetCore;
 using Xunit;
 
 /// <summary>
-/// Per-VALUE pinning tests for <see cref="D2AspNetCoreConstants"/>. Wire
-/// format is the contract — operators ship Kubernetes liveness probes
-/// pointed at <c>/health</c> + <c>/alive</c>; a silent rename to a
-/// different path would break those probes. Same rationale applies to
-/// header names (browsers + CDNs see them) + config keys (env vars are
-/// observable from outside the binary).
+/// Tests that pin each value of <see cref="D2AspNetCoreConstants"/>. The wire
+/// format is the contract: operators point Kubernetes liveness probes at
+/// <c>/health</c> and <c>/alive</c>, and renaming either path without a
+/// failing test would break those probes. The same applies to header names,
+/// which browsers and CDNs see, and to config keys, because environment
+/// variables are observable from outside the binary.
 /// </summary>
 public sealed class D2AspNetCoreConstantsTests
 {
@@ -91,9 +91,9 @@ public sealed class D2AspNetCoreConstantsTests
     [Fact]
     public void DEFAULT_INFRASTRUCTURE_PATHS_ReusesPathConstants()
     {
-        // Wire-up safety: the default list MUST be composed of the
-        // path constants, not parallel literals — so renaming a constant
-        // updates the list automatically.
+        // The default list must be composed of the path constants and not of
+        // parallel literals, so that renaming a constant updates the list.
+        // This test asserts that the list contains the value of each constant.
         D2AspNetCoreConstants.DEFAULT_INFRASTRUCTURE_PATHS
             .Should().Contain(D2AspNetCoreConstants.HEALTH_ENDPOINT_PATH)
             .And.Contain(D2AspNetCoreConstants.ALIVE_ENDPOINT_PATH)

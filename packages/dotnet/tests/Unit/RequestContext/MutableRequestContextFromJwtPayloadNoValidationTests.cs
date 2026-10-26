@@ -17,7 +17,7 @@ using Xunit;
 /// <summary>
 /// Adversarial coverage for
 /// <see cref="MutableRequestContext.FromJwtPayloadNoValidation"/>. The factory
-/// is the dangerous one — its name signals "ZERO trust in the input" — and the
+/// is the dangerous one - its name signals "ZERO trust in the input" - and the
 /// most important assertion is the safety default: <c>IsAuthenticated = false</c>
 /// AFTER construction. The caller MUST opt into authenticated state by flipping
 /// the bit AFTER signature/audience/expiry validation.
@@ -29,18 +29,18 @@ public sealed class MutableRequestContextFromJwtPayloadNoValidationTests
     private const string _ORG_GUID = "33333333-3333-3333-3333-333333333333";
 
     // ------------------------------------------------------------------
-    // The safety test — IsAuthenticated MUST default to false
+    // The safety test - IsAuthenticated MUST default to false
     // ------------------------------------------------------------------
 
     [Fact]
     public void FromJwtPayloadNoValidation_DefaultsIsAuthenticatedToFalse()
     {
-        // ⚠ THIS IS THE TEST THAT MATTERS.
+        // This is the safety test for the factory.
         //
-        // The factory's contract is "I do NOT validate the JWT — caller MUST
+        // The factory's contract is "I do NOT validate the JWT - caller MUST
         // flip IsAuthenticated to true ONLY after signature/exp/aud validation."
-        // If this default ever flips to true (or null) it becomes a forged-token
-        // impersonation primitive. Lock it down.
+        // If this default becomes true (or null) the factory is a forged-token
+        // impersonation primitive, and this assertion fails.
         using var doc = JsonDocument.Parse($$"""
         {
             "sub":"{{_USER_GUID}}",
@@ -83,7 +83,7 @@ public sealed class MutableRequestContextFromJwtPayloadNoValidationTests
     }
 
     // ------------------------------------------------------------------
-    // Audience — both wire shapes (RFC 7519 §4.1.3)
+    // Audience - both wire shapes (RFC 7519 section 4.1.3)
     // ------------------------------------------------------------------
 
     [Fact]
@@ -128,17 +128,17 @@ public sealed class MutableRequestContextFromJwtPayloadNoValidationTests
     }
 
     // ------------------------------------------------------------------
-    // Adversarial — wrong root JsonElement kinds
+    // Adversarial - wrong root JsonElement kinds
     // ------------------------------------------------------------------
 
     [Fact]
     public void FromJwtPayloadNoValidation_RootIsArray_ReturnsDefaultEmptyContext()
     {
         // Adversarial: a JWT payload that's NOT a JSON object (array root, in
-        // this case) cannot carry claims. The factory must fail closed —
-        // return a default context with IsAuthenticated = false — instead of
+        // this case) cannot carry claims. The factory must fail closed -
+        // return a default context with IsAuthenticated = false - instead of
         // throwing InvalidOperationException from the first TryGetProperty
-        // call. Auth middleware catching MalformedActorChainException → 401
+        // call. Auth middleware catching MalformedActorChainException -> 401
         // wouldn't catch a generic InvalidOperationException, so the
         // alternative path is a 500 leak with attacker-controlled trigger.
         using var doc = JsonDocument.Parse("""["not","an","object"]""");
@@ -155,7 +155,7 @@ public sealed class MutableRequestContextFromJwtPayloadNoValidationTests
     [Fact]
     public void FromJwtPayloadNoValidation_RootIsString_ReturnsDefaultEmptyContext()
     {
-        // Adversarial: same root cause as the array case — non-Object root
+        // Adversarial: same root cause as the array case - non-Object root
         // payload must fail closed, not throw InvalidOperationException.
         using var doc = JsonDocument.Parse("\"some-string\"");
 
@@ -281,11 +281,11 @@ public sealed class MutableRequestContextFromJwtPayloadNoValidationTests
     public void FromJwtPayloadNoValidation_MalformedActChain_PropagatesParserException()
     {
         // Adversarial: malformed act bubbles MalformedActorChainException.
-        // FromJwtPayloadNoValidation does NOT catch — auth middleware will.
+        // FromJwtPayloadNoValidation does NOT catch - auth middleware will.
         using var doc = JsonDocument.Parse("""{"sub":"x","act":"not-an-object"}""");
 
         // ReSharper disable once AccessToDisposedClosure
-        // — lambda invoked by Throw() before doc disposes
+        // - lambda invoked by Throw() before doc disposes
         var act = () => MutableRequestContext.FromJwtPayloadNoValidation(doc.RootElement);
 
         act.Should().Throw<MalformedActorChainException>();
@@ -294,7 +294,7 @@ public sealed class MutableRequestContextFromJwtPayloadNoValidationTests
     [Fact]
     public void FromJwtPayloadNoValidation_UnknownEnumValues_LeavePropertiesNull()
     {
-        // Adversarial: bogus org_type / org_role string must not throw —
+        // Adversarial: bogus org_type / org_role string must not throw -
         // factory sets the property to null and moves on.
         using var doc = JsonDocument.Parse(
             """{"sub":"x","d2_org_type":"Bogus","d2_org_role":"Wizard"}""");
@@ -303,6 +303,54 @@ public sealed class MutableRequestContextFromJwtPayloadNoValidationTests
 
         ctx.OrgType.Should().BeNull();
         ctx.OrgRole.Should().BeNull();
+    }
+
+    [Fact]
+    public void FromJwtPayloadNoValidation_ReachArray_CarriesEveryElement()
+    {
+        using var doc = JsonDocument.Parse(
+            $$"""{"d2_accessible_org_ids":["{{_ORG_GUID}}","{{_SESSION_GUID}}"]}""");
+
+        var ctx = MutableRequestContext.FromJwtPayloadNoValidation(doc.RootElement);
+
+        ctx.AccessibleOrgIds.Should().BeEquivalentTo([_ORG_GUID, _SESSION_GUID]);
+    }
+
+    [Fact]
+    public void FromJwtPayloadNoValidation_ReachArrayWithANonStringElement_KeepsItAsRawText()
+    {
+        // Dropping the element would leave a well-formed smaller set that reads
+        // exactly like a correct one. Keeping it as its raw JSON text means the
+        // conversion that owns the invariant refuses the whole set.
+        using var doc = JsonDocument.Parse(
+            $$"""{"d2_accessible_org_ids":["{{_ORG_GUID}}",7,null]}""");
+
+        var ctx = MutableRequestContext.FromJwtPayloadNoValidation(doc.RootElement);
+
+        ctx.AccessibleOrgIds.Should().BeEquivalentTo([_ORG_GUID, "7", "null"]);
+    }
+
+    [Fact]
+    public void FromJwtPayloadNoValidation_ReachArrayWithAWhitespaceElement_KeepsIt()
+    {
+        using var doc = JsonDocument.Parse(
+            $$"""{"d2_accessible_org_ids":["{{_ORG_GUID}}","  "]}""");
+
+        var ctx = MutableRequestContext.FromJwtPayloadNoValidation(doc.RootElement);
+
+        ctx.AccessibleOrgIds.Should().BeEquivalentTo([_ORG_GUID, "  "]);
+    }
+
+    [Fact]
+    public void FromJwtPayloadNoValidation_ReachClaimThatIsAnObject_BecomesOneUnreadableElement()
+    {
+        using var doc = JsonDocument.Parse(
+            """{"d2_accessible_org_ids":{"a":1}}""");
+
+        var ctx = MutableRequestContext.FromJwtPayloadNoValidation(doc.RootElement);
+
+        ctx.AccessibleOrgIds.Should().ContainSingle();
+        ctx.AccessibleOrgIds.Should().NotContain(string.Empty);
     }
 
     [Fact]
@@ -317,5 +365,41 @@ public sealed class MutableRequestContextFromJwtPayloadNoValidationTests
         ctx.Username.Should().BeNull();
         ctx.RequestedByClientId.Should().BeNull();
         ctx.OrgName.Should().BeNull();
+    }
+
+    [Fact]
+    public void FromJwtPayloadNoValidation_AmrArray_JoinsTheElementsIntoAuthMethod()
+    {
+        using var doc = JsonDocument.Parse($$"""
+        { "sub":"{{_USER_GUID}}", "amr":["pwd","mfa"] }
+        """);
+
+        var ctx = MutableRequestContext.FromJwtPayloadNoValidation(doc.RootElement);
+
+        ctx.AuthMethod.Should().Be("pwd mfa");
+    }
+
+    [Fact]
+    public void FromJwtPayloadNoValidation_AmrString_ReadsItAsItIs()
+    {
+        using var doc = JsonDocument.Parse($$"""
+        { "sub":"{{_USER_GUID}}", "amr":"pwd" }
+        """);
+
+        var ctx = MutableRequestContext.FromJwtPayloadNoValidation(doc.RootElement);
+
+        ctx.AuthMethod.Should().Be("pwd");
+    }
+
+    [Fact]
+    public void FromJwtPayloadNoValidation_AmrArrayWithNoString_LeavesAuthMethodNull()
+    {
+        using var doc = JsonDocument.Parse($$"""
+        { "sub":"{{_USER_GUID}}", "amr":[1, true, "", null] }
+        """);
+
+        var ctx = MutableRequestContext.FromJwtPayloadNoValidation(doc.RootElement);
+
+        ctx.AuthMethod.Should().BeNull();
     }
 }

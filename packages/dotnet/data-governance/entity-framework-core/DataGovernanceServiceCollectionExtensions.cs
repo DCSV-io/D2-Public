@@ -24,21 +24,21 @@ public static class DataGovernanceServiceCollectionExtensions
     {
         /// <summary>
         /// Registers the anonymization engine, binds <see cref="AnonymizationEngineOptions"/>
-        /// from the <c>DATA_GOVERNANCE</c> configuration section, and installs the deny-by-default
-        /// startup model validator.
+        /// from the <c>LIB_DATA_GOVERNANCE</c> configuration section, and installs the
+        /// deny-by-default startup model validator.
         /// </summary>
         /// <remarks>
         /// <para>
         /// <strong>What is registered:</strong>
         /// <list type="bullet">
         ///   <item>
-        ///     <see cref="IAnonymizationEngine"/> → <c>AnonymizationEngine</c> (scoped —
+        ///     <see cref="IAnonymizationEngine"/> -> <c>AnonymizationEngine</c> (scoped -
         ///     matches the scoped <see cref="Microsoft.EntityFrameworkCore.DbContext"/> it
         ///     depends on).
         ///   </item>
         ///   <item>
         ///     <see cref="AnonymizationEngineOptions"/> bound from the
-        ///     <see cref="AnonymizationEngineOptions.SECTION_NAME"/> configuration section.
+        ///     <see cref="AnonymizationEngineOptions.SECTION"/> configuration section.
         ///   </item>
         ///   <item>
         ///     <see cref="AnonymizationModelValidator"/> as a singleton
@@ -61,7 +61,7 @@ public static class DataGovernanceServiceCollectionExtensions
         /// (last-writer wins for <c>Configure</c>; the section-binding applies once).
         /// </para>
         /// <para>
-        /// <strong>Opt-out:</strong> set <c>DATA_GOVERNANCE__SKIPMODELVALIDATION=true</c>
+        /// <strong>Opt-out:</strong> set <c>LIB_DATA_GOVERNANCE__SKIPMODELVALIDATION=true</c>
         /// (or <see cref="AnonymizationEngineOptions.SkipModelValidation"/> =
         /// <see langword="true"/> via the configure-callback overload) to disable the startup
         /// guard. Intended only for
@@ -69,7 +69,7 @@ public static class DataGovernanceServiceCollectionExtensions
         /// </para>
         /// </remarks>
         /// <param name="configuration">
-        /// The application configuration. Used to bind the <c>DATA_GOVERNANCE</c> section.
+        /// The application configuration. Used to bind the <c>LIB_DATA_GOVERNANCE</c> section.
         /// </param>
         /// <returns>The same <paramref name="services"/> for fluent chaining.</returns>
         /// <exception cref="ArgumentNullException">
@@ -84,7 +84,7 @@ public static class DataGovernanceServiceCollectionExtensions
             services.AddOptions<AnonymizationEngineOptions>()
                 .Configure(opts =>
                     configuration
-                        .GetSection(AnonymizationEngineOptions.SECTION_NAME)
+                        .GetSection(AnonymizationEngineOptions.SECTION)
                         .Bind(opts));
 
             services.TryAddScoped<IAnonymizationEngine, AnonymizationEngine>();
@@ -97,7 +97,7 @@ public static class DataGovernanceServiceCollectionExtensions
 
         /// <summary>
         /// Registers the anonymization engine, binds <see cref="AnonymizationEngineOptions"/>
-        /// from the <c>DATA_GOVERNANCE</c> configuration section, applies a caller-supplied
+        /// from the <c>LIB_DATA_GOVERNANCE</c> configuration section, applies a caller-supplied
         /// configuration callback, and installs the deny-by-default startup model validator.
         /// </summary>
         /// <remarks>
@@ -111,7 +111,7 @@ public static class DataGovernanceServiceCollectionExtensions
         /// </para>
         /// </remarks>
         /// <param name="configuration">
-        /// The application configuration. Used to bind the <c>DATA_GOVERNANCE</c> section.
+        /// The application configuration. Used to bind the <c>LIB_DATA_GOVERNANCE</c> section.
         /// </param>
         /// <param name="configure">
         /// A callback applied after section binding. The callback's settings win over any

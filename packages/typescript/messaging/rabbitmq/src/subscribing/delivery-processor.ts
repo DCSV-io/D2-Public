@@ -2,6 +2,7 @@
 // Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 // -----------------------------------------------------------------------
 
+import { deserialize, serialize } from "node:v8";
 import { context, trace } from "@opentelemetry/api";
 import { AmqpHeaders } from "@dcsv-io/d2-headers-amqp";
 import type { ILogger } from "@dcsv-io/d2-logging";
@@ -26,18 +27,19 @@ import { MessageBodyDecodeError } from "./message-body-decode-error.js";
 import { readAttemptCount } from "./attempt-count.js";
 import { startConsumerSpan, validTraceId } from "./consumer-span.js";
 
-/** What the pipeline decides to do with a delivery. */
+/** The action the pipeline takes on a delivery. */
 export enum DeliveryAction {
-  /** BasicAck — the delivery is settled (processed, skipped, or republished+acked). */
+  /** BasicAck - the delivery is complete (processed, skipped, or republished+acked). */
   Ack,
-  /** BasicNack(requeue=false) — the broker dead-letters via `x-dead-letter-exchange`. */
+  /** BasicNack(requeue=false) - the broker dead-letters via `x-dead-letter-exchange`. */
   Drop,
 }
 
 /**
- * A message handler. Returns a {@link D2Result} — a failed result routes the
- * message to the DLQ (`HANDLER_RESULT_FAILURE`); a thrown error routes it as
- * `HANDLER_EXCEPTION`. Receives the established per-message {@link ConsumeContext}.
+ * A message handler. It returns a {@link D2Result}. A failed result routes the
+ * message to the DLQ with `HANDLER_RESULT_FAILURE`, and a thrown error routes it
+ * with `HANDLER_EXCEPTION`. It receives the per-message {@link ConsumeContext}
+ * that the pipeline established.
  */
 export type MessageHandler = (
   message: unknown,
@@ -53,6 +55,12 @@ export type RepublishFn = (
   dlxName: string,
   body: Buffer,
   headers: Record<string, unknown>,
+  metadata?: Readonly<{
+    messageId?: string;
+    contentType?: string;
+    contentEncoding?: string;
+    correlationId?: string;
+  }>,
 ) => Promise<void>;
 
 /** Collaborators the delivery pipeline needs (all injectable for testing). */
@@ -67,14 +75,16 @@ export interface DeliveryProcessorDeps {
 }
 
 /**
- * The per-delivery pipeline — the behavioral twin of the .NET
- * `SubscriberChannel.OnReceivedCoreAsync`: establish a consume span + per-message
- * context, run the idempotency pre-check (ack-and-skip a duplicate; fail-open on
- * a read outage), enforce the tiered-retry attempt cap, decode + dispatch, and
- * settle — ack on success (marking the idempotency window FIRST), or route to the
- * DLQ via republish-with-failure-header-then-ack (falling back to NACK-no-requeue
- * if the republish itself fails). Pure with respect to the broker: every effect
- * is an injected seam, so the whole matrix is unit-testable.
+ * The per-delivery pipeline, the behavioral twin of the .NET
+ * `SubscriberChannel.OnReceivedCoreAsync`. For each delivery it establishes a
+ * consume span and a per-message context, runs the idempotency pre-check
+ * (ack-and-skip a duplicate; fail-open on a read outage), enforces the
+ * tiered-retry attempt cap, decodes and dispatches, and completes the delivery:
+ * ack on success (marking the idempotency window FIRST), or route to the DLQ by
+ * republishing with the failure header and then acking (falling back to
+ * NACK-no-requeue if the republish itself fails). The pipeline does not touch
+ * the broker directly: every effect is an injected seam, so the whole matrix is
+ * unit-testable.
  */
 export class DeliveryProcessor {
   private readonly deps: DeliveryProcessorDeps;
@@ -83,12 +93,19 @@ export class DeliveryProcessor {
     this.deps = deps;
   }
 
-  /** Processes one delivery, returning the settle action to signal to the broker. */
+  /** Processes one delivery and returns the action to signal to the broker. */
   async process(msg: ConsumedMessage): Promise<DeliveryAction> {
-    const span = startConsumerSpan(this.deps.resolvedQueueName, msg);
+    const original: ConsumedMessage = {
+      ...msg,
+      body: Buffer.from(msg.body),
+      headers: deserialize(
+        serialize(msg.headers),
+      ) as ConsumedMessage["headers"],
+    };
+    const span = startConsumerSpan(this.deps.resolvedQueueName, original);
     try {
       return await context.with(trace.setSpan(context.active(), span), () =>
-        this.core(msg, () => validTraceId(span)),
+        this.core(original, () => validTraceId(span)),
       );
     } finally {
       span.end();
@@ -111,8 +128,9 @@ export class DeliveryProcessor {
       messageId: msg.messageId,
     });
 
-    // Idempotency pre-check — a hit ACK-and-SKIPs (NEVER DLQ); a read-path
-    // store outage fails OPEN (process anyway).
+    // Idempotency pre-check: a hit acks and skips the delivery and never sends
+    // it to the DLQ; an outage of the store's read path fails OPEN (the delivery
+    // is processed anyway).
     if (
       descriptor.idempotency &&
       msg.messageId !== undefined &&
@@ -120,7 +138,7 @@ export class DeliveryProcessor {
     ) {
       const seen = await store.hasSeen(msg.messageId);
       if (!seen.failed && seen.data === true) {
-        logger.debug("delivery skipped (duplicate — ack-and-skip)", {
+        logger.debug("delivery skipped (duplicate - ack-and-skip)", {
           queue,
           deliveryTag: msg.deliveryTag,
           messageId: msg.messageId,
@@ -130,11 +148,12 @@ export class DeliveryProcessor {
       }
     }
 
-    // Tiered-retry attempt-count enforcement — burn the budget → DLQ.
+    // Tiered-retry attempt-count enforcement: when the attempt budget is used
+    // up, route to the DLQ.
     if (descriptor.tieredRetry !== undefined) {
       const attemptCount = readAttemptCount(msg.headers);
       if (attemptCount >= descriptor.tieredRetry.maxAttempts) {
-        logger.warn("retries exhausted — routing to DLQ", {
+        logger.warn("retries exhausted - routing to DLQ", {
           queue,
           messageId: msg.messageId,
           attemptCount,
@@ -151,13 +170,14 @@ export class DeliveryProcessor {
       }
     }
 
-    // Decode + dispatch. A decode / handler throw settles inside `dispatch`
-    // (returning a DeliveryAction); a returned D2Result is inspected here.
+    // Decode and dispatch. A throw from the decode or the handler is handled
+    // inside `dispatch`, which returns a DeliveryAction; a returned D2Result is
+    // inspected here.
     const outcome = await this.dispatch(msg, consumeCtx, traceId);
     if (typeof outcome === "number") return outcome;
 
     if (outcome.failed) {
-      logger.warn("handler result failure — routing to DLQ", {
+      logger.warn("handler result failure - routing to DLQ", {
         queue,
         errorCode: outcome.errorCode,
       });
@@ -171,10 +191,10 @@ export class DeliveryProcessor {
       );
     }
 
-    // Success — write the idempotency mark BEFORE the ack so a crash between
-    // mark and ack redelivers safely rather than duplicating work. A mark WRITE
-    // failure fails CLOSED (NACK to DLQ) — acking an unmarked message would
-    // leave the dedup window unguarded.
+    // On success, write the idempotency mark BEFORE the ack, so a crash between
+    // mark and ack redelivers the message and does not duplicate work. A mark
+    // WRITE failure fails CLOSED (NACK to DLQ), because acking an unmarked
+    // message would leave the dedup window unguarded.
     if (
       descriptor.idempotency &&
       msg.messageId !== undefined &&
@@ -183,7 +203,7 @@ export class DeliveryProcessor {
       const mark = await store.markSeen(msg.messageId);
       if (mark.failed) {
         ackFailuresCounter.add(1);
-        logger.error("idempotency mark failed — NACK to DLQ", {
+        logger.error("idempotency mark failed - NACK to DLQ", {
           queue,
           deliveryTag: msg.deliveryTag,
           messageId: msg.messageId,
@@ -205,12 +225,12 @@ export class DeliveryProcessor {
   ): Promise<DeliveryAction | D2Result> {
     const { descriptor, logger, resolvedQueueName: queue } = this.deps;
     try {
-      const decoded = await this.deps.opener.open(msg.body);
+      const decoded = await this.deps.opener.open(Buffer.from(msg.body));
       return await this.deps.handler(decoded, consumeCtx);
     } catch (err) {
       if (err instanceof MessageBodyDecodeError) {
         const rootError = err.cause instanceof Error ? err.cause : err;
-        logger.error("boundary failure — routing to DLQ", {
+        logger.error("boundary failure - routing to DLQ", {
           queue,
           cause: err.decodeCause,
           messageId: msg.messageId,
@@ -226,7 +246,7 @@ export class DeliveryProcessor {
         );
       }
 
-      logger.error("handler threw — routing to DLQ", {
+      logger.error("handler threw - routing to DLQ", {
         queue,
         messageId: msg.messageId,
         error: sanitizedErrorRender(err),
@@ -251,15 +271,20 @@ export class DeliveryProcessor {
     const headers = buildRepublishHeaders(msg.headers, failureHeader);
 
     try {
-      await this.deps.republish(dlxName, msg.body, headers);
+      await this.deps.republish(dlxName, msg.body, headers, {
+        messageId: msg.originalMessageId,
+        contentType: msg.contentType,
+        contentEncoding: msg.contentEncoding,
+        correlationId: msg.correlationId,
+      });
 
-      // Republished with the failure header + ack the original — the broker's
-      // own x-dead-letter-exchange routing is NOT also triggered (which would
-      // land a header-less duplicate in the DLQ alongside).
+      // The message is republished with the failure header and the original is
+      // acked, so the broker's own x-dead-letter-exchange routing is NOT also
+      // triggered; it would add a header-less duplicate to the DLQ.
       return DeliveryAction.Ack;
     } catch (err) {
       dlqRepublishFailuresCounter.add(1);
-      logger.error("DLQ republish failed — NACK-no-requeue fallback", {
+      logger.error("DLQ republish failed - NACK-no-requeue fallback", {
         queue,
         dlxName,
         deliveryTag: msg.deliveryTag,
@@ -268,7 +293,8 @@ export class DeliveryProcessor {
       });
 
       // Fall back to NACK-no-requeue: the broker routes a header-less copy to
-      // the DLQ via x-dead-letter-exchange — better than losing the message.
+      // the DLQ through x-dead-letter-exchange, which keeps the message
+      // instead of losing it.
       return DeliveryAction.Drop;
     }
   }
@@ -278,7 +304,7 @@ function buildRepublishHeaders(
   source: Readonly<Record<string, unknown>>,
   failureHeader: string,
 ): Record<string, unknown> {
-  // Carry forward producer-set headers (traceparent, x-d2-context, x-proto-type,
+  // Copy the producer-set headers (traceparent, x-d2-context, x-proto-type,
   // message-id, ...) so DLQ inspection sees the same context as a normal
   // delivery, then set the failure-reason header.
   const headers: Record<string, unknown> = { ...source };

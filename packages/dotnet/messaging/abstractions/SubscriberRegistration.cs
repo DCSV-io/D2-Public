@@ -7,7 +7,7 @@
 namespace DcsvIo.D2.Messaging;
 
 /// <summary>
-/// Default <see cref="ISubscriberRegistration"/> implementation. Internal —
+/// Default <see cref="ISubscriberRegistration"/> implementation. Internal -
 /// the assembly-scan helper + the explicit programmatic helper produce these.
 /// </summary>
 internal sealed record SubscriberRegistration(

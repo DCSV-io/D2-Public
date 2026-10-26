@@ -10,10 +10,10 @@ using Microsoft.CodeAnalysis;
 
 /// <summary>
 /// Roslyn <see cref="DiagnosticDescriptor"/> instances for the IDs declared in
-/// <see cref="DiagnosticIds"/>. Only loaded inside the Roslyn host (the
-/// generator's <see cref="ContextGenerator.Initialize"/> call site); pure-logic
-/// callers should use <see cref="DiagnosticIds"/> string constants directly to
-/// avoid pulling <c>Microsoft.CodeAnalysis</c> at runtime.
+/// <see cref="DiagnosticIds"/>. This class references
+/// <c>Microsoft.CodeAnalysis</c>. The IDs are also string constants in
+/// <see cref="DiagnosticIds"/>, which does not reference
+/// <c>Microsoft.CodeAnalysis</c>.
 /// </summary>
 internal static class DiagnosticDescriptors
 {
@@ -76,6 +76,18 @@ internal static class DiagnosticDescriptors
             "The Context source generator could not locate any '*.spec.json' among "
             + "AdditionalFiles for target assembly '{0}'; verify the consuming csproj "
             + "declares the contracts/{{auth,request}}-context/*.spec.json glob",
+        category: _CATEGORY,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    /// <inheritdoc cref="DiagnosticIds.UnknownClaimForm"/>
+    public static readonly DiagnosticDescriptor UnknownClaimForm = new(
+        id: DiagnosticIds.UnknownClaimForm,
+        title: "Context spec property uses unknown claim form",
+        messageFormat:
+            "Context spec '{0}' property '{1}' declares claim form '{2}' but the emitter "
+            + "does not implement it, so the property would be read in the default form "
+            + "for its type (valid: {3})",
         category: _CATEGORY,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

@@ -16,9 +16,9 @@ using Microsoft.AspNetCore.Http;
 /// <see cref="D2ProblemDetailsContextItems.D2_RESULT"/> slot key. The
 /// <c>D2ProblemDetailsCustomizer</c> reads this slot on the response path
 /// to populate the RFC 7807 <c>type</c> / <c>title</c> / <c>extensions</c>
-/// fields from spec-derived constants — keeping the auth-middleware emit
-/// path (<c>D2ProblemDetailsExtensions.ToProblemDetails</c>) and the
-/// ASP.NET Core <c>IProblemDetailsService</c> emit path byte-identical.
+/// fields from spec-derived constants - keeping the auth-middleware emit
+/// path and the ASP.NET Core <c>IProblemDetailsService</c> emit path
+/// byte-identical.
 /// </summary>
 public static class HttpContextD2ResultExtensions
 {
@@ -27,8 +27,9 @@ public static class HttpContextD2ResultExtensions
     {
         /// <summary>
         /// Stashes <paramref name="result"/> on
-        /// <see cref="HttpContext.Items"/> under the canonical slot. Caller
-        /// owns the lifetime; the slot is overwritten on subsequent calls.
+        /// <see cref="HttpContext.Items"/> under the canonical slot. The result's
+        /// lifetime is not managed here; the slot is overwritten on subsequent
+        /// calls.
         /// </summary>
         /// <param name="result">The failure result to stash. May not be null.</param>
         /// <exception cref="ArgumentNullException">

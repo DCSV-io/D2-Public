@@ -15,8 +15,9 @@ using Xunit;
 
 /// <summary>
 /// Pins every <see cref="DiagnosticIds"/> constant in the DlqFailureMetadata
-/// SrcGen to its documented identifier shape and confirms there are no
-/// duplicates. Diagnostic IDs ship as part of the lib's contract.
+/// source generator to its documented identifier shape and checks that no two
+/// constants share a value. The diagnostic IDs are part of the library
+/// contract.
 /// </summary>
 public sealed class DlqFailureMetadataDiagnosticIdsTests
 {

@@ -4,6 +4,7 @@ DcsvIo.D2.I18n.TK.Auth
 DcsvIo.D2.I18n.TK.Auth.Errors
 DcsvIo.D2.I18n.TK.Common
 DcsvIo.D2.I18n.TK.Common.Errors
+DcsvIo.D2.I18n.TK.Common.Pagination
 DcsvIo.D2.I18n.TK.Common.Time
 DcsvIo.D2.I18n.TK.Common.Ui
 DcsvIo.D2.I18n.TK.Common.Validation
@@ -43,6 +44,27 @@ static readonly DcsvIo.D2.I18n.TK.Common.Errors.UNAUTHORIZED -> DcsvIo.D2.I18n.T
 static readonly DcsvIo.D2.I18n.TK.Common.Errors.UNIQUE_VIOLATION -> DcsvIo.D2.I18n.TKMessage!
 static readonly DcsvIo.D2.I18n.TK.Common.Errors.UNKNOWN -> DcsvIo.D2.I18n.TKMessage!
 static readonly DcsvIo.D2.I18n.TK.Common.Errors.VALIDATION_FAILED -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.CURSOR_INVALID -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.CURSOR_KEY_UNDECODABLE -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.CURSOR_NOT_ENCODABLE -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.CURSOR_ORDER_INVALID -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.CURSOR_ORDER_MISMATCH -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.CURSOR_QUERY_MISMATCH -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.CURSOR_SORT_MISMATCH -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.CURSOR_SORT_NOT_ALLOWED -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.CURSOR_VERSION_UNSUPPORTED -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.LIMIT_INVALID -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.ORDER_INVALID -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.PAGE_POLICY_INVALID -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.RELEVANCE_REQUIRES_QUERY -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.REQUEST_REQUIRED -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.SEARCH_NOT_SUPPORTED -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.SEARCH_QUERY_TOO_LONG -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.SEARCH_QUERY_TOO_SHORT -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.SORT_CATALOG_EMPTY -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.SORT_DIRECTION_NOT_ALLOWED -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.SORT_FIELD_NOT_ALLOWED -> DcsvIo.D2.I18n.TKMessage!
+static readonly DcsvIo.D2.I18n.TK.Common.Pagination.SORT_FIELD_NOT_REGISTERED -> DcsvIo.D2.I18n.TKMessage!
 static readonly DcsvIo.D2.I18n.TK.Common.Time.INVALID_DURATION -> DcsvIo.D2.I18n.TKMessage!
 static readonly DcsvIo.D2.I18n.TK.Common.Time.INVALID_IANA_IDENTIFIER -> DcsvIo.D2.I18n.TKMessage!
 static readonly DcsvIo.D2.I18n.TK.Common.Time.INVALID_LOCAL_DATE_TIME -> DcsvIo.D2.I18n.TKMessage!

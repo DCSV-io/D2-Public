@@ -13,9 +13,9 @@ using DcsvIo.D2.SourceGen;
 
 /// <summary>
 /// Pure logic for parsing <c>audiences.spec.json</c> into an
-/// <see cref="AudiencesSpec"/> record. Responsible only for JSON-shape
-/// validation; semantic validation (name shape, URL parsing, duplicates)
-/// lives in <see cref="AudiencesEmitter"/>.
+/// <see cref="AudiencesSpec"/> record. It validates only the JSON shape;
+/// <see cref="AudiencesEmitter"/> performs the semantic validation (name shape,
+/// URL parsing, duplicates).
 /// </summary>
 internal static class AudienceSpecLoader
 {

@@ -2,9 +2,9 @@
 // Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 // -----------------------------------------------------------------------
 
-// Test-only key material generators. Every symbol carries the `Fixture` marker
-// (§7.23) — these produce throwaway P-256 / P-384 keypairs for round-trip and
-// adversarial tests; NEVER production key material.
+// Test-only key material generators. Every symbol has the `Fixture` marker -
+// these produce throwaway P-256 / P-384 keypairs for round-trip and
+// adversarial tests; never production key material.
 
 import { webcrypto } from "node:crypto";
 
@@ -42,7 +42,7 @@ export async function generateFixtureP256Keypair(): Promise<FixtureKeypair> {
   return exportKeypair(pair);
 }
 
-/** Generates a throwaway P-384 keypair — the wrong-curve adversarial input. */
+/** Generates a throwaway P-384 keypair - the wrong-curve adversarial input. */
 export async function generateFixtureP384Keypair(): Promise<FixtureKeypair> {
   const pair = await webcrypto.subtle.generateKey(
     { name: "ECDH", namedCurve: "P-384" },

@@ -16,9 +16,9 @@ public sealed class CircuitBreakerOptionsTests
     public void Defaults_MatchInternalConstants()
     {
         // The Options class IS the single source of truth for defaults
-        // (CircuitBreaker.cs defers to it). Verify every property defaults
-        // to the corresponding internal constant rather than a re-stated
-        // literal — would fail if the two ever drift.
+        // (CircuitBreaker.cs reads its defaults from it). Verify every property
+        // defaults to the corresponding internal constant rather than a
+        // re-stated literal, so the test fails if the two differ.
         var options = new CircuitBreakerOptions();
 
         options.FailureThreshold.Should().Be(CircuitBreakerOptions.DEFAULT_FAILURE_THRESHOLD);
@@ -30,7 +30,7 @@ public sealed class CircuitBreakerOptionsTests
     public void DefaultNowFunc_DelegatesToTickCount64()
     {
         // Sanity check that the cached default delegate actually does what
-        // we documented — a monotonic millisecond reading from TickCount64.
+        // we documented - a monotonic millisecond reading from TickCount64.
         var before = Environment.TickCount64;
         var observed = CircuitBreakerOptions.SR_DefaultNowFunc();
         var after = Environment.TickCount64;

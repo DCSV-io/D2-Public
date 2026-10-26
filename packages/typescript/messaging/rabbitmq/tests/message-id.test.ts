@@ -9,7 +9,7 @@ import { readValidatedMessageId } from "../src/subscribing/message-id.js";
 
 const VALID = "0192f8c1-1111-7000-8000-000000000001";
 
-describe("readValidatedMessageId — mirrors SubscriberChannel.ReadMessageId", () => {
+describe("readValidatedMessageId - mirrors SubscriberChannel.ReadMessageId", () => {
   it("prefers the AMQP message-id property", () => {
     expect(readValidatedMessageId(VALID, {})).toBe(VALID);
   });

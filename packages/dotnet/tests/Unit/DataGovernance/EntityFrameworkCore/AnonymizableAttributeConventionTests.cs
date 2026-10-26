@@ -12,7 +12,6 @@ using AwesomeAssertions;
 using DcsvIo.D2.DataGovernance.Abstractions;
 using DcsvIo.D2.DataGovernance.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Xunit;
 
 /// <summary>
@@ -27,18 +26,18 @@ using Xunit;
 public sealed class AnonymizableAttributeConventionTests
 {
     // =========================================================================
-    // Activation — ApplyAnonymizationConventions present vs absent
+    // Activation - ApplyAnonymizationConventions present vs absent
     // =========================================================================
 
-    // long identifier — cannot wrap
+    // long identifier - cannot wrap
     [Fact]
     public void Without_ApplyAnonymizationConventions_Anonymizable_attribute_produces_no_annotation()
     {
         using DbContext ctx = new WithoutConventionContext();
-        IProperty prop = ctx.Model.FindEntityType(typeof(AttributedEntity))!
+        var prop = ctx.Model.FindEntityType(typeof(AttributedEntity))!
             .FindProperty(nameof(AttributedEntity.Email))!;
 
-        object? value = prop.FindAnnotation(AnonymizationAnnotations.ANONYMIZE)?.Value;
+        var value = prop.FindAnnotation(AnonymizationAnnotations.ANONYMIZE)?.Value;
 
         value.Should().BeNull();
     }
@@ -47,7 +46,7 @@ public sealed class AnonymizableAttributeConventionTests
     public void With_ApplyAnonymizationConventions_Anonymizable_attribute_produces_annotation()
     {
         using DbContext ctx = new WithConventionContext();
-        IProperty prop = ctx.Model.FindEntityType(typeof(AttributedEntity))!
+        var prop = ctx.Model.FindEntityType(typeof(AttributedEntity))!
             .FindProperty(nameof(AttributedEntity.Email))!;
 
         var rule =
@@ -57,14 +56,14 @@ public sealed class AnonymizableAttributeConventionTests
     }
 
     // =========================================================================
-    // Each attribute form → correct annotation
+    // Each attribute form -> correct annotation
     // =========================================================================
 
     [Fact]
     public void Attribute_SetNull_form_produces_SetNull_rule()
     {
         using DbContext ctx = new WithConventionContext();
-        IProperty prop = ctx.Model.FindEntityType(typeof(AttributedEntity))!
+        var prop = ctx.Model.FindEntityType(typeof(AttributedEntity))!
             .FindProperty(nameof(AttributedEntity.Phone))!;
 
         var rule =
@@ -80,7 +79,7 @@ public sealed class AnonymizableAttributeConventionTests
     public void Attribute_SetEmpty_form_produces_SetEmpty_rule()
     {
         using DbContext ctx = new WithConventionContext();
-        IProperty prop = ctx.Model.FindEntityType(typeof(AttributedEntity))!
+        var prop = ctx.Model.FindEntityType(typeof(AttributedEntity))!
             .FindProperty(nameof(AttributedEntity.DisplayName))!;
 
         var rule =
@@ -94,7 +93,7 @@ public sealed class AnonymizableAttributeConventionTests
     public void Attribute_Constant_form_produces_Constant_rule_with_correct_value()
     {
         using DbContext ctx = new WithConventionContext();
-        IProperty prop = ctx.Model.FindEntityType(typeof(AttributedEntity))!
+        var prop = ctx.Model.FindEntityType(typeof(AttributedEntity))!
             .FindProperty(nameof(AttributedEntity.Email))!;
 
         var rule =
@@ -109,7 +108,7 @@ public sealed class AnonymizableAttributeConventionTests
     public void Attribute_Template_form_produces_Template_rule_with_correct_template()
     {
         using DbContext ctx = new WithConventionContext();
-        IProperty prop = ctx.Model.FindEntityType(typeof(AttributedEntity))!
+        var prop = ctx.Model.FindEntityType(typeof(AttributedEntity))!
             .FindProperty(nameof(AttributedEntity.Username))!;
 
         var rule =
@@ -121,21 +120,21 @@ public sealed class AnonymizableAttributeConventionTests
     }
 
     // =========================================================================
-    // Precedence — fluent Explicit wins over attribute DataAnnotation
+    // Precedence - fluent Explicit wins over attribute DataAnnotation
     // =========================================================================
 
     [Fact]
     public void Fluent_overrides_attribute_when_both_target_same_property()
     {
         using DbContext ctx = new PrecedenceTestContext();
-        IProperty prop = ctx.Model.FindEntityType(typeof(PrecedenceEntity))!
+        var prop = ctx.Model.FindEntityType(typeof(PrecedenceEntity))!
             .FindProperty(nameof(PrecedenceEntity.Email))!;
 
         var rule =
             prop.FindAnnotation(AnonymizationAnnotations.ANONYMIZE)?.Value as AnonymizationRule;
 
         // Attribute says Constant("[attr]"); fluent says Constant("[fluent]").
-        // Fluent (Explicit source) > attribute (DataAnnotation source) → fluent wins.
+        // Fluent (Explicit source) > attribute (DataAnnotation source) -> fluent wins.
         rule.Should().NotBeNull();
         rule.Kind.Should().Be(AnonymizeKind.Constant);
         rule.ConstantValue.Should().Be("[fluent]");
@@ -145,7 +144,7 @@ public sealed class AnonymizableAttributeConventionTests
     public void Fluent_and_attribute_identical_value_produces_no_error()
     {
         using DbContext ctx = new IdenticalDoubleDeclarationContext();
-        IProperty prop = ctx.Model.FindEntityType(typeof(IdenticalDoubleEntity))!
+        var prop = ctx.Model.FindEntityType(typeof(IdenticalDoubleEntity))!
             .FindProperty(nameof(IdenticalDoubleEntity.Value))!;
 
         var rule =
@@ -164,8 +163,8 @@ public sealed class AnonymizableAttributeConventionTests
     public void Convention_walks_owned_entity_CLR_properties_for_Anonymizable()
     {
         using DbContext ctx = new OwnedAttributeConventionContext();
-        IEntityType ownedType = ctx.Model.FindEntityType(typeof(OwnedAttributedAddress))!;
-        IProperty prop = ownedType.FindProperty(nameof(OwnedAttributedAddress.Street))!;
+        var ownedType = ctx.Model.FindEntityType(typeof(OwnedAttributedAddress))!;
+        var prop = ownedType.FindProperty(nameof(OwnedAttributedAddress.Street))!;
 
         var rule =
             prop.FindAnnotation(AnonymizationAnnotations.ANONYMIZE)?.Value as AnonymizationRule;
@@ -183,11 +182,11 @@ public sealed class AnonymizableAttributeConventionTests
     public void Convention_walks_complex_type_CLR_properties_for_Anonymizable()
     {
         using DbContext ctx = new ComplexAttributeConventionContext();
-        IComplexType complexType = ctx.Model
+        var complexType = ctx.Model
             .FindEntityType(typeof(ComplexAttributedOwner))!
             .FindComplexProperty(nameof(ComplexAttributedOwner.Info))!
             .ComplexType;
-        IProperty prop = complexType.FindProperty(nameof(ComplexAttributedInfo.Code))!;
+        var prop = complexType.FindProperty(nameof(ComplexAttributedInfo.Code))!;
 
         var rule =
             prop.FindAnnotation(AnonymizationAnnotations.ANONYMIZE)?.Value as AnonymizationRule;
@@ -321,7 +320,7 @@ public sealed class AnonymizableAttributeConventionTests
 
         protected override void OnModelCreating(ModelBuilder model)
         {
-            // No ConfigureConventions override — convention NOT activated.
+            // No ConfigureConventions override - convention NOT activated.
             model.Entity<AttributedEntity>(e => e.HasKey(x => x.Id));
         }
     }

@@ -8,13 +8,34 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 **Input contract:** [`contracts/error-codes/`](../../../../contracts/error-codes/README.md)
 
-A thin `[Generator]` shell over the shared unified error-codes engine ([`error-codes-emit`](../error-codes-emit/README.md)). It emits the `ErrorCodes` const-string catalog AND the constructing semantic failure factories + per-code booleans into `DcsvIo.D2.Result` by reading `contracts/error-codes/error-codes.spec.json` via `<AdditionalFiles>`. Single-target — emits ONLY when the consuming assembly is `DcsvIo.D2.Result`. The shell owns only the generic catalog's identity (assembly name + the `ErrorCodesGenerator` type FQN) + its `CatalogConfig`; all generation logic lives in the shared engine.
+A `[Generator]` shell over the shared unified error-codes engine
+([`error-codes-emit`](../error-codes-emit/README.md)). It reads `contracts/error-codes/error-codes.spec.json` through
+`<AdditionalFiles>` and emits the `ErrorCodes` const-string catalog, the constructing semantic failure factories and the
+per-code booleans into `DcsvIo.D2.Result`. It is single-target: it emits only when the consuming assembly is
+`DcsvIo.D2.Result`. The shell defines only the generic catalog identity (assembly name and the `ErrorCodesGenerator`
+type fully qualified name) and its `CatalogConfig`; all generation logic is in the shared engine.
 
-The spec file is the single source of truth for the platform's generic error-code taxonomy. Every `d2_error_code` constant a `D2Result` failure carries, every constructing semantic failure factory on `D2Result` / `D2Result<TData>` (e.g. `NotFound`, `ValidationFailed`), and every per-code boolean discriminator (e.g. `IsNotFound`, `IsConflict`) is generated from this spec. Same spec drives the TS-side `@dcsv-io/d2-result` `ErrorCodes` catalog + factories (sources committed) — cross-language wire-format drift is structurally impossible.
+The spec file is the single source of truth for the platform's generic error-code taxonomy. The spec generates:
 
-The generic catalog owns the reserved unprefixed namespace (`NOT_FOUND`, `CONFLICT`, …) and runs in the engine's `FactoryHost.Base` mode — the factories ARE the base, so they CONSTRUCT a `D2Result` directly and land as members ONTO the `D2Result` / `D2Result<TData>` partial classes (not a separate `<Domain>Failures` class). Per-domain catalogs (e.g. the auth `AUTH_*` taxonomy at `contracts/auth-error-codes/`, driven by `DcsvIo.D2.Auth.ErrorCodes.SourceGen`) run in `FactoryHost.Domain` mode — their factories DELEGATE to the `httpStatus`-selected base factory and live in a separate `<Domain>Failures` (+ `<Domain>Failures<T>`) class. The SAME engine drives both via per-catalog config.
+- every `d2_error_code` constant that a `D2Result` failure can have;
+- every constructing semantic failure factory on `D2Result` / `D2Result<TData>` (for example `NotFound`,
+  `ValidationFailed`);
+- every per-code boolean discriminator (for example `IsNotFound`, `IsConflict`).
 
-**Convention**: spec-driven Roslyn `IIncrementalGenerator` (netstandard2.0 analyzer; spec via `<AdditionalFiles>`). See [`error-codes-emit`](../error-codes-emit/README.md) for the shared engine + the add-a-catalog recipe.
+The same spec drives the TypeScript `@dcsv-io/d2-result` `ErrorCodes` catalog and factories (sources committed), so the
+.NET and TypeScript wire formats cannot drift apart.
+
+The generic catalog uses the reserved `GEN_*` DomainPrefix (`GEN_NOT_FOUND`, `GEN_CONFLICT`, ...) and runs in the
+engine's `FactoryHost.Base` mode. In that mode the factories are the base: they construct a `D2Result` directly and are
+members of the `D2Result` / `D2Result<TData>` partial classes, not of a separate `<Domain>Failures` class. Per-domain
+catalogs, such as the public auth gate `LIB_AUTH_*` taxonomy at `contracts/auth-error-codes/` that
+a host-supplied generator drives, run in `FactoryHost.Domain` mode. Their factories delegate to the base
+factory that the `httpStatus` selects and live in a separate `<Domain>Failures` class (and `<Domain>Failures<T>`). Every
+code starts with its catalog's owner prefix (`GEN_` / `LIB_{DOMAIN}_` / `DOM_{DOMAIN}_`). One engine drives every
+catalog through its `CatalogConfig`, which requires `DomainPrefix`, `Owner` and `DomainToken`.
+
+**Convention**: spec-driven Roslyn `IIncrementalGenerator` (netstandard2.0 analyzer; spec via `<AdditionalFiles>`). See
+[`error-codes-emit`](../error-codes-emit/README.md) for the shared engine and the steps to add a catalog.
 
 ---
 
@@ -24,11 +45,15 @@ The generic catalog owns the reserved unprefixed namespace (`NOT_FOUND`, `CONFLI
 | --------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `D2EC001` | Error    | Spec file is malformed JSON or violates the schema                                                                                                                                                            |
 | `D2EC002` | Error    | Two entries share the same `code`                                                                                                                                                                             |
-| `D2EC003` | Error    | Entry's `httpStatus` is not in the supported set (`200` / `206` / `207` / `400` / `401` / `403` / `404` / `409` / `413` / `429` / `500` / `503`) — expanding the matrix requires updating the codegen mapping |
+| `D2EC003` | Error    | Entry's `httpStatus` is not in the supported set (`200` / `206` / `207` / `400` / `401` / `403` / `404` / `409` / `413` / `429` / `500` / `503`); adding a status requires updating the codegen mapping       |
 | `D2EC004` | Error    | Entry's `code` is empty or does not match `^[A-Z][A-Z0-9_]*$`                                                                                                                                                 |
 | `D2EC005` | Error    | Entry's `doc` summary text is missing or whitespace-only                                                                                                                                                      |
 
-The shared engine's `D2ERC001` (domain-prefix) does NOT apply — the generic catalog owns the reserved unprefixed namespace (no domain prefix to enforce). `D2ERC002` (TK-existence) DOES apply now that the catalog is factory-bearing — every `userMessageKey` is inverse-transformed (e.g. `TK.Common.Errors.NOT_FOUND` → `common_errors_NOT_FOUND`) and cross-checked against `contracts/messages/en-US.json` (surfaced via `<AdditionalFiles>`). `D2ERC003` (unsupported delegating `factoryShape`) never fires here — `FactoryHost.Base` implements the universal `standard` shape (and `none`).
+The shared engine's `D2ERC001` enforces each catalog's full `DomainPrefix`; for this shell that is `GEN_`. `D2ERC002`
+applies because the catalog has factories: every `userMessageKey` is inverse-transformed (for example
+`TK.Common.Errors.NOT_FOUND` -> `common_errors_NOT_FOUND`) and checked against `contracts/messages/en-US.json`, which
+the project passes through `<AdditionalFiles>`. `D2ERC003` (unsupported delegating `factoryShape`) never fires here,
+because `FactoryHost.Base` implements the universal `standard` shape and `none`.
 
 ---
 
@@ -39,7 +64,7 @@ The shared engine's `D2ERC001` (domain-prefix) does NOT apply — the generic ca
   "$schema": "./schema.json",
   "errorCodes": [
     {
-      "code": "NOT_FOUND",
+      "code": "GEN_NOT_FOUND",
       "httpStatus": 404,
       "category": "not_found",
       "userMessageKey": "TK.Common.Errors.NOT_FOUND",
@@ -48,7 +73,7 @@ The shared engine's `D2ERC001` (domain-prefix) does NOT apply — the generic ca
       "doc": "Indicates that the requested resource was not found."
     },
     {
-      "code": "SERVICE_UNAVAILABLE",
+      "code": "GEN_SERVICE_UNAVAILABLE",
       "httpStatus": 503,
       "category": "infrastructure_unavailable",
       "userMessageKey": "TK.Common.Errors.SERVICE_UNAVAILABLE",
@@ -62,30 +87,45 @@ The shared engine's `D2ERC001` (domain-prefix) does NOT apply — the generic ca
 
 ### Field rules
 
-- **`code`** — wire-format `^[A-Z][A-Z0-9_]*$`. Unique. Treated as the spec-anchored constant; the literal IS the wire format.
-- **`httpStatus`** — supported values today: the 12 entries in the supported set (see `D2EC003`). The JSON-Schema `enum` mirrors the codegen matrix; expanding both is a coordinated edit.
-- **`category`** — closed semantic/telemetry classification (9 values incl. `partial_success` for the 206/207 codes). A wire field for generic class-based consumer handling.
-- **`userMessageKey`** — TK symbol-path reference (e.g. `TK.Common.Errors.NOT_FOUND`) used as the factory's default message. Cross-checked against `en-US.json` by `D2ERC002`. The `code` and `userMessageKey` constant may legitimately differ (e.g. `UNHANDLED_EXCEPTION` → `TK.Common.Errors.UNKNOWN`; `RATE_LIMITED` → `TK.Common.Errors.TOO_MANY_REQUESTS`).
-- **`factoryName`** — PascalCase factory method name (e.g. `NotFound`, `TooManyRequests`). May differ from `code`.
-- **`factoryShape`** — `standard` (the one universal error-factory shape: `messages?, inputErrors?, errorCode?, category?, traceId?` — all optional) or `none` (constant + boolean only, no factory). Drives the factory signature.
-- **`doc`** — XML `<summary>` text rendered on the emitted constant + factory + JSDoc on the TS-side emitted constant.
+- `code` - wire format `^[A-Z][A-Z0-9_]*$`. Unique. The emitted constant has this value, and the literal is the wire
+  format.
+- `httpStatus` - one of the values in the supported set (see `D2EC003`). The JSON Schema `enum` mirrors the codegen
+  matrix, so changing the set means editing both.
+- `category` - a closed semantic and telemetry classification, sent on the wire for class-based handling by consumers.
+  It includes `partial_success`, which classifies a mixed per-target outcome: `GEN_SOME_FOUND` uses it on 206 and
+  `GEN_PARTIAL_SUCCESS` uses it on 503, and both have `Success` false.
+- `userMessageKey` - TK symbol-path reference (for example `TK.Common.Errors.NOT_FOUND`), used as the factory's default
+  message. `D2ERC002` checks it against `en-US.json`. The `code` and the `userMessageKey` constant may differ (for
+  example `UNHANDLED_EXCEPTION` -> `TK.Common.Errors.UNKNOWN`; `RATE_LIMITED` -> `TK.Common.Errors.TOO_MANY_REQUESTS`).
+- `factoryName` - PascalCase factory method name (for example `NotFound`, `TooManyRequests`). It may differ from `code`.
+- `factoryShape` - `standard`, the one universal error-factory shape
+  (`messages?, inputErrors?, errorCode?, category?, traceId?`, all optional), or `none` (constant and boolean only, no
+  factory). It determines the factory signature.
+- `doc` - XML `<summary>` text on the emitted constant and factory, and JSDoc on the constant that the TypeScript side
+  emits.
 
 ---
 
 ## Emitted output
 
-Four `.g.cs` files emitted into the consuming assembly (`DcsvIo.D2.Result`):
+The generator emits these `.g.cs` files into the consuming assembly (`DcsvIo.D2.Result`):
 
-- **`ErrorCodes.g.cs`** — `DcsvIo.D2.Result.ErrorCodes` static class with one `public const string` per spec entry, `IReadOnlyList<string> AllCodes`, and `int GetHttpStatus(string)`.
-- **`D2Result.Factories.g.cs`** — the constructing non-generic semantic failure factories on `partial class D2Result` (one per `factoryShape != none` entry).
-- **`D2Result.Generic.Factories.g.cs`** — the `<TData>` typed twins on `partial class D2Result<TData>` (carry `new` + `default` data).
-- **`D2Result.Booleans.g.cs`** — the per-error-code boolean discriminators on `partial class D2Result` (one per ErrorCode-keyed code; serialization codes key none).
+- `ErrorCodes.g.cs` - the `DcsvIo.D2.Result.ErrorCodes` static class, with one `public const string` per spec entry,
+  `IReadOnlyList<string> AllCodes` and `int GetHttpStatus(string)`.
+- `D2Result.Factories.g.cs` - the constructing non-generic semantic failure factories on `partial class D2Result`, one
+  per `factoryShape != none` entry.
+- `D2Result.Generic.Factories.g.cs` - the `<TData>` typed twins on `partial class D2Result<TData>`, which carry `new`
+  and `default` data.
+- `D2Result.Booleans.g.cs` - the per-error-code boolean discriminators on `partial class D2Result`, one per
+  boolean-keyed code (the selection is in `BaseFactoriesEmitter.cs`). The serialization codes `COULD_NOT_BE_*` have no
+  boolean.
 
 ---
 
 ## Reference
 
-- [`error-codes-emit`](../error-codes-emit/README.md) — the shared unified engine this shell drives
-- [`contracts/error-codes/schema.json`](../../../../contracts/error-codes/schema.json) — JSON Schema for the spec
-- [`contracts/error-codes/error-codes.spec.json`](../../../../contracts/error-codes/error-codes.spec.json) — the source-of-truth catalog
-- `@dcsv-io/d2-result` — TS-side catalog consuming the same spec
+- [`error-codes-emit`](../error-codes-emit/README.md) - the shared unified engine this shell drives
+- [`contracts/error-codes/schema.json`](../../../../contracts/error-codes/schema.json) - JSON Schema for the spec
+- [`contracts/error-codes/error-codes.spec.json`](../../../../contracts/error-codes/error-codes.spec.json) - the
+  source-of-truth catalog
+- `@dcsv-io/d2-result` - TypeScript catalog that consumes the same spec

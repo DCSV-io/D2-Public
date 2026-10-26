@@ -23,7 +23,7 @@ describe("LocaleLookup", () => {
     );
   });
 
-  // §1.2 category: Domain-specific — headline pins.
+  // Category: Domain-specific - headline pins.
   it("en-US fields pinned", () => {
     const enUS = LocaleLookup.byCode["en-US" as LocaleCode];
     expect(enUS).toBeDefined();
@@ -61,7 +61,7 @@ describe("LocaleLookup", () => {
     expect(ptBR!.countryIso31661Alpha2Code).toBe(CountryCode.BR);
   });
 
-  // §1.2 category: Cross-field — code+nav agreement.
+  // Category: Cross-field - code+nav agreement.
   it("every locale: language nav matches code when set", () => {
     for (const locale of LocaleLookup.all) {
       if (locale.language !== undefined)

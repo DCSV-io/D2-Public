@@ -6,6 +6,7 @@
 
 namespace DcsvIo.D2.Tests.Unit.Messaging;
 
+using System.Collections.Generic;
 using AwesomeAssertions;
 using DcsvIo.D2.Encryption;
 using DcsvIo.D2.Messaging;
@@ -13,49 +14,45 @@ using DcsvIo.D2.Messaging.RabbitMq.Encryption;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-// EncryptionDomains.FIXTURE_SEALED is the public catalog sealed fixture.
+// EncryptionDomains.FIXTURE_SEALED is the sealed fixture in the public catalog.
 
 /// <summary>
-/// Coverage for <see cref="SealedConsumerStartupCheck"/> — the rabbitmq-lib boot check that
-/// crashes the host when a subscriber consumes a SEALED domain but no keyed
-/// <see cref="IPayloadOpener"/> is registered for that domain's consumer service (every
-/// delivery would DLQ). Production-inert today (no sealed spec messages), so it is exercised
-/// only via <see cref="MessageWireResolver.RegisterForTesting"/> fixture message types on real
-/// sealed domain values.
+/// Tests of <see cref="SealedConsumerStartupCheck"/>, the RabbitMQ library boot check that
+/// crashes the host when a subscriber consumes a sealed domain and no keyed
+/// <see cref="IPayloadOpener"/> is registered for that domain's consumer service, because
+/// every delivery would go to the DLQ. The spec declares no sealed message, so the tests give
+/// the check a <see cref="MessagingCatalog"/> of fixture message types whose descriptors
+/// carry real sealed domain values.
 /// </summary>
-/// <remarks>
-/// Deliberately does NOT call <see cref="MessageWireResolver.ClearCache"/>.
-/// Fixture types are unique; <c>RegisterForTesting</c> overwrite is enough.
-/// Global clear races parallel Integration tests that seed via
-/// <c>IntegrationMessageFixtures</c> (see KeyRotatedEventTests note).
-/// </remarks>
 public sealed class SealedConsumerStartupCheckTests
 {
     [Fact]
     public async Task StartAsync_SealedSubscriberWithoutOpener_CrashesBoot()
     {
-        SeedSealedSubscriberDescriptor<SealedFixtureMessage>(EncryptionDomains.FIXTURE_SEALED);
+        var catalog = SealedCatalog<SealedFixtureMessage>(
+            SealedFixtureMessage.CONSTANT, EncryptionDomains.FIXTURE_SEALED);
         var registry = Registry<SealedFixtureMessage>("fixture-sealed-consumer-queue");
         var sp = new ServiceCollection().BuildServiceProvider();
-        var check = new SealedConsumerStartupCheck(registry, sp);
+        var check = new SealedConsumerStartupCheck(registry, catalog, sp);
 
         var act = async () => await check.StartAsync(CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<InvalidOperationException>();
         ex.WithMessage("*sealed encryption domain*payload-fixture-sealed*");
-        ex.WithMessage("*AddD2SealedEncryptionViaKeyCustodian*");
+        ex.WithMessage("*backed by a managed keyring on the consumer host*");
     }
 
     [Fact]
     public async Task StartAsync_ForgottenSealingCall_StillCrashesBoot()
     {
-        // The whole point of the net: the check is registered by AddD2MessagingRabbitMq (NOT by
-        // the sealing call), so a host that FORGOT AddD2SealedEncryptionViaKeyCustodian entirely
-        // (no opener anywhere) still crashes boot — same shape as no opener.
-        SeedSealedSubscriberDescriptor<SealedFixtureMessage>(EncryptionDomains.FIXTURE_SEALED);
+        // AddD2MessagingRabbitMq registers the check, and the sealing call does not. A host
+        // that omitted the sealed-encryption registration entirely, so it has no opener at
+        // all, still fails at boot, the same as a host whose opener is missing.
+        var catalog = SealedCatalog<SealedFixtureMessage>(
+            SealedFixtureMessage.CONSTANT, EncryptionDomains.FIXTURE_SEALED);
         var registry = Registry<SealedFixtureMessage>("fixture-sealed-consumer-queue");
         var sp = new ServiceCollection().BuildServiceProvider();
-        var check = new SealedConsumerStartupCheck(registry, sp);
+        var check = new SealedConsumerStartupCheck(registry, catalog, sp);
 
         var act = async () => await check.StartAsync(CancellationToken.None);
 
@@ -65,12 +62,13 @@ public sealed class SealedConsumerStartupCheckTests
     [Fact]
     public async Task StartAsync_SealedSubscriberWithOpener_Passes()
     {
-        SeedSealedSubscriberDescriptor<SealedFixtureMessage>(EncryptionDomains.FIXTURE_SEALED);
+        var catalog = SealedCatalog<SealedFixtureMessage>(
+            SealedFixtureMessage.CONSTANT, EncryptionDomains.FIXTURE_SEALED);
         var registry = Registry<SealedFixtureMessage>("fixture-sealed-consumer-queue");
         var services = new ServiceCollection();
         services.AddKeyedSingleton<IPayloadOpener>("payload-fixture-sealed", new StubOpener());
         var sp = services.BuildServiceProvider();
-        var check = new SealedConsumerStartupCheck(registry, sp);
+        var check = new SealedConsumerStartupCheck(registry, catalog, sp);
 
         var act = async () => await check.StartAsync(CancellationToken.None);
 
@@ -80,10 +78,11 @@ public sealed class SealedConsumerStartupCheckTests
     [Fact]
     public async Task StartAsync_PlaintextSubscriber_Unaffected()
     {
-        SeedPlaintextSubscriberDescriptor<PlaintextFixtureMessage>();
+        var catalog = PlaintextCatalog<PlaintextFixtureMessage>(
+            PlaintextFixtureMessage.CONSTANT);
         var registry = Registry<PlaintextFixtureMessage>("plaintext-queue");
         var sp = new ServiceCollection().BuildServiceProvider();
-        var check = new SealedConsumerStartupCheck(registry, sp);
+        var check = new SealedConsumerStartupCheck(registry, catalog, sp);
 
         var act = async () => await check.StartAsync(CancellationToken.None);
 
@@ -93,22 +92,23 @@ public sealed class SealedConsumerStartupCheckTests
     [Fact]
     public async Task StartAsync_SymmetricSubscriber_Unaffected()
     {
-        // An unknown (symmetric-default) domain is not sealed → no opener required.
-        SeedSealedSubscriberDescriptor<SymmetricFixtureMessage>("payload-fixture-symmetric");
+        // An unknown (symmetric-default) domain is not sealed, so no opener is required.
+        var catalog = SealedCatalog<SymmetricFixtureMessage>(
+            SymmetricFixtureMessage.CONSTANT, "payload-fixture-symmetric");
         var registry = Registry<SymmetricFixtureMessage>("symmetric-queue");
         var sp = new ServiceCollection().BuildServiceProvider();
-        var check = new SealedConsumerStartupCheck(registry, sp);
+        var check = new SealedConsumerStartupCheck(registry, catalog, sp);
 
         var act = async () => await check.StartAsync(CancellationToken.None);
 
         await act.Should().NotThrowAsync("a symmetric-domain subscriber is not a sealed consumer");
     }
 
-    private static void SeedSealedSubscriberDescriptor<TMessage>(string domain)
-        => MessageWireResolver.RegisterForTesting(
-            typeof(TMessage),
+    private static MessagingCatalog SealedCatalog<TMessage>(string constant, string domain) =>
+        CatalogOf(
+            constant,
             new MqMessageDescriptor(
-                Constant: "SealedFixture",
+                Constant: constant,
                 MessageTypeName: typeof(TMessage).FullName!,
                 Exchange: "d2.test.events",
                 ExchangeType: "topic",
@@ -116,17 +116,25 @@ public sealed class SealedConsumerStartupCheckTests
                 EncryptionReason: null,
                 DefaultRoutingKey: "test.event"));
 
-    private static void SeedPlaintextSubscriberDescriptor<TMessage>()
-        => MessageWireResolver.RegisterForTesting(
-            typeof(TMessage),
+    private static MessagingCatalog PlaintextCatalog<TMessage>(string constant) =>
+        CatalogOf(
+            constant,
             new MqMessageDescriptor(
-                Constant: "PlaintextFixture",
+                Constant: constant,
                 MessageTypeName: typeof(TMessage).FullName!,
                 Exchange: "d2.test.events",
                 ExchangeType: "fanout",
                 Encryption: MqMessageDescriptor.PLAINTEXT,
                 EncryptionReason: "test fixture",
                 DefaultRoutingKey: string.Empty));
+
+    private static MessagingCatalog CatalogOf(
+        string constant, MqMessageDescriptor descriptor) => new(
+        new Dictionary<string, MqMessageDescriptor>(StringComparer.Ordinal)
+        {
+            [constant] = descriptor,
+        },
+        new Dictionary<string, MqSubscriptionDescriptor>(StringComparer.Ordinal));
 
     private static SubscriberRegistry Registry<TMessage>(string queueName)
     {
@@ -155,16 +163,28 @@ public sealed class SealedConsumerStartupCheckTests
         MqSubscriptionDescriptor Descriptor,
         string ResolvedQueueName) : ISubscriberRegistration;
 
-    // §7.23 fixture-named message + handler doubles (never a production message).
-    private sealed class SealedFixtureMessage;
+    // Fixture message and handler doubles. None of them is a production message.
+    [MqPub(SealedFixtureMessage.CONSTANT)]
+    private sealed class SealedFixtureMessage
+    {
+        public const string CONSTANT = "SealedFixture";
+    }
 
-    private sealed class PlaintextFixtureMessage;
+    [MqPub(PlaintextFixtureMessage.CONSTANT)]
+    private sealed class PlaintextFixtureMessage
+    {
+        public const string CONSTANT = "PlaintextFixture";
+    }
 
-    private sealed class SymmetricFixtureMessage;
+    [MqPub(SymmetricFixtureMessage.CONSTANT)]
+    private sealed class SymmetricFixtureMessage
+    {
+        public const string CONSTANT = "SymmetricFixture";
+    }
 
     private sealed class SealedFixtureHandler;
 
-    // The check only probes registration presence (IsKeyedService); it never invokes Open.
+    // The check only probes whether a registration exists (IsKeyedService) and never invokes Open.
     private sealed class StubOpener : IPayloadOpener
     {
         public byte[] Open(ReadOnlySpan<byte> framed) => throw new NotImplementedException();

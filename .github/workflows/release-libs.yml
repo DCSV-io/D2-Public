@@ -2,317 +2,243 @@
 # Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 # -----------------------------------------------------------------------
 #
-# CI for this repository — library release (pack + optional publish).
+# Release libraries: publishes the packages a release tag's
+# release-manifest.json lists, in its order, then creates the GitHub Release.
 #
-# Packs consumable open libraries, optionally publishes to nuget.org / npmjs,
-# and can create a GitHub Release.
+# It runs on a push of a tag named libs/<YYYYMMDD>T<HHMMSS>Z, or on a manual
+# run whose ref is such a tag; every job fails its first step on any other ref.
 #
-# Operator secrets (repo Settings → Secrets → Actions):
-#   NUGET_API_KEY   — nuget.org API key (optional until first publish)
-#   NPM_TOKEN       — npmjs automation token (optional until first publish)
+#   pack            installs from pnpm-lock.yaml with scripts off, builds,
+#                   packs D2.Public.slnx and each npm package the manifest
+#                   lists, checks one file per manifest entry, and uploads the
+#                   package files as the artifact packages-<tag, / as ->.
+#   publish         takes .github/scripts/release-publish.mjs and
+#                   release-manifest.json from the run's commit, checks the id
+#                   and version inside each downloaded file, and publishes each
+#                   version the registry does not list. It stops at the first
+#                   failure; a re-run publishes only the versions still
+#                   missing from the registry.
+#   github-release  creates the GitHub Release for the tag, or leaves an
+#                   existing one as it is.
 #
-# You do NOT create a NuGet/npm "project" per package in advance for public
-# open-source packages: first `dotnet nuget push` / `npm publish` creates the
-# package ID on the registry (scoped npm packages require org/user to exist:
-# @dcsv-io must already exist on npmjs — one org, not one resource per package).
+# Both registries authenticate with trusted publishing (OIDC); no step reads a
+# registry key stored in the repository. Settings this workflow needs:
+#   - the environment publish, limited to libs/* tags;
+#   - the repository variable NUGET_USER, the nuget.org profile name of the
+#     account whose trusted publishing policy lists this workflow;
+#   - a trusted publisher on each npm package, set to this workflow and the
+#     environment publish.
+#
+# A package the registry has never published can need its first version
+# published by hand; the publish command of release-publish.mjs then prints
+# the procedure in the publish job's log.
 
 name: Release libraries
 
 on:
+  push:
+    tags: ["libs/*"]
   workflow_dispatch:
-    inputs:
-      publish:
-        description: "Publish to nuget.org + npmjs (requires secrets)"
-        type: boolean
-        required: true
-        default: false
-      create_github_release:
-        description: "Create a GitHub Release and attach pack artifacts"
-        type: boolean
-        required: true
-        default: false
-      tag:
-        description: "Release tag (default: libs-YYYY.MM.DD)"
-        type: string
-        required: false
-        default: ""
 
-permissions:
-  contents: write
+permissions: {}
+
+concurrency:
+  group: release-libs
+  cancel-in-progress: false
 
 jobs:
-  release-libs:
-    name: Pack (+ optional publish)
+  pack:
+    name: Pack
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 60
+    outputs:
+      artifact: ${{ steps.artifact.outputs.name }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Check the ref is a release tag
+        shell: bash
+        run: |
+          if [[ ! "${GITHUB_REF}" =~ ^refs/tags/libs/[0-9]{8}T[0-9]{6}Z$ ]]; then
+            echo "::error::This workflow runs only on a tag libs/<YYYYMMDD>T<HHMMSS>Z, not ${GITHUB_REF}."
+            exit 1
+          fi
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - name: Install from the committed lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build D2.Public.slnx -c Release -p:ContinuousIntegrationBuild=true
+          pnpm -r --filter "./packages/typescript/**" build
+          pnpm --filter @dcsv-io/d2-messaging-rabbitmq test -- tests/pack-patched.test.ts
+
+      - name: Pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="${RUNNER_TEMP}/packages"
+          mkdir -p "${out}/nuget" "${out}/npm"
+          dotnet pack D2.Public.slnx -c Release --no-build \
+            -p:ContinuousIntegrationBuild=true -o "${out}/nuget"
+          # The npm ids come from the validated manifest.
+          node --input-type=module -e '
+            const script = await import("./.github/scripts/release-publish.mjs");
+            for (const entry of script.readManifest("release-manifest.json")) {
+              if (entry.ecosystem === "npm") console.log(entry.id);
+            }
+          ' > "${RUNNER_TEMP}/npm-ids.txt"
+          while IFS= read -r id; do
+            if [ "${id}" = "@dcsv-io/d2-messaging-rabbitmq" ]; then
+              pnpm --filter "${id}" run pack:patched -- "${out}/npm"
+            else
+              pnpm --filter "${id}" pack --pack-destination "${out}/npm"
+            fi
+          done < "${RUNNER_TEMP}/npm-ids.txt"
+
+      - name: Check one file per manifest entry
+        run: >
+          node .github/scripts/release-publish.mjs check
+          --manifest release-manifest.json
+          --nuget "${RUNNER_TEMP}/packages/nuget"
+          --npm "${RUNNER_TEMP}/packages/npm"
+
+      - name: Name the artifact
+        id: artifact
+        shell: bash
+        run: echo "name=packages-${GITHUB_REF_NAME//\//-}" >> "${GITHUB_OUTPUT}"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          path: ${{ runner.temp }}/packages
+          if-no-files-found: error
+
+  publish:
+    name: Publish
+    needs: pack
+    runs-on: ubuntu-latest
+    environment: publish
+    permissions:
+      contents: read
+      id-token: write
+    timeout-minutes: 90
+    steps:
+      - name: Check the ref is a release tag
+        shell: bash
+        run: |
+          if [[ ! "${GITHUB_REF}" =~ ^refs/tags/libs/[0-9]{8}T[0-9]{6}Z$ ]]; then
+            echo "::error::This workflow runs only on a tag libs/<YYYYMMDD>T<HHMMSS>Z, not ${GITHUB_REF}."
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            .github/scripts/release-publish.mjs
+            release-manifest.json
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ needs.pack.outputs.artifact }}
+          path: ${{ runner.temp }}/packages
+
+      # No registry-url: it writes an .npmrc that expects a token in the
+      # environment, and npm authenticates with trusted publishing.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+
+      # Trusted publishing needs npm 11.5.1 or later.
+      - name: Install npm 11.21.0
+        run: npm install -g npm@11.21.0 --ignore-scripts
+
+      # The SDK major of global.json, for dotnet nuget push.
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: "10.0.x"
 
-      - uses: actions/setup-node@v4
+      - name: Find the ecosystems the manifest lists
+        id: ecosystems
+        run: node .github/scripts/release-publish.mjs ecosystems --manifest release-manifest.json
+
+      - name: Get a NuGet key from trusted publishing
+        id: nuget-login
+        if: ${{ steps.ecosystems.outputs.nuget == 'true' }}
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Publish the manifest packages
+        env:
+          NUGET_PUSH_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: >
+          node .github/scripts/release-publish.mjs publish
+          --manifest release-manifest.json
+          --nuget "${RUNNER_TEMP}/packages/nuget"
+          --npm "${RUNNER_TEMP}/packages/npm"
+
+  github-release:
+    name: GitHub Release
+    needs: publish
+    runs-on: ubuntu-latest
+    environment: publish
+    permissions:
+      contents: write
+    timeout-minutes: 10
+    steps:
+      - name: Check the ref is a release tag
+        shell: bash
+        run: |
+          if [[ ! "${GITHUB_REF}" =~ ^refs/tags/libs/[0-9]{8}T[0-9]{6}Z$ ]]; then
+            echo "::error::This workflow runs only on a tag libs/<YYYYMMDD>T<HHMMSS>Z, not ${GITHUB_REF}."
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            .github/scripts/release-publish.mjs
+            release-manifest.json
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24"
-          registry-url: "https://registry.npmjs.org"
 
-      - uses: pnpm/action-setup@v4
-
-      - name: Derive tag
-        id: tag
-        env:
-          INPUT_TAG: ${{ inputs.tag }}
-        run: |
-          if [ -n "$INPUT_TAG" ]; then
-            echo "value=$INPUT_TAG" >> "$GITHUB_OUTPUT"
-          else
-            echo "value=libs-$(date +%Y.%m.%d)" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: pnpm install (release-runner + public packages)
-        run: pnpm install --filter "release-runner..." --filter "./packages/typescript/**..." --filter "ts-codegen..."
-
-      - name: Build release-runner + public TS packages
-        run: |
-          pnpm --filter "release-runner^..." build
-          pnpm --filter "./packages/typescript/**" -r build
-
-      - name: List consumable inventory
-        run: pnpm --filter release-runner exec tsx src/cli.ts --list
-
-      - name: Pack .NET consumables (solution packable projects)
-        run: |
-          set -euo pipefail
-          mkdir -p bundle/nuget
-          # Pack via public solution graph — packable projects emit nupkgs.
-          dotnet pack D2.Public.slnx --configuration Release --output bundle/nuget -p:ContinuousIntegrationBuild=true
-
-      - name: Pack TS consumables
-        run: |
-          set -euo pipefail
-          mkdir -p bundle/npm
-          pnpm --filter "./packages/typescript/**" -r exec pnpm pack --pack-destination "$GITHUB_WORKSPACE/bundle/npm" || true
-          # Prefer filter-pack for workspace packages that support it:
-          for pkg in $(pnpm --filter "./packages/typescript/**" -r list --json | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{JSON.parse(d).forEach(p=>p.name&&console.log(p.name))})"); do
-            pnpm --filter "$pkg" pack --pack-destination bundle/npm 2>/dev/null || true
-          done
-          ls -la bundle/npm || true
-
-      - name: Upload pack artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: d2-libs-${{ steps.tag.outputs.value }}
-          path: bundle/
-
-      # Publish policy (no inter-package sleep — only 429 uses expo backoff):
-      #   1) One bulk inventory fetch → in-memory id@version set (short-circuit
-      #      skip — never hit publish API for packages we KNOW already exist).
-      #   2) Rate-limit retries only: sleep 1,2,4,8,16,32s then FAIL (7 attempts).
-      #   3) Safety backstop: NuGet --skip-duplicate; npm EPUBLISHCONFLICT skip
-      #      (inventory is latest-version search only — weird races still covered).
-      - name: Publish to nuget.org
-        if: ${{ inputs.publish }}
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-        run: |
-          set -euo pipefail
-          if [ -z "${NUGET_API_KEY:-}" ]; then
-            echo "::error::NUGET_API_KEY secret missing"
-            exit 1
-          fi
-          shopt -s nullglob
-
-          # Fixed expo: after attempt N fails → sleep schedule[N]; attempt 7 fail → FAIL
-          rate_limit_backoff_sec() {
-            case "$1" in
-              1) echo 1 ;;
-              2) echo 2 ;;
-              3) echo 4 ;;
-              4) echo 8 ;;
-              5) echo 16 ;;
-              6) echo 32 ;;
-              *) echo "" ;;
-            esac
-          }
-          max_attempts=7
-
-          echo "Fetching NuGet inventory (latest-version search)…"
-          inv_file="$(mktemp)"
-          curl -fsSL \
-            "https://azuresearch-usnc.nuget.org/query?q=DcsvIo.D2&prerelease=true&take=100" \
-            -H "Accept: application/json" \
-            -o "$inv_file"
-          # keysLower: one id@version per line (lowercase id)
-          node -e '
-            const fs = require("fs");
-            const j = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-            const data = Array.isArray(j.data) ? j.data : [];
-            for (const row of data) {
-              if (!row?.id || !row?.version) continue;
-              console.log(String(row.id).trim().toLowerCase() + "@" + String(row.version).trim());
-            }
-            console.error("inventory totalHits=" + (j.totalHits ?? data.length) + " keys=" + data.filter(r => r?.id && r?.version).length);
-          ' "$inv_file" > "${inv_file}.keys"
-          inv_count="$(wc -l < "${inv_file}.keys" | tr -d " ")"
-          echo "NuGet inventory keys: ${inv_count}"
-
-          for nupkg in bundle/nuget/*.nupkg; do
-            case "$nupkg" in
-              *.symbols.nupkg) continue ;;
-            esac
-
-            # id + version from embedded nuspec (nupkg is a zip)
-            meta="$(unzip -p "$nupkg" "*.nuspec" 2>/dev/null || true)"
-            if [ -z "$meta" ]; then
-              echo "::error::could not read nuspec from $nupkg"
-              exit 1
-            fi
-            id="$(printf "%s" "$meta" | sed -n "s/.*<id>\\([^<]*\\)<\\/id>.*/\\1/p" | head -1 | tr -d "\r")"
-            version="$(printf "%s" "$meta" | sed -n "s/.*<version>\\([^<]*\\)<\\/version>.*/\\1/p" | head -1 | tr -d "\r")"
-            if [ -z "$id" ] || [ -z "$version" ]; then
-              echo "::error::could not parse id/version from nuspec in $nupkg"
-              exit 1
-            fi
-            key="$(printf "%s" "$id" | tr "[:upper:]" "[:lower:]")@${version}"
-
-            if grep -Fqx "$key" "${inv_file}.keys"; then
-              echo "Skip (inventory short-circuit): ${id}@${version}"
-              continue
-            fi
-
-            attempt=1
-            while true; do
-              echo "Pushing $nupkg (${id}@${version}) attempt ${attempt}/${max_attempts}"
-              set +e
-              out="$(dotnet nuget push "$nupkg" \
-                --api-key "$NUGET_API_KEY" \
-                --source https://api.nuget.org/v3/index.json \
-                --skip-duplicate 2>&1)"
-              code=$?
-              set -e
-              printf "%s\n" "$out"
-              if [ "$code" -eq 0 ]; then
-                # Keep inventory warm for later packages in this run (same version race)
-                printf "%s\n" "$key" >> "${inv_file}.keys"
-                break
-              fi
-              if printf "%s\n" "$out" | grep -qiE "429|Too Many Requests|rate limit|try again later"; then
-                backoff="$(rate_limit_backoff_sec "$attempt")"
-                if [ -z "$backoff" ]; then
-                  echo "::error::nuget.org rate limited after ${max_attempts} attempts (1,2,4,8,16,32 then FAIL): $nupkg"
-                  exit 1
-                fi
-                echo "Rate limited — backing off ${backoff}s (then retry)…"
-                sleep "$backoff"
-                attempt=$((attempt + 1))
-                continue
-              fi
-              echo "::error::dotnet nuget push failed: $nupkg (exit $code)"
-              exit "$code"
-            done
-          done
-
-      - name: Publish to npmjs
-        if: ${{ inputs.publish }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          set -euo pipefail
-          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-            echo "::error::NPM_TOKEN secret missing"
-            exit 1
-          fi
-          shopt -s nullglob
-
-          rate_limit_backoff_sec() {
-            case "$1" in
-              1) echo 1 ;;
-              2) echo 2 ;;
-              3) echo 4 ;;
-              4) echo 8 ;;
-              5) echo 16 ;;
-              6) echo 32 ;;
-              *) echo "" ;;
-            esac
-          }
-          max_attempts=7
-
-          echo "Fetching npm inventory (search text=dcsv, filter @dcsv-io/)…"
-          inv_file="$(mktemp)"
-          curl -fsSL \
-            "https://registry.npmjs.org/-/v1/search?text=dcsv&size=250" \
-            -H "Accept: application/json" \
-            -o "$inv_file"
-          node -e '
-            const fs = require("fs");
-            const j = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-            const objects = Array.isArray(j.objects) ? j.objects : [];
-            let matched = 0;
-            for (const obj of objects) {
-              const name = obj?.package?.name;
-              const version = obj?.package?.version;
-              if (!name || !version) continue;
-              if (!name.startsWith("@dcsv-io/")) continue;
-              console.log(name + "@" + version);
-              matched++;
-            }
-            console.error("inventory total=" + (j.total ?? objects.length) + " matched=" + matched);
-          ' "$inv_file" > "${inv_file}.keys"
-          inv_count="$(wc -l < "${inv_file}.keys" | tr -d " ")"
-          echo "npm inventory keys (@dcsv-io/* latest): ${inv_count}"
-
-          for tgz in bundle/npm/*.tgz; do
-            name="$(tar -xOf "$tgz" package/package.json | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).name))")"
-            version="$(tar -xOf "$tgz" package/package.json | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).version))")"
-            id="${name}@${version}"
-
-            # In-mem inventory short-circuit — no per-package npm view (that was a GET storm)
-            if grep -Fqx "$id" "${inv_file}.keys"; then
-              echo "Skip (inventory short-circuit): $id"
-              continue
-            fi
-
-            attempt=1
-            while true; do
-              echo "Publishing $tgz ($id) attempt ${attempt}/${max_attempts}"
-              set +e
-              out="$(npm publish "$tgz" --access public 2>&1)"
-              code=$?
-              set -e
-              printf "%s\n" "$out"
-              if [ "$code" -eq 0 ]; then
-                printf "%s\n" "$id" >> "${inv_file}.keys"
-                break
-              fi
-              # Safety backstop: version already published (race / inventory lag / weird)
-              if printf "%s\n" "$out" | grep -qiE "cannot publish over existing|EPUBLISHCONFLICT|previously published|403 Forbidden.*cannot publish"; then
-                echo "Skip (already published / conflict backstop): $id"
-                printf "%s\n" "$id" >> "${inv_file}.keys"
-                break
-              fi
-              if printf "%s\n" "$out" | grep -qiE "E429|Too Many Requests|rate limit"; then
-                backoff="$(rate_limit_backoff_sec "$attempt")"
-                if [ -z "$backoff" ]; then
-                  echo "::error::npm rate limited after ${max_attempts} attempts (1,2,4,8,16,32 then FAIL): $id"
-                  exit 1
-                fi
-                echo "429 — backing off ${backoff}s (then retry)…"
-                sleep "$backoff"
-                attempt=$((attempt + 1))
-                continue
-              fi
-              echo "::error::npm publish failed: $id (exit $code)"
-              exit "$code"
-            done
-          done
-
-      - name: GitHub Release
-        if: ${{ inputs.create_github_release }}
+      - name: Create the release
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          TAG="${{ steps.tag.outputs.value }}"
-          gh release create "$TAG" bundle/nuget/* bundle/npm/* \
-            --title "$TAG" \
-            --notes "Public library pack from D2-Public @ ${GITHUB_SHA}"
+          if gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" > /dev/null 2>&1; then
+            echo "The release ${TAG} exists; it is left as it is."
+            exit 0
+          fi
+          node .github/scripts/release-publish.mjs notes \
+            --manifest release-manifest.json --tag "${TAG}" > "${RUNNER_TEMP}/notes.md"
+          gh release create "${TAG}" --repo "${GITHUB_REPOSITORY}" --verify-tag \
+            --title "${TAG}" --notes-file "${RUNNER_TEMP}/notes.md"

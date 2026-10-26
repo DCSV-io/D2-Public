@@ -15,9 +15,9 @@ using Xunit;
 
 /// <summary>
 /// End-to-end pin that the metrics pipeline routes a Counter increment
-/// through the meter provider to the in-memory exporter. Specifically
-/// exercises the Handler meter (one of the aggregated names) so the
-/// AggregatedTelemetrySources wiring is implicitly re-walked.
+/// through the meter provider to the in-memory exporter. Both tests use the
+/// Handler meter (one of the aggregated names), so they also run the
+/// AggregatedTelemetrySources wiring again.
 /// </summary>
 [Collection("LogLoggerStaticState")]
 public sealed class MetricsExporterTests
@@ -57,9 +57,9 @@ public sealed class MetricsExporterTests
         meterProvider.Should().NotBeNull();
 
         // OTel's ForceFlush can return false when readers report
-        // "no work to do" rather than failure — so the meaningful
-        // assertion is that the call completes promptly AND that the
-        // exporter received the metric.
+        // "no work to do" rather than failure, so the test ignores the
+        // return value. The assertion below checks that the exporter
+        // received the metric.
         meterProvider.ForceFlush(timeoutMilliseconds: 5000);
 
         handle.Metrics.Snapshot(meterName).Should().NotBeEmpty(

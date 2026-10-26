@@ -17,11 +17,10 @@ using Xunit;
 /// Emits IRequestContext property-surface fixtures. The fixture
 /// <c>data.properties</c> is the sorted union of properties declared on
 /// <see cref="IRequestContext"/> AND inherited from
-/// <see cref="IAuthContext"/> — verifying the TS-side
-/// <c>IRequestContext extends IAuthContext</c> declaration carries the
-/// full transitive shape. The fixture <c>data.ownProperties</c> field
-/// lists only properties declared directly on IRequestContext for an
-/// independent assertion of the extension surface.
+/// <see cref="IAuthContext"/>, which is the full transitive shape that the
+/// TypeScript <c>IRequestContext extends IAuthContext</c> declaration must
+/// have. The fixture <c>data.ownProperties</c> field lists only properties
+/// declared directly on IRequestContext: the extension surface on its own.
 /// </summary>
 public sealed class RequestContextFixtureEmitter
 {
@@ -54,8 +53,8 @@ public sealed class RequestContextFixtureEmitter
     /// <summary>
     /// Build the canonical fixture payload: union of IRequestContext +
     /// transitive IAuthContext property surface (camelCased, sorted),
-    /// plus the IRequestContext-only subset. The TS-side parity test
-    /// asserts both lists exactly match the matching TS-side shape.
+    /// plus the IRequestContext-only subset. The matching TypeScript shape
+    /// must have exactly the names of both lists.
     /// </summary>
     /// <param name="scenario">Scenario name annotation.</param>
     /// <returns>Fixture payload dictionary.</returns>
@@ -75,10 +74,9 @@ public sealed class RequestContextFixtureEmitter
             .OrderBy(n => n, StringComparer.Ordinal)
             .ToList();
 
-        // The envelope already carries the scenario name; here we only emit
-        // the parity-tested property surface. The `scenario` argument is
-        // retained for symmetry with other emitter signatures (and to
-        // provide a place for future per-scenario differentiation).
+        // The envelope already carries the scenario name, so this method emits
+        // only the property surface. The `scenario` argument is unused; the
+        // signature matches the other emitters.
         _ = scenario;
         return new SortedDictionary<string, object?>(StringComparer.Ordinal)
         {
@@ -91,7 +89,7 @@ public sealed class RequestContextFixtureEmitter
     /// Walks the interface inheritance chain and returns the union of
     /// every public property name. Interfaces don't surface
     /// inherited properties via <c>BindingFlags.FlattenHierarchy</c>,
-    /// so we walk <see cref="Type.GetInterfaces"/> manually.
+    /// so the method walks <see cref="Type.GetInterfaces"/> itself.
     /// </summary>
     /// <param name="type">Interface type to enumerate.</param>
     /// <returns>Set of property names, deduplicated.</returns>

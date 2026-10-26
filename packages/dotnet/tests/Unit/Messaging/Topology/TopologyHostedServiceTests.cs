@@ -16,8 +16,8 @@ using Xunit;
 /// <summary>
 /// Coverage for <see cref="TopologyHostedService"/> background-fault
 /// handling. <c>StartAsync</c> launches <c>Task.Run(DeclareAsync)</c>; a
-/// <c>ContinueWith</c> fires <see cref="TopologyLog.DeclarationFailed"/>
-/// on faulted background tasks — without it, a <c>PRECONDITION_FAILED</c>
+/// <c>ContinueWith</c> fires <see cref="TopologyLog.DeclarationFailedFaultSink"/>
+/// on faulted background tasks - without it, a <c>PRECONDITION_FAILED</c>
 /// on a queue-redeclare would vanish into
 /// <c>TaskScheduler.UnobservedTaskException</c> and operators would see
 /// "consumers don't get messages" with no log.
@@ -43,7 +43,7 @@ public sealed class TopologyHostedServiceTests
         }
         catch
         {
-            // Expected — declarer throws.
+            // Expected - declarer throws.
         }
 
         await Task.Delay(50);
@@ -54,7 +54,7 @@ public sealed class TopologyHostedServiceTests
             .BeTrue("TopologyLog.DeclarationFailed must fire when the "
                 + "background declare task faults");
 
-        // StopAsync rethrows the faulted background task — swallow it.
+        // StopAsync rethrows the faulted background task - swallow it.
         try
         {
             await hosted.StopAsync(CancellationToken.None);

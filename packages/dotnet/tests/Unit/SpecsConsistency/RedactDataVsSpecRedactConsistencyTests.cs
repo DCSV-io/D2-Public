@@ -25,10 +25,10 @@ using Xunit;
 /// stay aligned across the IAuthContext + IRequestContext interfaces in
 /// BOTH directions: every attribute-bearing property is annotated in the
 /// spec, AND every annotated spec property is attribute-bearing on the
-/// emitted interface (and on MutableRequestContext, which is what the
-/// Serilog destructuring policy actually reflects on at log time). The
+/// emitted interface, and on MutableRequestContext, which the Serilog
+/// destructuring policy reflects on at log time. The
 /// .NET context-source-gen consumes the spec's <c>redact</c> field at
-/// codegen time, so drift in either direction surfaces a real divergence
+/// codegen time, so drift in either direction shows a divergence
 /// between the spec (single source of truth) and the generated output.
 /// </summary>
 public sealed class RedactDataVsSpecRedactConsistencyTests
@@ -81,7 +81,7 @@ public sealed class RedactDataVsSpecRedactConsistencyTests
                 prop,
                 because:
                     $"spec marks '{prop}' as \"redact\": true but [RedactData] is not " +
-                    "present on the emitted IAuthContext property — codegen drift.");
+                    "present on the emitted IAuthContext property - codegen drift.");
         }
 
         foreach (var prop in reqCtxSpec)
@@ -90,7 +90,7 @@ public sealed class RedactDataVsSpecRedactConsistencyTests
                 prop,
                 because:
                     $"spec marks '{prop}' as \"redact\": true but [RedactData] is not " +
-                    "present on the emitted IRequestContext property — codegen drift.");
+                    "present on the emitted IRequestContext property - codegen drift.");
         }
     }
 
@@ -109,7 +109,7 @@ public sealed class RedactDataVsSpecRedactConsistencyTests
                 prop,
                 because:
                     $"spec marks '{prop}' as \"redact\": true but no such property exists " +
-                    "on the emitted IAuthContext — orphaned annotation.");
+                    "on the emitted IAuthContext - orphaned annotation.");
         }
 
         foreach (var prop in reqCtxSpec)
@@ -118,7 +118,7 @@ public sealed class RedactDataVsSpecRedactConsistencyTests
                 prop,
                 because:
                     $"spec marks '{prop}' as \"redact\": true but no such property exists " +
-                    "on the emitted IRequestContext — orphaned annotation.");
+                    "on the emitted IRequestContext - orphaned annotation.");
         }
     }
 
@@ -126,10 +126,10 @@ public sealed class RedactDataVsSpecRedactConsistencyTests
     public void RedactDataOnMutableConcrete_CoversEverySpecAnnotation()
     {
         // The Serilog destructuring policy reflects on the runtime instance
-        // type — typically MutableRequestContext rather than IAuthContext
-        // / IRequestContext. Pin that codegen ALSO places [RedactData] on
+        // type - typically MutableRequestContext rather than IAuthContext
+        // / IRequestContext. This test checks that codegen ALSO places [RedactData] on
         // the concrete property, not just the interface, so the policy
-        // actually fires at log time. Concrete type carries fields from
+        // applies at log time. The concrete type has fields from
         // BOTH spec catalogs; expected = union of spec annotations.
         var authCtxSpec = LoadRedactPropertyNames(TestPaths.AuthContextSpec());
         var reqCtxSpec = LoadRedactPropertyNames(TestPaths.RequestContextSpec());
@@ -147,7 +147,7 @@ public sealed class RedactDataVsSpecRedactConsistencyTests
                 prop,
                 because:
                     $"spec marks '{prop}' as \"redact\": true but [RedactData] is not " +
-                    "present on the corresponding MutableRequestContext property — " +
+                    "present on the corresponding MutableRequestContext property - " +
                     "the destructuring policy reflects on the concrete type at log " +
                     "time, so missing the attribute here means PII would leak.");
         }
@@ -156,9 +156,10 @@ public sealed class RedactDataVsSpecRedactConsistencyTests
     [Fact]
     public void AtLeastOneRedactAnnotation_ExistsInTheSpecs()
     {
-        // Sanity gate — at least one redact annotation must remain across
-        // the spec catalogs. If both lists go empty, somebody removed the
-        // PII annotations + nobody noticed; PII would then ship to logs
+        // At least one redact annotation must remain across the spec
+        // catalogs. The other tests in this class loop over these lists and
+        // pass when both are empty, so this assertion is the check that fails
+        // when the PII annotations are removed and PII would reach logs
         // unredacted.
         var authCtxSpec = LoadRedactPropertyNames(TestPaths.AuthContextSpec());
         var reqCtxSpec = LoadRedactPropertyNames(TestPaths.RequestContextSpec());

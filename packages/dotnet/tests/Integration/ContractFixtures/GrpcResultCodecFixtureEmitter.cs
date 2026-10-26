@@ -20,22 +20,21 @@ using Xunit;
 
 /// <summary>
 /// Emits the binary cross-runtime parity fixture for the gRPC result codec
-/// (.NET → node direction). For each representative <see cref="D2Result"/>
+/// (.NET -> node direction). For each representative <see cref="D2Result"/>
 /// shape, calls <see cref="ProtoExtensions.ToProto"/> to obtain the
 /// <c>D2ResultProto</c> wire envelope, serializes it to binary bytes, and
 /// captures the original result's fields as the <c>expected</c> block. The
-/// TS-side parity test reads
-/// <c>fixtures/grpc-result-codec/cases.json</c>, decodes each
-/// <c>protoBase64</c> entry via <c>D2ResultProto.decode</c>, runs it through
-/// <c>d2ResultFromProto</c>, and asserts field-by-field equality against
-/// <c>expected</c>.
+/// emitter writes <c>fixtures/grpc-result-codec/cases.json</c>. In TypeScript,
+/// decoding a <c>protoBase64</c> entry with <c>D2ResultProto.decode</c> and
+/// converting it with <c>d2ResultFromProto</c> must give a result whose fields
+/// equal <c>expected</c>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <strong>Direction</strong>: .NET → node is the primary path (node is the
-/// gRPC consumer; a node BFF calling a .NET service). Binary bytes are
-/// deterministic — a given <see cref="D2Result"/> shape always produces the
-/// same proto binary — so the fixture is safe to commit.
+/// <strong>Direction</strong>: the fixture covers .NET -> node, the primary
+/// path: a node BFF calling a .NET service over gRPC. Binary bytes are
+/// deterministic - a given <see cref="D2Result"/> shape always produces the
+/// same proto binary - so the fixture is safe to commit.
 /// </para>
 /// <para>
 /// <strong>Shapes covered</strong>: <c>Ok</c>, <c>Ok-with-trace-id</c>,
@@ -66,7 +65,7 @@ public sealed class GrpcResultCodecFixtureEmitter
                 "ok-with-trace-id",
                 D2Result.Ok(traceId: "aabbccddeeff00112233445566778899")),
 
-            // ── Semantic failures — one per ErrorCategory ─────────────────
+            // ── Semantic failures - one per ErrorCategory ─────────────────
 
             // not_found
             BuildCase(
@@ -80,7 +79,7 @@ public sealed class GrpcResultCodecFixtureEmitter
                 D2Result.Conflict(
                     messages: [new TKMessage("common_errors_CONFLICT")])),
 
-            // validation_failure — multi-field, multi-message, with params
+            // validation_failure - multi-field, multi-message, with params
             BuildCase(
                 "validation-failed",
                 D2Result.ValidationFailed(
@@ -143,13 +142,13 @@ public sealed class GrpcResultCodecFixtureEmitter
                 D2Result.UnhandledException(
                     messages: [new TKMessage("common_errors_UNKNOWN")])),
 
-            // validation_failure (Canceled — non-obvious category per spec)
+            // validation_failure (Canceled - non-obvious category per spec)
             BuildCase(
                 "canceled",
                 D2Result.Canceled(
                     messages: [new TKMessage("common_errors_CANCELED")])),
 
-            // no-catalog code — raw Fail with category absent
+            // no-catalog code - raw Fail with category absent
             BuildCase(
                 "raw-fail-no-category",
                 D2Result.Fail(

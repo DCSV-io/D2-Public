@@ -12,8 +12,8 @@ using Xunit;
 
 /// <summary>
 /// Pins the <see cref="AnonymizationAnnotations.ANONYMIZE"/> constant value. A rename of
-/// the annotation key without updating the engine read-path would silently break
-/// anonymization at runtime; this test makes that scenario a build-time failure.
+/// the annotation key without updating the engine read path would silently break
+/// anonymization at runtime; this test fails when the constant changes.
 /// </summary>
 [Trait("Category", "Unit")]
 public sealed class AnonymizationAnnotationsTests

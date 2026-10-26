@@ -12,8 +12,8 @@ using DcsvIo.D2.Messaging.DlqMetadata.SourceGen;
 using Xunit;
 
 /// <summary>
-/// Pure-logic tests for the DlqFailureMetadata emitter (fields half +
-/// causes half). §1.20 fail-path proof drives both halves.
+/// Tests of the DlqFailureMetadata emitter that need no I/O, for the fields
+/// half and the causes half. The drift tests below run both halves.
 /// </summary>
 public sealed class DlqFailureMetadataEmitterTests
 {
@@ -48,7 +48,8 @@ public sealed class DlqFailureMetadataEmitterTests
     }
 
     // ---------------------------------------------------------------
-    // §1.20 fail-path proof — 3 deliberate drift cases.
+    // Failure paths - deliberate drift cases: a duplicate field constant
+    // name, a duplicate cause and an invalid constant name.
     // ---------------------------------------------------------------
 
     [Fact]

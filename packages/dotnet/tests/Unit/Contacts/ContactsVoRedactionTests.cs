@@ -15,8 +15,10 @@ using Serilog.Events;
 using Xunit;
 
 /// <summary>
-/// Verifies that the six contacts value objects self-redact correctly through
-/// <see cref="RedactDataDestructuringPolicy"/>: each PII property renders as
+/// Verifies that the contacts value objects (Personal, NameAffixes,
+/// Demographics, Professional, EmailAddress and PhoneNumber) self-redact
+/// correctly through <see cref="RedactDataDestructuringPolicy"/>: each PII
+/// property renders as
 /// <c>[REDACTED: PersonalInformation]</c>, and each intentionally visible
 /// property (HashId, affix enums, company website) renders its real value.
 /// </summary>
@@ -47,11 +49,11 @@ public sealed class ContactsVoRedactionTests
     public void Personal_HashId_IsVisibleByPolicy()
     {
         var personal = Personal.Create("John", "Quincy", "Adams").Data!;
-        var factory = new PassthroughFactory();
+        var factory = new RecordingPassthroughFactory();
 
         new RedactDataDestructuringPolicy().TryDestructure(personal, factory, out _);
 
-        // HashId is a one-way SHA-256 digest — opaque, non-reversible, safe to log.
+        // HashId is a one-way SHA-256 digest - opaque, non-reversible, safe to log.
         factory.Recorded.Should().Contain(personal.HashId);
     }
 
@@ -77,7 +79,7 @@ public sealed class ContactsVoRedactionTests
     public void NameAffixes_Enums_AreVisibleByPolicy()
     {
         var affixes = NameAffixes.Create(NamePrefix.Dr, suffix: NameSuffix.Jr).Data!;
-        var factory = new PassthroughFactory();
+        var factory = new RecordingPassthroughFactory();
 
         new RedactDataDestructuringPolicy().TryDestructure(affixes, factory, out _);
 
@@ -127,11 +129,11 @@ public sealed class ContactsVoRedactionTests
     {
         var professional = Professional.Create(
             "DCSV", companyWebsite: "https://example.com").Data!;
-        var factory = new PassthroughFactory();
+        var factory = new RecordingPassthroughFactory();
 
         new RedactDataDestructuringPolicy().TryDestructure(professional, factory, out _);
 
-        // A public website URL is not individually identifying — left visible.
+        // A public website URL is not individually identifying - left visible.
         factory.Recorded.Should().Contain(professional.CompanyWebsite);
     }
 
@@ -168,16 +170,16 @@ public sealed class ContactsVoRedactionTests
     private static StructureValue Destructure(object value)
     {
         new RedactDataDestructuringPolicy()
-            .TryDestructure(value, new PassthroughFactory(), out var result);
+            .TryDestructure(value, new RecordingPassthroughFactory(), out var result);
         return result.Should().BeOfType<StructureValue>().Subject;
     }
 
     /// <summary>
-    /// Stub <see cref="ILogEventPropertyValueFactory"/> that records all
-    /// non-redacted values forwarded by the policy, enabling assertions that
-    /// visible properties reached the factory with their real values.
+    /// Test double for <see cref="ILogEventPropertyValueFactory"/> that records
+    /// every non-redacted value the policy forwards, so assertions can check
+    /// that visible properties reached the factory with their real values.
     /// </summary>
-    private sealed class PassthroughFactory : ILogEventPropertyValueFactory
+    private sealed class RecordingPassthroughFactory : ILogEventPropertyValueFactory
     {
         public List<object?> Recorded { get; } = [];
 

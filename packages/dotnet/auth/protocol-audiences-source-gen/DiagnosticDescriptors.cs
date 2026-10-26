@@ -10,10 +10,10 @@ using Microsoft.CodeAnalysis;
 
 /// <summary>
 /// Roslyn <see cref="DiagnosticDescriptor"/> instances for the IDs declared in
-/// <see cref="DiagnosticIds"/>. Only loaded inside the Roslyn host (the
-/// generator's <see cref="ProtocolAudiencesGenerator.Initialize"/> call site);
-/// pure-logic callers should use <see cref="DiagnosticIds"/> string constants
-/// directly to avoid pulling <c>Microsoft.CodeAnalysis</c> at runtime.
+/// <see cref="DiagnosticIds"/>. This class references
+/// <c>Microsoft.CodeAnalysis</c>. The IDs are also string constants in
+/// <see cref="DiagnosticIds"/>, which does not reference
+/// <c>Microsoft.CodeAnalysis</c>.
 /// </summary>
 internal static class DiagnosticDescriptors
 {
@@ -41,7 +41,7 @@ internal static class DiagnosticDescriptors
         id: DiagnosticIds.DuplicateValue,
         title: "Duplicate protocol-audience value",
         messageFormat:
-            "Protocol-audiences '{0}' and '{1}' both map to value '{2}' — rename or "
+            "Protocol-audiences '{0}' and '{1}' both map to value '{2}' - rename or "
             + "remove one to avoid silent aud-claim aliasing",
         category: _CATEGORY,
         defaultSeverity: DiagnosticSeverity.Error,
@@ -52,7 +52,7 @@ internal static class DiagnosticDescriptors
         id: DiagnosticIds.EmptyValue,
         title: "Protocol-audience value is empty",
         messageFormat:
-            "Protocol-audience '{0}' has an empty value — a protocol audience must be "
+            "Protocol-audience '{0}' has an empty value - a protocol audience must be "
             + "a non-empty bare token (for example d2.internal)",
         category: _CATEGORY,
         defaultSeverity: DiagnosticSeverity.Error,

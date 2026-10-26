@@ -176,11 +176,10 @@ public sealed class TestClockTests
     [Fact]
     public void Advance_TowardMinInstant_LargeNegativeDuration_HandledOrThrowsCleanly()
     {
-        // Document NodaTime's overflow behavior at the lower boundary. The
-        // observed behavior is that Plus throws OverflowException when the
-        // resulting instant would underflow Instant.MinValue. Test pins the
-        // contract — if NodaTime ever changes to a saturating semantic, this
-        // test will surface the difference.
+        // Documents NodaTime's overflow behavior at the lower boundary: Plus
+        // throws OverflowException when the resulting instant would be below
+        // Instant.MinValue. The test pins that behavior, so it fails if NodaTime
+        // changes to saturating arithmetic.
         var clock = new TestClock(Instant.MinValue + Duration.FromHours(1));
 
         var act = () => clock.Advance(Duration.FromHours(-48));

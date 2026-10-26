@@ -26,11 +26,11 @@ public static class MessagingServiceCollectionExtensions
         /// <summary>
         /// CANONICAL subscriber registration path. Scans the supplied
         /// assemblies (defaults to the calling assembly) for classes
-        /// carrying <see cref="MqSubAttribute"/>. For each one:
+        /// marked with <see cref="MqSubAttribute"/>. For each one:
         /// validates the handler derives from
         /// <c>BaseHandler&lt;THandler, TMessage, Unit&gt;</c>; resolves
         /// the subscription descriptor from
-        /// <c>MqSubscriptionsRegistry.ByConstant</c>; verifies the
+        /// <see cref="MessagingCatalog.Default"/>; verifies the
         /// handler's <c>TMessage</c> matches the descriptor's
         /// <c>MessageTypeName</c>; registers the handler as Transient
         /// plus an <see cref="ISubscriberRegistration"/> entry.
@@ -41,7 +41,31 @@ public static class MessagingServiceCollectionExtensions
         public IServiceCollection AddD2SubscribersFromAssembly(
             params Assembly[] assemblies)
         {
+            var scan = assemblies is { Length: > 0 }
+                ? assemblies
+                : [Assembly.GetCallingAssembly()];
+
+            return services.AddD2SubscribersFromAssembly(MessagingCatalog.Default, scan);
+        }
+
+        /// <summary>
+        /// The same scan against a supplied catalog, which can contain
+        /// subscription constants beyond the framework's own; the
+        /// parameterless overload reads
+        /// <see cref="MessagingCatalog.Default"/>, which contains only the
+        /// framework's own entries.
+        /// </summary>
+        /// <param name="catalog">The catalog whose subscription descriptors
+        /// each <c>[MqSub]</c> constant is looked up in.</param>
+        /// <param name="assemblies">Assemblies to scan. Empty / null
+        /// defaults to <see cref="Assembly.GetCallingAssembly"/>.</param>
+        /// <returns>The same <paramref name="services"/> instance for chaining.</returns>
+        public IServiceCollection AddD2SubscribersFromAssembly(
+            MessagingCatalog catalog,
+            params Assembly[] assemblies)
+        {
             ArgumentNullException.ThrowIfNull(services);
+            ArgumentNullException.ThrowIfNull(catalog);
             var scan = assemblies is { Length: > 0 }
                 ? assemblies
                 : [Assembly.GetCallingAssembly()];
@@ -55,7 +79,8 @@ public static class MessagingServiceCollectionExtensions
                     var attr = handlerType.GetCustomAttribute<MqSubAttribute>(inherit: false);
                     if (attr is null) continue;
 
-                    SubscriberRegistrar.Register(services, handlerType, attr.Constant);
+                    SubscriberRegistrar.Register(
+                        services, handlerType, attr.Constant, catalog.Subscriptions);
                 }
             }
 
@@ -63,9 +88,9 @@ public static class MessagingServiceCollectionExtensions
         }
 
         /// <summary>
-        /// Programmatic subscriber registration — useful for tests + dynamic
+        /// Programmatic subscriber registration - useful for tests + dynamic
         /// scenarios where the assembly scan isn't appropriate. Production
-        /// code should prefer <see cref="AddD2SubscribersFromAssembly"/>.
+        /// code should prefer <c>AddD2SubscribersFromAssembly</c>.
         /// </summary>
         /// <typeparam name="THandler">Handler type.</typeparam>
         /// <typeparam name="TMessage">Message type the handler consumes.</typeparam>

@@ -14,19 +14,20 @@ using DcsvIo.D2.SourceGen;
 using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
-/// Emits the per-language DATA — single shape per entity + cycle-resolution
-/// via friend-assembly <c>internal set</c> + two-pass populate. Output is a
-/// single file (<c>LanguageLookup.g.cs</c>) carrying a static
-/// <c>Languages</c> accessor + a static <c>LanguageLookup</c> class with
-/// the FrozenDictionary indexes and the <c>WireNav()</c> wire-nav method.
+/// Emits the per-language data: one shape per entity, with reference cycles
+/// resolved through friend-assembly <c>internal set</c> and a two-pass
+/// populate. The output is a single file (<c>LanguageLookup.g.cs</c>)
+/// containing a static <c>Languages</c> accessor and a static
+/// <c>LanguageLookup</c> class with the FrozenDictionary indexes and the
+/// <c>WireNav()</c> wire-nav method.
 /// </summary>
 /// <remarks>
-/// First pass (static ctor) materializes every <c>Language</c> record with
-/// scalar required-init fields populated; reverse-nav reps
-/// (<c>SpokenInCountries</c> + <c>SpokenInCountryIso31661Alpha2Codes</c> +
-/// <c>Locales</c> + <c>LocaleIetfBcp47Tags</c>) start empty. Wire-nav step
-/// walks the country + locale catalogs and populates both reps via the
-/// friend-assembly <c>internal set</c> accessors.
+/// The first pass (static ctor) creates every <c>Language</c> record with the
+/// scalar required-init fields populated. The reverse-nav reps
+/// (<c>SpokenInCountries</c>, <c>SpokenInCountryIso31661Alpha2Codes</c>,
+/// <c>Locales</c> and <c>LocaleIetfBcp47Tags</c>) start empty. The wire-nav
+/// step walks the country and locale catalogs and populates both reps
+/// through the friend-assembly <c>internal set</c> accessors.
 /// </remarks>
 internal static class LanguageDataEmitter
 {
@@ -60,7 +61,7 @@ internal static class LanguageDataEmitter
         sb.AppendLine(
             "/// Per-language <see cref=\"Language\"/> accessors keyed by PascalCased");
         sb.AppendLine(
-            "/// ISO 639-1 (e.g. <c>Languages.En</c>) — matches the");
+            "/// ISO 639-1 (e.g. <c>Languages.En</c>) - matches the");
         sb.AppendLine(
             "/// <see cref=\"LanguageCode\"/> enum member casing.");
         sb.AppendLine("/// </summary>");

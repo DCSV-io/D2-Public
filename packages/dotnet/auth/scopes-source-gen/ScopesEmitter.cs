@@ -16,10 +16,9 @@ using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
 /// Pure logic for emitting the <c>Scopes</c> static partial class source from
-/// a parsed <see cref="ScopesSpec"/>. Stateless and unit-testable in isolation.
-/// The Roslyn-host integration (<see cref="ScopesGenerator"/>) calls this and
-/// translates emit-side <see cref="EmitDiagnostic"/> records into Roslyn
-/// <c>Diagnostic</c> instances.
+/// a parsed <see cref="ScopesSpec"/>. It is stateless and does not use the Roslyn
+/// host. It returns <see cref="EmitDiagnostic"/> records, which are translated
+/// into Roslyn <c>Diagnostic</c> instances.
 /// </summary>
 internal static class ScopesEmitter
 {
@@ -27,35 +26,30 @@ internal static class ScopesEmitter
     private const string _DEFAULT_SCOPES_CLASS_NAME = "Scopes";
     private const string _ANON_PREFIX = "anon.";
 
-    // Internal workload scopes (internal.*) are granted by the internal
-    // transaction-token mint at the Edge boundary — NOT by the per-(OrgType, Role)
-    // grant matrix — so they legitimately omit grantedTo. They are NOT anonymous
-    // (no pre-auth universal grant): no user org-role can ever be granted them, which
-    // is exactly the intended reachability for a service-to-service / in-process scope.
+    // The name prefix that a scope declaring internal must have and that a scope
+    // not declaring it must not have. The entry's own `internal` flag decides
+    // whether a scope is internal; D2SCP010 requires the prefix to agree with the
+    // flag, so testing the name gives the same result as reading the flag. The
+    // runtime tests the name: it strips by the prefix while the catalog decides
+    // by the flag (scopes-source-gen/README.md, the `internal` entry).
     private const string _INTERNAL_PREFIX = "internal.";
-
-    // Mirror of DcsvIo.D2.Auth.Abstractions.ActionSensitivity members.
-    // ActionSensitivity is small and stable; it's safe to keep static.
-    // OrgType + Role members come from the compilation symbol at codegen time
-    // (passed in via Emit's orgTypeNames / roleNames params) so adding a new
-    // enum member doesn't require updating this file in lockstep.
-    private static readonly HashSet<string> sr_actionSensitivityNames =
-        new(StringComparer.Ordinal) { "Routine", "Sensitive", "Critical" };
 
     /// <summary>
     /// Emits the Scopes class source plus diagnostics for the supplied spec.
     /// </summary>
     /// <param name="spec">Parsed scope spec.</param>
     /// <param name="orgTypeNames">
-    /// OrgType enum member names extracted from the compilation symbol by
-    /// <see cref="ScopesGenerator"/>. Used for <c>grantedTo</c> validation +
+    /// OrgType enum member names extracted from the compilation symbol. Used
+    /// for <c>grantedTo</c> validation and
     /// wildcard expansion. Adding a new <c>OrgType</c> member triggers
     /// re-emission with the expanded set automatically.
     /// </param>
-    /// <param name="roleNames">Role enum member names — same source.</param>
-    /// <param name="rootNamespace">Emit namespace (public or private product type).</param>
-    /// <param name="className">Emit class name (<c>Scopes</c> or <c>ProductScopes</c>).</param>
-    /// <returns>Generated source + diagnostics.</returns>
+    /// <param name="roleNames">Role enum member names, from the same source.</param>
+    /// <param name="rootNamespace">Namespace of the emitted class (public or extension target).</param>
+    /// <param name="className">
+    /// Emit class name: <c>Scopes</c>, or the extension prefix followed by <c>Scopes</c>.
+    /// </param>
+    /// <returns>The generated source and the diagnostics.</returns>
     public static EmitResult Emit(
         ScopesSpec spec,
         IReadOnlyList<string> orgTypeNames,
@@ -69,7 +63,7 @@ internal static class ScopesEmitter
         var effectiveNamespace = rootNamespace ?? _DEFAULT_ROOT_NAMESPACE;
         var effectiveClassName = className ?? _DEFAULT_SCOPES_CLASS_NAME;
 
-        // Per-scope semantic validation (name shape, enum values, etc.).
+        // Per-scope semantic validation (name shape, enum values and the checks below).
         var validScopes = new List<ScopeEntry>();
         var seenNames = new HashSet<string>(StringComparer.Ordinal);
 
@@ -87,32 +81,34 @@ internal static class ScopesEmitter
                 continue;
             }
 
-            if (!sr_actionSensitivityNames.Contains(scope.ActionSensitivity))
+            var isAnon = scope.Name.StartsWith(_ANON_PREFIX, StringComparison.Ordinal);
+            var isInternal = scope.Internal;
+            var hasInternalPrefix =
+                scope.Name.StartsWith(_INTERNAL_PREFIX, StringComparison.Ordinal);
+
+            // D2SCP010: the declared flag marks a scope workload-only, and the
+            // `internal.` name prefix marks it the same way; the runtime strips by
+            // the prefix (scopes-source-gen/README.md). The two are
+            // interchangeable only while they agree, so a disagreement in either
+            // direction drops the entry instead of emitting a scope that the flag
+            // and the prefix classify differently.
+            if (isInternal != hasInternalPrefix)
             {
-                diagnostics.Add(EmitDiagnostics.UnknownEnumValue(
-                    scope.Name,
-                    "actionSensitivity",
-                    "ActionSensitivity",
-                    scope.ActionSensitivity,
-                    string.Join(
-                        ", ",
-                        sr_actionSensitivityNames.OrderBy(n => n, StringComparer.Ordinal))));
+                diagnostics.Add(EmitDiagnostics.InternalFlagPrefixDisagreement(
+                    scope.Name, isInternal, hasInternalPrefix));
                 continue;
             }
 
-            var isAnon = scope.Name.StartsWith(_ANON_PREFIX, StringComparison.Ordinal);
-            var isInternal = scope.Name.StartsWith(_INTERNAL_PREFIX, StringComparison.Ordinal);
-
-            // D2SCP005 (warning only — keep the scope): anon scope marked
-            // impersonationBlocked is meaningless noise.
+            // D2SCP005 is a warning only, and the scope is kept: impersonationBlocked
+            // on an anonymous scope has no effect.
             if (isAnon && scope.ImpersonationBlocked)
                 diagnostics.Add(EmitDiagnostics.AnonImpersonationBlockedNoise(scope.Name));
 
-            // D2SCP008: a scope that no caller can ever be granted is unreachable. A
-            // non-anon scope normally needs grantedTo. Internal workload scopes
-            // (internal.*) are the exception: they are granted by the internal
-            // transaction-token mint, NOT the org-role grant matrix, so they
-            // legitimately omit grantedTo (no user org-role can hold them).
+            // D2SCP008: a scope that no caller can ever be granted is unreachable, so
+            // a non-anon scope normally needs grantedTo. A scope declaring internal is
+            // the exception: the internal transaction-token mint grants it and the
+            // org-role grant matrix does not, so it may omit grantedTo (no user
+            // org-role can hold it).
             if (!isAnon && !isInternal && scope.GrantedTo is null)
             {
                 diagnostics.Add(EmitDiagnostics.MissingGrantedTo(scope.Name));
@@ -173,7 +169,7 @@ internal static class ScopesEmitter
         // Tree-position collision detection (D2SCP007). For every pair of valid
         // scopes, if one's name is a strict dot-prefix of the other, the prefix
         // scope cannot be both a leaf constant and a parent class. Drop the
-        // SHORTER (parent) one to keep the longer path emittable.
+        // shorter (parent) one, so the longer path can still be emitted.
         var collidingNames = new HashSet<string>(StringComparer.Ordinal);
         for (var i = 0; i < validScopes.Count; i++)
         {
@@ -321,6 +317,13 @@ internal static class ScopesEmitter
             sb.AppendLine($"{pad}/// <summary>");
             sb.AppendLine($"{pad}/// {EscapeXmlDoc(doc)}");
             sb.AppendLine($"{pad}/// </summary>");
+
+            if (scope.Deprecated)
+            {
+                sb.AppendLine(
+                    $"{pad}[Obsolete(\"{EscapeStringLiteral(ObsoleteMessage(scope))}\")]");
+            }
+
             sb.AppendLine(
                 $"{pad}public const string {constName} = "
                 + $"\"{EscapeStringLiteral(scope.Name)}\";");
@@ -370,7 +373,7 @@ internal static class ScopesEmitter
             .OrderBy(n => n, StringComparer.Ordinal)
             .ToList();
 
-        // Granted scopes: expand wildcards into a (OrgType, Role) → SortedSet<string> map.
+        // Granted scopes: expand wildcards into a (OrgType, Role) -> SortedSet<string> map.
         var granted = new SortedDictionary<(string Org, string Role), SortedSet<string>>(
             Comparer<(string Org, string Role)>.Create((a, b) =>
             {
@@ -408,23 +411,8 @@ internal static class ScopesEmitter
         }
 
         sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Returns the <see cref=\"ActionSensitivity\"/> classification for");
-        sb.AppendLine(
-            "    /// <paramref name=\"scope\"/>, or "
-            + "<see cref=\"ActionSensitivity.Routine\"/>");
-        sb.AppendLine("    /// for unknown scopes (defensive default).");
-        sb.AppendLine("    /// </summary>");
-        sb.AppendLine("    /// <param name=\"scope\">The scope string.</param>");
-        sb.AppendLine("    /// <returns>The action sensitivity for the scope.</returns>");
-        sb.AppendLine("    public static ActionSensitivity GetActionSensitivity(string scope) =>");
-        sb.AppendLine(
-            "        sr_actionSensitivity.TryGetValue(scope, out var s) "
-            + "? s : ActionSensitivity.Routine;");
-        sb.AppendLine();
-
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// True when the scope is stripped from impersonated tokens at Edge");
-        sb.AppendLine("    /// mint time (defense-in-depth).");
+        sb.AppendLine("    /// True when the entry service strips the scope from impersonated tokens");
+        sb.AppendLine("    /// at mint time (defense-in-depth).");
         sb.AppendLine("    /// </summary>");
         sb.AppendLine("    /// <param name=\"scope\">The scope string.</param>");
         sb.AppendLine("    /// <returns>True if the scope is impersonation-blocked.</returns>");
@@ -484,7 +472,7 @@ internal static class ScopesEmitter
         sb.AppendLine();
         sb.AppendLine("    /// <summary>");
         sb.AppendLine(
-            "    /// Gets the anonymous (<c>anon.*</c>) scope names — implicit universal "
+            "    /// Gets the anonymous (<c>anon.*</c>) scope names - implicit universal "
             + "pre-auth grant.");
         sb.AppendLine("    /// </summary>");
         sb.AppendLine(
@@ -492,7 +480,8 @@ internal static class ScopesEmitter
         sb.AppendLine();
         sb.AppendLine("    /// <summary>");
         sb.AppendLine(
-            "    /// Gets the scopes that Edge strips from impersonated tokens at mint time.");
+            "    /// Gets the scopes that the entry service strips from impersonated tokens "
+            + "at mint time.");
         sb.AppendLine("    /// </summary>");
         sb.AppendLine(
             "    public static IReadOnlySet<string> AllImpersonationBlockedScopes =>");
@@ -500,7 +489,7 @@ internal static class ScopesEmitter
         sb.AppendLine();
         sb.AppendLine("    /// <summary>");
         sb.AppendLine(
-            "    /// Gets the (<see cref=\"OrgType\"/>, <see cref=\"Role\"/>) → granted scope "
+            "    /// Gets the (<see cref=\"OrgType\"/>, <see cref=\"Role\"/>) -> granted scope "
             + "set, with wildcards expanded.");
         sb.AppendLine("    /// </summary>");
         sb.AppendLine(
@@ -535,21 +524,6 @@ internal static class ScopesEmitter
         sb.AppendLine("    {");
         foreach (var scope in blockedScopes)
             sb.AppendLine($"        \"{EscapeStringLiteral(scope)}\",");
-
-        sb.AppendLine("    };");
-        sb.AppendLine();
-
-        sb.AppendLine(
-            "    private static readonly Dictionary<string, ActionSensitivity> "
-            + "sr_actionSensitivity =");
-        sb.AppendLine("        new(StringComparer.Ordinal)");
-        sb.AppendLine("    {");
-        foreach (var scope in validScopes.OrderBy(s => s.Name, StringComparer.Ordinal))
-        {
-            sb.AppendLine(
-                $"        [\"{EscapeStringLiteral(scope.Name)}\"] = "
-                + $"ActionSensitivity.{scope.ActionSensitivity},");
-        }
 
         sb.AppendLine("    };");
         sb.AppendLine();
@@ -598,6 +572,28 @@ internal static class ScopesEmitter
         sb.AppendLine();
         sb.AppendLine("        return result;");
         sb.AppendLine("    }");
+    }
+
+    /// <summary>
+    /// The <c>[Obsolete]</c> message of a retired scope's constant. It contains the
+    /// reason where the entry gives one and the successor where the entry gives
+    /// one, so the message states the replacement and not only that the constant
+    /// is obsolete.
+    /// </summary>
+    private static string ObsoleteMessage(ScopeEntry scope)
+    {
+        var reason = scope.DeprecatedReason.Falsey()
+            ? $"Scope '{scope.Name}' is deprecated."
+            : scope.DeprecatedReason!;
+
+        // A reason that already contains the successor scope name is not repeated.
+        if (scope.ReplacedBy.Falsey()
+            || reason.IndexOf(scope.ReplacedBy!, StringComparison.Ordinal) >= 0)
+        {
+            return reason;
+        }
+
+        return $"{reason} Replaced by '{scope.ReplacedBy}'.";
     }
 
     private static string EscapeStringLiteral(string value) => value

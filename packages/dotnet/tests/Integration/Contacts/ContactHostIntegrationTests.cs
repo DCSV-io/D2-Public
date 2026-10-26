@@ -26,12 +26,12 @@ using Xunit;
 /// <summary>
 /// Live-DB integration tests for the Contacts VO mapping and anonymization engine.
 /// Shares the <see cref="PostgresFixture"/> container (one Postgres instance per xUnit
-/// collection — see <c>PostgresCollectionDefinition</c>).
+/// collection - see <c>PostgresCollectionDefinition</c>).
 /// <para>
 /// Scenarios covered:
 /// <list type="bullet">
 ///   <item>Map round-trip: all VOs + value converters persist and reload cleanly.</item>
-///   <item>Anonymization round-trip: every PII field → its exact tombstone; non-PII
+///   <item>Anonymization round-trip: every PII field -> its exact tombstone; non-PII
 ///   retained; idempotent re-run.</item>
 ///   <item>Coordinates numeric coercion: Latitude/Longitude constant <c>"0"</c>
 ///   coerced to <c>0.0</c> on BOTH the Tier-B path (ContactHost) and the Tier-A
@@ -40,9 +40,9 @@ using Xunit;
 ///   <item>HashId overwritten: pre-erasure HashId replaced by the cleared sentinel
 ///   post-erasure.</item>
 /// </list>
-/// <c>CreateD2Index</c> is not tested here — its <c>CreateIndexOperation</c>
+/// <c>CreateD2Index</c> is not tested here - its <c>CreateIndexOperation</c>
 /// emission is unit-covered in <c>Unit/SharedEntityFrameworkCore/</c>, and live-DB
-/// coverage (operation → Npgsql DDL → real Postgres index → <c>pg_indexes</c>
+/// coverage (operation -> Npgsql DDL -> real Postgres index -> <c>pg_indexes</c>
 /// assertions) lives in
 /// <c>Integration/SharedEntityFrameworkCore/CreateD2IndexIntegrationTests</c>.
 /// </para>
@@ -69,11 +69,13 @@ public sealed class ContactHostIntegrationTests : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         // GovDbContext.EnsureCreatedAsync creates the database (if it does not yet exist)
-        // and the 0014 gov tables. If the database already exists, this is a no-op that
-        // leaves existing tables untouched — the GovDbContext tables were already created
-        // by whichever test in the collection ran first. This mirrors the
-        // AnonymizationEngineGapTests pattern (creating the shared DB owner first ensures
-        // the gov tables are always present regardless of xUnit collection run order).
+        // and the GovDbContext tables. If the database already exists, this is a no-op that
+        // leaves existing tables untouched - the GovDbContext tables were already created
+        // by whichever test in the collection ran first. This follows the
+        // AnonymizationEngineGapTests pattern of GovDbContext first, then the other
+        // schema through IF NOT EXISTS DDL: creating the database through
+        // GovDbContext first makes the GovDbContext tables present whatever order
+        // xUnit runs the collection in.
         r_schemaCtx = ContactsHostDbContext.Build(r_fixture.ConnectionString);
         await using var govCtx = GovDbContext.Build(r_fixture.ConnectionString);
         await govCtx.Database.EnsureCreatedAsync();
@@ -130,7 +132,7 @@ public sealed class ContactHostIntegrationTests : IAsyncLifetime
             "sex round-trips through nullable enum column");
         row.Demo.DateOfBirth.Should().BeNull("no date of birth seeded");
 
-        // Professional — including Uri↔AbsoluteUri round-trip
+        // Professional - including Uri<->AbsoluteUri round-trip
         row.Work.CompanyName.Should().Be("Acme Inc");
         row.Work.JobTitle.Should().Be("Engineer");
         row.Work.Department.Should().Be("R&D");
@@ -145,7 +147,7 @@ public sealed class ContactHostIntegrationTests : IAsyncLifetime
         row.Street.Line5.Should().BeNull();
         row.Street.HashId.Should().Be(seeded.Street.HashId);
 
-        // AdminLocation — CountryCode enum round-trip + SubdivisionCode struct round-trip
+        // AdminLocation - CountryCode enum round-trip + SubdivisionCode struct round-trip
         row.Admin.CountryIso31661Alpha2Code.Should().Be(CountryCode.US);
         row.Admin.SubdivisionIso31662Code.Should().NotBeNull();
         row.Admin.SubdivisionIso31662Code!.Value.Value.Should().Be("US-NY");
@@ -153,7 +155,7 @@ public sealed class ContactHostIntegrationTests : IAsyncLifetime
         row.Admin.PostalCode.Should().Be("00000");
         row.Admin.HashId.Should().Be(seeded.Admin.HashId);
 
-        // Coordinates (all three representations + AccuracyMeters)
+        // Coordinates (latitude and longitude, geohash, plus code, and AccuracyMeters)
         row.Geo.Latitude.Should().BeApproximately(seeded.Geo.Latitude, 0.000001);
         row.Geo.Longitude.Should().BeApproximately(seeded.Geo.Longitude, 0.000001);
         row.Geo.Geohash.Should().Be(seeded.Geo.Geohash);
@@ -203,7 +205,7 @@ public sealed class ContactHostIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task AdminLocation_empty_subdivision_reads_back_as_null()
     {
-        // Adversarial: ""→null read-side SubdivisionCode converter.
+        // Adversarial: ""->null read-side SubdivisionCode converter.
         var userId = Guid.NewGuid();
         var adminNoSubdivision = AdminLocation.Create(
             countryIso31661Alpha2Code: CountryCode.DE,
@@ -236,14 +238,14 @@ public sealed class ContactHostIntegrationTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // LocalDate DOB round-trip (NodaTime LocalDate? → DATE Postgres column)
+    // LocalDate DOB round-trip (NodaTime LocalDate? -> DATE Postgres column)
     // =========================================================================
 
     [Fact]
     public async Task Demographics_DateOfBirth_LocalDate_round_trips_through_date_column()
     {
         // Verifies that a non-null LocalDate? DateOfBirth seeded on Demographics
-        // survives the LocalDate? → DATE Postgres column → LocalDate? EF round-trip.
+        // survives the LocalDate? -> DATE Postgres column -> LocalDate? EF round-trip.
         // This exercises the o.AddD2NodaTime() NodaTime value converter wired in
         // ContactsHostDbContext.Build().
         var userId = Guid.NewGuid();
@@ -282,7 +284,7 @@ public sealed class ContactHostIntegrationTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // Anonymization round-trip (Tier B — ContactHost has Email Template)
+    // Anonymization round-trip (Tier B - ContactHost has Email Template)
     // =========================================================================
 
     [Fact]
@@ -313,15 +315,15 @@ public sealed class ContactHostIntegrationTests : IAsyncLifetime
         row.Name.PreferredName.Should().BeNull();
         row.Name.HashId.Should().Be(ContactVoDecorator.HashIdCleared);
 
-        // NameAffixes tombstones (all fields → null via SetNull rules)
-        row.Affixes.Prefix.Should().BeNull("NameAffixes.Prefix erasure → SetNull");
-        row.Affixes.PrefixCustom.Should().BeNull("NameAffixes.PrefixCustom erasure → SetNull");
-        row.Affixes.Suffix.Should().BeNull("NameAffixes.Suffix erasure → SetNull");
-        row.Affixes.SuffixCustom.Should().BeNull("NameAffixes.SuffixCustom erasure → SetNull");
+        // NameAffixes tombstones (all fields -> null via SetNull rules)
+        row.Affixes.Prefix.Should().BeNull("NameAffixes.Prefix erasure -> SetNull");
+        row.Affixes.PrefixCustom.Should().BeNull("NameAffixes.PrefixCustom erasure -> SetNull");
+        row.Affixes.Suffix.Should().BeNull("NameAffixes.Suffix erasure -> SetNull");
+        row.Affixes.SuffixCustom.Should().BeNull("NameAffixes.SuffixCustom erasure -> SetNull");
 
-        // Demographics tombstones (all fields → null via SetNull rules)
-        row.Demo.BiologicalSex.Should().BeNull("Demographics.BiologicalSex erasure → SetNull");
-        row.Demo.DateOfBirth.Should().BeNull("Demographics.DateOfBirth erasure → SetNull");
+        // Demographics tombstones (all fields -> null via SetNull rules)
+        row.Demo.BiologicalSex.Should().BeNull("Demographics.BiologicalSex erasure -> SetNull");
+        row.Demo.DateOfBirth.Should().BeNull("Demographics.DateOfBirth erasure -> SetNull");
 
         // Professional tombstones
         row.Work.CompanyName.Should().Be("Deleted");
@@ -334,19 +336,19 @@ public sealed class ContactHostIntegrationTests : IAsyncLifetime
         row.Street.Line2.Should().BeNull();
         row.Street.HashId.Should().Be(LocationVoDecorator.HashIdCleared);
 
-        // AdminLocation tombstones — Country KEPT (coarse-grained, no anonymize rule)
+        // AdminLocation tombstones - Country KEPT (coarse-grained, no anonymize rule)
         row.Admin.City.Should().BeNull();
         row.Admin.PostalCode.Should().BeNull();
         row.Admin.SubdivisionIso31662Code.Should().BeNull();
         row.Admin.CountryIso31661Alpha2Code.Should().Be(CountryCode.US, "country is retained");
         row.Admin.HashId.Should().Be(LocationVoDecorator.HashIdCleared);
 
-        // Email — Template rule, Tier B renders per-row
+        // Email - Template rule, Tier B renders per-row
         var expectedEmail = $"deletedUser{userId:N}@deleted.user.dcsv.io";
         row.Email.Should().NotBeNull();
         row.Email!.Value.Should().Be(expectedEmail);
 
-        // Phone — Constant rule
+        // Phone - Constant rule
         row.Phone.Should().NotBeNull();
         row.Phone!.Value.Should().Be("10000000000");
 
@@ -411,7 +413,7 @@ public sealed class ContactHostIntegrationTests : IAsyncLifetime
         row.Geo.AccuracyMeters.Should().BeNull("SetNull on nullable double");
         row.Geo.HashId.Should().Be(LocationVoDecorator.HashIdCleared);
 
-        // Raw SQL read — confirms the DB column itself holds 0, not a CLR artifact.
+        // Raw SQL read - confirms the DB column itself holds 0, not a CLR artifact.
         var id = seeded.Id;
         var rawLat = await readCtx.Database
             .SqlQuery<double>(
@@ -420,7 +422,7 @@ public sealed class ContactHostIntegrationTests : IAsyncLifetime
 
         rawLat.Should().Be(
             0.0,
-            "raw Postgres column must hold 0.0 — the live proof that Convert.ChangeType"
+            "raw Postgres column must hold 0.0 - the live proof that Convert.ChangeType"
             + "(\"0\", typeof(double)) lands correctly on the Tier-B SetPropertyValue path");
     }
 
@@ -455,21 +457,21 @@ public sealed class ContactHostIntegrationTests : IAsyncLifetime
         var row = await readCtx.GeoOnlyHosts.FirstAsync(h => h.UserId == userId);
 
         // ===================================================================
-        // Tier-A ExecuteUpdateAsync path: Convert.ChangeType("0", typeof(double)) → 0.0d.
+        // Tier-A ExecuteUpdateAsync path: Convert.ChangeType("0", typeof(double)) -> 0.0d.
         // LIVE confirmation of the numeric-Constant coercion design.
         row.Geo.Latitude.Should().Be(
             0.0,
-            "LIVE PROOF — Tier-A ExecuteUpdateAsync: constant \"0\" coerced to double 0.0");
+            "LIVE PROOF - Tier-A ExecuteUpdateAsync: constant \"0\" coerced to double 0.0");
         row.Geo.Longitude.Should().Be(
             0.0,
-            "LIVE PROOF — Tier-A ExecuteUpdateAsync: constant \"0\" coerced to double 0.0");
+            "LIVE PROOF - Tier-A ExecuteUpdateAsync: constant \"0\" coerced to double 0.0");
         row.Geo.Geohash.Should().BeEmpty();
         row.Geo.PlusCode.Should().BeEmpty();
         row.Geo.AccuracyMeters.Should().BeNull();
         row.Geo.HashId.Should().Be(LocationVoDecorator.HashIdCleared);
         row.IsAnonymized.Should().BeTrue();
 
-        // Raw SQL read — belt-and-braces: confirms the DB column itself holds 0.
+        // Raw SQL read - confirms the DB column itself holds 0, independent of EF materialization.
         var id = host.Id;
         var rawLat = await readCtx.Database
             .SqlQuery<double>(
@@ -478,7 +480,7 @@ public sealed class ContactHostIntegrationTests : IAsyncLifetime
 
         rawLat.Should().Be(
             0.0,
-            "raw Postgres column must hold 0.0 — DB-level proof of the Tier-A coercion");
+            "raw Postgres column must hold 0.0 - DB-level proof of the Tier-A coercion");
     }
 
     // =========================================================================

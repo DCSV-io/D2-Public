@@ -12,7 +12,7 @@ using DcsvIo.D2.Auth.ProtocolAudiences.SourceGen;
 using Xunit;
 
 /// <summary>
-/// Adversarial coverage for <see cref="ProtocolAudiencesEmitter.Emit"/> — the
+/// Adversarial coverage for <see cref="ProtocolAudiencesEmitter.Emit"/> - the
 /// pure-logic half of the protocol-audiences source generator. Covers semantic
 /// validation (D2PAUD001 / D2PAUD002 / D2PAUD003 / D2PAUD004) and emission shape.
 /// </summary>
@@ -28,7 +28,7 @@ public sealed class ProtocolAudiencesEmitterTests
         var spec = new ProtocolAudiencesSpec(
         [
             Entry("D2_INTERNAL_AUDIENCE", "d2.internal", "Internal receive audience."),
-            Entry("D2_EDGE_SELF_AUDIENCE", "d2-edge", "Edge self-audience."),
+            Entry("D2_EDGE_SELF_AUDIENCE", "d2-edge", "Entry service self-audience."),
         ]);
 
         var result = ProtocolAudiencesEmitter.Emit(spec);
@@ -84,7 +84,7 @@ public sealed class ProtocolAudiencesEmitterTests
     }
 
     // ----------------------------------------------------------------------
-    // D2PAUD002 — invalid protocol-audience name (must be SCREAMING_SNAKE_CASE)
+    // D2PAUD002 - invalid protocol-audience name (must be SCREAMING_SNAKE_CASE)
     // ----------------------------------------------------------------------
 
     [Theory]
@@ -122,7 +122,7 @@ public sealed class ProtocolAudiencesEmitterTests
     }
 
     // ----------------------------------------------------------------------
-    // D2PAUD001 — duplicate name; D2PAUD003 — duplicate value; D2PAUD004 — empty
+    // D2PAUD001 - duplicate name; D2PAUD003 - duplicate value; D2PAUD004 - empty
     // ----------------------------------------------------------------------
 
     [Fact]

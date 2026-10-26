@@ -24,9 +24,10 @@ public sealed class TimezoneLookupTests
     [Fact]
     public void ByCode_CardinalityAtLeast250()
     {
-        // IANA tzdb has ~450 zones plus aliases; the catalog ships the
-        // distinct primary set (~300) — pin a lower bound that captures
-        // the meaningful population without churning on tzdb evolution.
+        // The IANA tzdb has aliases besides its zones; the catalog
+        // (contracts/geo/timezones.spec.json) ships the distinct primary set.
+        // The assertion pins a lower bound that captures the meaningful
+        // population without churning on tzdb evolution.
         TimezoneLookup.ByCode.Count.Should().BeGreaterThanOrEqualTo(250);
     }
 
@@ -36,7 +37,7 @@ public sealed class TimezoneLookupTests
         TimezoneLookup.All.Count.Should().Be(TimezoneLookup.ByCode.Count);
     }
 
-    // §1.2 category: Domain-specific — headline IANA zone pins.
+    // Category: Domain-specific - headline IANA zone pins.
     [Fact]
     public void Timezone_AmericaNewYork_AllFieldsPinned()
     {
@@ -73,11 +74,11 @@ public sealed class TimezoneLookupTests
         tokyo.CurrentDstAbbrev.Should().BeNull();
     }
 
-    // §1.2 category: Domain-specific — shared zones populate CoApplicable nav.
+    // Category: Domain-specific - shared zones populate CoApplicable nav.
     [Fact]
     public void Timezone_EveryRecord_CoApplicableNavCountMatchesCodeCount_HasAtLeastOneSharedZone()
     {
-        // Shared-zone scenario — at least one IANA zone in the catalog
+        // Shared-zone scenario - at least one IANA zone in the catalog
         // has a non-empty CoApplicableCountryIso31661Alpha2Codes set
         // (Europe shares the same zone across Vatican / San Marino / etc.).
         var sharedZones = TimezoneLookup.All

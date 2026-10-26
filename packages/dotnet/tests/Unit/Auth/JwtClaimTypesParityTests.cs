@@ -17,10 +17,10 @@ using DcsvIo.D2.Utilities.Extensions;
 using Xunit;
 
 /// <summary>
-/// Parity test: every <c>claim:</c> annotation in the IAuthContext spec MUST
-/// have a matching <see cref="JwtClaimTypes"/> constant. Drift safety — adding
-/// a new claim to the spec without a constant means handlers reading the
-/// claim will use a magic string that doesn't survive renaming.
+/// Parity test: every <c>claim:</c> annotation in the IAuthContext spec must
+/// have a matching <see cref="JwtClaimTypes"/> constant. A claim added to the
+/// spec without a constant leaves handlers that read the claim with a magic
+/// string that does not survive a rename.
 /// </summary>
 public sealed class JwtClaimTypesParityTests
 {
@@ -51,15 +51,16 @@ public sealed class JwtClaimTypesParityTests
         specClaims.Should().NotBeEmpty(
             "spec should declare at least one claim-mapped property");
 
-        // Reflect on JwtClaimTypes — collect every const string value.
+        // Use reflection on JwtClaimTypes to collect every const string value.
         var declaredConstants = typeof(JwtClaimTypes)
             .GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)
             .Where(f => f.IsLiteral && f.FieldType == typeof(string))
             .Select(f => (string)f.GetValue(null)!)
             .ToHashSet();
 
-        // Adversarial: every spec claim MUST appear in the constants set.
-        // If this fails, the spec drifted ahead of JwtClaimTypes.
+        // Adversarial: every spec claim must appear in the constants set.
+        // A failure here means the spec declares a claim that JwtClaimTypes
+        // does not.
         var missing = specClaims.Except(declaredConstants).ToList();
         missing.Should().BeEmpty(
             "every claim referenced in the spec must have a matching JwtClaimTypes constant; " +

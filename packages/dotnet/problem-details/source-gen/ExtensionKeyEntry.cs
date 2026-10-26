@@ -16,7 +16,7 @@ namespace DcsvIo.D2.ProblemDetails.SourceGen;
 /// </param>
 /// <param name="Value">
 /// Wire-format extension key emitted on the RFC 7807 ProblemDetails JSON
-/// body (e.g. <c>d2_error_code</c>, <c>traceId</c>). The literal IS the
+/// body (e.g. <c>d2_error_code</c>, <c>traceId</c>). The literal is the
 /// wire format.
 /// </param>
 /// <param name="Doc">

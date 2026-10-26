@@ -44,7 +44,7 @@ public sealed class ConfusablesTests
         if (expectedAlpha2 is null)
         {
             result.Success.Should().BeFalse(
-                "fixture pins null expected — must NOT silently guess");
+                "fixture pins null expected - must NOT silently guess");
         }
         else
         {
@@ -70,7 +70,7 @@ public sealed class ConfusablesTests
         if (expectedIso31662 is null)
         {
             result.Success.Should().BeFalse(
-                "fixture pins null expected — must NOT silently guess");
+                "fixture pins null expected - must NOT silently guess");
         }
         else
         {
@@ -87,7 +87,7 @@ public sealed class ConfusablesTests
         {
             var input = entry.GetProperty("input").GetString()!;
             var expected = entry.GetProperty("expectedIso31661Alpha2Code");
-            string? expectedAlpha2 = expected.ValueKind == JsonValueKind.Null
+            var expectedAlpha2 = expected.ValueKind == JsonValueKind.Null
                 ? null
                 : expected.GetString();
             var comment = entry.GetProperty("comment").GetString()!;
@@ -106,7 +106,7 @@ public sealed class ConfusablesTests
             var input = entry.GetProperty("input").GetString()!;
             var parent = entry.GetProperty("parentCountryIso31661Alpha2Code").GetString()!;
             var expected = entry.GetProperty("expectedIso31662Code");
-            string? expectedIso31662 = expected.ValueKind == JsonValueKind.Null
+            var expectedIso31662 = expected.ValueKind == JsonValueKind.Null
                 ? null
                 : expected.GetString();
             var comment = entry.GetProperty("comment").GetString()!;

@@ -14,8 +14,8 @@ using DcsvIo.D2.Result;
 /// <summary>
 /// Generic-typed counterparts to <see cref="D2ResultDbFactories"/>. Each
 /// factory mirrors the non-generic shape but produces a typed
-/// <see cref="D2Result{TData}"/> with <c>Data = default</c>, ready for
-/// handlers to return without additional bubbling.
+/// <see cref="D2Result{TData}"/> with <c>Data = default</c>, so a handler can
+/// return it as is.
 /// </summary>
 public static class D2ResultDbGenericFactories
 {

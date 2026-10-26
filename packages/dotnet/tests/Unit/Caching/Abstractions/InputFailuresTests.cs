@@ -12,12 +12,12 @@ using DcsvIo.D2.I18n;
 using Xunit;
 
 /// <summary>
-/// Pins the wire-shape of <see cref="InputFailures.Required{T}(string)"/> and
-/// <see cref="InputFailures.Required(string)"/>. Cache-impl call sites depend on
-/// the exact shape (`IsValidationFailed`, single `InputError` carrying the
-/// param name + `TK.Common.Errors.NOT_NULL_VIOLATION`); a future refactor that
-/// normalizes "required" failures elsewhere must keep this contract or break
-/// every cache impl loudly.
+/// Pins the wire shape of <see cref="InputFailures.Required{T}(string)"/> and
+/// <see cref="InputFailures.Required(string)"/>. Cache implementations depend on
+/// the exact shape (<c>IsValidationFailed</c>, a single <c>InputError</c> with the
+/// param name and <c>TK.Common.Errors.NOT_NULL_VIOLATION</c>). A refactor that
+/// moves "required" failures elsewhere must keep this contract, or these tests
+/// fail and every cache implementation breaks loudly.
 /// </summary>
 public sealed class InputFailuresTests
 {
@@ -69,9 +69,10 @@ public sealed class InputFailuresTests
     [InlineData("anyArbitraryParameterName")]
     public void Required_PropagatesParamNameVerbatimIntoInputError(string paramName)
     {
-        // Pin: paramName flows untouched. Cache impls pass nameof(...) which
-        // ends up in client-side error displays — drift here would silently
-        // change every cache impl's user-visible error.
+        // Pin: paramName passes through unchanged. Cache implementations pass
+        // nameof(...), which appears in client-side error displays, so a change
+        // here would silently alter the user-visible error of every cache
+        // implementation.
         var generic = InputFailures.Required<int>(paramName);
         var nonGeneric = InputFailures.Required(paramName);
 

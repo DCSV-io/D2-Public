@@ -1,8 +1,17 @@
 #nullable enable
+DcsvIo.D2.Handler.Abstractions.D2GeneratedHandlerScopeAttribute
+DcsvIo.D2.Handler.Abstractions.D2GeneratedHandlerScopeAttribute.D2GeneratedHandlerScopeAttribute(DcsvIo.D2.Handler.Abstractions.D2HandlerScopeMode mode) -> void
+DcsvIo.D2.Handler.Abstractions.D2GeneratedHandlerScopeAttribute.Mode.get -> DcsvIo.D2.Handler.Abstractions.D2HandlerScopeMode
+DcsvIo.D2.Handler.Abstractions.D2HandlerScopeMode
+DcsvIo.D2.Handler.Abstractions.D2HandlerScopeMode.All = 1 -> DcsvIo.D2.Handler.Abstractions.D2HandlerScopeMode
+DcsvIo.D2.Handler.Abstractions.D2HandlerScopeMode.Any = 0 -> DcsvIo.D2.Handler.Abstractions.D2HandlerScopeMode
+DcsvIo.D2.Handler.Abstractions.D2HandlerScopeMode.InfraExempt = 2 -> DcsvIo.D2.Handler.Abstractions.D2HandlerScopeMode
 DcsvIo.D2.Handler.Abstractions.HandlerOptions
 DcsvIo.D2.Handler.Abstractions.HandlerOptions.<Clone>$() -> DcsvIo.D2.Handler.Abstractions.HandlerOptions!
 DcsvIo.D2.Handler.Abstractions.HandlerOptions.CriticalThreshold.get -> System.TimeSpan?
 DcsvIo.D2.Handler.Abstractions.HandlerOptions.CriticalThreshold.init -> void
+DcsvIo.D2.Handler.Abstractions.HandlerOptions.ElevateScopes.get -> System.Collections.Generic.IReadOnlySet<string!>?
+DcsvIo.D2.Handler.Abstractions.HandlerOptions.ElevateScopes.init -> void
 DcsvIo.D2.Handler.Abstractions.HandlerOptions.Equals(DcsvIo.D2.Handler.Abstractions.HandlerOptions? other) -> bool
 DcsvIo.D2.Handler.Abstractions.HandlerOptions.HandlerOptions() -> void
 DcsvIo.D2.Handler.Abstractions.HandlerOptions.LogInput.get -> bool

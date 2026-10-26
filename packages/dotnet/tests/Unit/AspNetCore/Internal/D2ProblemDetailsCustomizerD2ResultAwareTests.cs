@@ -19,10 +19,10 @@ using Xunit;
 using MvcProblemDetails = Microsoft.AspNetCore.Mvc.ProblemDetails;
 
 /// <summary>
-/// Pure-logic tests for the FULL D2Result-aware Customizer path. Drives
+/// Pure-logic tests for the complete D2Result-aware Customizer path. Drives
 /// <see cref="D2ProblemDetailsCustomizer.Apply"/> directly against a
-/// <see cref="DefaultHttpContext"/> with / without a stashed
-/// <see cref="D2Result"/> and asserts the resulting ProblemDetails shape
+/// <see cref="DefaultHttpContext"/> with and without a stashed
+/// <see cref="D2Result"/> and asserts that the resulting ProblemDetails shape
 /// matches the spec-driven constants exactly.
 /// </summary>
 public sealed class D2ProblemDetailsCustomizerD2ResultAwareTests
@@ -33,7 +33,7 @@ public sealed class D2ProblemDetailsCustomizerD2ResultAwareTests
         var ctx = MakeContext("/api/x", method: "POST");
         var failure = D2Result.Fail(
             messages: [TK.Auth.Errors.UNAUTHORIZED],
-            errorCode: "VALIDATION_FAILED",
+            errorCode: "GEN_VALIDATION_FAILED",
             statusCode: HttpStatusCode.BadRequest);
         ctx.HttpContext.SetD2Result(failure);
 
@@ -42,7 +42,7 @@ public sealed class D2ProblemDetailsCustomizerD2ResultAwareTests
         ctx.ProblemDetails.Status.Should().Be(400);
         ctx.ProblemDetails.Title.Should().Be(D2ProblemDetailsKeys.TITLE_BAD_REQUEST);
         ctx.ProblemDetails.Type
-            .Should().Be("https://problems.d2.dcsv.io/validation-failed");
+            .Should().Be("https://problems.d2.dcsv.io/gen-validation-failed");
         ctx.ProblemDetails.Instance.Should().Be("POST /api/x");
     }
 
@@ -75,7 +75,7 @@ public sealed class D2ProblemDetailsCustomizerD2ResultAwareTests
         var failure = D2Result.Fail(
             messages: [TK.Auth.Errors.UNAUTHORIZED],
             inputErrors: inputErrors,
-            errorCode: "VALIDATION_FAILED",
+            errorCode: "GEN_VALIDATION_FAILED",
             statusCode: HttpStatusCode.BadRequest);
         ctx.HttpContext.SetD2Result(failure);
 
@@ -108,7 +108,7 @@ public sealed class D2ProblemDetailsCustomizerD2ResultAwareTests
         var failure = new D2Result(
             success: false,
             messages: [TK.Auth.Errors.UNAUTHORIZED],
-            errorCode: "VALIDATION_FAILED",
+            errorCode: "GEN_VALIDATION_FAILED",
             statusCode: HttpStatusCode.BadRequest,
             category: ErrorCategory.ValidationFailure);
         ctx.HttpContext.SetD2Result(failure);
@@ -147,6 +147,9 @@ public sealed class D2ProblemDetailsCustomizerD2ResultAwareTests
 
         D2ProblemDetailsCustomizer.Apply(ctx, new D2ProblemDetailsOptions());
 
+        // An empty error code falls back to the default problem-details slug
+        // (unhandled-exception), and not to the slug derived from a
+        // GEN-prefixed error code.
         ctx.ProblemDetails.Type
             .Should().Be("https://problems.d2.dcsv.io/unhandled-exception");
     }
@@ -154,8 +157,8 @@ public sealed class D2ProblemDetailsCustomizerD2ResultAwareTests
     [Fact]
     public void Apply_WithoutStashedD2Result_LeavesTypeAndTitleAlone()
     {
-        // ProblemDetails comes in with framework-default null Type/Title;
-        // customizer SHOULD NOT impose spec values when no D2Result is
+        // ProblemDetails arrives with the framework-default null Type and
+        // Title. The customizer must not set spec values when no D2Result is
         // present.
         var ctx = MakeContext("/api/x");
 
@@ -181,15 +184,17 @@ public sealed class D2ProblemDetailsCustomizerD2ResultAwareTests
     [Fact]
     public void Apply_AllUnconditionalExtensionKeysReferencedAreSpecDriven()
     {
-        // Reflection regression: assert the Customizer reads constants from
-        // D2ProblemDetailsKeys (not string literals) — written + read via the
-        // codegen-emitted catalog. Cross-check by asserting the keys appear
-        // in the ProblemDetails.Extensions dictionary at their exact wire
-        // values (the spec literals).
-        // NOTE: d2_category is intentionally absent here — this D2Result
-        // carries no Category, so the conditional-emit path omits it. The
-        // omission is pinned explicitly via NotContainKey to prevent future
-        // regressions where a null category is emitted as a null extension.
+        // The Customizer writes its extension keys from the constants in
+        // D2ProblemDetailsKeys, the codegen-emitted catalog. This test uses no
+        // reflection: it asserts that the keys appear in the
+        // ProblemDetails.Extensions dictionary at their exact wire values
+        // (the spec literals).
+        // d2_category is absent on purpose: this D2Result carries no
+        // Category, so the conditional-emit path omits it. The final
+        // NotContain assertion and the NotContainKey assertion in
+        // Apply_WithStashedD2Result_OmitsCategoryExtensionWhenNull pin the
+        // omission, so a regression that emits a null category as a null
+        // extension fails.
         var ctx = MakeContext("/api/x");
         var inputErrors = new[]
         {
@@ -198,7 +203,7 @@ public sealed class D2ProblemDetailsCustomizerD2ResultAwareTests
         var failure = D2Result.Fail(
             messages: [TK.Auth.Errors.UNAUTHORIZED],
             inputErrors: inputErrors,
-            errorCode: "VALIDATION_FAILED",
+            errorCode: "GEN_VALIDATION_FAILED",
             statusCode: HttpStatusCode.BadRequest);
         ctx.HttpContext.SetD2Result(failure);
 
@@ -220,7 +225,7 @@ public sealed class D2ProblemDetailsCustomizerD2ResultAwareTests
         ctx.ProblemDetails.Status = 500;   // framework default
         var failure = D2Result.Fail(
             messages: [TK.Auth.Errors.UNAUTHORIZED],
-            errorCode: "VALIDATION_FAILED",
+            errorCode: "GEN_VALIDATION_FAILED",
             statusCode: HttpStatusCode.BadRequest);
         ctx.HttpContext.SetD2Result(failure);
 

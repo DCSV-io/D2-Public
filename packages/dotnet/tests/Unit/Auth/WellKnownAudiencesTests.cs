@@ -15,11 +15,12 @@ using Xunit;
 
 /// <summary>
 /// Unit tests for the hand-declared <see cref="WellKnownAudiences"/> protocol
-/// constants — the universal internal <i>receive</i> audience the forward-unchanged
-/// model pivots on. Pins the wire value, the reachable-constant shape, and (the
-/// load-bearing guard) that the value is hand-declared rather than spec-derived:
-/// it must NOT appear in the codegen-emitted <see cref="Audiences"/> surface, which
-/// is the codegen boundary the design rests on.
+/// constants - the universal internal <i>receive</i> audience that the
+/// forward-unchanged model depends on. Pins the wire value, the
+/// reachable-constant shape, and (the most important guard) that the value is
+/// hand-declared and not spec-derived: it must not appear in the codegen-emitted
+/// <see cref="Audiences"/> surface, which marks the boundary between
+/// hand-declared and generated audiences.
 /// </summary>
 [Trait("Category", "Unit")]
 public sealed class WellKnownAudiencesTests
@@ -28,7 +29,7 @@ public sealed class WellKnownAudiencesTests
     public void D2InternalAudience_PinsTheWireValue()
     {
         // Pin the receive-audience wire value. Changing it is a breaking change to
-        // every hop's `aud == d2.internal` check AND the future Edge minter.
+        // every hop's `aud == d2.internal` check and to any token minter.
         WellKnownAudiences.D2_INTERNAL_AUDIENCE.Should().Be("d2.internal");
     }
 
@@ -44,8 +45,8 @@ public sealed class WellKnownAudiencesTests
     [Fact]
     public void D2InternalAudience_IsAPublicCompileTimeConstant()
     {
-        // Reachable from the abstractions package as a plain compile-time constant
-        // (public + static + literal), not a runtime-computed value.
+        // The abstractions package exposes it as a plain compile-time constant
+        // (public, static and literal), and not as a runtime-computed value.
         var field = typeof(WellKnownAudiences).GetField(
             nameof(WellKnownAudiences.D2_INTERNAL_AUDIENCE),
             BindingFlags.Public | BindingFlags.Static);
@@ -57,16 +58,16 @@ public sealed class WellKnownAudiencesTests
     }
 
     // ----------------------------------------------------------------------
-    // Codegen boundary: the value is hand-declared, NOT spec-derived. It must
-    // be absent from every projection of the generated Audiences catalog.
+    // Codegen boundary: the value is hand-declared and not spec-derived. It
+    // must be absent from every projection of the generated Audiences catalog.
     // ----------------------------------------------------------------------
 
     [Fact]
     public void D2InternalAudience_IsNotAKnownSpecAudience()
     {
-        // The spec-generated known-set (the inbound aud-validation surface) does
-        // NOT contain the internal receive audience — proving it is hand-declared
-        // and not an audiences.spec.json entry.
+        // The spec-generated known set (the inbound aud-validation surface) does
+        // not contain the internal receive audience, which shows that the
+        // audience is hand-declared and is not an audiences.spec.json entry.
         Audiences.IsKnown(WellKnownAudiences.D2_INTERNAL_AUDIENCE).Should().BeFalse();
     }
 
@@ -80,8 +81,8 @@ public sealed class WellKnownAudiencesTests
     [Fact]
     public void D2InternalAudience_DoesNotResolveThroughTheSpecHelpers()
     {
-        // Neither name→url nor url→name resolution surfaces it — there is no spec
-        // entry it could be mirroring.
+        // Neither name->url nor url->name resolution returns it, because no spec
+        // entry exists for it to mirror.
         Audiences.Resolve(WellKnownAudiences.D2_INTERNAL_AUDIENCE).Should().BeNull();
         Audiences.ResolveByUrl(WellKnownAudiences.D2_INTERNAL_AUDIENCE).Should().BeNull();
     }
@@ -94,8 +95,8 @@ public sealed class WellKnownAudiencesTests
     [Fact]
     public void OnlyOneHandDeclaredConstant_CarriesTheInternalAudienceValue()
     {
-        // Reflection walk over every public-const-string on WellKnownAudiences:
-        // exactly one must equal "d2.internal" (no accidental duplicate copy).
+        // Reflection walk over every public const string on WellKnownAudiences:
+        // exactly one must equal "d2.internal", so no duplicate copy exists.
         var matches = typeof(WellKnownAudiences)
             .GetFields(BindingFlags.Public | BindingFlags.Static)
             .Where(f => f.IsLiteral && f.FieldType == typeof(string))
@@ -109,16 +110,17 @@ public sealed class WellKnownAudiencesTests
     public void D2InternalAudience_DoesNotCollideWithAnyGeneratedAudienceUrl()
     {
         // The hand-declared receive audience must be distinct from every
-        // spec-derived token-exchange target URL — different role, different value.
+        // spec-derived token-exchange target URL: the two have different roles
+        // and different values.
         Audiences.AllUrls.Should().NotContain(WellKnownAudiences.D2_INTERNAL_AUDIENCE);
     }
 
     [Fact]
     public void D2InternalAudience_IsABareTokenNotAUrl()
     {
-        // Format sanity: the receive audience is a bare token, intentionally NOT
-        // URL-shaped like the spec entries (https://files.internal etc.). No scheme
-        // separator, no whitespace, non-empty.
+        // Format check: the receive audience is a bare token and is intentionally
+        // not URL-shaped like the spec entries (https://<audience>.internal and so on).
+        // It has no scheme separator, no whitespace, and is not empty.
         var value = WellKnownAudiences.D2_INTERNAL_AUDIENCE;
 
         value.Should().NotBeNullOrWhiteSpace();
@@ -127,8 +129,7 @@ public sealed class WellKnownAudiencesTests
     }
 
     // ----------------------------------------------------------------------
-    // The Edge self-audience constant — now spec-driven alongside d2.internal,
-    // replacing the magic-string literal the @d2Audience validator used to carry.
+    // The self-audience constant is spec-driven, like d2.internal.
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -151,9 +152,10 @@ public sealed class WellKnownAudiencesTests
 
     // ----------------------------------------------------------------------
     // Single-source parity: the generated C# constants are byte-identical to the
-    // protocol-audiences spec (the source of truth) AND to the ts-codegen-emitted
-    // TypeScript ProtocolAudiences const. A drift on either runtime is impossible
-    // because both derive from the same spec — these tests pin that contract.
+    // protocol-audiences spec (the source of truth) and to the generated
+    // TypeScript ProtocolAudiences const. Both runtimes derive from the same
+    // spec, so neither can drift from the other, and these tests pin that
+    // contract.
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -161,7 +163,7 @@ public sealed class WellKnownAudiencesTests
     {
         var spec = ReadProtocolAudiencesSpec();
 
-        // Each spec entry's name → a C# const of that name carrying the spec value.
+        // Each spec entry name maps to a C# const of that name with the spec value.
         foreach (var (name, value) in spec)
         {
             var field = typeof(WellKnownAudiences).GetField(
@@ -180,8 +182,9 @@ public sealed class WellKnownAudiencesTests
     public void GeneratedConstants_ByteMatchTheTypeScriptProtocolAudiences()
     {
         // The TS const-object is emitted from the same spec into
-        // @dcsv-io/d2-auth-abstractions. Assert each C# const value appears in the TS file
-        // under the same SCREAMING_SNAKE name — cross-runtime byte identity.
+        // @dcsv-io/d2-auth-abstractions. Assert that each C# const value appears in
+        // the TS file under the same SCREAMING_SNAKE name, which shows cross-runtime
+        // byte identity.
         var spec = ReadProtocolAudiencesSpec();
         var tsPath = Path.Combine(
             TestPaths.PublicPackagesTypescriptRoot(),
@@ -191,7 +194,7 @@ public sealed class WellKnownAudiencesTests
             "protocol-audiences.g.ts");
 
         File.Exists(tsPath).Should().BeTrue(
-            "the ts-codegen ProtocolAudiences artifact must be committed at " + tsPath);
+            "the generated TypeScript ProtocolAudiences file must be committed at " + tsPath);
         var tsSource = File.ReadAllText(tsPath);
 
         foreach (var (name, value) in spec)

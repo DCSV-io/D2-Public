@@ -21,7 +21,7 @@ using DcsvIo.D2.Geo.Abstractions;
 namespace DcsvIo.D2.Geo.Default;
 
 /// <summary>
-/// Strongly-typed nested-class hierarchy over the locale catalog —
+/// Strongly-typed nested-class hierarchy over the locale catalog -
 /// <c>Locales.en.US</c> returns a <c>LocaleCode</c>. 1-segment
 /// language-only tags (e.g. <c>"en"</c>) + tags that are strict prefixes
 /// of deeper sibling tags (e.g. <c>"az-Arab"</c> when <c>"az-Arab-IQ"</c>

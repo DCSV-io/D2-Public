@@ -13,9 +13,9 @@ using JetBrains.Annotations;
 using Xunit;
 
 /// <summary>
-/// Unit tests for <see cref="JsonCacheSerializer"/> — the most-likely
-/// surface for adversarial bug shapes (null handling, cycles, garbage
-/// bytes, type collisions). Each test pinpoints a specific edge.
+/// Unit tests for <see cref="JsonCacheSerializer"/>, the most likely surface
+/// for adversarial bug shapes (null handling, cycles, garbage bytes, type
+/// collisions). Each test targets one specific edge case.
 /// </summary>
 public sealed class JsonCacheSerializerTests
 {
@@ -43,9 +43,10 @@ public sealed class JsonCacheSerializerTests
     [Fact]
     public void RoundTrip_NullableString_Null_Works()
     {
-        // Regression test: previously, deserialize-of-null was treated as a
-        // failure. It's a legitimate round-trip for nullable T — Set<string?>(k, null)
-        // serializes to bytes "null" which deserializes to null.
+        // Regression test: deserialize-of-null used to be treated as a
+        // failure. It is a legitimate round-trip for a nullable T:
+        // Set<string?>(k, null) serializes to the bytes "null", which
+        // deserialize to null.
         var serialized = r_serializer.Serialize<string?>(null);
         serialized.IsOk.Should().BeTrue();
 
@@ -81,39 +82,39 @@ public sealed class JsonCacheSerializerTests
         var result = r_serializer.Deserialize<TestRecord>(garbage);
 
         result.IsOk.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.COULD_NOT_BE_DESERIALIZED);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_COULD_NOT_BE_DESERIALIZED);
     }
 
     [Fact]
     public void Deserialize_TypeMismatch_ReturnsCouldNotBeDeserialized()
     {
-        // Serialize as TestRecord, deserialize as int — mismatch should fail
-        // cleanly, not crash.
+        // Serialize as TestRecord and deserialize as int: the mismatch must
+        // fail cleanly and not crash.
         var serialized = r_serializer.Serialize(new TestRecord(1, "x", new()));
         var result = r_serializer.Deserialize<int>(serialized.Data!);
 
         result.IsOk.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.COULD_NOT_BE_DESERIALIZED);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_COULD_NOT_BE_DESERIALIZED);
     }
 
     [Fact]
     public void Deserialize_NonNullablePrimitive_FromNullJson_ReturnsCouldNotBeDeserialized()
     {
-        // STJ throws JsonException when trying to parse null into a non-nullable
-        // value type. Our catch handles it as a failure.
+        // STJ throws JsonException when it parses null into a non-nullable
+        // value type. The serializer's catch block reports that as a failure.
         var nullBytes = "null"u8.ToArray();
         var result = r_serializer.Deserialize<int>(nullBytes);
 
         result.IsOk.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.COULD_NOT_BE_DESERIALIZED);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_COULD_NOT_BE_DESERIALIZED);
     }
 
     [Fact]
     public void RoundTrip_WithReferenceCycle_DoesNotThrow()
     {
-        // Reference cycles are common in domain entities (User → Org → Users[]).
-        // Default STJ throws on cycles; we configure ReferenceHandler.IgnoreCycles
-        // to handle this gracefully.
+        // Reference cycles are common in domain entities (User -> Org -> Users[]).
+        // STJ throws on cycles by default; the serializer sets
+        // ReferenceHandler.IgnoreCycles so that it does not throw.
         var node = new CyclicNode { Name = "A" };
         node.Self = node;
 
@@ -126,7 +127,7 @@ public sealed class JsonCacheSerializerTests
     [Fact]
     public void RoundTrip_LargeValue_Works()
     {
-        // 100 KB string. Cache shouldn't choke on reasonably-sized values.
+        // 100 KB string. The cache must handle reasonably sized values.
         var large = new string('x', 100_000);
         var serialized = r_serializer.Serialize(large);
         var deserialized = r_serializer.Deserialize<string>(serialized.Data!);
@@ -154,8 +155,10 @@ public sealed class JsonCacheSerializerTests
     [Fact]
     public void RoundTrip_DictionaryWithCamelCase_Works()
     {
-        // Property naming uses camelCase on the wire; case-insensitive on read.
-        // Round-trip should preserve original casing in the deserialized object.
+        // Property naming uses camelCase on the wire and reads are
+        // case-insensitive. A round-trip should preserve the original casing in
+        // the deserialized object; this test asserts only that both entries
+        // survive.
         var input = new Dictionary<string, string>
         {
             ["AlphaKey"] = "value-1",
@@ -180,7 +183,7 @@ public sealed class JsonCacheSerializerTests
         var result = r_serializer.Deserialize<TestRecord>([]);
 
         result.IsOk.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.COULD_NOT_BE_DESERIALIZED);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_COULD_NOT_BE_DESERIALIZED);
     }
 
     [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]

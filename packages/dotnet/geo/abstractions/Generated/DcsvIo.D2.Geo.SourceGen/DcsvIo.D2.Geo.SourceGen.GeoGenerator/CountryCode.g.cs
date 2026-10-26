@@ -16,7 +16,7 @@ namespace DcsvIo.D2.Geo.Abstractions;
 /// ISO 3166-1 alpha-2 country identifier. Backed by the ISO 3166-1 numeric
 /// code (ushort). The wire form is the alpha-2 string (e.g. <c>"US"</c>),
 /// enforced by the embedded <c>JsonStringEnumConverter</c>. Unknown wire codes
-/// throw <see cref="System.Text.Json.JsonException"/> — caller boundary maps
+/// throw <see cref="System.Text.Json.JsonException"/> - caller boundary maps
 /// to 400 ValidationFailed (strict deserialization policy).
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter))]

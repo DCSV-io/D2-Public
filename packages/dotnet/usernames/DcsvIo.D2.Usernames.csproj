@@ -1,0 +1,36 @@
+<!--
+Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>DcsvIo.D2.Usernames</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    DcsvIo.D2.Usernames - pure friendly username generator (adj+noun+suffix).
+    It references no Auth types and does not check uniqueness. Depends on
+    Result + Utilities only.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\result\core\DcsvIo.D2.Result.csproj" />
+    <ProjectReference Include="..\utilities\DcsvIo.D2.Utilities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DcsvIo.D2.Tests" />
+  </ItemGroup>
+
+  <!-- Publish metadata (per-package semver + NuGet identity). -->
+  <PropertyGroup>
+    <Version>0.1.17</Version>
+    <PackageId>DcsvIo.D2.Usernames</PackageId>
+    <Description>Pure friendly username generator (adj+noun+suffix) for D2 consumers.</Description>
+    <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>

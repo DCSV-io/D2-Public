@@ -15,7 +15,7 @@ using Xunit;
 public sealed class TKMessageTests
 {
     // ----------------------------------------------------------------------
-    // SrcGen-emitted constants
+    // Constants emitted by the source generator
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -30,15 +30,16 @@ public sealed class TKMessageTests
     [Fact]
     public void GeneratedConstants_HaveNoParameters()
     {
-        // Adversarial: every SrcGen-emitted constant ships with null Parameters â€”
-        // params are bound only via With() at the call site.
+        // Every generated constant has null Parameters. Parameters are bound
+        // only through With() at the call site.
         TK.Common.Errors.NOT_FOUND.Parameters.Should().BeNull();
     }
 
     [Fact]
     public void GeneratedConstants_AreSameInstanceAcrossAccesses()
     {
-        // Static readonly â€” referencing TK.X.Y.Z twice returns the same object.
+        // The constants are static readonly, so referencing TK.X.Y.Z twice
+        // returns the same object.
         var first = TK.Common.Errors.NOT_FOUND;
         var second = TK.Common.Errors.NOT_FOUND;
 
@@ -46,7 +47,7 @@ public sealed class TKMessageTests
     }
 
     // ----------------------------------------------------------------------
-    // With(name, value) â€” bind a single parameter
+    // With(name, value) - bind a single parameter
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -63,9 +64,9 @@ public sealed class TKMessageTests
     [Fact]
     public void With_DoesNotMutateReceiver()
     {
-        // Adversarial: With must NOT mutate the source TKMessage.
-        // Receiver immutability is the entire point of the static-readonly TK pattern â€”
-        // if With mutated, every call site sharing the constant would see foreign params.
+        // With does not mutate the source TKMessage. The TK constants are
+        // static readonly and shared, so a With that mutated its receiver
+        // would add parameters to every call site that uses the constant.
         var original = TK.Common.Errors.NOT_FOUND;
 
         _ = original.With("a", "1");
@@ -122,8 +123,9 @@ public sealed class TKMessageTests
     [Fact]
     public void With_EmptyStringValue_IsAllowed()
     {
-        // Boundary: empty-string value is a legitimate substitution (e.g. clearing
-        // a placeholder). Whitespace-only / empty are NOT the same as null at this layer.
+        // Boundary: an empty-string value is a valid substitution, for example
+        // to clear a placeholder. At this layer an empty or whitespace-only
+        // value is not the same as null.
         var bound = TK.Common.Errors.NOT_FOUND.With("name", string.Empty);
 
         bound.Parameters.Should().BeEquivalentTo(
@@ -131,13 +133,14 @@ public sealed class TKMessageTests
     }
 
     // ----------------------------------------------------------------------
-    // With(IReadOnlyDictionary<string, string>) â€” replace whole dict
+    // With(IReadOnlyDictionary<string, string>) - replace the whole dictionary
     // ----------------------------------------------------------------------
 
     [Fact]
     public void WithDictionary_ReplacesParameters()
     {
-        // Adversarial: With(dict) REPLACES; it doesn't merge with prior params.
+        // With(dict) replaces the parameters and does not merge them with the
+        // earlier ones.
         var firstBound = TK.Common.Errors.NOT_FOUND.With("a", "1");
 
         var replaced = firstBound.With(
@@ -164,7 +167,7 @@ public sealed class TKMessageTests
     }
 
     // ----------------------------------------------------------------------
-    // Equality â€” record-style with order-independent params
+    // Equality - record-style with order-independent params
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -214,8 +217,9 @@ public sealed class TKMessageTests
     [Fact]
     public void Equality_OrderIndependentParameterDictionaries_AreEqual()
     {
-        // Adversarial: params are a dictionary, NOT an ordered sequence.
-        // Two TKMessages built up in different param-add order must be equal.
+        // Parameters are a dictionary and not an ordered sequence, so two
+        // TKMessages built by adding the same parameters in a different order
+        // are equal.
         var a = TK.Common.Errors.NOT_FOUND.With("a", "1").With("b", "2");
         var b = TK.Common.Errors.NOT_FOUND.With("b", "2").With("a", "1");
 
@@ -226,10 +230,10 @@ public sealed class TKMessageTests
     [Fact]
     public void Equality_OneNullOneEmptyParams_AreNotEqual()
     {
-        // Adversarial: a TKMessage with null Parameters is structurally distinct
-        // from one with an empty dictionary. The wire format reflects this:
-        // null â†’ no "params" key; empty â†’ no "params" key on Write (per converter).
-        // But Equals doesn't know about Write semantics; it compares fields.
+        // A TKMessage with null Parameters differs from one with an empty
+        // dictionary. The converter writes no "params" key for either, but
+        // Equals compares the fields and does not follow the converter's
+        // write rules.
         var nullParams = TK.Common.Errors.NOT_FOUND;
         var emptyParams = TK.Common.Errors.NOT_FOUND.With(new Dictionary<string, string>());
 
@@ -247,12 +251,12 @@ public sealed class TKMessageTests
     {
         var a = TK.Common.Errors.NOT_FOUND;
 
-        // Same reference returns true regardless of field comparison.
+        // The same reference returns true without a field comparison.
         a.Equals(a).Should().BeTrue();
     }
 
     // ----------------------------------------------------------------------
-    // JSON serialization â€” wire format
+    // JSON serialization - wire format
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -277,8 +281,9 @@ public sealed class TKMessageTests
     [Fact]
     public void JsonSerialize_EmptyParamsDict_OmitsParamsProperty()
     {
-        // Boundary: Parameters with Count==0 is treated as no-params on the wire
-        // (consistent with the no-params constant case). Avoids gratuitous "params":{}.
+        // Boundary: Parameters with Count == 0 is written as no parameters,
+        // the same as a constant with no parameters, so the output has no
+        // "params":{} entry.
         var msg = TK.Common.Errors.NOT_FOUND.With(new Dictionary<string, string>());
 
         var json = JsonSerializer.Serialize(msg);
@@ -346,8 +351,8 @@ public sealed class TKMessageTests
     [Fact]
     public void JsonDeserialize_UnknownProperty_IsIgnored()
     {
-        // Adversarial: future wire-format additions must not break old parsers.
-        // The converter ignores properties it doesn't recognize.
+        // The converter ignores properties it does not recognize, so a later
+        // addition to the wire format does not break an older parser.
         var msg = JsonSerializer.Deserialize<TKMessage>(
             @"{""key"":""common_errors_NOT_FOUND"",""severity"":""error""}");
 
@@ -358,7 +363,7 @@ public sealed class TKMessageTests
     [Fact]
     public void JsonDeserialize_MissingKey_Throws()
     {
-        // Adversarial: every TKMessage MUST carry a key. JSON without one is invalid.
+        // Every TKMessage carries a key, so JSON without one is invalid.
         var act = () => JsonSerializer.Deserialize<TKMessage>(@"{""params"":{""a"":""1""}}");
 
         act.Should().Throw<JsonException>()
@@ -389,7 +394,8 @@ public sealed class TKMessageTests
     [Fact]
     public void JsonDeserialize_NullParamsProperty_TreatedAsNoParams()
     {
-        // Boundary: explicit "params": null is allowed and means "no params".
+        // Boundary: an explicit "params": null is valid and means no
+        // parameters.
         var msg = JsonSerializer.Deserialize<TKMessage>(
             @"{""key"":""common_errors_NOT_FOUND"",""params"":null}");
 
@@ -400,8 +406,8 @@ public sealed class TKMessageTests
     [Fact]
     public void JsonSerialize_InsideArray_PreservesShape()
     {
-        // Smoke test for the actual D2Result.Messages wire format, which is
-        // an array of TKMessage objects.
+        // Smoke test of the D2Result.Messages wire format, which is an array
+        // of TKMessage objects.
         TKMessage[] messages =
         [
             TK.Common.Errors.NOT_FOUND,

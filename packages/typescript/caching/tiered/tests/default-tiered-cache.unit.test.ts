@@ -33,6 +33,8 @@ import {
 
 const L1_INV_MSG = "Tiered cache L1 invalidation handler failed.";
 const L1_WRITE_MSG = "Tiered cache L1 write failed after L2 success.";
+const L1_DROP_MSG = "Tiered cache L1 drop failed.";
+const PUBLISH_FAILED_MSG = "Tiered cache invalidation publish failed.";
 
 function build(opts?: {
   l1?: LocalCacheTestDouble;
@@ -86,7 +88,7 @@ describe("DefaultTieredCache - get", () => {
     const { cache, l1 } = build();
     const r = await cache.get<string>("missing");
     expect(r.success).toBe(false);
-    expect(r.errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
     expect(l1.called("set")).toBe(false);
   });
 
@@ -173,7 +175,7 @@ describe("DefaultTieredCache - getMany", () => {
     const { cache } = build();
     const r = await cache.getMany<string>(["x", "y"]);
     expect(r.success).toBe(false);
-    expect(r.errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
     expect(r.isPartialSuccess).toBe(false);
   });
 
@@ -263,10 +265,10 @@ describe("DefaultTieredCache - getMany", () => {
     const { cache, l2 } = build();
     l2.nextResult.getMany = fail({
       statusCode: HttpStatusCode.BadRequest,
-      errorCode: ErrorCodes.NOT_FOUND,
+      errorCode: ErrorCodes.GEN_NOT_FOUND,
     });
     const r = await cache.getMany<string>(["x"]);
-    expect(r.errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
   });
 });
 
@@ -482,6 +484,250 @@ describe("DefaultTieredCache - atomics", () => {
     expect(l1.callsOf("set")[0]?.args[2]).toBe(777);
   });
 
+  it("setIfEqual_written_leavesNoLocalCopy", async () => {
+    // The member leaves no local copy: the comparison establishes the state of
+    // the shared value at the instant it ran and nothing about a local copy a
+    // moment later. This test fails against a populate-on-success
+    // implementation, which would let a revoked entry survive on one node.
+    const { cache, l1, l2 } = build();
+    l2.store.set("k", "was");
+    l1.store.set("k", "stale");
+
+    const r = await cache.setIfEqual("k", "was", "now");
+
+    expect(r.data).toBe(true);
+    expect(l2.store.get("k")).toBe("now");
+    expect(l1.store.has("k")).toBe(false);
+  });
+
+  it("setIfEqual_comparisonLost_leavesNoLocalCopy", async () => {
+    const { cache, l1, l2 } = build();
+    l2.store.set("k", "something-else");
+    l1.store.set("k", "stale");
+
+    const r = await cache.setIfEqual("k", "was", "now");
+
+    expect(r.data).toBe(false);
+    expect(l1.store.has("k")).toBe(false);
+  });
+
+  it("setIfEqual_l2Fail_stillLeavesNoLocalCopy", async () => {
+    // This member differs from increment here. After a failed conditional
+    // write the node cannot know whether its copy still matches the shared
+    // value, so the member drops its copy. Declining to trust the copy is the
+    // purpose of this member.
+    const { cache, l1, l2 } = build();
+    l1.store.set("k", "stale");
+    l2.forceFailNext = "setIfEqual";
+
+    const r = await cache.setIfEqual("k", "was", "now");
+
+    expect(r.success).toBe(false);
+    expect(l1.store.has("k")).toBe(false);
+  });
+
+  it("setIfEqual_passesExpirationMsToL2", async () => {
+    const { cache, l2 } = build();
+    l2.store.set("k", "was");
+    await cache.setIfEqual("k", "was", "now", 777);
+
+    expect(l2.callsOf("setIfEqual")[0]?.args[3]).toBe(777);
+  });
+
+  it("setIfEqual_l1DropFails_logsTheDropRatherThanAnL2Success", async () => {
+    // The message must not state that L2 succeeded: this path drops L1 whatever
+    // result L2 returned, so the write-failed-after-L2-success line would be
+    // false on the branch where L2 rejected the write.
+    const logger = createCapturingTestLogger();
+    const { cache, l1, l2 } = build({ logger });
+    l2.store.set("k", "was");
+    l1.forceFailNext = "remove";
+
+    await cache.setIfEqual("k", "was", "now");
+
+    expect(logger.warnings).toHaveLength(1);
+    expect(logger.warnings[0]?.message).toBe(L1_DROP_MSG);
+    expect(logger.warnings[0]?.bindings).toEqual({
+      operation: TieredCacheOp.SET_IF_EQUAL,
+      key: "k",
+      errorCode: "L1_DOWN",
+    });
+  });
+
+  it("setIfEqual_l1DropFailsWithoutErrorCode_logsUnknown", async () => {
+    const logger = createCapturingTestLogger();
+    const l1 = createLocalCacheTestDouble();
+    l1.nextResult.remove = fail({
+      statusCode: HttpStatusCode.ServiceUnavailable,
+    });
+    const { cache, l2 } = build({ l1, logger });
+    l2.store.set("k", "was");
+
+    await cache.setIfEqual("k", "was", "now");
+
+    expect(logger.warnings[0]?.bindings?.errorCode).toBe(
+      TIERED_ERROR_CODE_UNKNOWN,
+    );
+  });
+
+  it("removeIfEqual_removed_leavesNoLocalCopy", async () => {
+    const { cache, l1, l2 } = build();
+    l2.store.set("k", "was");
+    l1.store.set("k", "stale");
+
+    const r = await cache.removeIfEqual("k", "was");
+
+    expect(r.data).toBe(true);
+    expect(l2.store.has("k")).toBe(false);
+    expect(l1.store.has("k")).toBe(false);
+  });
+
+  it("removeIfEqual_comparisonLost_leavesL2AloneAndNoLocalCopy", async () => {
+    const { cache, l1, l2 } = build();
+    l2.store.set("k", "something-else");
+    l1.store.set("k", "stale");
+
+    const r = await cache.removeIfEqual("k", "was");
+
+    expect(r.data).toBe(false);
+    expect(l2.store.get("k")).toBe("something-else");
+    expect(l1.store.has("k")).toBe(false);
+  });
+
+  it("removeIfEqual_l2Fail_stillLeavesNoLocalCopy", async () => {
+    // After a failed compare-and-delete the node cannot know whether its copy
+    // still matches the shared value, so it drops its copy and does not trust it.
+    const { cache, l1, l2 } = build();
+    l1.store.set("k", "stale");
+    l2.forceFailNext = "removeIfEqual";
+
+    const r = await cache.removeIfEqual("k", "was");
+
+    expect(r.success).toBe(false);
+    expect(l1.store.has("k")).toBe(false);
+  });
+
+  it("removeIfEqual_l1DropFails_logsTheDropUnderItsOwnOperation", async () => {
+    const logger = createCapturingTestLogger();
+    const { cache, l1, l2 } = build({ logger });
+    l2.store.set("k", "was");
+    l1.forceFailNext = "remove";
+
+    await cache.removeIfEqual("k", "was");
+
+    expect(logger.warnings).toHaveLength(1);
+    expect(logger.warnings[0]?.message).toBe(L1_DROP_MSG);
+    expect(logger.warnings[0]?.bindings).toEqual({
+      operation: TieredCacheOp.REMOVE_IF_EQUAL,
+      key: "k",
+      errorCode: "L1_DOWN",
+    });
+  });
+
+  it("setIfEqual_written_invalidatesTheOtherInstances", async () => {
+    // The branch where the write took effect replaced the shared value, so every
+    // other instance holds the value this write superseded. With an
+    // implementation that publishes nothing, those instances return the
+    // superseded value from their own local tier until it expires.
+    const backplane = createBackplaneTestDouble();
+    const { cache, l2 } = build({ backplane });
+    l2.store.set("k", "was");
+
+    const r = await cache.setIfEqual("k", "was", "now");
+
+    expect(r.data).toBe(true);
+    expect(backplane.published).toEqual(["k"]);
+  });
+
+  it("setIfEqual_comparisonLost_invalidatesNobody", async () => {
+    // The contrasting case at the same call site: a comparison that lost
+    // changed nothing at L2, so the other instances' copies are as good as
+    // they were and an invalidation would drop them for nothing.
+    const backplane = createBackplaneTestDouble();
+    const { cache, l2 } = build({ backplane });
+    l2.store.set("k", "something-else");
+
+    const r = await cache.setIfEqual("k", "was", "now");
+
+    expect(r.data).toBe(false);
+    expect(backplane.published).toHaveLength(0);
+  });
+
+  it("setIfEqual_l2Fail_invalidatesNobody", async () => {
+    const backplane = createBackplaneTestDouble();
+    const { cache, l2 } = build({ backplane });
+    l2.forceFailNext = "setIfEqual";
+
+    const r = await cache.setIfEqual("k", "was", "now");
+
+    expect(r.success).toBe(false);
+    expect(backplane.published).toHaveLength(0);
+  });
+
+  it("setIfEqual_publishFails_logsItAndKeepsTheAnswer", async () => {
+    // The result this member returns is whether the write took effect. A
+    // failed invalidation does not change that, so it is logged rather than
+    // returned.
+    const backplane = createBackplaneTestDouble();
+    backplane.forceFailPublish = true;
+    const logger = createCapturingTestLogger();
+    const { cache, l2 } = build({ backplane, logger });
+    l2.store.set("k", "was");
+
+    const r = await cache.setIfEqual("k", "was", "now");
+
+    expect(r.success).toBe(true);
+    expect(r.data).toBe(true);
+    expect(logger.warnings).toHaveLength(1);
+    expect(logger.warnings[0]?.message).toBe(PUBLISH_FAILED_MSG);
+    expect(logger.warnings[0]?.bindings).toEqual({
+      operation: TieredCacheOp.SET_IF_EQUAL,
+      key: "k",
+      errorCode: "BACKPLANE_DOWN",
+    });
+  });
+
+  it("removeIfEqual_removed_invalidatesTheOtherInstances", async () => {
+    const backplane = createBackplaneTestDouble();
+    const { cache, l2 } = build({ backplane });
+    l2.store.set("k", "was");
+
+    const r = await cache.removeIfEqual("k", "was");
+
+    expect(r.data).toBe(true);
+    expect(backplane.published).toEqual(["k"]);
+  });
+
+  it("removeIfEqual_comparisonLost_invalidatesNobody", async () => {
+    const backplane = createBackplaneTestDouble();
+    const { cache, l2 } = build({ backplane });
+    l2.store.set("k", "something-else");
+
+    const r = await cache.removeIfEqual("k", "was");
+
+    expect(r.data).toBe(false);
+    expect(backplane.published).toHaveLength(0);
+  });
+
+  it("removeIfEqual_publishFails_logsItAndKeepsTheAnswer", async () => {
+    const backplane = createBackplaneTestDouble();
+    backplane.forceFailPublish = true;
+    const logger = createCapturingTestLogger();
+    const { cache, l2 } = build({ backplane, logger });
+    l2.store.set("k", "was");
+
+    const r = await cache.removeIfEqual("k", "was");
+
+    expect(r.data).toBe(true);
+    expect(logger.warnings).toHaveLength(1);
+    expect(logger.warnings[0]?.message).toBe(PUBLISH_FAILED_MSG);
+    expect(logger.warnings[0]?.bindings).toEqual({
+      operation: TieredCacheOp.REMOVE_IF_EQUAL,
+      key: "k",
+      errorCode: "BACKPLANE_DOWN",
+    });
+  });
+
   it("increment_success_alwaysRemovesL1", async () => {
     const { cache, l1 } = build();
     l1.store.set("c", 100);
@@ -513,6 +759,27 @@ describe("DefaultTieredCache - atomics", () => {
     expect(l1.called("acquireLock")).toBe(false);
   });
 
+  it("consumeToken_delegatesToL2_only", async () => {
+    // The bucket state belongs to the shared store: an L1 copy would return a
+    // result for this node rather than for the cluster.
+    const { cache, l1, l2 } = build();
+    const r = await cache.consumeToken("bucket", 10, 60_000, 5);
+
+    expect(r.data?.admitted).toBe(true);
+    expect(l2.called("consumeToken")).toBe(true);
+    expect(l1.called("consumeToken")).toBe(false);
+  });
+
+  it("consumeToken_whenL2Refuses_propagatesTheWait", async () => {
+    const { cache, l2 } = build();
+    l2.nextResult.consumeToken = ok({ admitted: false, retryAfterMs: 6_000 });
+
+    const r = await cache.consumeToken("bucket", 10, 60_000, 5);
+
+    expect(r.data?.admitted).toBe(false);
+    expect(r.data?.retryAfterMs).toBe(6_000);
+  });
+
   it("releaseLock_delegatesToL2_only", async () => {
     const { cache, l1, l2 } = build();
     await cache.acquireLock("lk", "id", 1000);
@@ -531,7 +798,7 @@ describe("DefaultTieredCache - atomics", () => {
   });
 
   it("setNx_forwardsAbortSignalToL2AndL1SideEffect", async () => {
-    // Took-write → L1.set with same signal; already-exists → L1.remove.
+    // Took-write -> L1.set with same signal; already-exists -> L1.remove.
     const { cache, l1, l2 } = build();
     const tookWrite = new AbortController();
     await cache.setNx("k1", "v", undefined, tookWrite.signal);
@@ -608,7 +875,7 @@ describe("DefaultTieredCache - broadcast", () => {
     expect(backplane.published).toEqual(["caller-key"]);
     // Everyone-acts: own L1 dropped by subscription after set populated it.
     expect(l1.store.has("caller-key")).toBe(false);
-    // Must NOT call L2 *AndBroadcast*.
+    // Must not call L2 *AndBroadcast*.
     expect(l2.called("setAndBroadcast")).toBe(false);
   });
 
@@ -688,7 +955,7 @@ describe("DefaultTieredCache - broadcast", () => {
     const backplane = createBackplaneTestDouble();
     const { cache } = build({ backplane });
     const ac = new AbortController();
-    // Production passes the caller's signal into publishInvalidation — pin
+    // Production passes the caller's signal into publishInvalidation - pin
     // that arg, not the subscription signal handlers receive on deliver.
     expect(
       (await cache.setAndBroadcast("k", "v", undefined, ac.signal)).success,

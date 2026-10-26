@@ -7,7 +7,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Subscribing
     {
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.UInt16, global::System.String, global::System.String, global::System.Exception?> __ConsumerStartedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.UInt16, global::System.String, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(300, nameof(ConsumerStarted)), "Consumer started for queue={Queue} (prefetch={Prefetch}, pattern={Pattern}, handler={Handler}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.UInt16, global::System.String, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(300, nameof(ConsumerStarted)), "Consumer started for queue={Queue} (prefetch={Prefetch}, pattern={Pattern}, handler={Handler}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void ConsumerStarted(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String queue, global::System.UInt16 prefetch, global::System.String pattern, global::System.String handler)
@@ -19,7 +19,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Subscribing
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.Exception?> __ConsumerStoppingCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(301, nameof(ConsumerStopping)), "Consumer stopping for queue={Queue}.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(301, nameof(ConsumerStopping)), "Consumer stopping for queue={Queue}.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void ConsumerStopping(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String queue)
@@ -31,7 +31,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Subscribing
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.UInt64, global::System.Boolean, global::System.String?, global::System.Exception?> __DeliveryReceivedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.UInt64, global::System.Boolean, global::System.String?>(global::Microsoft.Extensions.Logging.LogLevel.Debug, new global::Microsoft.Extensions.Logging.EventId(302, nameof(DeliveryReceived)), "Delivery received on queue={Queue} (deliveryTag={DeliveryTag}, redelivered={Redelivered}, msgId={MessageId}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.UInt64, global::System.Boolean, global::System.String?>(global::Microsoft.Extensions.Logging.LogLevel.Debug, new global::Microsoft.Extensions.Logging.EventId(302, nameof(DeliveryReceived)), "Delivery received on queue={Queue} (deliveryTag={DeliveryTag}, redelivered={Redelivered}, msgId={MessageId}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void DeliveryReceived(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String queue, global::System.UInt64 deliveryTag, global::System.Boolean redelivered, global::System.String? messageId)
@@ -43,7 +43,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Subscribing
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.UInt64, global::System.Double, global::System.Exception?> __DeliveryAckedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.UInt64, global::System.Double>(global::Microsoft.Extensions.Logging.LogLevel.Debug, new global::Microsoft.Extensions.Logging.EventId(303, nameof(DeliveryAcked)), "Delivery acked on queue={Queue} (deliveryTag={DeliveryTag}, durationMs={DurationMs:F0}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.UInt64, global::System.Double>(global::Microsoft.Extensions.Logging.LogLevel.Debug, new global::Microsoft.Extensions.Logging.EventId(303, nameof(DeliveryAcked)), "Delivery acked on queue={Queue} (deliveryTag={DeliveryTag}, durationMs={DurationMs:F0}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void DeliveryAcked(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String queue, global::System.UInt64 deliveryTag, global::System.Double durationMs)
@@ -55,7 +55,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Subscribing
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.UInt64, global::System.String?, global::System.Exception?> __DeliverySkippedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.UInt64, global::System.String?>(global::Microsoft.Extensions.Logging.LogLevel.Debug, new global::Microsoft.Extensions.Logging.EventId(304, nameof(DeliverySkipped)), "Delivery skipped (idempotency hit) on queue={Queue} (deliveryTag={DeliveryTag}, msgId={MessageId}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.UInt64, global::System.String?>(global::Microsoft.Extensions.Logging.LogLevel.Debug, new global::Microsoft.Extensions.Logging.EventId(304, nameof(DeliverySkipped)), "Delivery skipped (idempotency hit) on queue={Queue} (deliveryTag={DeliveryTag}, msgId={MessageId}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void DeliverySkipped(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String queue, global::System.UInt64 deliveryTag, global::System.String? messageId)
@@ -67,7 +67,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Subscribing
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String?, global::System.Exception?> __HandlerResultFailureCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String?>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(305, nameof(HandlerResultFailure)), "Handler returned a non-Ok result on queue={Queue} (errorCode={ErrorCode}); routing to DLQ.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String?>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(305, nameof(HandlerResultFailure)), "Handler returned a non-Ok result on queue={Queue} (errorCode={ErrorCode}); routing to DLQ.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void HandlerResultFailure(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String queue, global::System.String? errorCode)
@@ -79,7 +79,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Subscribing
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String?, global::System.String, global::System.String?, global::System.Exception?> __HandlerThrewCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String?, global::System.String, global::System.String?>(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(306, nameof(HandlerThrew)), "Handler threw on queue={Queue} (msgId={MessageId}, exType={ExType}, where={Where}); routing to DLQ.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String?, global::System.String, global::System.String?>(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(306, nameof(HandlerThrew)), "Handler threw on queue={Queue} (msgId={MessageId}, exType={ExType}, where={Where}); routing to DLQ.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void HandlerThrew(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String queue, global::System.String? messageId, global::System.String exType, global::System.String? where)
@@ -91,7 +91,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Subscribing
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String, global::System.String?, global::System.String, global::System.String?, global::System.Exception?> __BoundaryFailureCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String, global::System.String?, global::System.String, global::System.String?>(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(307, nameof(BoundaryFailure)), "Boundary failure on queue={Queue} (cause={Cause}, msgId={MessageId}, exType={ExType}, where={Where}); routing to DLQ.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String, global::System.String?, global::System.String, global::System.String?>(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(307, nameof(BoundaryFailure)), "Boundary failure on queue={Queue} (cause={Cause}, msgId={MessageId}, exType={ExType}, where={Where}); routing to DLQ.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void BoundaryFailure(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String queue, global::System.String cause, global::System.String? messageId, global::System.String exType, global::System.String? where)
@@ -103,7 +103,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Subscribing
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Int32, global::System.Exception?> __HostStartedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.Int32>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(308, nameof(HostStarted)), "ConsumerHostedService: started {Count} subscriber channel(s).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.Int32>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(308, nameof(HostStarted)), "ConsumerHostedService: started {Count} subscriber channel(s).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void HostStarted(global::Microsoft.Extensions.Logging.ILogger logger, global::System.Int32 count)
@@ -114,15 +114,15 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Subscribing
             }
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String, global::System.UInt64, global::System.String?, global::System.String, global::System.String?, global::System.Exception?> __DlqRepublishFailedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String, global::System.UInt64, global::System.String?, global::System.String, global::System.String?>(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(309, nameof(DlqRepublishFailed)), "DLQ republish failed on queue={Queue} (dlx={Dlx}, deliveryTag={DeliveryTag}, msgId={MessageId}, exType={ExType}, where={Where}); falling back to BasicNack so x-dead-letter-exchange routes the message — x-d2-failure-reason header will NOT survive.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String, global::System.UInt64, global::System.String?, global::System.String, global::System.Exception?> __DlqRepublishFailedCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String, global::System.UInt64, global::System.String?, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(309, nameof(DlqRepublishFailed)), "DLQ republish failed on queue={Queue} (dlx={Dlx}, deliveryTag={DeliveryTag}, msgId={MessageId}, outcome={Outcome}); an open original consumer channel will receive BasicNack without requeue. Broker dead-lettering does not preserve the added failure header.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
-        public static partial void DlqRepublishFailed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String queue, global::System.String dlx, global::System.UInt64 deliveryTag, global::System.String? messageId, global::System.String exType, global::System.String? where)
+        public static partial void DlqRepublishFailed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String queue, global::System.String dlx, global::System.UInt64 deliveryTag, global::System.String? messageId, global::System.String outcome)
         {
             if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Error))
             {
-                __DlqRepublishFailedCallback(logger, queue, dlx, deliveryTag, messageId, exType, where, null);
+                __DlqRepublishFailedCallback(logger, queue, dlx, deliveryTag, messageId, outcome, null);
             }
         }
         /// <summary> This API supports the logging infrastructure and is not intended to be used directly from your code. It is subject to change in the future. </summary>
@@ -148,7 +148,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Subscribing
                 var TimeoutMs = this._timeoutMs;
                 var InflightCount = this._inflightCount;
 
-                return string.Create(global::System.Globalization.CultureInfo.InvariantCulture, $"Disposal drain timed out on queue={Queue} after {TimeoutMs}ms — {InflightCount} in-flight callback(s) still running. Closing channel anyway; affected handlers may surface ObjectDisposedException on their next ack/nack and the broker will redeliver the message.");
+                return string.Create(global::System.Globalization.CultureInfo.InvariantCulture, $"Disposal drain timed out on queue={Queue} after {TimeoutMs}ms - {InflightCount} in-flight callback(s) still running. Closing channel anyway; affected handlers may surface ObjectDisposedException on their next ack/nack and the broker will redeliver the message.");
             }
 
             public static readonly global::System.Func<__DisposeDrainTimeoutStruct, global::System.Exception?, string> Format = (state, ex) => state.ToString();
@@ -162,7 +162,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Subscribing
                     0 => new global::System.Collections.Generic.KeyValuePair<string, object?>("Queue", this._queue),
                     1 => new global::System.Collections.Generic.KeyValuePair<string, object?>("InflightCount", this._inflightCount),
                     2 => new global::System.Collections.Generic.KeyValuePair<string, object?>("TimeoutMs", this._timeoutMs),
-                    3 => new global::System.Collections.Generic.KeyValuePair<string, object?>("{OriginalFormat}", "Disposal drain timed out on queue={Queue} after {TimeoutMs}ms — {InflightCount} in-flight callback(s) still running. Closing channel anyway; affected handlers may surface ObjectDisposedException on their next ack/nack and the broker will redeliver the message."),
+                    3 => new global::System.Collections.Generic.KeyValuePair<string, object?>("{OriginalFormat}", "Disposal drain timed out on queue={Queue} after {TimeoutMs}ms - {InflightCount} in-flight callback(s) still running. Closing channel anyway; affected handlers may surface ObjectDisposedException on their next ack/nack and the broker will redeliver the message."),
 
                     _ => throw new global::System.IndexOutOfRangeException(nameof(index)),  // return the same exception LoggerMessage.Define returns in this case
                 };
@@ -194,7 +194,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Subscribing
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String?, global::System.Int32, global::System.Int32, global::System.Exception?> __RetriesExhaustedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String?, global::System.Int32, global::System.Int32>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(311, nameof(RetriesExhausted)), "Retries exhausted on queue={Queue} (msgId={MessageId}, attemptCount={AttemptCount}, max={MaxAttempts}); routing direct to DLQ without invoking the handler.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String?, global::System.Int32, global::System.Int32>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(311, nameof(RetriesExhausted)), "Retries exhausted on queue={Queue} (msgId={MessageId}, attemptCount={AttemptCount}, max={MaxAttempts}); routing direct to DLQ without invoking the handler.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void RetriesExhausted(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String queue, global::System.String? messageId, global::System.Int32 attemptCount, global::System.Int32 maxAttempts)
@@ -206,7 +206,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Subscribing
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.UInt64, global::System.String?, global::System.String, global::System.String?, global::System.Exception?> __AckFailedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.UInt64, global::System.String?, global::System.String, global::System.String?>(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(312, nameof(AckFailed)), "BasicAck failed on queue={Queue} (deliveryTag={DeliveryTag}, msgId={MessageId}, exType={ExType}, where={Where}); broker will redeliver — idempotency mark already written, so handler will skip on retry.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.UInt64, global::System.String?, global::System.String, global::System.String?>(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(312, nameof(AckFailed)), "BasicAck failed on queue={Queue} (deliveryTag={DeliveryTag}, msgId={MessageId}, exType={ExType}, where={Where}); broker will redeliver - idempotency mark already written, so handler will skip on retry.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void AckFailed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String queue, global::System.UInt64 deliveryTag, global::System.String? messageId, global::System.String exType, global::System.String? where)
@@ -218,7 +218,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Subscribing
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.UInt64, global::System.String?, global::System.String?, global::System.Exception?> __IdempotencyMarkFailedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.UInt64, global::System.String?, global::System.String?>(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(313, nameof(IdempotencyMarkFailed)), "Idempotency mark write failed on queue={Queue} (deliveryTag={DeliveryTag}, msgId={MessageId}, errorCode={ErrorCode}); NACKing to DLQ rather than acking — acking would leave the dedup window unguarded and a redelivery would re-run the handler.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.UInt64, global::System.String?, global::System.String?>(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(313, nameof(IdempotencyMarkFailed)), "Idempotency mark write failed on queue={Queue} (deliveryTag={DeliveryTag}, msgId={MessageId}, errorCode={ErrorCode}); NACKing to DLQ rather than acking - acking would leave the dedup window unguarded and a redelivery would re-run the handler.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void IdempotencyMarkFailed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String queue, global::System.UInt64 deliveryTag, global::System.String? messageId, global::System.String? errorCode)
@@ -230,7 +230,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Subscribing
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Exception?> __HostStartupFaultedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(314, nameof(HostStartupFaulted)), "ConsumerHostedService background startup faulted; subscribers did not start. Investigate the underlying exception before expecting deliveries.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(314, nameof(HostStartupFaulted)), "ConsumerHostedService background startup faulted; subscribers did not start. Investigate the underlying exception before expecting deliveries.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void HostStartupFaulted(global::Microsoft.Extensions.Logging.ILogger logger, global::System.Exception ex)
@@ -238,6 +238,30 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Subscribing
             if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Error))
             {
                 __HostStartupFaultedCallback(logger, ex);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String, global::System.UInt16, global::System.String, global::System.Exception?> __ConsumerChannelShutdownCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String, global::System.UInt16, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(315, nameof(ConsumerChannelShutdown)), "Consumer channel for queue={Queue} shut down (initiator={Initiator}, replyCode={ReplyCode}, replyText={ReplyText}). Deliveries stop until automatic recovery re-attaches the consumer.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void ConsumerChannelShutdown(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String queue, global::System.String initiator, global::System.UInt16 replyCode, global::System.String replyText)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
+            {
+                __ConsumerChannelShutdownCallback(logger, queue, initiator, replyCode, replyText, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.UInt64, global::System.String?, global::System.String, global::System.String?, global::System.Exception?> __DlqSettlementFailedCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.UInt64, global::System.String?, global::System.String, global::System.String?>(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(316, nameof(DlqSettlementFailed)), "DLQ delivery settlement failed on queue={Queue} (deliveryTag={DeliveryTag}, msgId={MessageId}, exType={ExType}, where={Where}); settlement is not retried. Broker redelivery remains possible.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void DlqSettlementFailed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String queue, global::System.UInt64 deliveryTag, global::System.String? messageId, global::System.String exType, global::System.String? where)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Error))
+            {
+                __DlqSettlementFailedCallback(logger, queue, deliveryTag, messageId, exType, where, null);
             }
         }
     }

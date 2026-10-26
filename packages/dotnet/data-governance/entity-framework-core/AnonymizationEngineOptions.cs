@@ -8,26 +8,26 @@ namespace DcsvIo.D2.DataGovernance.EntityFrameworkCore;
 
 /// <summary>
 /// Configuration options for <c>AnonymizationEngine</c>. Bind from the
-/// <see cref="SECTION_NAME"/> configuration section or supply via
+/// <see cref="SECTION"/> configuration section or supply via
 /// <c>IOptions&lt;AnonymizationEngineOptions&gt;</c> in the DI container.
 /// </summary>
 /// <remarks>
-/// The engine validates <see cref="BatchSize"/> on each sweep — if the
-/// value is less than 1 the call returns a failure rather than silently
-/// looping or truncating. The startup validator (registered by
+/// The engine validates <see cref="BatchSize"/> on each sweep; if the
+/// value is less than 1 the call returns a failure and does not loop or
+/// truncate silently. The startup validator (registered by
 /// <c>AddD2DataGovernance</c>) validates the EF Core <em>model</em>
-/// (entity-type annotations, tier shapes, template tokens) — it does not
+/// (entity-type annotations, tier shapes, template tokens) and does not
 /// validate option values such as <see cref="BatchSize"/> or
-/// <see cref="MaxConcurrencyRetries"/>. Option-value misconfig is detected
-/// at sweep time by the engine itself.
+/// <see cref="MaxConcurrencyRetries"/>. The engine detects a misconfigured
+/// option value at sweep time.
 /// </remarks>
 public sealed class AnonymizationEngineOptions
 {
     /// <summary>
     /// The configuration section name. Environment-variable binding uses
-    /// double-underscore separators, e.g. <c>DATA_GOVERNANCE__BATCHSIZE</c>.
+    /// double-underscore separators, e.g. <c>LIB_DATA_GOVERNANCE__BATCHSIZE</c>.
     /// </summary>
-    public const string SECTION_NAME = "DATA_GOVERNANCE";
+    public const string SECTION = "LIB_DATA_GOVERNANCE";
 
     /// <summary>
     /// Gets or sets the maximum number of rows materialized and saved per
@@ -38,7 +38,7 @@ public sealed class AnonymizationEngineOptions
     /// <summary>
     /// Gets or sets the maximum number of retries when a Tier-B chunk
     /// encounters a <c>DbUpdateConcurrencyException</c>. Defaults to
-    /// <c>3</c>. Must be at least 0 (0 means no retry — fail immediately
+    /// <c>3</c>. Must be at least 0 (0 means no retry - fail immediately
     /// on the first concurrency conflict).
     /// </summary>
     public int MaxConcurrencyRetries { get; set; } = 3;

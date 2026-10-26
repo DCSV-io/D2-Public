@@ -8,12 +8,11 @@ namespace DcsvIo.D2.Messaging;
 
 /// <summary>
 /// DI-singleton aggregating every <see cref="ISubscriberRegistration"/>
-/// recorded via <c>AddD2Subscriber</c>. Read once at startup by the
-/// transport's consumer host to declare topology and open consumer
-/// channels.
+/// recorded via <c>AddD2Subscriber</c>. The registrations are read once at
+/// startup to declare topology and open consumer channels.
 /// </summary>
 /// <remarks>
-/// Validates queue-name uniqueness at construction time — DI resolution
+/// Validates queue-name uniqueness at construction time - DI resolution
 /// fails fast on duplicate registrations rather than at consumer startup.
 /// </remarks>
 public sealed class SubscriberRegistry

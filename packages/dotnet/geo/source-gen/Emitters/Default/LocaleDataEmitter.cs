@@ -14,20 +14,21 @@ using DcsvIo.D2.SourceGen;
 using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
-/// Emits the per-locale DATA — single shape per entity + cycle-resolution
-/// via friend-assembly <c>internal set</c> + two-pass populate. Output:
+/// Emits the per-locale data: one shape per entity, with reference cycles
+/// resolved through friend-assembly <c>internal set</c> and a two-pass
+/// populate. The output is:
 /// <list type="bullet">
 ///   <item><description>
-///     <c>LocaleLookup.g.cs</c> — first pass constructs every
-///     <c>Locale</c> record with scalars and code-rep fields populated;
-///     wire-nav step mutates each record's <c>Language</c> + <c>Country</c>
-///     nav refs via friend-assembly <c>internal set</c> accessors.
+///     <c>LocaleLookup.g.cs</c>: the first pass creates every
+///     <c>Locale</c> record with scalars and code-rep fields populated, and
+///     the wire-nav step sets each record's <c>Language</c> and <c>Country</c>
+///     nav refs through friend-assembly <c>internal set</c> accessors.
 ///   </description></item>
 ///   <item><description>
-///     <c>LocalesNested.g.cs</c> — <c>Locales.en.US</c> nested static-class
-///     hierarchy. Skips 1-segment language-only tags and tags that are
-///     strict prefixes of deeper siblings. Both remain accessible via the
-///     flat lookup.
+///     <c>LocalesNested.g.cs</c>: the <c>Locales.en.US</c> nested static-class
+///     hierarchy. It skips 1-segment language-only tags and tags that
+///     are strict prefixes of deeper siblings. Both remain accessible
+///     through the flat lookup.
 ///   </description></item>
 /// </list>
 /// </summary>
@@ -48,10 +49,10 @@ internal static class LocaleDataEmitter
 
         var entries = SortByTag(localesEnv.Entries);
 
-        // Build the valid-LanguageCode member set (PascalCased). 162 locales
-        // reference ISO 639-2 / 639-3 codes outside the LanguageCode enum;
-        // their Language nav stays null. See KNOWN_WARNINGS.md "Language
-        // enum scope" for the limitation.
+        // Build the valid LanguageCode member set (PascalCased). Some locales
+        // reference ISO 639-2 / 639-3 codes outside the LanguageCode enum, and
+        // their Language nav stays null. The "Language enum scope" section of
+        // contracts/geo/KNOWN_WARNINGS.md describes this limitation.
         var validLanguageMembers = new HashSet<string>(System.StringComparer.Ordinal);
         if (context.Languages is { } langsEnv)
         {
@@ -63,8 +64,8 @@ internal static class LocaleDataEmitter
             }
         }
 
-        // Build the valid-CountryCode member set so we can defensively skip
-        // locales referencing countries not in the catalog.
+        // Build the valid CountryCode member set so the emitter can skip
+        // locales that reference countries not in the catalog.
         var validCountryMembers = new HashSet<string>(System.StringComparer.Ordinal);
         if (context.Countries is { } countriesEnv)
         {
@@ -242,8 +243,8 @@ internal static class LocaleDataEmitter
         var root = new TrieNode();
         var prefixes = new HashSet<string>(System.StringComparer.Ordinal);
 
-        // First pass — record which prefixes are non-leaf (have children deeper
-        // than themselves) so we can skip them as leaf members later.
+        // First pass: record which prefixes are non-leaf (have children deeper
+        // than themselves) so the second pass can skip them as leaf members.
         foreach (var entry in entries)
         {
             var segs = entry.IetfBcp47Tag.Split('-');
@@ -253,8 +254,8 @@ internal static class LocaleDataEmitter
                 prefixes.Add(string.Join("-", segs, 0, i));
         }
 
-        // Second pass — insert leaf entries into the trie, skipping 1-seg tags
-        // and any multi-seg tag whose tag is itself a recorded prefix of a
+        // Second pass: insert leaf entries into the trie. Skip 1-segment tags
+        // and any multi-segment tag that is itself a recorded prefix of a
         // deeper sibling.
         foreach (var entry in entries)
         {
@@ -300,7 +301,7 @@ internal static class LocaleDataEmitter
         sb.AppendLine();
         sb.AppendLine("/// <summary>");
         sb.AppendLine(
-            "/// Strongly-typed nested-class hierarchy over the locale catalog —");
+            "/// Strongly-typed nested-class hierarchy over the locale catalog -");
         sb.AppendLine(
             "/// <c>Locales.en.US</c> returns a <c>LocaleCode</c>. 1-segment");
         sb.AppendLine(

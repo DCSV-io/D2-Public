@@ -41,12 +41,12 @@ public sealed class RegistryGeneratorTests
 {
     private const string _TARGET_ASSEMBLY = "DcsvIo.D2.ErrorCodes.Registry";
 
-    // Minimal valid generic spec (unprefixed codes, common domain).
+    // Minimal valid generic spec (GEN_ prefixed codes, common domain).
     private const string _GENERIC_SPEC = """
     {
       "errorCodes": [
         {
-          "code": "NOT_FOUND",
+          "code": "GEN_NOT_FOUND",
           "httpStatus": 404,
           "category": "not_found",
           "userMessageKey": "TK.Common.Errors.NOT_FOUND",
@@ -58,12 +58,12 @@ public sealed class RegistryGeneratorTests
     }
     """;
 
-    // Minimal valid auth spec (AUTH_ prefixed codes).
+    // Minimal valid auth spec (LIB_AUTH_ prefixed codes).
     private const string _AUTH_SPEC = """
     {
       "errorCodes": [
         {
-          "code": "AUTH_BEARER_MISSING",
+          "code": "LIB_AUTH_BEARER_MISSING",
           "httpStatus": 401,
           "category": "validation_failure",
           "userMessageKey": "TK.Auth.Errors.UNAUTHORIZED",
@@ -80,7 +80,7 @@ public sealed class RegistryGeneratorTests
     {
       "errorCodes": [
         {
-          "code": "NOT_FOUND",
+          "code": "GEN_NOT_FOUND",
           "httpStatus": 401,
           "category": "validation_failure",
           "userMessageKey": "TK.Auth.Errors.UNAUTHORIZED",
@@ -92,7 +92,7 @@ public sealed class RegistryGeneratorTests
     }
     """;
 
-    // Per-domain spec with an unprefixed code (no AUTH_).
+    // Per-domain spec with an unprefixed code (no LIB_AUTH_ prefix).
     private const string _AUTH_SPEC_UNPREFIXED_CODE = """
     {
       "errorCodes": [
@@ -109,7 +109,7 @@ public sealed class RegistryGeneratorTests
     }
     """;
 
-    // The closed error-category spec (the nine canonical wire strings).
+    // The closed error-category spec, one entry per canonical wire string.
     private const string _CATEGORY_SPEC = """
     {
       "categories": [
@@ -131,7 +131,7 @@ public sealed class RegistryGeneratorTests
     {
       "errorCodes": [
         {
-          "code": "WEIRD_CODE",
+          "code": "GEN_WEIRD_CODE",
           "httpStatus": 404,
           "category": "made_up_category",
           "userMessageKey": "TK.Common.Errors.NOT_FOUND",
@@ -232,9 +232,37 @@ public sealed class RegistryGeneratorTests
     }
 
     [Fact]
+    public void Generator_UnregisteredCatalog_EmitsD2ERC008_AndNoRegistry()
+    {
+        var driver = RunGenerator(
+            assemblyName: _TARGET_ASSEMBLY,
+            additionalTexts:
+            [
+                new InMemoryAdditionalText("error-codes.spec.json", _GENERIC_SPEC),
+                new InMemoryAdditionalText("geo-error-codes.spec.json", _AUTH_SPEC),
+            ]);
+
+        var result = driver.GetRunResult();
+
+        var refusal = result.Diagnostics.Should().ContainSingle().Which;
+        refusal.Id.Should().Be("D2ERC008");
+        refusal.Severity.Should().Be(DiagnosticSeverity.Error);
+        refusal.GetMessage(System.Globalization.CultureInfo.InvariantCulture)
+            .Should().Contain("'geo-error-codes.spec.json'");
+        result.GeneratedTrees.Should().BeEmpty(
+            because: "no registry must be emitted when a catalog has no declared identity");
+    }
+
+    [Fact]
+    public void UnregisteredCatalogId_IsD2ERC008()
+    {
+        RegistryDiagnosticIds.UnregisteredCatalog.Should().Be("D2ERC008");
+    }
+
+    [Fact]
     public void Generator_KnownCategoryWithCategorySpec_EmitsRegistry()
     {
-        // The category spec is present and every code's category is a member —
+        // The category spec is present and every code's category is a member -
         // the membership check (D2ERC007) must NOT fire and the registry emits.
         var driver = RunGenerator(
             assemblyName: _TARGET_ASSEMBLY,

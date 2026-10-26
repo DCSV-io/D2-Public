@@ -46,8 +46,8 @@ public sealed class RateLimiterOptionsTests
     [Fact]
     public void ParameterizedCtor_ZeroMaxConcurrency_ThrowsArgumentOutOfRange()
     {
-        // F-2 regression pin: MaxConcurrency=0 is a misconfiguration; ctor must
-        // throw rather than silently pass 0 to SemaphoreSlim where the error is
+        // Regression pin: MaxConcurrency=0 is a misconfiguration. The ctor must
+        // throw instead of passing 0 to SemaphoreSlim, where the error is
         // harder to diagnose.
         var act = () => new RateLimiterOptions(maxConcurrency: 0);
 
@@ -58,7 +58,7 @@ public sealed class RateLimiterOptionsTests
     [Fact]
     public void ParameterizedCtor_NegativeMaxConcurrency_ThrowsArgumentOutOfRange()
     {
-        // Negative values are also invalid (same predicate as zero).
+        // Negative values are also invalid (the ctor checks them with the same predicate as zero).
         var act = () => new RateLimiterOptions(maxConcurrency: -1);
 
         act.Should().Throw<ArgumentOutOfRangeException>()
@@ -68,7 +68,7 @@ public sealed class RateLimiterOptionsTests
     [Fact]
     public void ParameterizedCtor_OneMaxConcurrency_IsMinimumValidValue()
     {
-        // MaxConcurrency=1 is the lowest valid value and must not throw.
+        // MaxConcurrency=1 is the lowest valid value; the ctor must not throw.
         var opts = new RateLimiterOptions(maxConcurrency: 1);
 
         opts.MaxConcurrency.Should().Be(1);

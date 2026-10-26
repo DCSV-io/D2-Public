@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import { ALL_GRPC_HEADERS, GrpcHeaders } from "../src/grpc-headers.g.js";
 
-describe("GrpcHeaders — per-VALUE pin (mirrors .NET GrpcHeaders)", () => {
+describe("GrpcHeaders - per-VALUE pin (mirrors .NET GrpcHeaders)", () => {
   it.each([
     ["AUTHORIZATION", "Authorization"],
     ["PROPAGATED_CONTEXT", "x-d2-context"],

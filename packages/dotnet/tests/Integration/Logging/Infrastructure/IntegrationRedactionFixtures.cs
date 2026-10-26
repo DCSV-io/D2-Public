@@ -13,7 +13,7 @@ using DcsvIo.D2.Utilities.Enums;
 /// Fixture types used to drive the integration-level redaction tests.
 /// Distinct from the unit-level fixture pool (see
 /// <c>Unit.Logging.Fixtures.RedactionFixtures</c>) so unit + integration
-/// fixtures don't accidentally couple — a unit-test rename can't break the
+/// fixtures don't accidentally couple - a unit-test rename can't break the
 /// integration suite, and vice versa.
 /// </summary>
 internal static class IntegrationRedactionFixtures
@@ -44,17 +44,20 @@ internal static class IntegrationRedactionFixtures
     }
 
     /// <summary>
-    /// The exact emitted <c>KeyringEntry</c> shape — a positional record whose
-    /// <c>KeyBytes</c> parameter carries a property-level <c>[RedactData]</c> (secret) and
-    /// whose <c>Kid</c> stays visible. Pins that the runtime masks a nested-record
-    /// property-level redacted <c>byte[]</c> (the nested-model emitter path this deliverable
-    /// added).
+    /// The exact shape the contract emitter produces for a keyring entry - a
+    /// positional record whose <c>KeyBytes</c> parameter carries a property-level
+    /// <c>[RedactData]</c> (secret) and whose <c>Kid</c> stays visible. Pins that
+    /// the runtime masks a nested-record property-level redacted <c>byte[]</c>
+    /// (the nested-model emitter path).
     /// </summary>
     internal sealed record KeyringEntryFixture(
         string Kid,
         [property: RedactData(Reason = RedactReason.SecretInformation)] byte[] KeyBytes);
 
-    /// <summary>Outer with a collection of <see cref="KeyringEntryFixture"/> (the emitted keyring shape).</summary>
+    /// <summary>
+    /// Outer with a collection of <see cref="KeyringEntryFixture"/> (the shape the
+    /// contract emitter produces for a keyring).
+    /// </summary>
     internal sealed record OuterWithKeyringEntriesFixture
     {
         public string ActiveKid { get; init; } = string.Empty;
@@ -62,11 +65,11 @@ internal static class IntegrationRedactionFixtures
         public IReadOnlyList<KeyringEntryFixture> Entries { get; init; } = [];
     }
 
-    /// <summary>Plain non-redacted record — passthrough fixture.</summary>
+    /// <summary>Plain non-redacted record - passthrough fixture.</summary>
     internal sealed record PassthroughRecord(string Value, int Number);
 
     /// <summary>
-    /// One fixture type per <see cref="RedactReason"/> enum value — drives
+    /// One fixture type per <see cref="RedactReason"/> enum value - drives
     /// the "per-RedactReason rendering" assertion.
     /// </summary>
     [RedactData(Reason = RedactReason.Unspecified)]

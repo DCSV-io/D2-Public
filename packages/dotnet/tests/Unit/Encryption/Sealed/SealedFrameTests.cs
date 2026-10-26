@@ -33,7 +33,7 @@ public sealed class SealedFrameTests
     }
 
     // ---------------------------------------------------------------
-    // Encode → Decode round-trip.
+    // Encode -> Decode round-trip.
     // ---------------------------------------------------------------
 
     [Fact]
@@ -63,7 +63,7 @@ public sealed class SealedFrameTests
     {
         var frame = SealedFrame.Encode("k", sr_ephPub, sr_nonce, sr_ctWithTag);
 
-        // kid "k" is 1 byte → eph_pub_len sits right after [ver][len][kid].
+        // kid "k" is 1 byte -> eph_pub_len sits right after [ver][len][kid].
         var ephLenOffset = SealedFrameLayout.RECIPIENT_KID_OFFSET + 1;
         var declared = BinaryPrimitives.ReadUInt16BigEndian(frame.AsSpan(ephLenOffset));
 
@@ -136,15 +136,15 @@ public sealed class SealedFrameTests
     }
 
     // ---------------------------------------------------------------
-    // Decode — version dispatch (structural).
+    // Decode - version dispatch (structural).
     // ---------------------------------------------------------------
 
     [Fact]
     public void Decode_V1Frame_ThrowsFrameVersionMismatch()
     {
-        // A structurally-valid SYMMETRIC frame — the sealed decoder must
+        // A structurally-valid SYMMETRIC frame - the sealed decoder must
         // reject it on the version byte, never mis-parse it.
-        using var ring = TestKeyrings.AuditSingleKey();
+        using var ring = TestKeyrings.OrdersSingleKey();
         var v1Frame = new PayloadCrypto(ring).Encrypt("payload"u8);
 
         var act = () => { _ = SealedFrame.Decode(v1Frame).Version; };
@@ -166,7 +166,7 @@ public sealed class SealedFrameTests
     }
 
     // ---------------------------------------------------------------
-    // Decode — malformation matrix.
+    // Decode - malformation matrix.
     // ---------------------------------------------------------------
 
     [Fact]
@@ -331,7 +331,7 @@ public sealed class SealedFrameTests
     public void SymmetricDecode_V2Frame_ThrowsFrameVersionMismatch()
     {
         // The symmetric (version-1) decoder must hard-reject a sealed frame
-        // on its version byte — the regression pin that the v1 path stayed
+        // on its version byte - the regression pin that the v1 path stayed
         // byte-for-byte unchanged in behavior.
         var sealedFrame = SealedFrame.Encode("k", sr_ephPub, sr_nonce, sr_ctWithTag);
 

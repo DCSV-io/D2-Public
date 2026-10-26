@@ -10,13 +10,13 @@
 export enum QueuePattern {
   /** Commands / requests delivered to one consumer in the fleet. */
   CompetingConsumer = "CompetingConsumer",
-  /** Persistent events — survives restart, multiple consumers OK. */
+  /** Persistent events. The queue survives a restart and allows multiple consumers. */
   DurableShared = "DurableShared",
   /**
-   * Per-instance broadcast (cache invalidation, keyring refresh) — every
-   * replica gets every message. The consumer host auto-suffixes the queue
-   * name with a per-process token to avoid the broker's exclusive-queue lock
-   * collision in a multi-replica deployment.
+   * Per-instance broadcast (cache invalidation, keyring refresh): every
+   * replica gets every message. The subscriber appends a per-process token to
+   * the queue name to avoid the broker's exclusive-queue lock collision in a
+   * multi-replica deployment.
    */
   FanoutExclusiveAutoDelete = "FanoutExclusiveAutoDelete",
 }
@@ -29,8 +29,8 @@ export interface QueueFlags {
 }
 
 /**
- * Maps a {@link QueuePattern} to its broker-level durability flags — the exact
- * mirror of the .NET `DefaultTopologyDeclarer.QueueFlagsFor` switch.
+ * Maps a {@link QueuePattern} to its broker-level durability flags. It mirrors
+ * the .NET `DefaultTopologyDeclarer.QueueFlagsFor` switch exactly.
  */
 export function queueFlagsFor(pattern: QueuePattern): QueueFlags {
   switch (pattern) {

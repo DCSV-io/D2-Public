@@ -22,14 +22,14 @@ using Xunit;
 /// Each gap targets a specific engine path not covered by the per-step tests:
 /// <list type="bullet">
 ///   <item>
-///     <strong>M-1</strong> — fail-closed runtime path: a Tier-A entity with
+///     <strong>M-1</strong> - fail-closed runtime path: a Tier-A entity with
 ///     <c>SetNull</c> on a non-nullable value-type column reaches the engine via
 ///     <c>SkipModelValidation</c> and must return <c>UnhandledException</c> with no
 ///     writes.
 ///   </item>
 ///   <item>
-///     <strong>M-3</strong> — concurrency retry-exhaustion: <c>MaxConcurrencyRetries = 0</c>
-///     with a deterministic first-save conflict via <c>OnBeforeFirstSave</c> → engine
+///     <strong>M-3</strong> - concurrency retry-exhaustion: <c>MaxConcurrencyRetries = 0</c>
+///     with a deterministic first-save conflict via <c>OnBeforeFirstSave</c> -> engine
 ///     returns <c>ServiceUnavailable</c>.
 ///   </item>
 /// </list>
@@ -62,7 +62,7 @@ public sealed class AnonymizationEngineGapTests : IAsyncLifetime
         r_connectionString = await r_fixture.CreateIsolatedDatabaseAsync(
             nameof(AnonymizationEngineGapTests));
 
-        // GovDbContext creates its tables first (fresh isolated DB — EnsureCreated succeeds
+        // GovDbContext creates its tables first (fresh isolated DB - EnsureCreated succeeds
         // unconditionally because no other class has touched this database yet).
         r_schemaCtx = GovDbContext.Build(r_connectionString);
         await r_schemaCtx.Database.EnsureCreatedAsync();
@@ -70,7 +70,7 @@ public sealed class AnonymizationEngineGapTests : IAsyncLifetime
         // FailClosedDbContext needs its own table in the same isolated database.
         // EnsureCreated cannot be used here (the DB already exists after GovDbContext above;
         // it would be a no-op and not create the FailClosedUsers table). Use a raw
-        // CREATE TABLE IF NOT EXISTS — idempotent and safe.
+        // CREATE TABLE IF NOT EXISTS - idempotent and safe.
         r_failClosedSchemaCtx = FailClosedDbContext.Build(r_connectionString);
         await r_failClosedSchemaCtx.Database.ExecuteSqlRawAsync(@"
             CREATE TABLE IF NOT EXISTS ""FailClosedUsers"" (
@@ -91,13 +91,14 @@ public sealed class AnonymizationEngineGapTests : IAsyncLifetime
         await r_failClosedSchemaCtx.DisposeAsync();
         await r_schemaCtx.DisposeAsync();
         AnonymizationTierClassifier.ClearCache();
+        await r_fixture.AssertNoConnectionOpenAsync(r_connectionString);
     }
 
     // =========================================================================
-    // M-1: fail-closed runtime path — SetNull on non-nullable value-type column
+    // M-1: fail-closed runtime path - SetNull on non-nullable value-type column
     // =========================================================================
 
-    // long identifier — cannot wrap
+    // long identifier - cannot wrap
     [Fact]
     public async Task AnonymizeUserAsync_SetNull_on_non_nullable_int_returns_UnhandledException_and_no_writes()
     {
@@ -110,8 +111,8 @@ public sealed class AnonymizationEngineGapTests : IAsyncLifetime
 
         var result = await engine.AnonymizeUserAsync(userId);
 
-        // The engine's BuildOneSetterCall detects SetNull on int → IsFailClosedMisconfiguration
-        // → RunTierAAsync returns UnhandledException (500).
+        // The engine's BuildOneSetterCall detects SetNull on int -> IsFailClosedMisconfiguration
+        // -> RunTierAAsync returns UnhandledException (500).
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(System.Net.HttpStatusCode.InternalServerError);
 
@@ -125,10 +126,10 @@ public sealed class AnonymizationEngineGapTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // M-3: concurrency retry-exhaustion — MaxConcurrencyRetries = 0
+    // M-3: concurrency retry-exhaustion - MaxConcurrencyRetries = 0
     // =========================================================================
 
-    // long identifier — cannot wrap
+    // long identifier - cannot wrap
     [Fact]
     public async Task AnonymizeUserAsync_MaxConcurrencyRetries_zero_conflict_returns_ServiceUnavailable()
     {
@@ -205,7 +206,7 @@ public sealed class AnonymizationEngineGapTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // FailClosedDbContext — isolated context for M-1
+    // FailClosedDbContext - isolated context for M-1
     // =========================================================================
 
     /// <summary>
@@ -242,7 +243,7 @@ public sealed class AnonymizationEngineGapTests : IAsyncLifetime
             {
                 e.HasKey(x => x.Id);
 
-                // SetNull on non-nullable int — V7 startup guard blocks this at model-build
+                // SetNull on non-nullable int - V7 startup guard blocks this at model-build
                 // time. This context is used only in tests that intentionally exercise the
                 // engine's fail-closed runtime path by bypassing the validator.
                 e.Property(x => x.Score).AnonymizeNull();
@@ -261,11 +262,11 @@ public sealed class AnonymizationEngineGapTests : IAsyncLifetime
             public Guid? UserId { get; set; }
 
             /// <summary>
-            /// Gets or sets the score. Non-nullable int with SetNull — misconfigured.
+            /// Gets or sets the score. Non-nullable int with SetNull - misconfigured.
             /// </summary>
             public int Score { get; set; }
 
-            /// <summary>Gets or sets the display name. Constant — valid column.</summary>
+            /// <summary>Gets or sets the display name. Constant - valid column.</summary>
             [Anonymizable("Deleted")]
             public string DisplayName { get; set; } = string.Empty;
 

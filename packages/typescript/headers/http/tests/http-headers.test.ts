@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import { ALL_HTTP_HEADERS, HttpHeaders } from "../src/http-headers.g.js";
 
-describe("HttpHeaders — per-VALUE pin (mirrors .NET HttpHeaders)", () => {
+describe("HttpHeaders - per-VALUE pin (mirrors .NET HttpHeaders)", () => {
   it.each([
     ["ACCEPT_LANGUAGE", "Accept-Language"],
     ["AUTHORIZATION", "Authorization"],

@@ -8,10 +8,10 @@
  * and delegates downward.
  *
  * Mirrors .NET `IResilientLayer<TKey, TValue>.WrapAsync(key, next, ct)`: the
- * caller threads an optional {@link AbortSignal} (≈ `CancellationToken`) and the
+ * caller passes an optional {@link AbortSignal} (~= `CancellationToken`) and the
  * op receives the signal it should observe for cooperative cancellation. A layer
  * may replace the signal it passes inward (e.g. {@link TimeoutLayer} hands the op
- * a signal linked to both the caller signal and its own timeout) — exactly as the
+ * a signal linked to both the caller signal and its own timeout), as the
  * .NET `TimeoutLayer` passes a linked `CancellationToken` down.
  */
 export interface IResilientLayer {

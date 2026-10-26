@@ -15,11 +15,10 @@ using DcsvIo.D2.SourceGen;
 
 /// <summary>
 /// Pure logic for emitting a meter's <c>*TelemetryTags.g.cs</c> typed-constants
-/// class from a parsed <see cref="MeterEntry"/>. Stateless and unit-testable
-/// in isolation. The Roslyn-host integration
-/// (<see cref="TelemetryTagsGenerator"/>) calls this once per meter and
-/// translates emit-side <see cref="EmitDiagnostic"/> records into Roslyn
-/// <c>Diagnostic</c> instances.
+/// class from a parsed <see cref="MeterEntry"/>. Stateless, and testable in
+/// isolation because it reports problems as <see cref="EmitDiagnostic"/>
+/// records and never creates Roslyn <c>Diagnostic</c> instances;
+/// <see cref="TelemetryTagsGenerator"/> converts them.
 /// </summary>
 internal static class TelemetryTagsEmitter
 {
@@ -63,7 +62,7 @@ internal static class TelemetryTagsEmitter
                 continue;
             }
 
-            // Untagged instruments are skipped for codegen — they're documentation-only.
+            // Untagged instruments are skipped for codegen - they are documentation-only.
             if (inst.Tags.IsEmpty)
                 continue;
 
@@ -115,7 +114,7 @@ internal static class TelemetryTagsEmitter
             validInstrumentsWithTags.Add((inst, resolvedTags));
         }
 
-        // Nothing to emit — meter has no closed-enum tagged instruments.
+        // Nothing to emit - meter has no closed-enum tagged instruments.
         if (validInstrumentsWithTags.Count == 0)
         {
             return new EmitResult(
@@ -133,7 +132,7 @@ internal static class TelemetryTagsEmitter
     }
 
     /// <summary>
-    /// Returns the typed-constants class name for the given meter — either the
+    /// Returns the typed-constants class name for the given meter - either the
     /// spec-supplied <c>tagsClassName</c> override or a derived default.
     /// </summary>
     /// <param name="meter">The meter entry.</param>
@@ -148,7 +147,7 @@ internal static class TelemetryTagsEmitter
     }
 
     /// <summary>
-    /// Returns the typed-constants class namespace — either the spec-supplied
+    /// Returns the typed-constants class namespace - either the spec-supplied
     /// <c>tagsNamespace</c> override or <c>{consumingAssembly}.Telemetry</c>.
     /// </summary>
     /// <param name="meter">The meter entry.</param>
@@ -242,8 +241,8 @@ internal static class TelemetryTagsEmitter
                 $"        public const string {tagConstName} = "
                 + $"\"{EscapeStringLiteral(tag.Name)}\";");
 
-            // Cross-spec tags don't get nested-class enumeration — consumers
-            // reference the foreign spec's constants directly.
+            // Cross-spec tags get no nested-class enumeration - their values
+            // are the foreign spec's constants.
             if (!tag.IsCrossSpec && tag.Values.Length > 0)
             {
                 sb.AppendLine();

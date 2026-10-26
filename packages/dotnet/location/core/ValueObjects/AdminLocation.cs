@@ -19,11 +19,11 @@ using FieldConstraints = DcsvIo.D2.Validation.Abstractions.FieldConstraints;
 /// <summary>
 /// Immutable administrative-hierarchy location value object: country,
 /// subdivision, city, postal code (any subset). Coherence is enforced
-/// when both country and subdivision are supplied — a mismatch returns
-/// <see cref="D2Result{TData}.ValidationFailed"/>. A subdivision-only
-/// caller has country auto-populated from
-/// <see cref="SubdivisionCode.ParentCountry"/>. A country-only caller
-/// is valid (city / postal optional). The all-null caller is rejected
+/// when both country and subdivision are supplied - a mismatch returns
+/// <see cref="D2Result{TData}.ValidationFailed"/>. When only a subdivision
+/// is supplied, the country is auto-populated from
+/// <see cref="SubdivisionCode.ParentCountry"/>. A country alone
+/// is valid (city / postal optional). All-null input is rejected
 /// as a degenerate empty record.
 /// </summary>
 /// <remarks>
@@ -31,7 +31,7 @@ using FieldConstraints = DcsvIo.D2.Validation.Abstractions.FieldConstraints;
 /// and <see cref="SubdivisionIso31662Code"/> are marked
 /// <c>[RedactData(PersonalInformation)]</c> and are masked automatically by the
 /// Serilog destructuring policy. <see cref="CountryIso31661Alpha2Code"/> is left
-/// visible — a country code is coarse-grained and not individually identifying
+/// visible - a country code is coarse-grained and not individually identifying
 /// on its own. <see cref="HashId"/> is left visible because it is a one-way
 /// SHA-256 digest of the normalized field values: opaque, non-reversible, and safe
 /// for correlation in logs and traces without leaking address data.
@@ -54,7 +54,7 @@ public sealed record AdminLocation
     /// Gets the optional ISO 3166-1 alpha-2 country code. Auto-populated
     /// from <see cref="SubdivisionIso31662Code"/> when the caller supplies a
     /// subdivision but no explicit country.
-    /// Emitted unredacted in logs — a country code is coarse-grained and not
+    /// Emitted unredacted in logs - a country code is coarse-grained and not
     /// individually identifying on its own.
     /// </summary>
     public CountryCode? CountryIso31661Alpha2Code { get; init; }
@@ -64,7 +64,7 @@ public sealed record AdminLocation
     /// <c>"v1." + SHA-256(NormalizeForHash(City) | NormalizeForHash(PostalCode)
     /// | SubdivisionIso31662Code | CountryIso31661Alpha2Code)</c>
     /// as lowercase hex. Missing slots contribute <c>""</c>.
-    /// Emitted unredacted in logs — it is a one-way SHA-256 digest (opaque,
+    /// Emitted unredacted in logs - it is a one-way SHA-256 digest (opaque,
     /// non-reversible) and is safe for correlation in logs and traces without
     /// leaking address data.
     /// </summary>
@@ -100,8 +100,8 @@ public sealed record AdminLocation
         var cleanedCity = city.CleanStr();
         var cleanedPostal = postalCode.CleanStr();
 
-        // Length caps — structural floor on the post-clean stored form,
-        // matching the EF HasMaxLength guards (defense-in-depth per §9.4).
+        // Length caps - structural floor on the post-clean stored form,
+        // matching the EF HasMaxLength guards (defense-in-depth).
         if (cleanedCity.Truthy() && cleanedCity!.Length > FieldConstraints.CITY_MAX)
         {
             return D2Result<AdminLocation>.ValidationFailed(
@@ -128,7 +128,7 @@ public sealed record AdminLocation
             effectiveCountry ??= derived;
         }
 
-        // Degenerate empty record — all four fields null/empty after cleaning.
+        // Degenerate empty record - every field null/empty after cleaning.
         if (effectiveCountry is null && subdivisionIso31662Code is null
             && cleanedCity.Falsey() && cleanedPostal.Falsey())
         {
@@ -150,16 +150,16 @@ public sealed record AdminLocation
         }
 
         // Hash inputs:
-        //   city + postal — pass through NormalizeForHash (Unicode-category-aware filter).
-        //   subdivision  — code-form (e.g. "US-NY").
-        //   country      — code-form (alpha-2 enum name, e.g. "US").
+        //   city + postal - pass through NormalizeForHash (Unicode-category-aware filter).
+        //   subdivision  - code-form (e.g. "US-NY").
+        //   country      - code-form (alpha-2 enum name, e.g. "US").
         var hashInput =
             cleanedCity.NormalizeForHash() + "|" +
             validatedPostal.NormalizeForHash() + "|" +
             (subdivisionIso31662Code?.Value ?? string.Empty) + "|" +
             (effectiveCountry?.ToString() ?? string.Empty);
 
-        // BCL static one-shot — no IDisposable instance to manage.
+        // BCL static one-shot - no IDisposable instance to manage.
         var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(hashInput));
         var hashId = "v1." + Convert.ToHexStringLower(hashBytes);
 

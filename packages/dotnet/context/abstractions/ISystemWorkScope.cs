@@ -16,7 +16,7 @@ public interface ISystemWorkScope : IAsyncDisposable
 {
     /// <summary>
     /// Gets the scoped <see cref="IServiceProvider"/> for this System work unit.
-    /// Resolve handlers and other scoped dependencies from here — never from the
+    /// Resolve handlers and other scoped dependencies from here - never from the
     /// root provider, and never via a hand-rolled <c>CreateAsyncScope</c> that
     /// bypasses <see cref="ISystemWorkScopeFactory"/>.
     /// </summary>

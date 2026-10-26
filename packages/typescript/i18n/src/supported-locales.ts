@@ -19,7 +19,7 @@ export interface SupportedLocalesConfig {
 /**
  * Reads enabled-locale config from an env-var record using the indexed
  * convention `${prefix}__0`, `${prefix}__1`. Convenience for the common
- * case where the operator wires the locale list via env vars.
+ * case where the locale list comes from env vars.
  */
 export function loadSupportedLocalesConfig(
   prefix: string,
@@ -83,11 +83,12 @@ export class SupportedLocales {
   /**
    * Resolve a requested locale tag against the enabled list. Returns the
    * canonical-cased exact match if present, then the language-only
-   * fallback, then the default locale. NEVER returns a non-enabled tag.
+   * fallback, then the default locale. Never returns a non-enabled tag.
    *
-   * Wire-boundary carve-out per rules.md §6.15: accepts `string | null`
-   * because the primary caller passes a cookie / header value from
-   * `Headers.get(...)` directly (Web `Headers` API returns `string | null`).
+   * Wire-boundary exception to the TypeScript convention that optional values
+   * are declared `field?: T` and never as a `T | null` union: accepts
+   * `string | null` because a cookie or header value passes straight in from
+   * `Headers.get(...)` (the Web `Headers` API returns `string | null`).
    * The boundary normalizes `null` to "absent" internally.
    */
   resolve(requested: string | null | undefined): string {
@@ -107,7 +108,7 @@ export class SupportedLocales {
   }
 
   /**
-   * Canonical BCP 47 casing — language lowercase, region uppercase,
+   * Canonical BCP 47 casing: language lowercase, region uppercase,
    * script title-case. Rest of the subtags lowercase.
    */
   static canonicalize(tag: string): string {

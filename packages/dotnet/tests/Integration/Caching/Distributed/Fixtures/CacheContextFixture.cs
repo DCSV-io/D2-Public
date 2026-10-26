@@ -1,0 +1,64 @@
+// -----------------------------------------------------------------------
+// <copyright file="CacheContextFixture.cs" company="DCSV">
+// Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
+// </copyright>
+// -----------------------------------------------------------------------
+
+namespace DcsvIo.D2.Tests.Integration.Caching.Distributed.Fixtures;
+
+using DcsvIo.D2.Caching;
+using DcsvIo.D2.Caching.Distributed.Redis;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using StackExchange.Redis;
+
+/// <summary>
+/// Per-test cache context - owns its own connection multiplexer + fresh
+/// key prefix. Disposable so each test gets clean state.
+/// </summary>
+internal sealed class CacheContextFixture : IAsyncDisposable
+{
+    private readonly ConnectionMultiplexer r_redis;
+
+    internal CacheContextFixture(
+        string connectionString,
+        string keyPrefix,
+        ICacheInvalidationBackplane? backplane = null)
+    {
+        r_redis = ConnectionMultiplexer.Connect(connectionString);
+        var opts = Options.Create(new RedisCacheOptions
+        {
+            ConnectionString = connectionString,
+            KeyPrefix = keyPrefix,
+            DefaultExpiration = TimeSpan.FromMinutes(5),
+        });
+        Cache = new RedisDistributedCache(
+            r_redis,
+            opts,
+            new JsonCacheSerializer(),
+            NullLogger<RedisDistributedCache>.Instance,
+            backplane);
+        Backplane = backplane;
+        KeyPrefix = keyPrefix;
+    }
+
+    /// <summary>Gets the cache instance.</summary>
+    internal RedisDistributedCache Cache { get; }
+
+    /// <summary>Gets the backplane (if provided).</summary>
+    internal ICacheInvalidationBackplane? Backplane { get; }
+
+    /// <summary>Gets the prefix this context's cache puts in front of a key.</summary>
+    internal string KeyPrefix { get; }
+
+    /// <summary>
+    /// Gets the raw database, so a test can place a key in a shape no cache
+    /// member writes - a bucket hash from an earlier script version, say.
+    /// </summary>
+    internal IDatabase Database => r_redis.GetDatabase();
+
+    public async ValueTask DisposeAsync()
+    {
+        await r_redis.DisposeAsync();
+    }
+}

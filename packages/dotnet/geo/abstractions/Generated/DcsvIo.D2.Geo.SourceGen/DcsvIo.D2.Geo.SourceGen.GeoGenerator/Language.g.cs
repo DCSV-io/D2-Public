@@ -13,7 +13,7 @@ using System.Collections.Generic;
 
 namespace DcsvIo.D2.Geo.Abstractions;
 
-/// <summary>Language record — endonym + writing direction + supported flag + reverse navs to countries / locales.</summary>
+/// <summary>Language record - endonym + writing direction + supported flag + reverse navs to countries / locales.</summary>
 public sealed record Language
 {
     /// <summary>Typed ISO 639-1 identifier (PK, e.g. <c>LanguageCode.En</c>).</summary>
@@ -25,7 +25,7 @@ public sealed record Language
     /// <summary>Native-script language name (e.g. "日本語" for ja).</summary>
     public required string Endonym { get; init; }
 
-    /// <summary>LTR vs RTL — drives UI container flips.</summary>
+    /// <summary>LTR vs RTL - drives UI container flips.</summary>
     public required WritingDirection WritingDirection { get; init; }
 
     /// <summary>True when the framework treats this language as user-selectable.</summary>

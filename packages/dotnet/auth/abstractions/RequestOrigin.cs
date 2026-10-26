@@ -7,20 +7,20 @@
 namespace DcsvIo.D2.Auth.Abstractions;
 
 /// <summary>
-/// What KIND of trust boundary produced the current request hop's context.
+/// What kind of trust boundary produced the current request hop's context.
 /// Recomputed locally by the receiving boundary from its own unforgeable transport
-/// facts; never propagated. <see cref="Unestablished"/> is the fail-closed default — a
+/// facts; never propagated. <see cref="Unestablished"/> is the fail-closed default - a
 /// capability authority denies when the origin has not been positively established.
 /// </summary>
 public enum RequestOrigin
 {
     /// <summary>No boundary positively established the origin (the scoped default).
-    /// Fail-closed: capability authorities DENY rather than assume any plane.</summary>
+    /// Fail-closed: capability authorities deny rather than assume any plane.</summary>
     Unestablished = 0,
 
-    /// <summary>The Edge HTTP inbound boundary produced this context from a validated
-    /// cookie / edge-facing token — the external trust boundary, the start of the
-    /// call-path.</summary>
+    /// <summary>The HTTP inbound boundary produced this context from a validated
+    /// cookie or token presented at the entry boundary - the external trust
+    /// boundary, the start of the call-path.</summary>
     EdgeInbound = 1,
 
     /// <summary>A cross-process gRPC hop produced this context; the caller workload is

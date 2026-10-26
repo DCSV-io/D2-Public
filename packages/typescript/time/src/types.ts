@@ -13,8 +13,8 @@ import {
 
 /**
  * Translation key for IANA validation failures. Mirrors
- * `TK.Common.Time.INVALID_IANA_IDENTIFIER` from the .NET TK SrcGen catalog
- * (driven by `contracts/messages/en-US.json`).
+ * `TK.Common.Time.INVALID_IANA_IDENTIFIER` from the .NET TK SrcGen catalog,
+ * which `contracts/messages/en-US.json` drives.
  */
 const TK_INVALID_IANA = TK.common.time.INVALID_IANA_IDENTIFIER;
 
@@ -26,19 +26,19 @@ const TK_NOT_NULL = TK.common.errors.NOT_NULL_VIOLATION;
 
 /**
  * Cross-language canonical-name override map. Node.js's `Intl.DateTimeFormat`
- * canonicalizes some aliases (`US/Pacific` → `America/Los_Angeles`) but
- * leaves others as-is (`Asia/Saigon`, `Asia/Calcutta`) — and prefers the
+ * canonicalizes some aliases (`US/Pacific` -> `America/Los_Angeles`) but
+ * leaves others as-is (`Asia/Saigon`, `Asia/Calcutta`), and prefers the
  * shorter form over the longer for split-zones like
  * `America/Argentina/Buenos_Aires` (Node prefers `America/Buenos_Aires`).
  *
  * The .NET NodaTime path resolves through TZDB's CanonicalIdMap which
  * gives a single canonical name per zone. This map encodes the deltas so
- * BOTH languages produce byte-identical IANA strings for the same input —
- * a hard cross-language wire-format contract.
+ * BOTH languages produce byte-identical IANA strings for the same input, a
+ * cross-language wire-format contract.
  *
  * Source of truth: NodaTime's `TzdbDateTimeZoneSource.Default.CanonicalIdMap`
- * (queried at .NET runtime; deltas listed here are the empirically-observed
- * cases that differ from Node.js Intl).
+ * (queried at .NET runtime; deltas listed here are the observed cases that
+ * differ from Node.js Intl).
  */
 const sr_ianaAliasOverrides: Readonly<Record<string, string>> = {
   "Asia/Saigon": "Asia/Ho_Chi_Minh",
@@ -55,9 +55,8 @@ const sr_ianaAliasOverrides: Readonly<Record<string, string>> = {
 
 /**
  * Internal helper: validate + normalize an IANA identifier using the
- * browser/runtime `Intl.DateTimeFormat` API, which is the
- * standards-blessed cross-runtime way to canonicalize IANA names without
- * pulling in a separate tzdb.
+ * browser/runtime `Intl.DateTimeFormat` API, the standard cross-runtime way to
+ * canonicalize IANA names without adding a separate tzdb.
  *
  * Returns the canonical IANA name on success, or an error discriminant on
  * failure (undefined / empty / whitespace-only / invalid zone / fixed-offset
@@ -71,7 +70,9 @@ const sr_ianaAliasOverrides: Readonly<Record<string, string>> = {
  * - Valid IANA zone -> canonical name from `resolvedOptions().timeZone`.
  * - Deprecated alias (e.g. `"US/Pacific"`) -> canonical (`"America/Los_Angeles"`).
  * - Fixed-offset notation (`"UTC+5"`, `"+05:00"`) -> `{ error: "invalid" }`.
- *   `Intl` throws `RangeError` on these because they're not real time-zone names.
+ *   These are not real time-zone names. `Intl` throws `RangeError` on
+ *   `"UTC+5"` and accepts `"+05:00"`, so the regexes in the body reject both
+ *   before `Intl` runs.
  * - `"Etc/GMT*"` -> accepted as canonical (they ARE in tzdb).
  */
 function normalizeIana(
@@ -82,8 +83,9 @@ function normalizeIana(
   }
   // Reject fixed-offset notation up-front to stay parity-aligned with the
   // .NET NodaTime path, which rejects "+05:00" / "-08:00" / "UTC+5". Intl
-  // accepts these (it normalizes to "+HH:MM"), but they are NOT IANA
-  // identifiers — IANA-only is the cross-language contract.
+  // accepts "+05:00" and "-08:00" (it normalizes them to "+HH:MM") and throws
+  // on "UTC+5", but none of them is an IANA
+  // identifiers - IANA-only is the cross-language contract.
   if (/^[+-]\d{1,2}(?::\d{2})?$/.test(iana)) {
     return { error: "invalid" };
   }
@@ -97,7 +99,9 @@ function normalizeIana(
     // After Intl resolution, double-check: anything that resolves to a
     // pure offset shape ("+05:00") was a fixed-offset zone that survived
     // our up-front filter (e.g. obscure runtime quirks). Reject for parity.
-    /* v8 ignore start — defensive: modern Node Intl never resolves a filter-passing input to a bare +HH:MM offset (the up-front regexes catch every offset form first); kept as belt-and-suspenders for runtime quirks */
+    /* v8 ignore start - defensive: modern Node Intl never resolves a filter-passing input to a bare
+       +HH:MM offset (the up-front regexes catch every offset form first); kept as
+       belt-and-suspenders for runtime quirks */
     if (/^[+-]\d{2}:\d{2}$/.test(resolved)) {
       return { error: "invalid" };
     }
@@ -112,22 +116,22 @@ function normalizeIana(
 }
 
 /**
- * Category 1 — Past instant with original wall-clock context.
+ * Category 1 - Past instant with original wall-clock context.
  *
- * Construct via {@link ZonedInstant.create} — direct construction
+ * Construct via {@link ZonedInstant.create}; direct construction
  * (`new ZonedInstant(...)`) is private. The factory validates the IANA
  * identifier via the runtime `Intl.DateTimeFormat` API and normalizes
- * deprecated aliases to canonical form (e.g. `"US/Pacific"` →
+ * deprecated aliases to canonical form (e.g. `"US/Pacific"` ->
  * `"America/Los_Angeles"`). Mirrors the .NET `ZonedInstant.Create`
  * smart-constructor.
  *
  * Storage: `event_at TIMESTAMPTZ` (from `instant`) +
  * `event_at_zone TEXT NULL` (from `ianaIdentifier`).
  *
- * Sort/compare: always use `instant` — zone-agnostic and unambiguous.
+ * Sort/compare: always use `instant`, which is zone-agnostic and unambiguous.
  */
 export class ZonedInstant {
-  /** UTC instant of the event. Category 1 — Past instant. */
+  /** UTC instant of the event. Category 1 - Past instant. */
   readonly instant: Temporal.Instant;
   /** Canonical IANA identifier in effect when the event occurred. */
   readonly ianaIdentifier: string;
@@ -139,8 +143,8 @@ export class ZonedInstant {
 
   /**
    * Validates + normalizes the IANA identifier, returning a wrapped
-   * {@link D2Result}. Undefined/empty/whitespace → `NOT_NULL_VIOLATION`;
-   * unrecognized zone / fixed-offset notation → `INVALID_IANA_IDENTIFIER`.
+   * {@link D2Result}. Undefined/empty/whitespace -> `NOT_NULL_VIOLATION`;
+   * unrecognized zone / fixed-offset notation -> `INVALID_IANA_IDENTIFIER`.
    * Callers normalize JSON `null` to `undefined` at the deserialization
    * boundary per the TS `prefer-undefined-over-null` convention.
    */
@@ -164,7 +168,7 @@ export class ZonedInstant {
 }
 
 /**
- * Category 3 — Future local-anchored event.
+ * Category 3 - Future local-anchored event.
  *
  * Construct via {@link LocalAnchoredEvent.create}. Use
  * {@link LocalAnchoredEvent.computeNextFire} to (re)derive the UTC firing
@@ -186,7 +190,7 @@ export class LocalAnchoredEvent {
   readonly ianaIdentifier: string;
   /**
    * Denormalized UTC instant of the next firing, or absent if not yet
-   * computed or the event has been canceled. Category 2 — derived from
+   * computed or the event has been canceled. Category 2 - derived from
    * Category 3 source.
    */
   readonly nextFireUtc?: Temporal.Instant;
@@ -203,8 +207,8 @@ export class LocalAnchoredEvent {
 
   /**
    * Validates + normalizes the IANA identifier, returning a wrapped
-   * {@link D2Result}. Undefined/empty/whitespace → `NOT_NULL_VIOLATION`;
-   * unrecognized zone / fixed-offset notation → `INVALID_IANA_IDENTIFIER`.
+   * {@link D2Result}. Undefined/empty/whitespace -> `NOT_NULL_VIOLATION`;
+   * unrecognized zone / fixed-offset notation -> `INVALID_IANA_IDENTIFIER`.
    * Callers normalize JSON `null` to `undefined` at the deserialization
    * boundary per the TS `prefer-undefined-over-null` convention.
    */
@@ -232,7 +236,7 @@ export class LocalAnchoredEvent {
   /**
    * Computes the UTC instant of next firing using Temporal's
    * `disambiguation: "compatible"` (matches .NET NodaTime
-   * `Resolvers.LenientResolver` — skipped local times map forward to
+   * `Resolvers.LenientResolver`: skipped local times map forward to
    * post-gap; ambiguous local times pick the earlier instant).
    *
    * Returns `D2Result` for API parity with the .NET side. In practice

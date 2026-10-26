@@ -15,11 +15,11 @@ using Microsoft.Extensions.Hosting;
 using Xunit;
 
 /// <summary>
-/// Lightweight unit coverage on the <c>UseD2RequestLogging</c> extension —
-/// argument guards + chaining + middleware registration smoke. End-to-end
-/// runtime coverage (request emission, infrastructure path suppression,
-/// custom enrichment, IRequestContext field projection) lives in
-/// <c>Integration.Logging.RequestLoggingMiddlewareTests</c> +
+/// Unit tests of the <c>UseD2RequestLogging</c> extension: argument guards,
+/// chaining and a smoke test of the middleware registration. The end-to-end
+/// runtime tests (request emission, infrastructure path suppression, custom
+/// enrichment, IRequestContext field projection) are in
+/// <c>Integration.Logging.RequestLoggingMiddlewareTests</c> and
 /// <c>RequestContextEnricherIntegrationTests</c>.
 /// </summary>
 public sealed class WebApplicationLoggingExtensionsTests
@@ -61,7 +61,7 @@ public sealed class WebApplicationLoggingExtensionsTests
 
         var act = () => app.UseD2RequestLogging(opts =>
         {
-            opts.MessageTemplate = "Custom — {RequestPath}";
+            opts.MessageTemplate = "Custom - {RequestPath}";
         });
 
         act.Should().NotThrow();

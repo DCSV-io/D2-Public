@@ -10,9 +10,9 @@ using System;
 using System.Collections.Generic;
 
 /// <summary>
-/// Mutable tree node used by <see cref="ScopesEmitter"/> to build the
-/// nested-class structure during emission. Each segment of every scope name
-/// carves a path; the final segment becomes a constant on the leaf node, and
+/// Mutable tree node that holds the nested-class structure during emission.
+/// The segments of each scope name form
+/// a path in the tree; the final segment becomes a constant on the leaf node, and
 /// intermediate segments become nested classes.
 /// </summary>
 internal sealed class TreeNode

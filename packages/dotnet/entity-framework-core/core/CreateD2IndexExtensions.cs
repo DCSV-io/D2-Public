@@ -18,49 +18,49 @@ using Microsoft.EntityFrameworkCore.Migrations.Operations.Builders;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>EF Core 10 limitation</b> — a <c>ComplexProperty</c> member column CANNOT be
+/// <b>EF Core 10 limitation</b> - a <c>ComplexProperty</c> member column cannot be
 /// indexed model-aware in EF Core 10. Fluent <c>HasIndex(u =&gt; u.Vo.Member)</c>
 /// throws ("not a valid member access expression"); <c>HasIndex("Vo_Member")</c>
 /// throws (shadow property needs a type); metadata/convention index-adds are silently
-/// discarded at finalization (<c>"index properties … not declared on the entity type"</c>)
-/// — <c>IMigrationsModelDiffer</c> emits ZERO <c>CreateIndexOperation</c>. This was
+/// discarded at finalization (<c>"index properties ... not declared on the entity type"</c>)
+/// - <c>IMigrationsModelDiffer</c> emits no <c>CreateIndexOperation</c>. This was
 /// empirically verified (EF Core 10.0.7, Npgsql 10.0.1) and is tracked as
 /// <see href="https://github.com/dotnet/efcore/issues/31246">efcore #31246</see>.
 /// </para>
 /// <para>
-/// <b>Workaround</b> — use <c>CreateD2Index</c> in the host's migration class. The
+/// <b>Workaround</b> - use <c>CreateD2Index</c> in the host's migration class. The
 /// helper derives the <c>{ComplexProp}_{Member}</c> column name from the typed member
 /// selector expression (model-unaware, matches EF Core 10 default complex column naming)
 /// and emits a <c>CreateIndexOperation</c>.
 /// </para>
 /// <para>
-/// <b>EF Core 11 native path</b> — <c>HasIndex(u =&gt; u.Vo.Member)</c> becomes native
+/// <b>EF Core 11 native path</b> - <c>HasIndex(u =&gt; u.Vo.Member)</c> becomes native
 /// in EF Core 11 (issue closed, milestone 11.0.0; PR #38192 merged 2026-05-19).
 /// When the host upgrades to EF Core 11, move the index declaration to
 /// <c>IEntityTypeConfiguration</c> and remove the <c>CreateD2Index</c> call from the
 /// migration.
 /// </para>
 /// <para>
-/// <b>Value-converter indexes have NO limitation</b> — value-converted single-value VO
-/// columns (e.g. <c>EmailAddress</c>, <c>PhoneNumber</c>) are first-class and can be
+/// <b>Value-converter indexes have no limitation</b> - value-converted single-value VO
+/// columns (e.g. <c>EmailAddress</c>, <c>PhoneNumber</c>) can be
 /// indexed or made unique via <c>HasIndex(u =&gt; u.Email).IsUnique()</c> in the entity
-/// configuration class (no workaround needed). Complex-member QUERIES (<c>WHERE
-/// Location_City = 'X'</c>) also work fine — only the model-aware index declaration on
+/// configuration class (no workaround needed). Complex-member queries (<c>WHERE
+/// Location_City = 'X'</c>) also work fine - only the model-aware index declaration on
 /// a complex member is limited.
 /// </para>
 /// <para>
-/// <b>Column-name assumption</b> — <c>CreateD2Index</c> derives column names from the
+/// <b>Column-name assumption</b> - <c>CreateD2Index</c> derives column names from the
 /// expression member chain using EF Core 10 default complex column naming
 /// (<c>{ComplexProp}_{Member}</c>, joined with <c>_</c>). A host that overrides complex
-/// column prefixes via <c>HasColumnName</c> owns the index-column name too; the toolkit
-/// helpers never call <c>HasColumnName</c>, so the default always holds for standard
-/// D2 contact mappings.
+/// column prefixes via <c>HasColumnName</c> is responsible for the index-column name
+/// too; the toolkit helpers never call <c>HasColumnName</c>, so the default always
+/// holds for standard D2 contact mappings.
 /// </para>
 /// </remarks>
 public static class CreateD2IndexExtensions
 {
     // =========================================================================
-    // MigrationBuilder — CreateD2Index
+    // MigrationBuilder - CreateD2Index
     // =========================================================================
     extension(MigrationBuilder migrationBuilder)
     {
@@ -73,7 +73,7 @@ public static class CreateD2IndexExtensions
         /// <param name="table">The physical table name the entity is mapped to.</param>
         /// <param name="member">
         /// Expression identifying the complex-type member to index.
-        /// For a simple complex property: <c>u =&gt; u.Location.City</c> →
+        /// For a simple complex property: <c>u =&gt; u.Location.City</c> ->
         /// column <c>Location_City</c>.
         /// </param>
         /// <param name="name">
@@ -100,7 +100,7 @@ public static class CreateD2IndexExtensions
         {
             table.ThrowIfFalsey();
 
-            // member is an Expression<> (plain reference type) — BCL ThrowIfNull applies;
+            // member is an Expression<> (plain reference type) - BCL ThrowIfNull applies;
             // uses ArgumentNullException.ThrowIfNull rather than ThrowIfFalsey because
             // there are no present-but-falsey semantics beyond null for a reference-type expression.
             ArgumentNullException.ThrowIfNull(member);
@@ -133,7 +133,7 @@ public static class CreateD2IndexExtensions
         Expression<Func<TEntity, object?>> member)
     {
         var parts = new System.Collections.Generic.List<string>();
-        Expression? current = member.Body;
+        var current = member.Body;
 
         // Unwrap boxing conversion on value types.
         if (current is UnaryExpression { NodeType: ExpressionType.Convert } unary)
@@ -157,7 +157,7 @@ public static class CreateD2IndexExtensions
         parts.Reverse();
 
         // Skip the parameter name (first element is the entity property, not the param).
-        // For u => u.Location.City: parts = ["Location", "City"] (no param —
+        // For u => u.Location.City: parts = ["Location", "City"] (no param -
         // MemberExpression.Expression terminates at ParameterExpression, not a Member).
         return string.Join("_", parts);
     }

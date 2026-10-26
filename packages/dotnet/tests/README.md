@@ -6,9 +6,11 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 > Parent: [`packages/dotnet/`](../README.md)
 
-Test infrastructure for ALL `DcsvIo.D2.*` libraries. Deliberately one test csproj rather than per-lib — the foundational shared libs are small enough that per-lib test projects would be overkill.
+The test project for every `DcsvIo.D2.*` library. It is one test csproj and not one per library, because the
+foundational shared libraries are small enough that a test project for each would be more than they need.
 
-This project covers shared library tests only — service-host test projects live with their services, not in this package tree.
+This project contains shared library tests only. Service-host test projects are kept with their services and are not
+part of this package tree.
 
 ---
 
@@ -16,65 +18,91 @@ This project covers shared library tests only — service-host test projects liv
 
 ```
 packages/dotnet/tests/
-├─ DcsvIo.D2.Tests.csproj
-├─ Unit/                                                # in-process unit + behavior tests
-│  ├─ Auth/                                             # → auth/abstractions enums + records + JwtClaimTypes
-│  │  └─ SourceGen/                                     # → auth/scopes-source-gen + auth/audiences-source-gen
-│  ├─ AuthContext/                                      # → auth/context-abstractions
-│  ├─ AuthOutbound/                                     # → auth/outbound (ServiceIdentity / TokenExchange / Grpc / Telemetry)
-│  │  └─ Fixtures/                                      # stubs + jwt builder + counter listeners
-│  ├─ Caching/                                          # → caching/abstractions + caching/local-default
-│  │  ├─ Abstractions/                                  # InputFailures + LocalCacheOptions
-│  │  ├─ Distributed/                                   # JsonCacheSerializer
-│  │  └─ Local/                                         # DefaultLocalCache (unit + behavior with real IMemoryCache)
-│  ├─ Context/                                          # → context/abstractions (request-context interfaces + propagation)
-│  │  └─ SourceGen/                                     # → context/source-gen
-│  ├─ Encryption/                                       # → encryption (PayloadCrypto + keyring + frame)
-│  ├─ Handler/                                          # → handler (BaseHandler + telemetry + DI)
-│  ├─ HandlerRepo/                                      # → handler/repo (BaseRepoHandler)
-│  │  ├─ Abstractions/                                  # → handler/repo-abstractions (D2ResultDb* + DbErrorCodes + IDbExceptionClassifier)
-│  │  └─ Postgres/                                      # → handler/repo-postgres (PgErrorCodes + PostgresDbExceptionClassifier)
-│  ├─ I18n/                                             # → i18n/core + i18n/abstractions
-│  │  └─ SourceGen/                                     # → i18n/source-gen
-│  ├─ Messaging/                                        # → messaging/abstractions + messaging/rabbitmq
-│  │  ├─ Channels/, Connection/, Encryption/, Idempotency/, Publishing/, Subscribing/, Telemetry/, Topology/
-│  │  └─ SourceGen/                                     # → messaging/source-gen
-│  ├─ RequestContext/, RequestContextAbstractions/      # → context/abstractions
-│  ├─ Resilience/                                       # → resilience (CircuitBreaker / Retry / Singleflight / Pipeline)
-│  ├─ Result/                                           # → result (D2Result + factories + monadic + guard + Combine + Unit + ErrorCodes)
-│  └─ Utilities/                                        # → utilities (Falsey/Truthy + TryParseTruthyNull + RedactDataAttribute + D2Env + ConnectionStringHelper)
-└─ Integration/                                         # Testcontainers-backed real-infrastructure tests
-   ├─ Caching/
-   │  ├─ Distributed/                                   # RedisDistributedCache + RedisCacheInvalidationBackplane (Redis container)
-   │  └─ Tiered/                                        # DefaultTieredCache (Redis container shared with Distributed)
-   ├─ ContractFixtures/                                 # [Trait("Category","ContractFixtures")] — emits cross-language parity fixture JSON for host twin Vitest suites
-   └─ Messaging/                                        # RabbitMQ container — publish/consume + idempotency + DLQ + topology + adversarial
++- DcsvIo.D2.Tests.csproj
++- Unit/                             # in-process unit and behavior tests
+|  +- AdvisoryLocks/                 # -> entity-framework-core/locks-source-gen
+|  +- AspNetCore/                    # -> aspnetcore (forgery, mTLS, problem-details, security headers)
+|  +- Auth/                          # -> auth/abstractions, plus SourceGen/ for scopes and audiences
+|  +- AuthContext/                   # -> auth/context-abstractions
+|  +- Caching/                       # -> caching/abstractions, caching/local-default, caching/distributed-redis
+|  +- Contacts/                      # -> contacts/core and contacts/entity-framework-core
+|  +- Context/                       # -> context/abstractions, plus SourceGen/ for context/source-gen
+|  +- DataGovernance/                # -> data-governance/abstractions and its EF Core engine
+|  +- Encryption/                    # -> encryption/core and its source generators
+|  +- EnvFiles/                      # -> env-files
+|  +- ErrorCodesCategory/            # -> error-codes/category-source-gen
+|  +- ErrorCodesRegistry/            # -> error-codes/registry and registry-source-gen
+|  +- Geo/                           # -> geo/abstractions, geo/default, geo/source-gen
+|  +- Handler/                       # -> handler/core, handler/abstractions, handler/analyzers
+|  +- HandlerRepo/                   # -> handler/repo, repo-abstractions, repo-postgres
+|  +- Headers/                       # -> headers
+|  +- I18n/                          # -> i18n/core, i18n/abstractions, i18n/source-gen
+|  +- InProcessKeys/                 # -> encryption/in-process-keys-source-gen
+|  +- Location/                      # -> location/core and location/entity-framework-core
+|  +- Logging/                       # -> logging
+|  +- Messaging/                     # -> messaging/abstractions, messaging/rabbitmq, messaging/source-gen
+|  +- Oss/                           # -> the public-clone layout guards
+|  +- Outbox/                        # -> outbox/core and outbox/entity-framework-core
+|  +- Pagination/                    # -> pagination and its EF Core packages
+|  +- PasswordHashing/               # -> password-hashing
+|  +- ProblemDetails/                # -> problem-details/abstractions and problem-details/source-gen
+|  +- RequestContext/                # -> context/abstractions (request-context entities)
+|  +- RequestContextAbstractions/    # -> context/abstractions (request-context interfaces)
+|  +- Resilience/                    # -> resilience
+|  +- Result/                        # -> result/core, result/grpc, result/envelope-source-gen
+|  +- SharedEntityFrameworkCore/     # -> entity-framework-core/core
+|  +- SourceGen/                     # -> source-gen-shared
+|  +- SpecsConsistency/              # -> cross-catalog parity over the contracts tree
+|  +- Telemetry/                     # -> telemetry and telemetry/tags-source-gen
+|  +- Time/                          # -> time
+|  +- Usernames/                     # -> usernames
+|  +- Utilities/                     # -> utilities and utilities/Configuration
+|  +- Validation/                    # -> validation/abstractions, validation/default, validation/source-gen
+|  +- WireShapes/                    # -> the JSON wire shapes crossing a process boundary
+|  +- WorkloadIdentity/              # -> workload-identity
++- Integration/                      # Testcontainers-backed real-infrastructure tests
+   +- AspNetCore/                    # -> aspnetcore, driven through a composed pipeline
+   +- Caching/                       # -> caching/distributed-redis and caching/tiered (Redis container)
+   +- Contacts/                      # -> contacts/entity-framework-core (PostgreSQL container)
+   +- ContractFixtures/              # emits cross-language parity fixture JSON for the TypeScript twins
+   +- DataGovernance/                # -> data-governance/entity-framework-core (PostgreSQL container)
+   +- Encryption/                    # -> encryption/core against real key material
+   +- Logging/                       # -> logging, through a composed Serilog pipeline
+   +- Messaging/                     # -> messaging/rabbitmq (RabbitMQ container)
+   +- Outbox/                        # -> outbox/entity-framework-core (PostgreSQL container)
+   +- Pagination/                    # -> pagination EF Core packages (PostgreSQL container)
+   +- SharedEntityFrameworkCore/     # -> entity-framework-core/core (PostgreSQL container)
+   +- SharedEntityFrameworkCorePostgres/  # -> entity-framework-core/postgres (PostgreSQL container)
+   +- Telemetry/                     # -> telemetry, through a composed OpenTelemetry pipeline
 ```
 
-The tree mostly mirrors the source layout (`Unit/{LibName}/{LibSourceFile}Tests.cs` per lib). Two structural notes:
+The tree mostly follows the source layout (`Unit/{LibName}/{LibSourceFile}Tests.cs` per library). `Unit/RequestContext/`
+and `Unit/RequestContextAbstractions/` both cover code that is under `context/abstractions/`. These test folders keep
+the request-context entities and the request-context abstractions apart so that a reviewer can find each; both
+subtrees compile in the same csproj.
 
-- `Unit/RequestContext/` and `Unit/RequestContextAbstractions/` cover code that lives under `context/abstractions/`. The two test folders preserve the historical split between request-context entities and request-context abstractions for reviewer navigation; both subtrees compile against the same csproj.
-- `Unit/AuthOutbound/Fixtures/` is the only sub-folder under `Unit/` that explicitly groups fixtures into a `Fixtures/` directory; everywhere else, fixture types live next to the tests that use them. Consistent with the prevailing codebase pattern.
+Where a folder groups its test doubles in a `Fixtures/` sub-folder, the types in it have a `Fixture`, `Fake`, `Stub`,
+`Test` or `Sample` marker in their name. Elsewhere a fixture type is next to the test that uses it.
 
-Integration tests use xUnit collection fixtures (`[Collection("Redis")]`, `[Collection("RabbitMq")]`) so the heavyweight container fixtures spin up exactly once per test run.
+Integration tests use xUnit collection fixtures (`[Collection("Redis")]`, `[Collection("RabbitMq")]`), so each
+container fixture starts once per test run.
 
 ---
 
 ## Stack
 
-| Tool                                               | Version     | Purpose                                                                                                                                                                |
-| -------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `xunit.v3`                                         | per CPM     | Test framework. `[Fact]`, `[Theory]`, `Assert`.                                                                                                                        |
-| `xunit.runner.visualstudio`                        | per CPM     | Test discovery for Rider / VS / `dotnet test`.                                                                                                                         |
-| `Microsoft.NET.Test.Sdk`                           | per CPM     | MSBuild test integration.                                                                                                                                              |
-| `AwesomeAssertions`                                | per CPM     | Fluent assertion API (`result.Should().BeOk()`). MIT-licensed fork of FluentAssertions; v8+ of FA went commercial, AwesomeAssertions preserves the Apache 2.0 lineage. |
-| `JetBrains.Annotations`                            | per CPM     | `[MustDisposeResource]`, `[Pure]`, etc. on test fixtures.                                                                                                              |
-| `Testcontainers.Redis` / `Testcontainers.RabbitMq` | per CPM     | Integration test containers (real Redis + real RabbitMQ via Docker). Skipped when Docker isn't reachable.                                                              |
-| `Microsoft.Data.Sqlite`                            | per CPM     | EF / DbException test fakes (e.g. PgExceptionFactory shaping for handler/repo-postgres tests).                                                                         |
-| `FakeItEasy`                                       | per CPM     | Lightweight fake / stub framework where hand-rolled stubs would be too verbose.                                                                                        |
-| MTP (Microsoft Testing Platform)                   | SDK-bundled | Modern test runner — `<UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>` in csproj. Replaces VSTest.                                         |
+| Tool                                               | Version     | Purpose                                                                                                                                                                                                 |
+| -------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `xunit.v3`                                         | per CPM     | Test framework. `[Fact]`, `[Theory]`, `Assert`.                                                                                                                                                         |
+| `xunit.runner.visualstudio`                        | per CPM     | Test discovery for Rider / VS / `dotnet test`.                                                                                                                                                          |
+| `Microsoft.NET.Test.Sdk`                           | per CPM     | MSBuild test integration.                                                                                                                                                                               |
+| `AwesomeAssertions`                                | per CPM     | Fluent assertion API (`result.Should().BeOk()`). MIT-licensed fork of FluentAssertions; FluentAssertions v8 and later use a commercial license, and AwesomeAssertions continues the Apache 2.0 lineage. |
+| `JetBrains.Annotations`                            | per CPM     | `[MustDisposeResource]`, `[Pure]`, etc. on test fixtures.                                                                                                                                               |
+| `Testcontainers.Redis` / `Testcontainers.RabbitMq` | per CPM     | Integration test containers (real Redis and real RabbitMQ through Docker). Skipped when Docker is not reachable.                                                                                        |
+| MTP (Microsoft Testing Platform)                   | SDK-bundled | Test runner, enabled by `<UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>` in the csproj. It replaces VSTest.                                                                |
 
-Test packages are pinned in `server/Directory.Packages.props` (Central Package Management); this csproj references by ID only.
+Test packages are pinned in `Directory.Packages.props` (Central Package Management); this csproj references them by ID
+only.
 
 ---
 
@@ -82,7 +110,7 @@ Test packages are pinned in `server/Directory.Packages.props` (Central Package M
 
 ### Test naming
 
-`MethodName_Scenario_ExpectedResult`. The method name IS the documentation:
+`MethodName_Scenario_ExpectedResult`. The method name documents the test:
 
 ```csharp
 [Fact]
@@ -93,7 +121,8 @@ public void Bind_OnFailure_DoesNotInvokeNext()
 public void IsTransientRetryable_ExplicitlyFalseOnUnhandledException()
 ```
 
-CS1591 / SA1600 (missing XML doc) are suppressed in this csproj only; non-test libs still enforce XML doc on every public member. The reasoning lives in the csproj `<NoWarn>` comment.
+CS1591 and SA1600 (missing XML doc) are suppressed in this csproj only; non-test libraries still require XML doc on
+every public member. The reason is in the csproj `<NoWarn>` comment.
 
 ### Local constants
 
@@ -103,26 +132,27 @@ CS1591 / SA1600 (missing XML doc) are suppressed in this csproj only; non-test l
 const string trace_id = "trace-abc-123";
 ```
 
-Non-const test-locals (var, out var, etc.) MUST be `camelCase`.
+Non-const test locals (`var`, `out var`, and so on) must be `camelCase`.
 
 ### Adversarial coverage
 
-Every test file aims at the 8-category checklist where applicable:
+Every test file should cover the following categories where they apply:
 
-1. **Happy path** — every factory creates the expected shape
-2. **Garbage input** — null/empty/whitespace, oversized, malformed
-3. **Boundary values** — empty list vs single-item vs multi-item; default(T) vs explicit; off-by-one
-4. **Format validation** — regex / length / type checks
-5. **Cross-field deps** — interaction between two arguments / two state slots
-6. **Error propagation** — `BubbleFail` chain preservation, `Bind` short-circuiting, exception → D2Result mapping
-7. **Idempotency** — repeat-call semantics on mutating ops
-8. **Concurrency** — thread-stress on mutable shared state (`Parallel.ForEachAsync`, `Task.WhenAll`)
+1. **Happy path** - every factory creates the expected shape
+2. **Garbage input** - null/empty/whitespace, oversized, malformed
+3. **Boundary values** - empty list vs single-item vs multi-item; default(T) vs explicit; off-by-one
+4. **Format validation** - regex / length / type checks
+5. **Cross-field deps** - interaction between two arguments / two state slots
+6. **Error propagation** - `BubbleFail` chain preservation, `Bind` short-circuiting, exception -> D2Result mapping
+7. **Idempotency** - repeat-call semantics on mutating ops
+8. **Concurrency** - thread-stress on mutable shared state (`Parallel.ForEachAsync`, `Task.WhenAll`)
 
-For pure value types like `D2Result`, categories 4/7/8 are degenerate. For libs with I/O (caching, messaging, repository) those categories are live and pinned.
+For pure value types like `D2Result`, format validation, idempotency and concurrency are degenerate. For libraries with
+I/O (caching, messaging, repository) those categories apply, and tests cover them.
 
 ### Lazy-evaluation tests
 
-Monadic / async-chain tests assert that continuations are NOT invoked on upstream failure. Pattern:
+Monadic and async-chain tests assert that continuations are not invoked after an upstream failure. Pattern:
 
 ```csharp
 var nextInvoked = false;
@@ -134,21 +164,25 @@ var result = upstream.Bind(x =>
 nextInvoked.Should().BeFalse();
 ```
 
-Standard for any chaining test — both sync and async.
+Use this pattern in every chaining test, sync and async.
 
 ### Monadic laws
 
-For each monad-shaped type (currently just `D2Result<T>`'s `Bind`), verify:
+For each monad-shaped type (currently only `D2Result<T>`'s `Bind`), verify:
 
 - **Left identity**: `M.Ok(x).Bind(f) ≡ f(x)`
 - **Right identity**: `m.Bind(M.Ok) ≡ m`
 - **Associativity**: `m.Bind(f).Bind(g) ≡ m.Bind(x => f(x).Bind(g))`
 
-Both success and failure paths exercised.
+Exercise both the success path and the failure path.
 
 ### `[LoggerMessage]` PII contract
 
-Every `[LoggerMessage]` partial method whose source-side call sites observe potentially PII-bearing exceptions (broker URIs, connection strings, OAuth tokens, raw user input) is reflection-pinned by `Unit/Messaging/Telemetry/LoggerMessageDelegateContractTests.cs` to forbid `Exception` parameters. The pattern is the standard guard across the messaging, caching/distributed-redis, caching/tiered, handler, and auth/outbound libs. Sibling libs follow the same rule even where a contract test isn't (yet) in place.
+Every `[LoggerMessage]` partial method whose call sites in the library observe exceptions that can contain PII (broker
+URIs, connection strings, OAuth tokens, raw user input) must take no `Exception` parameter.
+`Unit/Messaging/Telemetry/LoggerMessageDelegateContractTests.cs` checks this by reflection. The same guard is used in
+the messaging, caching/distributed-redis, caching/tiered and handler libraries. The contract test lists
+the messaging delegates, and the sibling libraries follow the same rule.
 
 ---
 
@@ -159,43 +193,55 @@ dotnet test packages/dotnet/tests                # all tests in this project
 dotnet test D2.Public.slnx                       # public solution (all public test projects)
 ```
 
-Test discovery is via xunit.v3 + MTP. Rider / VS Test Explorer pick up tests automatically. Integration tests skip cleanly when Docker isn't reachable.
+Tests are discovered through xunit.v3 and MTP. Rider and the Visual Studio Test Explorer find tests automatically.
+Integration tests are skipped when Docker is not reachable.
 
 ### Coverage
 
-`coverlet.msbuild` is wired into the csproj. Run from the repo root:
+Coverage runs through `coverlet.console`, which needs no MSBuild hook and no package reference in this project. Install
+it once and point it at the built test executable:
 
-```
-dotnet test packages/dotnet/tests -property:CollectCoverage=true -property:CoverletOutputFormat=cobertura -property:CoverletOutput=./coverage/
-```
-
-(Use the `-property:` form, not `/p:` — bash strips the leading `/`. One line, works in CMD / PowerShell / bash.)
-
-**Where the result is:**
-
-The full Cobertura XML lands at `packages/dotnet/tests/coverage/coverage.cobertura.xml`. The top of the file has the summary attributes — read these for the at-a-glance result:
-
-```xml
-<coverage line-rate="0.99" branch-rate="0.95" version="..." timestamp="..."
-          lines-covered="..." lines-valid="..."
-          branches-covered="..." branches-valid="...">
+```bash
+dotnet tool install --global coverlet.console
+dotnet build packages/dotnet/tests/DcsvIo.D2.Tests.csproj
+dotnet coverlet packages/dotnet/tests/bin/Debug/net10.0   --target packages/dotnet/tests/bin/Debug/net10.0/DcsvIo.D2.Tests.exe --targetargs ""   --include "[DcsvIo.D2*]*" --exclude "[*Tests]*"   --exclude-by-attribute "GeneratedCode"   --format cobertura --output .coverage/
 ```
 
-`line-rate="1"` = 100%. Lines / branches covered vs valid are the absolute counts.
+Render the report with `dotnet tool install --global dotnet-reportgenerator-globaltool` and
+`reportgenerator -reports:.coverage/coverage.cobertura.xml -targetdir:.coverage/html`. The report lists every file with
+its uncovered lines and has a page per class with each source line marked hit or missed.
 
-A summary table also prints to stdout when the test run goes through the MSBuild VSTest target (e.g. when source files changed and a build is required). When the build is up-to-date and MTP runs the test exe directly, the table is suppressed but the XML is still written.
+These parts of that command decide whether the coverage numbers are accurate:
 
-**For line-by-line view:** open `coverage.cobertura.xml` in Rider via `Tools → Unit Tests → Show Coverage Tree → Add Coverage Snapshot`. Or just use Rider's "Cover Unit Tests" gutter button which produces the same data interactively.
+- `--include "[DcsvIo.D2*]*"` selects the assemblies that coverlet rewrites, so only these assemblies are instrumented.
+  A collector that also traces dependencies runs out of memory on the suites that reach libphonenumber. The
+  alternative that avoids this by sampling less drops whole assemblies from the report without a message. Code that is
+  missing from the report is not counted as uncovered, so those gaps look like a coverage improvement.
+- `--target` is the test executable and not `dotnet test`. This project runs on Microsoft's Testing Platform, which
+  builds and runs in one target, so a collector hooked into MSBuild produces no output here whatever properties it is
+  passed.
+- A run that stops part way leaves the assemblies instrumented. Coverlet rewrites assemblies on disk and restores them
+  when it finishes. A killed run leaves the rewritten copies, and `dotnet build` does not replace them because MSBuild
+  skips the copy when the destination is newer. Run `dotnet clean` and rebuild.
 
-**Use this BEFORE committing** a new lib's tests to catch:
+For a line-by-line view in the IDE, Rider's "Cover Unit Tests" gutter button produces the same data.
 
-- Lib lines / branches / methods not exercised by any test
-- Branches missed because tests cover only one side of a `??` / ternary / nullable check (the most common gap)
+Run coverage before you commit the tests of a new library, to find:
 
-> The `(int)` 0% entries you'll see in Rider coverage on `_OnFailure_ShortCircuits` / `_DoesNotInvokeProjection` tests are intentional — they're the lambda body that the test asserts is never invoked. Coverage tooling can't distinguish "untested" from "asserted-never-called"; the 0% there IS the test result. Lib coverage (the only coverage that matters for the Definition of Done) is what the `DcsvIo.D2.{LibName}` row in the cobertura XML reports.
+- library lines, branches and methods that no test runs
+- branches missed because a test covers only one side of a `??`, a ternary or a nullable check, which is the most common
+  gap
+
+> Rider reports 0% for the `_OnFailure_ShortCircuits` and `_DoesNotInvokeProjection` lambdas, and that is expected:
+> each test asserts that the lambda body is never invoked. Coverage tooling cannot tell "untested" from "asserted never
+> called", so 0% on those lambdas is the test passing. Read library coverage from the `DcsvIo.D2.{LibName}` row in the
+> Cobertura report.
 
 ---
 
 ## When to expand this project
 
-A new shared lib lands in `packages/dotnet/{lib}/` → create `Unit/{Lib}/` here with one test file per source file (`{SourceFile}Tests.cs`). If the lib needs real infrastructure (a real DB, a real broker, a real cache), add `Integration/{Lib}/` with a Testcontainers fixture instead. Project reference to the lib goes in `DcsvIo.D2.Tests.csproj`.
+When you add a shared library in `packages/dotnet/{lib}/`, create `Unit/{Lib}/` here with one test file per source file
+(`{SourceFile}Tests.cs`). If the library needs real infrastructure (a real database, a real broker, a real cache), add
+`Integration/{Lib}/` with a Testcontainers fixture instead. Add the project reference to the library in
+`DcsvIo.D2.Tests.csproj`.

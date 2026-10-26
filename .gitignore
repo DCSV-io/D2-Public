@@ -3,7 +3,7 @@
 # -----------------------------------------------------------------------
 #
 # Public OSS clone .gitignore (copied to D2-Public root on export).
-# Build / restore / IDE artifacts must never ship — releases pack from source.
+# Build / restore / IDE artifacts must never ship - releases pack from source.
 #
 # -----------------------------------------------------------------------
 

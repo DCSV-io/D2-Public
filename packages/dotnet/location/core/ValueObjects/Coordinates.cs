@@ -16,8 +16,8 @@ using DcsvIo.D2.Utilities.Enums;
 using DcsvIo.D2.Utilities.Extensions;
 
 /// <summary>
-/// Immutable geographic point with three universal representations
-/// (lat/lon decimal degrees, geohash-10, OLC plus-code-13) and optional
+/// Immutable geographic point with universal representations
+/// (lat/lon decimal degrees, geohash-10 and OLC plus-code-13) and optional
 /// accuracy metadata. Every factory normalizes input to the canonical
 /// bounding-box center of the geohash-10 cell so inputs in different forms
 /// that represent the same physical ~1m grid cell produce byte-identical
@@ -26,23 +26,23 @@ using DcsvIo.D2.Utilities.Extensions;
 /// <remarks>
 /// <para>
 /// <b>Canonical hash input.</b> <see cref="Geohash"/> (10 characters,
-/// ~1.2m × 0.6m at equator) is the canonical hash input because it is the
-/// shortest of the three representations, has no URL-issue characters,
-/// its lexicographic prefix equals spatial proximity, and it is an
-/// industry standard. <see cref="HashId"/> is <c>"v1." + Sha256(Geohash)</c>.
+/// ~1.2m x 0.6m at equator) is the canonical hash input because it is the
+/// shortest of the representations, has no characters that cause URL
+/// problems, and its lexicographic prefix equals spatial proximity.
+/// <see cref="HashId"/> is <c>"v1." + Sha256(Geohash)</c>.
 /// </para>
 /// <para>
 /// <b>Accuracy semantics.</b> <see cref="AccuracyMeters"/> is METADATA
 /// and is NOT included in <see cref="HashId"/>. Two <see cref="Coordinates"/>
 /// instances with the same lat/lon but different accuracy values produce the
-/// same hash — accuracy is descriptive, not identity-bearing.
+/// same hash - accuracy is descriptive, not identity-bearing.
 /// </para>
 /// <para>
 /// <b>Self-redacting PII.</b> <see cref="Latitude"/>, <see cref="Longitude"/>,
 /// <see cref="Geohash"/>, <see cref="PlusCode"/>, and <see cref="AccuracyMeters"/>
 /// are marked <c>[RedactData(PersonalInformation)]</c> and are masked automatically
 /// by the Serilog destructuring policy. <see cref="Geohash"/> is redacted because it
-/// is a reversible spatial encoding — decoding a geohash-10 string recovers the
+/// is a reversible spatial encoding - decoding a geohash-10 string recovers the
 /// original lat/lon to within ~1 m, making it as precise as the raw coordinates.
 /// <see cref="AccuracyMeters"/> is redacted because a tight accuracy radius combined
 /// with any other logged context can narrow a subject's position precisely enough to
@@ -65,9 +65,9 @@ public sealed record Coordinates
     public required double Longitude { get; init; }
 
     /// <summary>
-    /// Gets geohash-10 string (~1.2m × 0.6m at equator) — the canonical hash input.
+    /// Gets geohash-10 string (~1.2m x 0.6m at equator) - the canonical hash input.
     /// Base-32 alphabet <c>0123456789bcdefghjkmnpqrstuvwxyz</c>.
-    /// Redacted in logs — a geohash is reversible: decoding it recovers the original
+    /// Redacted in logs - a geohash is reversible: decoding it recovers the original
     /// lat/lon to within ~1 m, making it equivalent in precision to the raw coordinates.
     /// </summary>
     [RedactData(Reason = RedactReason.PersonalInformation)]
@@ -81,7 +81,7 @@ public sealed record Coordinates
 
     /// <summary>
     /// Gets optional accuracy metadata in meters; NOT included in <see cref="HashId"/>.
-    /// Redacted in logs — a tight accuracy radius combined with other logged context
+    /// Redacted in logs - a tight accuracy radius combined with other logged context
     /// can narrow a subject's position precisely enough to re-identify them.
     /// </summary>
     [RedactData(Reason = RedactReason.PersonalInformation)]
@@ -89,8 +89,9 @@ public sealed record Coordinates
 
     /// <summary>
     /// Gets stable hash identifier: <c>"v1." + SHA-256(Geohash)</c> as lowercase hex.
-    /// Identical across all three input factories for the same canonical cell.
-    /// Emitted unredacted in logs — it is a one-way SHA-256 digest (opaque,
+    /// Identical across the input factories (<c>Create</c>, <c>FromGeohash</c>
+    /// and <c>FromPlusCode</c>) for the same canonical cell.
+    /// Emitted unredacted in logs - it is a one-way SHA-256 digest (opaque,
     /// non-reversible) and is safe for correlation in logs and traces without
     /// leaking position.
     /// </summary>
@@ -99,8 +100,8 @@ public sealed record Coordinates
     /// <summary>
     /// Creates a <see cref="Coordinates"/> from decimal-degree lat/lon values.
     /// </summary>
-    /// <param name="latitude">Latitude (must be finite, in [−90, +90]).</param>
-    /// <param name="longitude">Longitude (must be finite, in [−180, +180]).</param>
+    /// <param name="latitude">Latitude (must be finite, in [-90, +90]).</param>
+    /// <param name="longitude">Longitude (must be finite, in [-180, +180]).</param>
     /// <param name="accuracyMeters">
     /// Optional accuracy metadata (must be finite and non-negative when supplied).
     /// </param>
@@ -152,7 +153,7 @@ public sealed record Coordinates
     /// </summary>
     /// <param name="geohash">
     /// A geohash string using the base-32 alphabet
-    /// (<c>0123456789bcdefghjkmnpqrstuvwxyz</c>), length 1–12.
+    /// (<c>0123456789bcdefghjkmnpqrstuvwxyz</c>), length 1-12.
     /// Strings longer than 10 characters are truncated to 10.
     /// Strings shorter than 10 characters are decoded to cell-center and re-encoded at 10.
     /// </param>
@@ -238,8 +239,8 @@ public sealed record Coordinates
     // -----------------------------------------------------------------------
 
     /// <summary>
-    /// Common pipeline: normalize lat/lon to geohash-10 cell-center → compute all
-    /// three reps → compute HashId.
+    /// Common pipeline: normalize lat/lon to geohash-10 cell-center -> compute
+    /// every representation -> compute HashId.
     /// </summary>
     private static D2Result<Coordinates> BuildFromLatLon(
         double latitude,
@@ -254,10 +255,10 @@ public sealed record Coordinates
         centerLat = Math.Round(centerLat, 6, MidpointRounding.AwayFromZero);
         centerLon = Math.Round(centerLon, 6, MidpointRounding.AwayFromZero);
 
-        // Encode plus-code at 12 significant digits (→ 13-char string with '+').
+        // Encode plus-code at 12 significant digits (-> 13-char string with '+').
         var plusCode = PlusCodeEncoder.Encode(centerLat, centerLon, codeLength: 12);
 
-        // HashId: "v1." + SHA-256(Geohash) — BCL static one-shot per §15.8.
+        // HashId: "v1." + SHA-256(Geohash) - BCL static one-shot.
         var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(geohash));
         var hashId = "v1." + Convert.ToHexStringLower(hashBytes);
 

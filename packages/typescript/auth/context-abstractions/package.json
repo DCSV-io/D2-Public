@@ -1,6 +1,11 @@
 {
   "name": "@dcsv-io/d2-auth-context-abstractions",
-  "version": "0.1.2",
+  "version": "0.2.7",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DCSV-io/D2-Public.git",
+    "directory": "packages/typescript/auth/context-abstractions"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

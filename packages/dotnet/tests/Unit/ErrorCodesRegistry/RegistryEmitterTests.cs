@@ -13,10 +13,9 @@ using RegistrySourceGen::DcsvIo.D2.ErrorCodes.Registry.SourceGen;
 using Xunit;
 
 /// <summary>
-/// Unit tests for the pure-logic parts of <see cref="RegistryEmitter"/> —
+/// Unit tests for the pure-logic parts of <see cref="RegistryEmitter"/> -
 /// specifically the <see cref="RegistryEmitter.CategoryToMemberName"/> mapping
-/// which must be stable and reversible (the parity tests compare wire strings
-/// against enum values via this map).
+/// which must be stable and reversible.
 /// </summary>
 public sealed class RegistryEmitterTests
 {
@@ -49,23 +48,28 @@ public sealed class RegistryEmitterTests
     }
 
     // -----------------------------------------------------------------------
-    // IsDeprecated — the registry-side deprecation flag baked onto ErrorCodeInfo.
-    // Driven by SYNTHETIC entries — no real spec entry is deprecated.
+    // IsDeprecated - the registry-side deprecation flag baked onto ErrorCodeInfo.
+    // Driven by SYNTHETIC entries - no real spec entry is deprecated.
     // -----------------------------------------------------------------------
 
     [Fact]
     public void Emit_ErrorCodeInfoRecord_CarriesIsDeprecatedField()
     {
-        var source = RegistryEmitter.Emit([Entry("NOT_FOUND", isDeprecated: false)]);
+        var source = RegistryEmitter.Emit(
+            [Entry("GEN_NOT_FOUND", isDeprecated: false)],
+            RegistryEmitConfig.Public);
 
         source.Should().Contain("public readonly record struct ErrorCodeInfo(");
+        source.Should().Contain("    string Owner,");
         source.Should().Contain("    bool IsDeprecated);");
     }
 
     [Fact]
     public void Emit_DeprecatedEntry_BakesIsDeprecatedTrue()
     {
-        var source = RegistryEmitter.Emit([Entry("NOT_FOUND", isDeprecated: true)]);
+        var source = RegistryEmitter.Emit(
+            [Entry("GEN_NOT_FOUND", isDeprecated: true)],
+            RegistryEmitConfig.Public);
 
         source.Should().Contain("IsDeprecated: true)");
     }
@@ -73,7 +77,9 @@ public sealed class RegistryEmitterTests
     [Fact]
     public void Emit_NonDeprecatedEntry_BakesIsDeprecatedFalse()
     {
-        var source = RegistryEmitter.Emit([Entry("NOT_FOUND", isDeprecated: false)]);
+        var source = RegistryEmitter.Emit(
+            [Entry("GEN_NOT_FOUND", isDeprecated: false)],
+            RegistryEmitConfig.Public);
 
         source.Should().Contain("IsDeprecated: false)");
         source.Should().NotContain("IsDeprecated: true");
@@ -89,6 +95,8 @@ public sealed class RegistryEmitterTests
             FactoryShape: "standard",
             Doc: "Resource not found.",
             Domain: "common",
+            Owner: "gen",
+            DomainPrefix: "GEN_",
             SpecFileName: "error-codes.spec.json",
             IsDeprecated: isDeprecated);
 }

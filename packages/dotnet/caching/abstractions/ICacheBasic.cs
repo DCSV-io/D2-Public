@@ -11,11 +11,11 @@ using DcsvIo.D2.Result;
 /// <summary>
 /// Core read + write surface common to every cache flavor (local,
 /// distributed, tiered). Every method returns <see cref="D2Result{TData}"/>.
-/// Cache misses surface as <c>NotFound</c> failures; partial bulk hits as
-/// <c>SomeFound</c> failures (both carry their specific error codes —
-/// callers discriminate via <c>IsNotFound</c> / <c>IsSomeFound</c>).
-/// Generic infrastructure failures (couldn't reach the backing store,
-/// serializer threw, etc.) surface as <c>ServiceUnavailable</c> /
+/// Cache misses return <c>NotFound</c> failures; partial bulk hits return
+/// <c>SomeFound</c> failures (both have their specific error codes -
+/// discriminate them via <c>IsNotFound</c> / <c>IsSomeFound</c>).
+/// Generic infrastructure failures (the backing store could not be reached,
+/// the serializer threw an exception, etc.) return <c>ServiceUnavailable</c> /
 /// <c>UnhandledException</c>.
 /// </summary>
 /// <remarks>
@@ -28,9 +28,9 @@ using DcsvIo.D2.Result;
 /// <item><see cref="IDistributedCache"/>: every read and write hits the
 /// remote store. No L1 buffer. Predictable freshness, network-bound latency.</item>
 /// <item><see cref="ITieredCache"/>: reads check L1 first / fall through
-/// to L2 / populate L1. Writes go L2-first — L1 only writes if L2 succeeded
-/// — so partial-write states are impossible and the result is binary
-/// (success or the L2 failure bubbled up).</item>
+/// to L2 / populate L1. Writes go L2-first - L1 only writes if L2 succeeded
+/// - so partial-write states are impossible and the result is binary
+/// (success, or the L2 failure returned as is).</item>
 /// </list>
 /// </remarks>
 public interface ICacheBasic
@@ -107,7 +107,7 @@ public interface ICacheBasic
         CancellationToken ct = default);
 
     /// <summary>
-    /// Removes a key. Idempotent — succeeds whether the key existed or not.
+    /// Removes a key. Idempotent - succeeds whether the key existed or not.
     /// </summary>
     /// <param name="key">Cache key.</param>
     /// <param name="ct">Cancellation token.</param>

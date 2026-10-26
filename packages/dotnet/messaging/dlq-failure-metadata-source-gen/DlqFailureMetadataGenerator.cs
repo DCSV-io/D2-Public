@@ -18,14 +18,14 @@ using Microsoft.CodeAnalysis.Text;
 /// catalog artifacts. Multi-target dispatch:
 /// <list type="bullet">
 ///   <item>
-///     <c>DcsvIo.D2.Messaging.Abstractions</c> →
+///     <c>DcsvIo.D2.Messaging.Abstractions</c> ->
 ///     <c>DlqFailureMetadataFields.g.cs</c> (Fields catalog).
 ///   </item>
 ///   <item>
-///     <c>DcsvIo.D2.Messaging.RabbitMq</c> → <c>DlqFailureCauses.g.cs</c>
-///     (Causes catalog, since <c>DlqFailureHeaderBuilder</c> lives there).
+///     <c>DcsvIo.D2.Messaging.RabbitMq</c> -> <c>DlqFailureCauses.g.cs</c>
+///     (Causes catalog; <c>DlqFailureHeaderBuilder</c> is in this assembly).
 ///   </item>
-///   <item>Anything else → emit nothing.</item>
+///   <item>Anything else -> emit nothing.</item>
 /// </list>
 /// </summary>
 [Generator]
@@ -56,8 +56,8 @@ public sealed class DlqFailureMetadataGenerator : IIncrementalGenerator
             var (specFiles, compilation) = tuple;
             var assemblyName = compilation.AssemblyName ?? string.Empty;
 
-            // Dispatch on assembly name — anything other than the two
-            // target assemblies emits nothing.
+            // Dispatch on the assembly name. Any assembly other than the
+            // Fields and Causes target assemblies gets no output.
             if (!string.Equals(assemblyName, _FIELDS_ASSEMBLY, StringComparison.Ordinal) &&
                 !string.Equals(assemblyName, _CAUSES_ASSEMBLY, StringComparison.Ordinal))
             {

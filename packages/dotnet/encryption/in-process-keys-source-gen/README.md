@@ -8,22 +8,28 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 **Input contract:** [`contracts/in-process-keys/`](../../../../contracts/in-process-keys/README.md)
 
-Roslyn incremental source generator that emits binding-specific in-process slot-key catalog classes by reading `contracts/in-process-keys/keys.spec.json` via `<AdditionalFiles>`. Dispatches per consuming assembly to one of two target catalogs.
+A Roslyn incremental source generator that emits binding-specific in-process slot-key catalog classes by reading
+`contracts/in-process-keys/keys.spec.json` via `<AdditionalFiles>`. For each consuming assembly it emits either the
+HTTP catalog or the gRPC catalog.
 
-The spec file is the single source of truth for cross-binding in-process slot keys (HTTP `HttpContext.Items` + gRPC `ServerCallContext.UserState`). Cross-binding entries appear in both .NET catalogs at identical wire values — codegen-guaranteed and verified by `HttpContextItemsVsGrpcUserStateKeysConsistencyTests`.
+The spec file defines the cross-binding in-process slot keys (HTTP `HttpContext.Items` and gRPC
+`ServerCallContext.UserState`). Cross-binding entries appear in both .NET catalogs with identical wire values, because
+the generator emits them from one entry.
 
-**Convention**: spec-driven Roslyn `IIncrementalGenerator` (netstandard2.0 analyzer; spec via `<AdditionalFiles>`).
+Convention: spec-driven Roslyn `IIncrementalGenerator` (netstandard2.0 analyzer; spec via `<AdditionalFiles>`).
 
 ---
 
 ## Catalog dispatch
 
-| Consuming assembly (PackageId / AssemblyName) | Filter                      | Visibility | Emitted source                                                                                 |
-| --------------------------------------------- | --------------------------- | ---------- | ---------------------------------------------------------------------------------------------- |
-| public `DcsvIo.D2.Auth.Abstractions`          | `bindings.Contains("http")` | `public`   | `D2HttpContextItems.g.cs` (class `D2HttpContextItems` in `DcsvIo.D2.Auth.Abstractions.Http`)   |
-| Host-supplied gRPC auth assembly (when present) | `bindings.Contains("grpc")` | `internal` | `D2GrpcUserStateKeys.g.cs` (class `D2GrpcUserStateKeys` for gRPC UserState) |
+| Consuming assembly (PackageId / AssemblyName)   | Filter                      | Visibility | Emitted source                                                                               |
+| ----------------------------------------------- | --------------------------- | ---------- | -------------------------------------------------------------------------------------------- |
+| public `DcsvIo.D2.Auth.Abstractions`            | `bindings.Contains("http")` | `public`   | `D2HttpContextItems.g.cs` (class `D2HttpContextItems` in `DcsvIo.D2.Auth.Abstractions.Http`) |
+| Host-supplied gRPC auth assembly (when present) | `bindings.Contains("grpc")` | `internal` | `D2GrpcUserStateKeys.g.cs` (class `D2GrpcUserStateKeys` for gRPC UserState)                  |
 
-The visibility difference (public vs internal) reflects the consumption pattern of each binding — HTTP downstream code reads `HttpContext.Items[D2HttpContextItems.REQUEST_CONTEXT]` directly, whereas gRPC consumers go through typed accessor extensions and the raw key class stays internal.
+The visibility differs (public vs internal) because the bindings are consumed differently. HTTP downstream code reads
+`HttpContext.Items[D2HttpContextItems.REQUEST_CONTEXT]` directly, whereas gRPC consumers go through typed accessor
+extensions and the raw key class stays internal.
 
 ---
 
@@ -56,16 +62,20 @@ The visibility difference (public vs internal) reflects the consumption pattern 
 
 ### Field rules
 
-- **`constName`** — UPPER_SNAKE_CASE C# identifier.
-- **`value`** — wire value of the slot key. Identical across every binding in `bindings`.
-- **`purpose`** — XML `<summary>` text rendered on every emitted catalog the entry appears in.
-- **`bindings`** — closed enum `http` / `grpc`. Every key MUST belong to at least one binding.
+- **`constName`** - UPPER_SNAKE_CASE C# identifier.
+- **`value`** - wire value of the slot key. Identical across every binding in `bindings`.
+- **`purpose`** - XML `<summary>` text rendered on every emitted catalog the entry appears in.
+- **`bindings`** - closed enum `http` / `grpc`. Every key must belong to at least one binding.
 
 ---
 
 ## Reference
 
-- [`contracts/in-process-keys/schema.json`](../../../../contracts/in-process-keys/schema.json) — JSON Schema for the spec
-- [`contracts/in-process-keys/keys.spec.json`](../../../../contracts/in-process-keys/keys.spec.json) — the source-of-truth catalog
-- [`DcsvIo.D2.Headers.SourceGen`](../../headers/source-gen/README.md) — sibling SrcGen for cross-transport wire headers
-- [`DcsvIo.D2.Auth.JwtClaims.SourceGen`](../../auth/jwt-claims-source-gen/README.md) — sibling SrcGen for JWT claim names
+- [`contracts/in-process-keys/schema.json`](../../../../contracts/in-process-keys/schema.json) - JSON Schema for the
+  spec
+- [`contracts/in-process-keys/keys.spec.json`](../../../../contracts/in-process-keys/keys.spec.json) - the key catalog
+  that the generator reads
+- [`DcsvIo.D2.Headers.SourceGen`](../../headers/source-gen/README.md) - sibling generator for cross-transport wire
+  headers
+- [`DcsvIo.D2.Auth.JwtClaims.SourceGen`](../../auth/jwt-claims-source-gen/README.md) - sibling generator for JWT claim
+  names

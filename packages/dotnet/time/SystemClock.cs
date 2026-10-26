@@ -11,8 +11,7 @@ using NodaTime;
 /// <summary>
 /// Production implementation of <see cref="IClock" /> that delegates to
 /// <see cref="NodaTime.SystemClock.Instance" />. Register this as the
-/// singleton binding for <see cref="IClock" /> in each service's DI
-/// composition root.
+/// singleton binding for <see cref="IClock" /> in the DI container.
 /// </summary>
 public sealed class SystemClock : IClock
 {

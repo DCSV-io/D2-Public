@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "D² messaging — messages spec",
-  "description": "Schema for contracts/mq-messages/mq-messages.spec.json — the source-of-truth catalog of every message type D² publishes. DcsvIo.D2.Mq.SourceGen reads this to emit the MqMessages static class (string constants) + the runtime registry (constant → MqMessageDescriptor) into DcsvIo.D2.Messaging.Abstractions. Each entry pairs one message type with its publisher contract: target exchange, exchange type, encryption domain, default routing key. The producing service owns its entries.",
+  "title": "D2 messaging - messages spec",
+  "description": "Schema for contracts/mq-messages/mq-messages.spec.json - the source-of-truth catalog of every message type D2 publishes. DcsvIo.D2.Mq.SourceGen reads this to emit the MqMessages static class (string constants) + the runtime registry (constant -> MqMessageDescriptor) into DcsvIo.D2.Messaging.Abstractions. Each entry pairs one message type with its publisher contract: target exchange, exchange type, encryption domain, default routing key. The producing service owns its entries.",
   "type": "object",
   "required": ["messages"],
   "additionalProperties": false,
@@ -9,7 +9,8 @@
     "$schema": { "type": "string" },
     "messages": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 0,
+      "description": "May be empty. This catalog carries the framework's own message entries; an application declares its own message types in its own catalog file, which the generator compiles together with this one into the application's private registry.",
       "items": { "$ref": "#/definitions/message" }
     }
   },
@@ -43,11 +44,11 @@
         "exchangeType": {
           "type": "string",
           "enum": ["fanout", "topic", "direct"],
-          "description": "AMQP exchange type. fanout = broadcast (every binding receives every message); topic = routing-key-pattern matching; direct = exact-routing-key matching. headers + x-* exchange types intentionally excluded — not used by D² conventions."
+          "description": "AMQP exchange type. fanout = broadcast (every binding receives every message); topic = routing-key-pattern matching; direct = exact-routing-key matching. headers + x-* exchange types intentionally excluded - not used by D2 conventions."
         },
         "encryption": {
           "type": "string",
-          "description": "Either an EncryptionDomains constant value (e.g. 'audit', 'comms', 'files') OR the literal string 'plaintext'. Default-deny: a missing or unknown value fails the build (D2MQ004)."
+          "description": "Either an EncryptionDomains constant value (e.g. 'payload-fixture-sealed', or a host's own domain such as 'orders') OR the literal string 'plaintext'. Default-deny: a missing or unknown value fails the build (D2MQ004)."
         },
         "encryptionReason": {
           "type": "string",
@@ -56,11 +57,11 @@
         },
         "defaultRoutingKey": {
           "type": "string",
-          "description": "Routing key used by publishers when no per-publish override is supplied. Empty for fanout. For topic exchanges, may include placeholder tokens like {channel} for runtime substitution (template support deferred — currently treated as literal)."
+          "description": "Routing key used by publishers when no per-publish override is supplied. Empty for fanout. For topic exchanges, may include placeholder tokens like {channel} for runtime substitution (template support deferred - currently treated as literal)."
         },
         "deprecated": {
           "type": "boolean",
-          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive — the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
+          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive - the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
         },
         "deprecatedReason": {
           "type": "string",
@@ -74,7 +75,7 @@
         "sunset": {
           "type": "string",
           "format": "date",
-          "description": "ISO-8601 date for the future RFC 8594 Sunset response header. Edge-runtime-deferred: carried on the contract now, consumed by the Edge response middleware when it exists. Inert until then."
+          "description": "ISO-8601 date for the RFC 8594 Sunset response header. A host whose response pipeline emits that header reads the date from here; a host that does not ignores it."
         }
       }
     }

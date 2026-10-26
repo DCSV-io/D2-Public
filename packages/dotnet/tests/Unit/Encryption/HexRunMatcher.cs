@@ -15,9 +15,9 @@ using System.Text.RegularExpressions;
 internal static partial class HexRunMatcher
 {
     /// <summary>
-    /// Matches any unbroken run of 16 or more hex characters. Bucket 1
-    /// (no backtracking) — single greedy quantifier with no following
-    /// pattern, so no timeout needed.
+    /// Matches any unbroken run of 16 or more hex characters. The pattern is a
+    /// single greedy quantifier with no following pattern, so it does not
+    /// backtrack and needs no timeout.
     /// </summary>
     /// <returns>The compiled regex.</returns>
     [GeneratedRegex("[0-9a-fA-F]{16,}")]

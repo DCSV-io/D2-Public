@@ -103,7 +103,7 @@ internal static class OtelMessagingTagsEmitter
         sb.AppendLine(
             "/// messaging publisher / consumer Activity.SetTag call references these");
         sb.AppendLine(
-            "/// constants instead of inline string literals — keeps publisher + consumer");
+            "/// constants instead of inline string literals - keeps publisher + consumer");
         sb.AppendLine(
             "/// in lockstep with the OTel semantic-convention catalog AND with each");
         sb.AppendLine("/// other.");

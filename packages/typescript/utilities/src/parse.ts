@@ -10,12 +10,12 @@ import { EMPTY_UUID, UUID_RE } from "./regex.js";
  * lowercase form on success; `undefined` when the input is
  * null/undefined/empty/whitespace, not UUID-shaped, OR equals the empty UUID.
  * Mirrors the .NET `string?.TryParseTruthyNull(out Guid? r)` extension
- * semantics — collapsing unparseable AND empty-UUID inputs to a single
+ * semantics, which collapse unparseable AND empty-UUID inputs to a single
  * "absent" signal.
  *
- * TS naming uses `*Undef*` (rules.md §6.15 — `undefined` for absent). The
- * .NET mirror is `TryParseTruthyNull(out Guid? r)` — same behavior, C#
- * convention. See PARITY.md "Utility helper naming divergence".
+ * TS naming uses `*Undef*` (`undefined` for absent). The
+ * .NET mirror is `TryParseTruthyNull(out Guid? r)`: same behavior, with
+ * `null` for absent (`*Null*`) per C# convention.
  */
 export function tryParseTruthyUndefUuid(
   input: string | null | undefined,
@@ -28,21 +28,23 @@ export function tryParseTruthyUndefUuid(
 }
 
 /**
- * Tries to parse a string as a finite integer. Returns the parsed number on
- * success; `undefined` when the input is null/undefined/empty/whitespace OR
- * does not parse cleanly to a finite integer (rejects floats and scientific
- * notation).
+ * Tries to parse a string as an integer. Returns the parsed number on
+ * success; `undefined` when the input is null/undefined/empty/whitespace,
+ * does not parse cleanly to an integer (rejects floats and scientific
+ * notation), or lies outside `Number.MIN_SAFE_INTEGER` to
+ * `Number.MAX_SAFE_INTEGER`, where the number would not be exact.
  *
- * TS naming uses `*Undef*` (rules.md §6.15). See {@link tryParseTruthyUndefUuid}.
+ * TS naming uses `*Undef*`. See {@link tryParseTruthyUndefUuid}.
  */
 export function tryParseTruthyUndefInt(
   input: string | null | undefined,
 ): number | undefined {
   if (falsey(input)) return undefined;
   const trimmed = (input as string).trim();
-  // Regex guarantees finite integer parse — no further finite-check needed.
+  // The regex accepts only an optional minus sign followed by digits.
   if (!/^-?\d+$/.test(trimmed)) return undefined;
-  return Number.parseInt(trimmed, 10);
+  const parsed = Number.parseInt(trimmed, 10);
+  return Number.isSafeInteger(parsed) ? parsed : undefined;
 }
 
 /**
@@ -52,7 +54,7 @@ export function tryParseTruthyUndefInt(
  * Mirrors the .NET `string?.TryParseTruthyNull<TEnum>(out var r)` extension
  * semantics.
  *
- * TS naming uses `*Undef*` (rules.md §6.15). See {@link tryParseTruthyUndefUuid}.
+ * TS naming uses `*Undef*`. See {@link tryParseTruthyUndefUuid}.
  */
 export function tryParseTruthyUndefEnum<
   T extends Record<string, string | number>,

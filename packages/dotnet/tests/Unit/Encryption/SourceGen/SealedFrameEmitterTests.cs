@@ -12,7 +12,7 @@ using DcsvIo.D2.EncryptionFrame.SourceGen;
 using Xunit;
 
 /// <summary>
-/// Pure-logic tests for the SealedFrame emitter arm — the emitted constants
+/// Pure-logic tests for the SealedFrame emitter arm - the emitted constants
 /// (including the sealed-only constraint set) + the fail-path proof
 /// (deliberate drift: invalid version, duplicate constName, overlapping
 /// fields, invalid length, unknown field kind, and the
@@ -74,13 +74,14 @@ public sealed class SealedFrameEmitterTests
     }
 
     // ---------------------------------------------------------------
-    // §1.20 fail-path proof — deliberate drift cases.
+    // Deliberate-drift tests: each feeds the emitter a broken spec and
+    // asserts the diagnostic it emits.
     // ---------------------------------------------------------------
 
     [Fact]
     public void Emit_Version1_EmitsSealedInvalidVersionDiagnostic()
     {
-        // Version 1 belongs to the symmetric frame — the sealed family
+        // Version 1 belongs to the symmetric frame - the sealed family
         // starts at 2.
         var spec = MakeSpec(version: 1, fields: System.Array.Empty<EncryptionFrameField>());
 

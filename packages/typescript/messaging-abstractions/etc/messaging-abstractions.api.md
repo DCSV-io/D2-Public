@@ -56,21 +56,10 @@ export interface MqMessageDescriptor {
 }
 
 // @public
-export const MqMessages: {
-    readonly AuthKeyRotated: "AuthKeyRotated";
-};
+export const MqMessages: {};
 
 // @public
-export const MqMessagesCatalog: {
-    readonly AuthKeyRotated: {
-        readonly constant: "AuthKeyRotated";
-        readonly messageType: "DcsvIo.D2.Auth.Events.KeyRotatedEvent";
-        readonly exchange: "d2.security.key-rotated";
-        readonly exchangeType: "fanout";
-        readonly encryption: "plaintext";
-        readonly defaultRoutingKey: "";
-    };
-};
+export const MqMessagesCatalog: {};
 
 // @public
 export const MqMessagesRegistry: Readonly<Record<string, MqMessageDescriptor>>;

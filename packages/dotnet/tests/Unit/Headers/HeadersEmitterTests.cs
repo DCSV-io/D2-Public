@@ -12,10 +12,10 @@ using DcsvIo.D2.Headers.SourceGen;
 using Xunit;
 
 /// <summary>
-/// Pure-logic coverage for <see cref="HeadersEmitter"/>: happy-path
-/// emission per catalog filter, invalid constName diagnostics, unknown
-/// transport diagnostics, empty applicability diagnostics, and unknown
-/// convention warnings.
+/// Tests of <see cref="HeadersEmitter"/> that need no I/O: emission for the
+/// Http and Common catalog filters, the invalid constName diagnostic, the
+/// unknown transport diagnostic, the empty applicability diagnostic, and the
+/// unknown convention warning.
 /// </summary>
 public sealed class HeadersEmitterTests
 {

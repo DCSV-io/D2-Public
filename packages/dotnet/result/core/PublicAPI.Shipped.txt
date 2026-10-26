@@ -9,6 +9,7 @@ DcsvIo.D2.Result.D2Result.IsCanceled.get -> bool
 DcsvIo.D2.Result.D2Result.IsConflict.get -> bool
 DcsvIo.D2.Result.D2Result.IsCreated.get -> bool
 DcsvIo.D2.Result.D2Result.IsForbidden.get -> bool
+DcsvIo.D2.Result.D2Result.IsForgeryRefused.get -> bool
 DcsvIo.D2.Result.D2Result.IsIdempotencyInFlight.get -> bool
 DcsvIo.D2.Result.D2Result.IsNotFound.get -> bool
 DcsvIo.D2.Result.D2Result.IsOk.get -> bool
@@ -63,21 +64,22 @@ const DcsvIo.D2.Result.D2ResultEnvelopeFieldNames.MESSAGES = "messages" -> strin
 const DcsvIo.D2.Result.D2ResultEnvelopeFieldNames.STATUS_CODE = "statusCode" -> string!
 const DcsvIo.D2.Result.D2ResultEnvelopeFieldNames.SUCCESS = "success" -> string!
 const DcsvIo.D2.Result.D2ResultEnvelopeFieldNames.TRACE_ID = "traceId" -> string!
-const DcsvIo.D2.Result.ErrorCodes.CANCELED = "CANCELED" -> string!
-const DcsvIo.D2.Result.ErrorCodes.CONFLICT = "CONFLICT" -> string!
-const DcsvIo.D2.Result.ErrorCodes.COULD_NOT_BE_DESERIALIZED = "COULD_NOT_BE_DESERIALIZED" -> string!
-const DcsvIo.D2.Result.ErrorCodes.COULD_NOT_BE_SERIALIZED = "COULD_NOT_BE_SERIALIZED" -> string!
-const DcsvIo.D2.Result.ErrorCodes.FORBIDDEN = "FORBIDDEN" -> string!
-const DcsvIo.D2.Result.ErrorCodes.IDEMPOTENCY_IN_FLIGHT = "IDEMPOTENCY_IN_FLIGHT" -> string!
-const DcsvIo.D2.Result.ErrorCodes.NOT_FOUND = "NOT_FOUND" -> string!
-const DcsvIo.D2.Result.ErrorCodes.PARTIAL_SUCCESS = "PARTIAL_SUCCESS" -> string!
-const DcsvIo.D2.Result.ErrorCodes.PAYLOAD_TOO_LARGE = "PAYLOAD_TOO_LARGE" -> string!
-const DcsvIo.D2.Result.ErrorCodes.RATE_LIMITED = "RATE_LIMITED" -> string!
-const DcsvIo.D2.Result.ErrorCodes.SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE" -> string!
-const DcsvIo.D2.Result.ErrorCodes.SOME_FOUND = "SOME_FOUND" -> string!
-const DcsvIo.D2.Result.ErrorCodes.UNAUTHORIZED = "UNAUTHORIZED" -> string!
-const DcsvIo.D2.Result.ErrorCodes.UNHANDLED_EXCEPTION = "UNHANDLED_EXCEPTION" -> string!
-const DcsvIo.D2.Result.ErrorCodes.VALIDATION_FAILED = "VALIDATION_FAILED" -> string!
+const DcsvIo.D2.Result.ErrorCodes.GEN_CANCELED = "GEN_CANCELED" -> string!
+const DcsvIo.D2.Result.ErrorCodes.GEN_CONFLICT = "GEN_CONFLICT" -> string!
+const DcsvIo.D2.Result.ErrorCodes.GEN_COULD_NOT_BE_DESERIALIZED = "GEN_COULD_NOT_BE_DESERIALIZED" -> string!
+const DcsvIo.D2.Result.ErrorCodes.GEN_COULD_NOT_BE_SERIALIZED = "GEN_COULD_NOT_BE_SERIALIZED" -> string!
+const DcsvIo.D2.Result.ErrorCodes.GEN_FORBIDDEN = "GEN_FORBIDDEN" -> string!
+const DcsvIo.D2.Result.ErrorCodes.GEN_FORGERY_REFUSED = "GEN_FORGERY_REFUSED" -> string!
+const DcsvIo.D2.Result.ErrorCodes.GEN_IDEMPOTENCY_IN_FLIGHT = "GEN_IDEMPOTENCY_IN_FLIGHT" -> string!
+const DcsvIo.D2.Result.ErrorCodes.GEN_NOT_FOUND = "GEN_NOT_FOUND" -> string!
+const DcsvIo.D2.Result.ErrorCodes.GEN_PARTIAL_SUCCESS = "GEN_PARTIAL_SUCCESS" -> string!
+const DcsvIo.D2.Result.ErrorCodes.GEN_PAYLOAD_TOO_LARGE = "GEN_PAYLOAD_TOO_LARGE" -> string!
+const DcsvIo.D2.Result.ErrorCodes.GEN_RATE_LIMITED = "GEN_RATE_LIMITED" -> string!
+const DcsvIo.D2.Result.ErrorCodes.GEN_SERVICE_UNAVAILABLE = "GEN_SERVICE_UNAVAILABLE" -> string!
+const DcsvIo.D2.Result.ErrorCodes.GEN_SOME_FOUND = "GEN_SOME_FOUND" -> string!
+const DcsvIo.D2.Result.ErrorCodes.GEN_UNAUTHORIZED = "GEN_UNAUTHORIZED" -> string!
+const DcsvIo.D2.Result.ErrorCodes.GEN_UNHANDLED_EXCEPTION = "GEN_UNHANDLED_EXCEPTION" -> string!
+const DcsvIo.D2.Result.ErrorCodes.GEN_VALIDATION_FAILED = "GEN_VALIDATION_FAILED" -> string!
 const DcsvIo.D2.Result.InputErrorWireShape.ERRORS = "errors" -> string!
 const DcsvIo.D2.Result.InputErrorWireShape.FIELD = "field" -> string!
 override DcsvIo.D2.Result.InputError.Equals(object? obj) -> bool
@@ -94,6 +96,8 @@ static DcsvIo.D2.Result.D2Result.Conflict(System.Collections.Generic.IReadOnlyLi
 static DcsvIo.D2.Result.D2Result.Created(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null, string? traceId = null) -> DcsvIo.D2.Result.D2Result!
 static DcsvIo.D2.Result.D2Result.Fail(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null, System.Net.HttpStatusCode? statusCode = null, System.Collections.Generic.IReadOnlyList<DcsvIo.D2.Result.InputError!>? inputErrors = null, string? errorCode = null, string? traceId = null) -> DcsvIo.D2.Result.D2Result!
 static DcsvIo.D2.Result.D2Result.Forbidden(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null, System.Collections.Generic.IReadOnlyList<DcsvIo.D2.Result.InputError!>? inputErrors = null, string? errorCode = null, DcsvIo.D2.ErrorCodes.Category.ErrorCategory? category = null, string? traceId = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Result.D2Result.ForgeryRefused(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null, System.Collections.Generic.IReadOnlyList<DcsvIo.D2.Result.InputError!>? inputErrors = null, string? errorCode = null, DcsvIo.D2.ErrorCodes.Category.ErrorCategory? category = null, string? traceId = null) -> DcsvIo.D2.Result.D2Result!
+static DcsvIo.D2.Result.D2Result.NoContent(string? traceId = null) -> DcsvIo.D2.Result.D2Result!
 static DcsvIo.D2.Result.D2Result.NotFound(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null, System.Collections.Generic.IReadOnlyList<DcsvIo.D2.Result.InputError!>? inputErrors = null, string? errorCode = null, DcsvIo.D2.ErrorCodes.Category.ErrorCategory? category = null, string? traceId = null) -> DcsvIo.D2.Result.D2Result!
 static DcsvIo.D2.Result.D2Result.Ok(string? traceId = null) -> DcsvIo.D2.Result.D2Result!
 static DcsvIo.D2.Result.D2Result.PayloadTooLarge(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null, System.Collections.Generic.IReadOnlyList<DcsvIo.D2.Result.InputError!>? inputErrors = null, string? errorCode = null, DcsvIo.D2.ErrorCodes.Category.ErrorCategory? category = null, string? traceId = null) -> DcsvIo.D2.Result.D2Result!
@@ -110,6 +114,8 @@ static DcsvIo.D2.Result.D2Result<TData>.Conflict(System.Collections.Generic.IRea
 static DcsvIo.D2.Result.D2Result<TData>.Created(TData? data = default(TData?), string? traceId = null) -> DcsvIo.D2.Result.D2Result<TData>!
 static DcsvIo.D2.Result.D2Result<TData>.Fail(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null, System.Net.HttpStatusCode? statusCode = null, System.Collections.Generic.IReadOnlyList<DcsvIo.D2.Result.InputError!>? inputErrors = null, string? errorCode = null, string? traceId = null) -> DcsvIo.D2.Result.D2Result<TData>!
 static DcsvIo.D2.Result.D2Result<TData>.Forbidden(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null, System.Collections.Generic.IReadOnlyList<DcsvIo.D2.Result.InputError!>? inputErrors = null, string? errorCode = null, DcsvIo.D2.ErrorCodes.Category.ErrorCategory? category = null, string? traceId = null) -> DcsvIo.D2.Result.D2Result<TData>!
+static DcsvIo.D2.Result.D2Result<TData>.ForgeryRefused(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null, System.Collections.Generic.IReadOnlyList<DcsvIo.D2.Result.InputError!>? inputErrors = null, string? errorCode = null, DcsvIo.D2.ErrorCodes.Category.ErrorCategory? category = null, string? traceId = null) -> DcsvIo.D2.Result.D2Result<TData>!
+static DcsvIo.D2.Result.D2Result<TData>.NoContent(string? traceId = null) -> DcsvIo.D2.Result.D2Result<TData>!
 static DcsvIo.D2.Result.D2Result<TData>.NotFound(System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null, System.Collections.Generic.IReadOnlyList<DcsvIo.D2.Result.InputError!>? inputErrors = null, string? errorCode = null, DcsvIo.D2.ErrorCodes.Category.ErrorCategory? category = null, string? traceId = null) -> DcsvIo.D2.Result.D2Result<TData>!
 static DcsvIo.D2.Result.D2Result<TData>.Ok(TData? data = default(TData?), System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null, string? traceId = null) -> DcsvIo.D2.Result.D2Result<TData>!
 static DcsvIo.D2.Result.D2Result<TData>.PartialSuccess(TData? data = default(TData?), System.Collections.Generic.IReadOnlyList<DcsvIo.D2.I18n.TKMessage!>? messages = null, string? traceId = null) -> DcsvIo.D2.Result.D2Result<TData>!

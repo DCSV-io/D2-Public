@@ -26,9 +26,9 @@ public sealed class EncryptionDomainsSpecLoaderTests
         {
           "domains": [
             {
-              "constName": "AUDIT",
-              "value": "audit",
-              "doc": "Audit keyring domain."
+              "constName": "ORDERS",
+              "value": "orders",
+              "doc": "Orders keyring domain."
             }
           ]
         }
@@ -40,9 +40,9 @@ public sealed class EncryptionDomainsSpecLoaderTests
         result.Spec.Should().NotBeNull();
         result.Spec!.Domains.Should().HaveCount(1);
         var entry = result.Spec.Domains[0];
-        entry.ConstName.Should().Be("AUDIT");
-        entry.Value.Should().Be("audit");
-        entry.Doc.Should().Be("Audit keyring domain.");
+        entry.ConstName.Should().Be("ORDERS");
+        entry.Value.Should().Be("orders");
+        entry.Doc.Should().Be("Orders keyring domain.");
     }
 
     [Fact]
@@ -159,7 +159,7 @@ public sealed class EncryptionDomainsSpecLoaderTests
         var json = """
         {
           "domains": [
-            { "constName": "AUDIT", "value": "audit", "doc": "d" }
+            { "constName": "ORDERS", "value": "orders", "doc": "d" }
           ]
         }
         """;
@@ -179,10 +179,10 @@ public sealed class EncryptionDomainsSpecLoaderTests
         {
           "domains": [
             {
-              "constName": "AUDIT",
-              "value": "audit",
+              "constName": "ORDERS",
+              "value": "orders",
               "mode": "sealed",
-              "consumerService": "audit",
+              "consumerService": "orders",
               "doc": "d"
             }
           ]
@@ -194,7 +194,7 @@ public sealed class EncryptionDomainsSpecLoaderTests
         result.Diagnostic.Should().BeNull();
         var entry = result.Spec!.Domains[0];
         entry.Mode.Should().Be("sealed");
-        entry.ConsumerService.Should().Be("audit");
+        entry.ConsumerService.Should().Be("orders");
     }
 
     [Fact]

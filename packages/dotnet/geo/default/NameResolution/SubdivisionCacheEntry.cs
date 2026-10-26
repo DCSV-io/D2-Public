@@ -10,8 +10,9 @@ using DcsvIo.D2.Geo.Abstractions;
 
 /// <summary>
 /// Single dictionary value for the per-country subdivision name cache.
-/// Carries either a record reference or an ambiguity sentinel; the two
-/// fields publish atomically via the single-struct-write guarantee.
+/// Stores either a record reference or an ambiguity sentinel. The two
+/// fields are one struct value, and the cache publishes the finished
+/// dictionary once, so a reader sees both fields of an entry together.
 /// </summary>
 /// <param name="Record">
 /// The matched subdivision record, or <c>null</c> on ambiguity.

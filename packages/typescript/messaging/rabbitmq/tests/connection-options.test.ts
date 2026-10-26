@@ -2,20 +2,30 @@
 // Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 // -----------------------------------------------------------------------
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("rabbitmq-client", async () => {
+  const { ConnectionFixture } =
+    await import("./fixtures/managed-connection-fixture.js");
+  return { Connection: ConnectionFixture };
+});
+
+import { vendor } from "./fixtures/managed-connection-fixture.js";
+import { RecordingLogger } from "./helpers.js";
 
 import {
   createConnection,
+  RabbitMqConnectionOptions,
   redactAmqpUri,
 } from "../src/connection/connection-options.js";
 
-describe("redactAmqpUri — never leaks the broker password", () => {
+describe("redactAmqpUri - never leaks the broker password", () => {
   it("strips embedded userinfo credentials", () => {
     const redacted = redactAmqpUri(
-      "amqps://audit-svc:s3cr3t@rabbitmq.internal:5671/d2",
+      "amqps://orders-svc:s3cr3t@rabbitmq.internal:5671/d2",
     );
     expect(redacted).not.toContain("s3cr3t");
-    expect(redacted).not.toContain("audit-svc");
+    expect(redacted).not.toContain("orders-svc");
     expect(redacted).toContain("rabbitmq.internal");
   });
 
@@ -29,20 +39,31 @@ describe("redactAmqpUri — never leaks the broker password", () => {
 });
 
 describe("createConnection", () => {
-  it("builds an auto-reconnecting Connection from the options", () => {
-    const connection = createConnection({
-      connectionUri: "amqp://guest:guest@127.0.0.1:5672/",
-      clientProvidedName: "test-svc",
-      retryLowMs: 100,
-      retryHighMs: 1000,
-      heartbeatSeconds: 30,
-    });
+  it("CreateConnection_ConfiguredOptions_ConstructsManagedTransport", async () => {
+    vendor.options.length = 0;
+    const connection = createConnection(
+      new RabbitMqConnectionOptions({
+        connectionUri: "amqp://guest:guest@127.0.0.1:5672/",
+        clientProvidedName: "test-svc",
+        retryLowMs: 100,
+        retryHighMs: 1000,
+        heartbeatSeconds: 30,
+      }),
+      new RecordingLogger(),
+    );
     try {
-      expect(typeof connection.createConsumer).toBe("function");
-      expect(typeof connection.createPublisher).toBe("function");
+      expect(Object.keys(connection)).toEqual(["close"]);
+      expect(vendor.options).toStrictEqual([
+        {
+          url: "amqp://guest:guest@127.0.0.1:5672/",
+          connectionName: "test-svc",
+          retryLow: 100,
+          retryHigh: 1000,
+          heartbeat: 30,
+        },
+      ]);
     } finally {
-      // Immediately tear down the background connect loop so the test exits.
-      connection.unsafeDestroy();
+      await connection.close();
     }
   });
 });

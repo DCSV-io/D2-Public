@@ -6,8 +6,8 @@ import { Temporal } from "temporal-polyfill";
 
 /**
  * Seam for retrieving the current instant in time. Inject this interface
- * rather than reading `Temporal.Now.instant()` directly so unit tests can
- * supply a deterministic {@link TestClock}.
+ * rather than reading `Temporal.Now.instant()` directly, so a deterministic
+ * {@link TestClock} can replace the system clock.
  */
 export interface IClock {
   /** Returns the current UTC {@link Temporal.Instant}. */
@@ -16,8 +16,7 @@ export interface IClock {
 
 /**
  * Production implementation of {@link IClock}. Delegates to
- * `Temporal.Now.instant()`. Bind this as the singleton `IClock` in each
- * service's composition root.
+ * `Temporal.Now.instant()`.
  */
 export class SystemClock implements IClock {
   getInstant(): Temporal.Instant {
@@ -27,8 +26,7 @@ export class SystemClock implements IClock {
 
 /**
  * Test-only {@link IClock} implementation with a controllable current
- * instant. Never register in production. Construct directly in test setup
- * and inject as `IClock`.
+ * instant. Never register it in production.
  */
 export class TestClock implements IClock {
   private _instant: Temporal.Instant;

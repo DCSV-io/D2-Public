@@ -17,15 +17,15 @@ using System.Collections.Immutable;
 /// <paramref name="Applicability"/>.
 /// </param>
 /// <param name="ConstName">
-/// Public C# constant identifier — UPPER_SNAKE_CASE.
+/// Public C# constant identifier - UPPER_SNAKE_CASE.
 /// </param>
 /// <param name="Applicability">
 /// Closed enum of transport bindings this header can appear on
 /// (<c>http</c> / <c>grpc</c> / <c>amqp</c>).
 /// </param>
 /// <param name="Convention">
-/// Provenance of the header naming convention. Documentation aid;
-/// emitter surfaces in xmldoc.
+/// Provenance of the header naming convention. A documentation aid that
+/// appears in the emitted xmldoc.
 /// </param>
 /// <param name="Description">
 /// Human-readable description of the header's purpose. Emitted as

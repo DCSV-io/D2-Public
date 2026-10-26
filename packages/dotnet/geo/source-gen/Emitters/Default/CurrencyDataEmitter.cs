@@ -14,18 +14,20 @@ using DcsvIo.D2.SourceGen;
 using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
-/// Emits the per-currency DATA — single shape per entity + cycle-resolution
-/// via friend-assembly <c>internal set</c> + two-pass populate. Output is a
-/// single file (<c>CurrencyLookup.g.cs</c>) carrying a static
-/// <c>Currencies</c> accessor + a static <c>CurrencyLookup</c> class with
-/// the FrozenDictionary indexes and the <c>WireNav()</c> wire-nav method.
+/// Emits the per-currency data: one shape per entity, with reference cycles
+/// resolved through friend-assembly <c>internal set</c> and a two-pass
+/// populate. The output is a single file (<c>CurrencyLookup.g.cs</c>)
+/// containing a static <c>Currencies</c> accessor and a static
+/// <c>CurrencyLookup</c> class with the FrozenDictionary indexes and the
+/// <c>WireNav()</c> wire-nav method.
 /// </summary>
 /// <remarks>
-/// First pass (static ctor) materializes every <c>Currency</c> record with
-/// scalar required-init fields populated; nav-rep
-/// <c>AcceptedInCountries</c> + code-rep <c>AcceptedInCountryIso31661Alpha2Codes</c>
-/// start empty. Wire-nav step walks the country catalog and populates
-/// BOTH reps via the friend-assembly <c>internal set</c> accessors.
+/// The first pass (static ctor) creates every <c>Currency</c> record with the
+/// scalar required-init fields populated. The nav-rep
+/// <c>AcceptedInCountries</c> and the code-rep
+/// <c>AcceptedInCountryIso31661Alpha2Codes</c> start empty. The wire-nav step
+/// walks the country catalog and populates both reps through the
+/// friend-assembly <c>internal set</c> accessors.
 /// </remarks>
 internal static class CurrencyDataEmitter
 {
@@ -176,8 +178,8 @@ internal static class CurrencyDataEmitter
         sb.AppendLine("    }");
         sb.AppendLine();
 
-        // WireNav — accumulate per-currency accepted-in-countries by walking
-        // Country.Currencies (built in CountryLookup first pass).
+        // WireNav: collect the accepted-in countries of each currency by
+        // walking Country.Currencies (built in the CountryLookup first pass).
         sb.AppendLine("    /// <summary>");
         sb.AppendLine(
             "    /// Wire-nav step of the two-pass populate pattern. Invoked exactly");

@@ -13,7 +13,7 @@ using Xunit;
 public sealed class D2ResultBooleansTests
 {
     // ----------------------------------------------------------------------
-    // Per-code booleans — true on the matching factory, false on others
+    // Per-code booleans - true on the matching factory, false on others
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -135,10 +135,10 @@ public sealed class D2ResultBooleansTests
     [Fact]
     public void IsIdempotencyInFlight_NoFactoryButCheckableViaCustomErrorCode()
     {
-        // No semantic factory exists for IDEMPOTENCY_IN_FLIGHT — middleware emits it
-        // via Fail(errorCode: ErrorCodes.IDEMPOTENCY_IN_FLIGHT). Verify the boolean
-        // discriminator works against that path.
-        var result = D2Result.Fail(errorCode: ErrorCodes.IDEMPOTENCY_IN_FLIGHT);
+        // No semantic factory exists for IDEMPOTENCY_IN_FLIGHT. The result is built with
+        // Fail(errorCode: ErrorCodes.GEN_IDEMPOTENCY_IN_FLIGHT). This test checks that
+        // the boolean works for a result built that way.
+        var result = D2Result.Fail(errorCode: ErrorCodes.GEN_IDEMPOTENCY_IN_FLIGHT);
 
         result.IsIdempotencyInFlight.Should().BeTrue();
         D2Result.Conflict().IsIdempotencyInFlight.Should().BeFalse();
@@ -170,10 +170,10 @@ public sealed class D2ResultBooleansTests
     [Fact]
     public void IsTransientRetryable_ExplicitlyFalseOnUnhandledException()
     {
-        // Critical adversarial test: UnhandledException is INTENTIONALLY excluded from
-        // IsTransientRetryable. An unknown exception means unknown system state — retry
-        // could mask bugs or double-execute. Retry helpers consult this property; this
-        // exclusion is load-bearing.
+        // Adversarial: UnhandledException is INTENTIONALLY excluded from
+        // IsTransientRetryable. An unknown exception means an unknown system state, and
+        // a retry could hide bugs or run the operation twice. Retry helpers read this
+        // property, so including UnhandledException would make them retry it.
         D2Result.UnhandledException().IsTransientRetryable.Should().BeFalse();
     }
 
@@ -193,10 +193,11 @@ public sealed class D2ResultBooleansTests
     [Fact]
     public void IsTransientRetryable_FalseWhenServiceUnavailableErrorCodeOverridden()
     {
-        // Adversarial: domain override of ServiceUnavailable's errorCode breaks the
-        // IsServiceUnavailable check, which IsTransientRetryable depends on. Document
-        // this behavior — callers using errorCode overrides on transient categories
-        // must be aware retry helpers won't auto-classify them.
+        // Adversarial: a domain override of ServiceUnavailable's errorCode makes the
+        // IsServiceUnavailable check false, and IsTransientRetryable depends on that
+        // check. This test documents the behavior: a result with an errorCode
+        // override on a transient category is not classified as retryable by the
+        // retry helpers.
         var result = D2Result.ServiceUnavailable(errorCode: "DOMAIN_RETRY_LATER");
 
         result.IsServiceUnavailable.Should().BeFalse();
@@ -204,15 +205,15 @@ public sealed class D2ResultBooleansTests
     }
 
     // ----------------------------------------------------------------------
-    // IsPartialSuccess — the unusual `Success=true && ErrorCode != null` case
+    // IsPartialSuccess - the write-side partial, opted into explicitly
     // ----------------------------------------------------------------------
 
     [Fact]
     public void IsPartialSuccess_TrueOnPartialSuccess_FalseOnOk()
     {
-        // PartialSuccess is the load-bearing distinction vs SomeFound:
-        // Success=true (multi-target write where SOME succeeded), but with
-        // an ErrorCode set so callers can branch on the partial outcome.
+        // PartialSuccess differs from SomeFound: it is the write-side partial
+        // result, not the read-side one, and it has its own ErrorCode, so code
+        // that accepts a partial write can check for it.
         D2Result<int>.PartialSuccess(42).IsPartialSuccess.Should().BeTrue();
         D2Result<int>.Ok(42).IsPartialSuccess.Should().BeFalse();
         D2Result<int>.Ok(42).Success.Should().BeTrue();
@@ -222,7 +223,7 @@ public sealed class D2ResultBooleansTests
     public void IsPartialSuccess_FalseOnSomeFound_FalseOnFailures()
     {
         // SomeFound is the read-side partial; PartialSuccess is the write-side
-        // partial. They must NOT alias — different ErrorCodes, different Success.
+        // partial. They must NOT alias - different ErrorCodes, different status.
         D2Result.SomeFound().IsPartialSuccess.Should().BeFalse();
         D2Result.NotFound().IsPartialSuccess.Should().BeFalse();
         D2Result.Conflict().IsPartialSuccess.Should().BeFalse();
@@ -230,17 +231,24 @@ public sealed class D2ResultBooleansTests
     }
 
     [Fact]
-    public void IsPartialSuccess_CoexistsWithSuccessTrue()
+    public void IsPartialSuccess_ReportsFailureAlongsideItsCode()
     {
-        // Pin the unusual invariant: PartialSuccess is one of the few results
-        // where Success=true AND a non-null ErrorCode coexist. A future
-        // refactor that "normalizes" this (e.g. Success=>ErrorCode==null)
-        // would silently break write-partial semantics across tiered cache
-        // and multi-target SAGA flows.
+        // A partial write reports failure and carries its own error code. Code
+        // that checks only Failed treats the write as not done; code that
+        // accepts a partial write reads the code.
         var result = D2Result<int>.PartialSuccess(42);
 
-        result.Success.Should().BeTrue();
-        result.ErrorCode.Should().Be(ErrorCodes.PARTIAL_SUCCESS);
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_PARTIAL_SUCCESS);
         result.IsPartialSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsTransientRetryable_FalseOnPartialSuccess()
+    {
+        // A partial write shares the 503 status with ServiceUnavailable, and
+        // the retry predicate is keyed on the error code rather than the
+        // status, so the two do not alias into automatic retry eligibility.
+        D2Result<int>.PartialSuccess(42).IsTransientRetryable.Should().BeFalse();
     }
 }

@@ -38,18 +38,18 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 public static class AnonymizeMappingExtensions
 {
     // =========================================================================
-    // PropertyBuilder<TProperty> — entity scalars and directly-reached VO scalars
+    // PropertyBuilder<TProperty> - entity scalars and directly-reached VO scalars
     // =========================================================================
     extension<TProperty>(PropertyBuilder<TProperty> builder)
     {
         /// <summary>
         /// Declares that this property is overwritten with a fixed tombstone string on subject
-        /// erasure. Writes a <c>D2:Anonymize</c> annotation carrying
+        /// erasure. Writes a <c>D2:Anonymize</c> annotation of kind
         /// <see cref="AnonymizeKind.Constant"/> with <paramref name="constant"/> as the value.
         /// </summary>
         /// <param name="constant">
         /// The fixed tombstone string (e.g. <c>"[deleted]"</c>). An empty string is accepted
-        /// and stored as <c>Constant("")</c> — the engine treats it identically to
+        /// and stored as <c>Constant("")</c> - the engine treats it identically to
         /// <see cref="AnonymizeKind.SetEmpty"/> at apply-time, but they remain distinct rules
         /// for divergence detection.
         /// </param>
@@ -60,7 +60,7 @@ public static class AnonymizeMappingExtensions
         /// </exception>
         public PropertyBuilder<TProperty> Anonymize(string constant)
         {
-            // Guards use BCL exceptions — fluent API rejects null at model-build time.
+            // Guards use BCL exceptions - fluent API rejects null at model-build time.
             ArgumentNullException.ThrowIfNull(builder);
             ArgumentNullException.ThrowIfNull(constant);
             return builder.HasAnnotation(
@@ -70,7 +70,7 @@ public static class AnonymizeMappingExtensions
 
         /// <summary>
         /// Declares that this property is overwritten with <see langword="null"/> on subject
-        /// erasure. Writes a <c>D2:Anonymize</c> annotation carrying
+        /// erasure. Writes a <c>D2:Anonymize</c> annotation of kind
         /// <see cref="AnonymizeKind.SetNull"/>.
         /// </summary>
         /// <returns>The same <paramref name="builder"/> for fluent chaining.</returns>
@@ -84,7 +84,7 @@ public static class AnonymizeMappingExtensions
         /// </remarks>
         public PropertyBuilder<TProperty> AnonymizeNull()
         {
-            // Guards use BCL exceptions — fluent API rejects null at model-build time.
+            // Guards use BCL exceptions - fluent API rejects null at model-build time.
             ArgumentNullException.ThrowIfNull(builder);
             return builder.HasAnnotation(
                 AnonymizationAnnotations.ANONYMIZE,
@@ -93,7 +93,7 @@ public static class AnonymizeMappingExtensions
 
         /// <summary>
         /// Declares that this property is overwritten with an empty string on subject erasure.
-        /// Writes a <c>D2:Anonymize</c> annotation carrying <see cref="AnonymizeKind.SetEmpty"/>.
+        /// Writes a <c>D2:Anonymize</c> annotation of kind <see cref="AnonymizeKind.SetEmpty"/>.
         /// </summary>
         /// <returns>The same <paramref name="builder"/> for fluent chaining.</returns>
         /// <exception cref="ArgumentNullException">
@@ -106,7 +106,7 @@ public static class AnonymizeMappingExtensions
         /// </remarks>
         public PropertyBuilder<TProperty> AnonymizeEmpty()
         {
-            // Guards use BCL exceptions — fluent API rejects null at model-build time.
+            // Guards use BCL exceptions - fluent API rejects null at model-build time.
             ArgumentNullException.ThrowIfNull(builder);
             return builder.HasAnnotation(
                 AnonymizationAnnotations.ANONYMIZE,
@@ -115,7 +115,7 @@ public static class AnonymizeMappingExtensions
 
         /// <summary>
         /// Declares that this property is overwritten with a computed tombstone on subject erasure.
-        /// Writes a <c>D2:Anonymize</c> annotation carrying <see cref="AnonymizeKind.Template"/>
+        /// Writes a <c>D2:Anonymize</c> annotation of kind <see cref="AnonymizeKind.Template"/>
         /// with <paramref name="template"/> as the interpolation pattern.
         /// </summary>
         /// <param name="template">
@@ -134,7 +134,7 @@ public static class AnonymizeMappingExtensions
         /// </exception>
         public PropertyBuilder<TProperty> AnonymizeTemplate(string template)
         {
-            // Guards use BCL exceptions — fluent API rejects null at model-build time.
+            // Guards use BCL exceptions - fluent API rejects null at model-build time.
             ArgumentNullException.ThrowIfNull(builder);
             ArgumentNullException.ThrowIfNull(template);
             return builder.HasAnnotation(
@@ -144,19 +144,19 @@ public static class AnonymizeMappingExtensions
     }
 
     // =========================================================================
-    // ComplexTypePropertyBuilder<TProperty> — complex-type member columns
+    // ComplexTypePropertyBuilder<TProperty> - complex-type member columns
     // (no-selector; caller already holds the member builder from cp.Property(lambda))
     // =========================================================================
     extension<TProperty>(ComplexTypePropertyBuilder<TProperty> builder)
     {
         /// <summary>
         /// Declares that this complex-type member column is overwritten with a fixed tombstone
-        /// string on subject erasure. Writes a <c>D2:Anonymize</c> annotation carrying
+        /// string on subject erasure. Writes a <c>D2:Anonymize</c> annotation of kind
         /// <see cref="AnonymizeKind.Constant"/> with <paramref name="constant"/> as the value.
         /// </summary>
         /// <param name="constant">
         /// The fixed tombstone string (e.g. <c>"[deleted]"</c>). An empty string is accepted
-        /// and stored as <c>Constant("")</c> — the engine treats it identically to
+        /// and stored as <c>Constant("")</c> - the engine treats it identically to
         /// <see cref="AnonymizeKind.SetEmpty"/> at apply-time, but they remain distinct rules
         /// for divergence detection.
         /// </param>
@@ -168,8 +168,8 @@ public static class AnonymizeMappingExtensions
         /// <remarks>
         /// This overload targets <see cref="ComplexTypePropertyBuilder{TProperty}"/>, which EF
         /// Core returns from <c>cp.Property(lambda)</c> after the member has already been mapped.
-        /// Because EF Core only hands you a <c>ComplexTypePropertyBuilder&lt;T&gt;</c> for an
-        /// already-mapped member, a <c>[NotMapped]</c> guard is not needed here — calling
+        /// Because EF Core returns a <c>ComplexTypePropertyBuilder&lt;T&gt;</c> only for an
+        /// already-mapped member, a <c>[NotMapped]</c> guard is not needed here - calling
         /// <c>cp.Property(x =&gt; x.NotMappedMember)</c> itself throws upstream in EF before
         /// this overload is ever reached. Use the
         /// <see cref="ComplexPropertyBuilder{TComplex}"/>-receiver overload when you hold the
@@ -177,7 +177,7 @@ public static class AnonymizeMappingExtensions
         /// </remarks>
         public ComplexTypePropertyBuilder<TProperty> Anonymize(string constant)
         {
-            // Guards use BCL exceptions — fluent API rejects null at model-build time.
+            // Guards use BCL exceptions - fluent API rejects null at model-build time.
             ArgumentNullException.ThrowIfNull(builder);
             ArgumentNullException.ThrowIfNull(constant);
             return builder.HasAnnotation(
@@ -188,7 +188,7 @@ public static class AnonymizeMappingExtensions
         /// <summary>
         /// Declares that this complex-type member column is overwritten with
         /// <see langword="null"/> on subject erasure. Writes a <c>D2:Anonymize</c> annotation
-        /// carrying <see cref="AnonymizeKind.SetNull"/>.
+        /// of kind <see cref="AnonymizeKind.SetNull"/>.
         /// </summary>
         /// <returns>The same <paramref name="builder"/> for fluent chaining.</returns>
         /// <exception cref="ArgumentNullException">
@@ -201,13 +201,13 @@ public static class AnonymizeMappingExtensions
         /// </para>
         /// <para>
         /// This overload targets <see cref="ComplexTypePropertyBuilder{TProperty}"/> (returned
-        /// by <c>cp.Property(lambda)</c>). A <c>[NotMapped]</c> guard is not needed — EF Core
+        /// by <c>cp.Property(lambda)</c>). A <c>[NotMapped]</c> guard is not needed - EF Core
         /// throws upstream before an unmapped member reaches this overload.
         /// </para>
         /// </remarks>
         public ComplexTypePropertyBuilder<TProperty> AnonymizeNull()
         {
-            // Guards use BCL exceptions — fluent API rejects null at model-build time.
+            // Guards use BCL exceptions - fluent API rejects null at model-build time.
             ArgumentNullException.ThrowIfNull(builder);
             return builder.HasAnnotation(
                 AnonymizationAnnotations.ANONYMIZE,
@@ -216,7 +216,7 @@ public static class AnonymizeMappingExtensions
 
         /// <summary>
         /// Declares that this complex-type member column is overwritten with an empty string on
-        /// subject erasure. Writes a <c>D2:Anonymize</c> annotation carrying
+        /// subject erasure. Writes a <c>D2:Anonymize</c> annotation of kind
         /// <see cref="AnonymizeKind.SetEmpty"/>.
         /// </summary>
         /// <returns>The same <paramref name="builder"/> for fluent chaining.</returns>
@@ -230,13 +230,13 @@ public static class AnonymizeMappingExtensions
         /// </para>
         /// <para>
         /// This overload targets <see cref="ComplexTypePropertyBuilder{TProperty}"/> (returned
-        /// by <c>cp.Property(lambda)</c>). A <c>[NotMapped]</c> guard is not needed — EF Core
+        /// by <c>cp.Property(lambda)</c>). A <c>[NotMapped]</c> guard is not needed - EF Core
         /// throws upstream before an unmapped member reaches this overload.
         /// </para>
         /// </remarks>
         public ComplexTypePropertyBuilder<TProperty> AnonymizeEmpty()
         {
-            // Guards use BCL exceptions — fluent API rejects null at model-build time.
+            // Guards use BCL exceptions - fluent API rejects null at model-build time.
             ArgumentNullException.ThrowIfNull(builder);
             return builder.HasAnnotation(
                 AnonymizationAnnotations.ANONYMIZE,
@@ -245,7 +245,7 @@ public static class AnonymizeMappingExtensions
 
         /// <summary>
         /// Declares that this complex-type member column is overwritten with a computed tombstone
-        /// on subject erasure. Writes a <c>D2:Anonymize</c> annotation carrying
+        /// on subject erasure. Writes a <c>D2:Anonymize</c> annotation of kind
         /// <see cref="AnonymizeKind.Template"/> with <paramref name="template"/> as the
         /// interpolation pattern.
         /// </summary>
@@ -265,12 +265,12 @@ public static class AnonymizeMappingExtensions
         /// </exception>
         /// <remarks>
         /// This overload targets <see cref="ComplexTypePropertyBuilder{TProperty}"/> (returned
-        /// by <c>cp.Property(lambda)</c>). A <c>[NotMapped]</c> guard is not needed — EF Core
+        /// by <c>cp.Property(lambda)</c>). A <c>[NotMapped]</c> guard is not needed - EF Core
         /// throws upstream before an unmapped member reaches this overload.
         /// </remarks>
         public ComplexTypePropertyBuilder<TProperty> AnonymizeTemplate(string template)
         {
-            // Guards use BCL exceptions — fluent API rejects null at model-build time.
+            // Guards use BCL exceptions - fluent API rejects null at model-build time.
             ArgumentNullException.ThrowIfNull(builder);
             ArgumentNullException.ThrowIfNull(template);
             return builder.HasAnnotation(
@@ -280,7 +280,7 @@ public static class AnonymizeMappingExtensions
     }
 
     // =========================================================================
-    // OwnedNavigationBuilder<TOwner, TDependent> — foreign-VO sub-properties
+    // OwnedNavigationBuilder<TOwner, TDependent> - foreign-VO sub-properties
     // =========================================================================
     extension<TOwner, TDependent>(OwnedNavigationBuilder<TOwner, TDependent> builder)
         where TOwner : class
@@ -290,7 +290,7 @@ public static class AnonymizeMappingExtensions
         /// Declares that the sub-property identified by <paramref name="sub"/> on the owned
         /// dependent type is overwritten with a fixed tombstone string on subject erasure.
         /// Resolves the property builder via
-        /// <see cref="OwnedNavigationBuilder{TOwner,TDependent}.Property{TProperty}(Expression{Func{TDependent,TProperty}})"/> // long URL — cannot wrap
+        /// <see cref="OwnedNavigationBuilder{TOwner,TDependent}.Property{TProperty}(Expression{Func{TDependent,TProperty}})"/> // long URL - cannot wrap
         /// then writes the <c>D2:Anonymize</c> annotation with Explicit configuration source.
         /// </summary>
         /// <typeparam name="TProp">The CLR type of the sub-property.</typeparam>
@@ -310,7 +310,7 @@ public static class AnonymizeMappingExtensions
             Expression<Func<TDependent, TProp>> sub,
             string constant)
         {
-            // Guards use BCL exceptions — fluent API rejects null at model-build time.
+            // Guards use BCL exceptions - fluent API rejects null at model-build time.
             ArgumentNullException.ThrowIfNull(builder);
             ArgumentNullException.ThrowIfNull(sub);
             ArgumentNullException.ThrowIfNull(constant);
@@ -340,7 +340,7 @@ public static class AnonymizeMappingExtensions
         public OwnedNavigationBuilder<TOwner, TDependent> AnonymizeNull<TProp>(
             Expression<Func<TDependent, TProp>> sub)
         {
-            // Guards use BCL exceptions — fluent API rejects null at model-build time.
+            // Guards use BCL exceptions - fluent API rejects null at model-build time.
             ArgumentNullException.ThrowIfNull(builder);
             ArgumentNullException.ThrowIfNull(sub);
             AnonymizeMappingExtensions.ThrowIfNotMapped(sub);
@@ -369,7 +369,7 @@ public static class AnonymizeMappingExtensions
         public OwnedNavigationBuilder<TOwner, TDependent> AnonymizeEmpty<TProp>(
             Expression<Func<TDependent, TProp>> sub)
         {
-            // Guards use BCL exceptions — fluent API rejects null at model-build time.
+            // Guards use BCL exceptions - fluent API rejects null at model-build time.
             ArgumentNullException.ThrowIfNull(builder);
             ArgumentNullException.ThrowIfNull(sub);
             AnonymizeMappingExtensions.ThrowIfNotMapped(sub);
@@ -408,7 +408,7 @@ public static class AnonymizeMappingExtensions
             Expression<Func<TDependent, TProp>> sub,
             string template)
         {
-            // Guards use BCL exceptions — fluent API rejects null at model-build time.
+            // Guards use BCL exceptions - fluent API rejects null at model-build time.
             ArgumentNullException.ThrowIfNull(builder);
             ArgumentNullException.ThrowIfNull(sub);
             ArgumentNullException.ThrowIfNull(template);
@@ -421,7 +421,7 @@ public static class AnonymizeMappingExtensions
     }
 
     // =========================================================================
-    // ComplexPropertyBuilder<TComplex> — complex-type sub-properties
+    // ComplexPropertyBuilder<TComplex> - complex-type sub-properties
     // =========================================================================
     extension<TComplex>(ComplexPropertyBuilder<TComplex> builder)
         where TComplex : notnull
@@ -430,7 +430,7 @@ public static class AnonymizeMappingExtensions
         /// Declares that the sub-property identified by <paramref name="sub"/> on the complex
         /// type is overwritten with a fixed tombstone string on subject erasure.
         /// Resolves the property builder via
-        /// <see cref="ComplexPropertyBuilder{TComplex}.Property{TProperty}(Expression{Func{TComplex,TProperty}})"/> // long URL — cannot wrap
+        /// <see cref="ComplexPropertyBuilder{TComplex}.Property{TProperty}(Expression{Func{TComplex,TProperty}})"/> // long URL - cannot wrap
         /// then writes the <c>D2:Anonymize</c> annotation with Explicit configuration source.
         /// </summary>
         /// <typeparam name="TProp">The CLR type of the sub-property.</typeparam>
@@ -450,7 +450,7 @@ public static class AnonymizeMappingExtensions
             Expression<Func<TComplex, TProp>> sub,
             string constant)
         {
-            // Guards use BCL exceptions — fluent API rejects null at model-build time.
+            // Guards use BCL exceptions - fluent API rejects null at model-build time.
             ArgumentNullException.ThrowIfNull(builder);
             ArgumentNullException.ThrowIfNull(sub);
             ArgumentNullException.ThrowIfNull(constant);
@@ -480,7 +480,7 @@ public static class AnonymizeMappingExtensions
         public ComplexPropertyBuilder<TComplex> AnonymizeNull<TProp>(
             Expression<Func<TComplex, TProp>> sub)
         {
-            // Guards use BCL exceptions — fluent API rejects null at model-build time.
+            // Guards use BCL exceptions - fluent API rejects null at model-build time.
             ArgumentNullException.ThrowIfNull(builder);
             ArgumentNullException.ThrowIfNull(sub);
             AnonymizeMappingExtensions.ThrowIfNotMapped(sub);
@@ -509,7 +509,7 @@ public static class AnonymizeMappingExtensions
         public ComplexPropertyBuilder<TComplex> AnonymizeEmpty<TProp>(
             Expression<Func<TComplex, TProp>> sub)
         {
-            // Guards use BCL exceptions — fluent API rejects null at model-build time.
+            // Guards use BCL exceptions - fluent API rejects null at model-build time.
             ArgumentNullException.ThrowIfNull(builder);
             ArgumentNullException.ThrowIfNull(sub);
             AnonymizeMappingExtensions.ThrowIfNotMapped(sub);
@@ -548,7 +548,7 @@ public static class AnonymizeMappingExtensions
             Expression<Func<TComplex, TProp>> sub,
             string template)
         {
-            // Guards use BCL exceptions — fluent API rejects null at model-build time.
+            // Guards use BCL exceptions - fluent API rejects null at model-build time.
             ArgumentNullException.ThrowIfNull(builder);
             ArgumentNullException.ThrowIfNull(sub);
             ArgumentNullException.ThrowIfNull(template);
@@ -561,7 +561,7 @@ public static class AnonymizeMappingExtensions
     }
 
     // =========================================================================
-    // Internal guard — shared by OwnedNavigation and ComplexProperty sub-selectors
+    // Internal guard - shared by OwnedNavigation and ComplexProperty sub-selectors
     // =========================================================================
 
     /// <summary>

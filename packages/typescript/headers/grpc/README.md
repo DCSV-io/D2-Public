@@ -4,9 +4,14 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-headers-grpc
 
-> **Duplicated from `contracts/headers/headers.spec.json` — update both in lockstep.** This catalog mirrors its .NET sibling `DcsvIo.D2.Headers.Grpc` at byte-equal wire values. Both sides emit from the same spec; physical dedup across TS ↔ .NET is not feasible. Parity is asserted by `contract-tests/headers.parity.test.ts` (TS) and `HeaderCatalogConsistencyTests` (.NET).
+> **Duplicated from `contracts/headers/headers.spec.json` - update both in lockstep.** This catalog mirrors its .NET
+> sibling `DcsvIo.D2.Headers.Grpc` at byte-equal wire values. Both sides emit from the same spec; physical dedup
+> across TS <-> .NET is not feasible. Parity is asserted by a TypeScript contract test and by
+> `HeaderCatalogConsistencyTests` (.NET).
 
-D2 wire-protocol headers applicable to the gRPC transport. Today the catalog holds the gRPC-applicable subset of cross-transport entries (`Authorization`, `x-d2-context`, `traceparent`, `tracestate`) at identical wire values per `headers.spec.json`. Mirrors .NET `DcsvIo.D2.Headers.Grpc.GrpcHeaders`.
+D2 wire-protocol headers applicable to the gRPC transport. The catalog holds the gRPC-applicable subset of
+cross-transport entries (`Authorization`, `x-d2-context`, `traceparent`, `tracestate`) at identical wire values per
+`headers.spec.json`. Mirrors .NET `DcsvIo.D2.Headers.Grpc.GrpcHeaders`.
 
 ## Install
 
@@ -28,11 +33,16 @@ pnpm add @dcsv-io/d2-headers-grpc
 
 ## When to reach for this catalog
 
-Use `@dcsv-io/d2-headers-grpc` from any gRPC-context consumer — gRPC interceptors, gRPC client wrappers. The catalog includes cross-transport entries (e.g. `TRACEPARENT`) at identical wire values to the other catalogs (codegen-guaranteed and verified by `HeaderCatalogConsistencyTests` on the .NET side).
+Use `@dcsv-io/d2-headers-grpc` from any gRPC-context consumer - gRPC interceptors, gRPC client wrappers. The catalog
+includes cross-transport entries (e.g. `TRACEPARENT`) at identical wire values to the other catalogs
+(guaranteed by codegen and verified by `HeaderCatalogConsistencyTests` on the .NET side).
 
 ## Notes on gRPC framework constants
 
-gRPC framework constants like `grpc-encoding`, `grpc-status`, `grpc-message`, `grpc-timeout` come from `Grpc.Core.Metadata` (.NET) or the corresponding gRPC framework symbol on the TS side and are NOT part of `headers.spec.json`. This catalog covers only D2-defined headers and the cross-transport ones that flow through gRPC alongside framework headers.
+gRPC framework constants like `grpc-encoding`, `grpc-status`, `grpc-message`, `grpc-timeout` come from
+`Grpc.Core.Metadata` (.NET) or the corresponding gRPC framework symbol on the TS side and are not part of
+`headers.spec.json`. This catalog covers only D2-defined headers and the cross-transport ones that flow through gRPC
+alongside framework headers.
 
 ## Spec contract
 
@@ -40,11 +50,11 @@ gRPC framework constants like `grpc-encoding`, `grpc-status`, `grpc-message`, `g
 
 ## Dependencies
 
-None at runtime — pure constants. DevDeps: `vitest` + `@vitest/coverage-v8` + `typescript`.
+None at runtime - pure constants. DevDeps: `vitest` + `@vitest/coverage-v8` + `typescript`.
 
 ## Reference
 
-- `contracts/headers/headers.spec.json` — source spec
-- `@dcsv-io/d2-headers-common` — cross-transport subset
-- `@dcsv-io/d2-headers-http` — HTTP-applicable subset
-- `@dcsv-io/d2-headers-amqp` — AMQP-applicable subset
+- `contracts/headers/headers.spec.json` - source spec
+- `@dcsv-io/d2-headers-common` - cross-transport subset
+- `@dcsv-io/d2-headers-http` - HTTP-applicable subset
+- `@dcsv-io/d2-headers-amqp` - AMQP-applicable subset

@@ -10,10 +10,10 @@ using Microsoft.CodeAnalysis;
 
 /// <summary>
 /// Roslyn <see cref="DiagnosticDescriptor"/> instances for the IDs declared in
-/// <see cref="DiagnosticIds"/>. Only loaded inside the Roslyn host (the
-/// generator's <see cref="HeadersGenerator.Initialize"/> call site);
-/// pure-logic callers should use <see cref="DiagnosticIds"/> string constants
-/// directly to avoid pulling <c>Microsoft.CodeAnalysis</c> at runtime.
+/// <see cref="DiagnosticIds"/>. This class loads only inside the Roslyn host,
+/// where <see cref="HeadersGenerator.Initialize"/> runs. Code that needs only
+/// the ID strings uses the <see cref="DiagnosticIds"/> constants, which do not
+/// load <c>Microsoft.CodeAnalysis</c> at runtime.
 /// </summary>
 internal static class DiagnosticDescriptors
 {
@@ -41,7 +41,7 @@ internal static class DiagnosticDescriptors
         id: DiagnosticIds.InvalidConstName,
         title: "Header constName violates UPPER_SNAKE_CASE pattern",
         messageFormat:
-            "Header '{0}' has invalid constName '{1}' — must match ^[A-Z][A-Z0-9_]*$",
+            "Header '{0}' has invalid constName '{1}' - must match ^[A-Z][A-Z0-9_]*$",
         category: _CATEGORY,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -61,7 +61,7 @@ internal static class DiagnosticDescriptors
         id: DiagnosticIds.EmptyApplicability,
         title: "Header applicability is empty",
         messageFormat:
-            "Header '{0}' has empty applicability — every header must belong " +
+            "Header '{0}' has empty applicability - every header must belong " +
             "to at least one transport",
         category: _CATEGORY,
         defaultSeverity: DiagnosticSeverity.Error,

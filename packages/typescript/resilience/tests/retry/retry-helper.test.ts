@@ -13,7 +13,7 @@ import {
 
 const noDelay = () => Promise.resolve();
 
-describe("RetryHelper.retryAsync — happy paths", () => {
+describe("RetryHelper.retryAsync - happy paths", () => {
   it("returns first-attempt success without retrying", async () => {
     const op = vi.fn(async () => 42);
     const r = await RetryHelper.retryAsync(op, { delayFunc: noDelay });
@@ -28,7 +28,7 @@ describe("RetryHelper.retryAsync — happy paths", () => {
       if (calls < 3) throw new Error("transient");
       return "ok";
     };
-    // A plain Error is NOT transient under the default classifier (F-21); the
+    // A plain Error is NOT transient under the default classifier; the
     // caller opts this error into retry via an explicit isTransient predicate.
     const r = await RetryHelper.retryAsync(op, {
       maxAttempts: 5,
@@ -116,9 +116,9 @@ describe("RetryHelper.retryAsync — happy paths", () => {
     expect(calls).toBe(1);
   });
 
-  it("non-Error thrown values are NOT transient by default (F-21) — not retried", async () => {
+  it("non-Error thrown values are NOT transient by default - not retried", async () => {
     // A thrown non-Error value cannot be a transient/network/timeout condition
-    // under the conservative default classifier — it is a programming-level
+    // under the conservative default classifier - it is a programming-level
     // throw, so it is not retried (mirrors .NET's whitelist intent).
     let calls = 0;
     await expect(
@@ -155,7 +155,7 @@ describe("RetryHelper.retryAsync — happy paths", () => {
   });
 });
 
-describe("RetryHelper.retryAsync — backoff math", () => {
+describe("RetryHelper.retryAsync - backoff math", () => {
   it("applies exponential delay sequence", async () => {
     const sleeps: number[] = [];
     const fakeDelay = async (ms: number) => {
@@ -231,12 +231,12 @@ describe("RetryHelper.retryAsync — backoff math", () => {
         () => 1,
       ),
     ).rejects.toThrow();
-    // jitter = 0.5, factor = 1 + (1*2-1)*0.5 = 1.5 → 100 * 1.5 = 150
+    // jitter = 0.5, factor = 1 + (1*2-1)*0.5 = 1.5 -> 100 * 1.5 = 150
     expect(sleeps[0]).toBeCloseTo(150);
   });
 });
 
-describe("RetryHelper.retryAsync — default delay (real timers)", () => {
+describe("RetryHelper.retryAsync - default delay (real timers)", () => {
   it("uses setTimeout-based default delay when delayFunc unset", async () => {
     let calls = 0;
     const start = Date.now();
@@ -323,7 +323,7 @@ describe("RetryHelper.retryD2ResultAsync", () => {
         delayFunc: noDelay,
         shouldRetry: (v) =>
           (v as factories.D2Result<number>).errorCode ===
-          factories.ErrorCodes.SERVICE_UNAVAILABLE,
+          factories.ErrorCodes.GEN_SERVICE_UNAVAILABLE,
       },
     );
     expect(r.success).toBe(true);
@@ -345,7 +345,7 @@ describe("RetryHelper.retryD2ResultAsync", () => {
       },
     );
     expect(r.failed).toBe(true);
-    expect(r.errorCode).toBe(factories.ErrorCodes.SERVICE_UNAVAILABLE);
+    expect(r.errorCode).toBe(factories.ErrorCodes.GEN_SERVICE_UNAVAILABLE);
     expect(calls).toBe(3);
   });
 
@@ -410,7 +410,7 @@ describe("RetryHelper.retryD2ResultAsync", () => {
         },
         {
           maxAttempts: 2,
-          // A plain Error is non-transient by default (F-21); opt it into the
+          // A plain Error is non-transient by default; opt it into the
           // retry path explicitly so this test exercises throw-retry semantics.
           isTransient: () => true,
           delayFunc: noDelay,
@@ -422,12 +422,12 @@ describe("RetryHelper.retryD2ResultAsync", () => {
 });
 
 // ===========================================================================
-// F-21 — default transient classifier (conservative whitelist mirroring C#'s
-// RetryHelper.IsTransientException). With NO caller predicate, only genuine
-// transient/network/timeout errors retry; programming bugs do NOT.
+// Default transient classifier (conservative whitelist mirroring C#'s
+// RetryHelper.IsTransientException). With no caller predicate, only genuine
+// transient/network/timeout errors retry; programming bugs do not.
 // ===========================================================================
 
-describe("defaultIsTransient (F-21 classifier)", () => {
+describe("defaultIsTransient classifier", () => {
   it.each([
     ["TimeoutError", new TimeoutError()],
     ["CircuitOpenError", new CircuitOpenError()],
@@ -461,7 +461,7 @@ describe("defaultIsTransient (F-21 classifier)", () => {
   });
 });
 
-describe("RetryHelper.retryAsync — F-21 default classifier (no caller predicate)", () => {
+describe("RetryHelper.retryAsync - default classifier (no caller predicate)", () => {
   it("retries a TimeoutError (transient) up to maxAttempts", async () => {
     let calls = 0;
     await expect(

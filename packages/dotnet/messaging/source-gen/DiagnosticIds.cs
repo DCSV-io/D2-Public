@@ -8,9 +8,9 @@ namespace DcsvIo.D2.Messaging.SourceGen;
 
 /// <summary>
 /// String identifiers for the diagnostics emitted by <c>MqGenerator</c>.
-/// Kept in a separate class from <c>DiagnosticDescriptors</c> so non-Roslyn-
-/// host consumers (unit tests of the pure-logic loaders / emitter) can
-/// reference IDs without dragging in <c>Microsoft.CodeAnalysis</c>.
+/// This class is separate from <c>DiagnosticDescriptors</c> so that code
+/// running outside the Roslyn host, such as the loaders and the emitter, can
+/// reference the IDs without referencing <c>Microsoft.CodeAnalysis</c>.
 /// </summary>
 internal static class DiagnosticIds
 {
@@ -42,7 +42,7 @@ internal static class DiagnosticIds
     public const string UnknownPattern = "D2MQ006";
 
     /// <summary>
-    /// Subscription's <c>messageType</c> doesn't match any registered
+    /// Subscription's <c>messageType</c> does not match any registered
     /// message entry's <c>messageType</c>.
     /// </summary>
     public const string UnknownMessageType = "D2MQ007";
@@ -72,4 +72,29 @@ internal static class DiagnosticIds
     /// Tiered-retry tier string fails TimeSpan parse (must be HH:MM:SS).
     /// </summary>
     public const string InvalidTieredRetryDuration = "D2MQ012";
+
+    /// <summary>
+    /// The same <c>constant</c> is declared in two spec files of one catalog.
+    /// Which file's entry would win depends on where the repository sits on
+    /// disk, so the union is not merged and neither entry is emitted.
+    /// </summary>
+    public const string CrossFileDuplicateConstant = "D2MQ013";
+
+    /// <summary>
+    /// The <c>D2MqExtensionNamespace</c> property is not a dot-separated
+    /// sequence of C# identifiers.
+    /// </summary>
+    public const string InvalidExtensionNamespace = "D2MQ014";
+
+    /// <summary>
+    /// The <c>D2MqExtensionNamespace</c> property is set and the
+    /// <c>D2MqExtensionClassPrefix</c> property is absent or not a C# identifier.
+    /// </summary>
+    public const string InvalidExtensionClassPrefix = "D2MQ015";
+
+    /// <summary>
+    /// The <c>D2MqExtensionClassPrefix</c> property is set and the
+    /// <c>D2MqExtensionNamespace</c> property is not.
+    /// </summary>
+    public const string ExtensionClassPrefixWithoutNamespace = "D2MQ016";
 }

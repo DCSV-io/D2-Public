@@ -6,109 +6,107 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <RootNamespace>DcsvIo.D2.Telemetry</RootNamespace>
     <!--
       Sdk.Web defaults OutputType to Exe (intended for runnable web apps);
-      explicit Library override since this is a shared library, NOT an app
+      explicit Library override since this is a shared library, not an app
       entry point. Sdk.Web is preferred over plain Sdk because it brings the
-      AspNetCore framework reference automatically — MapD2PrometheusEndpoint
+      AspNetCore framework reference automatically - MapD2PrometheusEndpoint
       needs Microsoft.AspNetCore.Routing.IEndpointRouteBuilder + the
       OpenTelemetry.Exporter.Prometheus.AspNetCore extension method
       MapPrometheusScrapingEndpoint(). Plain Sdk + a manual FrameworkReference
-      would be functionally equivalent but not the modern convention
-      (matches sibling DcsvIo.D2.Logging + DcsvIo.D2.AspNetCore csproj;
-      monorepo-private DcsvIo.D2.Private.Auth.Http PackageId same Sdk.Web shape).
+      would be functionally equivalent but is not the current convention
+      (matches the sibling DcsvIo.D2.Logging + DcsvIo.D2.AspNetCore csproj
+      files, which also use Sdk.Web).
     -->
     <OutputType>Library</OutputType>
   </PropertyGroup>
 
   <!--
-    DcsvIo.D2.Telemetry — OpenTelemetry SDK setup + OTLP exporters
+    DcsvIo.D2.Telemetry - OpenTelemetry SDK setup + OTLP exporters
     (traces / metrics / logs) + IP-restricted Prometheus scraping endpoint
     + aggregation of every shipped shared lib's ActivitySource + Meter into
-    a single AddD2Telemetry() call. Foundation lib that the composition-root
-    aggregator and per-service Program.cs files call to wire the OTel SDK
-    without each service duplicating ~120 lines of OTel SDK boilerplate.
+    a single AddD2Telemetry() call, so a service wires the OTel SDK without
+    writing the SDK setup itself.
 
-    Independent of DcsvIo.D2.Logging — Logging owns Serilog + the
+    Independent of DcsvIo.D2.Logging - Logging owns Serilog + the
     [RedactData] enforcement pipeline; Telemetry owns the OTel SDK.
-    The two libs cooperate at runtime via the MEL bridge (Serilog's
+    Logging and Telemetry cooperate at runtime via the MEL bridge (Serilog's
     writeToProviders: true routes through the OTLP log exporter Telemetry
     registers as an ILoggerProvider) without either lib referencing the
     other at compile time.
 
-    Does NOT own:
-      • [RedactData] discipline             — DcsvIo.D2.Logging owns it.
-      • [LoggerMessage] delegates           — bootstrapping the OTel logs
+    Does not own:
+      * [RedactData] discipline             - DcsvIo.D2.Logging owns it.
+      * [LoggerMessage] delegates           - bootstrapping the OTel logs
                                               MEL provider during MEL
                                               bootstrap is circular.
-      • Serilog configuration / sinks       — DcsvIo.D2.Logging owns them.
-      • Self-monitoring (export-failure     — OTel SDK's own internal
-        counters)                             diagnostics suffice for the
-                                              foundation tier; consumers
-                                              wire EventListener if they
-                                              want lib-internal export
-                                              failure visibility.
+      * Serilog configuration / sinks       - DcsvIo.D2.Logging owns them.
+      * Self-monitoring (export-failure     - OTel SDK's own internal
+        counters)                             diagnostics are enough; a
+                                              host can wire an
+                                              EventListener to see
+                                              export failures inside
+                                              the library.
   -->
 
   <ItemGroup>
     <PackageReference Include="JetBrains.Annotations" />
     <!--
-      OpenTelemetry.Api — surgical 1.15.3 override per
+      OpenTelemetry.Api - 1.15.3 override per
       GHSA-g94r-2vxg-569j (advisories on the 1.15.0 line). Direct ref
       required to override the transitive 1.15.0 pulled by the
       Instrumentation.* packages.
     -->
     <PackageReference Include="OpenTelemetry.Api" />
     <!--
-      OpenTelemetry — core SDK (OpenTelemetryBuilder, BatchExportProcessor,
+      OpenTelemetry - core SDK (OpenTelemetryBuilder, BatchExportProcessor,
       etc.). Listed explicitly for visibility (transitive otherwise).
     -->
     <PackageReference Include="OpenTelemetry" />
     <!--
-      OpenTelemetry.Extensions.Hosting — services.AddOpenTelemetry() +
+      OpenTelemetry.Extensions.Hosting - services.AddOpenTelemetry() +
       WithTracing / WithMetrics / WithLogging overloads.
     -->
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <!--
-      OpenTelemetry.Exporter.OpenTelemetryProtocol — surgical 1.15.3
+      OpenTelemetry.Exporter.OpenTelemetryProtocol - 1.15.3
       override per GHSA-mr8r-92fq-pj8p + GHSA-q834-8qmm-v933. OTLP
       HTTP/Protobuf exporter for traces / metrics / logs.
     -->
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
     <!--
-      OpenTelemetry.Exporter.Prometheus.AspNetCore — pinned at 1.15.0-beta.1
-      per v1 baseline (the Prometheus exporter is a long-running beta in
-      OTel .NET; >18mo of v1 production stability supports the pin).
+      OpenTelemetry.Exporter.Prometheus.AspNetCore - pinned at 1.15.0-beta.1
+      (the Prometheus exporter has beta releases only in OTel .NET).
       Required for MapPrometheusScrapingEndpoint.
     -->
     <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" />
     <!--
-      OpenTelemetry.Instrumentation.AspNetCore — inbound HTTP request spans
+      OpenTelemetry.Instrumentation.AspNetCore - inbound HTTP request spans
       + metrics. Filter callback excludes infrastructure paths.
     -->
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
     <!--
-      OpenTelemetry.Instrumentation.GrpcNetClient — outbound gRPC client
-      spans. Pinned at 1.15.0-beta.1 per v1 baseline.
+      OpenTelemetry.Instrumentation.GrpcNetClient - outbound gRPC client
+      spans. Pinned at 1.15.0-beta.1.
     -->
     <PackageReference Include="OpenTelemetry.Instrumentation.GrpcNetClient" />
     <!--
-      OpenTelemetry.Instrumentation.Http — outbound HttpClient spans +
+      OpenTelemetry.Instrumentation.Http - outbound HttpClient spans +
       metrics. FilterHttpRequestMessage callback excludes self-referential
       OTLP exporter calls (prevents infinite-loop instrumentation).
     -->
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
     <!--
-      OpenTelemetry.Instrumentation.Process — process metrics
-      (CPU, memory, fd count). Pinned at 1.15.0-beta.1 per v1 baseline.
+      OpenTelemetry.Instrumentation.Process - process metrics
+      (CPU, memory, fd count). Pinned at 1.15.0-beta.1.
     -->
     <PackageReference Include="OpenTelemetry.Instrumentation.Process" />
     <!--
-      OpenTelemetry.Instrumentation.Runtime — .NET runtime metrics
+      OpenTelemetry.Instrumentation.Runtime - .NET runtime metrics
       (GC, threadpool, JIT).
     -->
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
     <!--
       Microsoft.Extensions.{DependencyInjection,Logging,Options,Configuration,Hosting}.Abstractions
-      are NOT listed — Microsoft.NET.Sdk.Web's framework reference
+      are not listed - Microsoft.NET.Sdk.Web's framework reference
       (Microsoft.AspNetCore.App) ships them; explicit references trigger
       NU1510. Versions are still pinned via Directory.Packages.props.
     -->
@@ -116,41 +114,41 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <ItemGroup>
     <!--
-      utilities — Falsey() / Truthy() / ToNullIfEmpty() string extensions
+      utilities - Falsey() / Truthy() / ToNullIfEmpty() string extensions
       consumed by options validation + env-var resolution.
     -->
     <ProjectReference Include="..\..\utilities\DcsvIo.D2.Utilities.csproj" />
     <!--
-      aspnetcore — canonical InfrastructurePathMatcher (consumed by the
+      aspnetcore - canonical InfrastructurePathMatcher (used by the
       AspNetCore-instrumentation Filter callback to suppress auto-spans
-      for infrastructure paths) + D2AspNetCoreConstants (re-pointed
+      for infrastructure paths) + D2AspNetCoreConstants (the source of the
       HEALTH_ENDPOINT_PATH / ALIVE_ENDPOINT_PATH / METRICS_ENDPOINT_PATH /
       WELL_KNOWN_ENDPOINT_PATH constants + DEFAULT_INFRASTRUCTURE_PATHS).
     -->
     <ProjectReference Include="..\..\aspnetcore\DcsvIo.D2.AspNetCore.csproj" />
     <!--
-      handler — HandlerTelemetry.SourceName const referenced by the
+      handler - HandlerTelemetry.SourceName const referenced by the
       AggregatedTelemetrySources registration table.
     -->
     <ProjectReference Include="..\..\handler\core\DcsvIo.D2.Handler.csproj" />
     <!--
-      Auth runtime + Auth.Outbound are private composition packages.
-      AggregatedTelemetrySources pins their OTel wire names as string
-      literals (AUTH_WIRE_NAME / AUTH_OUTBOUND_WIRE_NAME) — no ProjectReference
-      into demoted Auth (public Telemetry must build on Public.slnx alone).
+      AggregatedTelemetrySources registers the OTel wire names of the Auth and
+      Auth.Outbound components, which are not part of this package, as string
+      literals (AUTH_WIRE_NAME / AUTH_OUTBOUND_WIRE_NAME), so this project has
+      no ProjectReference to either and builds on D2.Public.slnx alone.
     -->
     <!--
-      messaging\rabbitmq — MessagingTelemetry.SOURCE_NAME const referenced
+      messaging\rabbitmq - MessagingTelemetry.SOURCE_NAME const referenced
       by the AggregatedTelemetrySources registration table.
     -->
     <ProjectReference Include="..\..\messaging\rabbitmq\DcsvIo.D2.Messaging.RabbitMq.csproj" />
     <!--
-      caching-distributed-redis — RedisCacheTelemetry.METER_NAME const
+      caching-distributed-redis - RedisCacheTelemetry.METER_NAME const
       referenced by the AggregatedTelemetrySources registration table.
     -->
     <ProjectReference Include="..\..\caching\distributed-redis\DcsvIo.D2.Caching.Distributed.Redis.csproj" />
     <!--
-      caching-local-default — LocalCacheTelemetry.METER_NAME const
+      caching-local-default - LocalCacheTelemetry.METER_NAME const
       referenced by the AggregatedTelemetrySources registration table.
     -->
     <ProjectReference Include="..\..\caching\local-default\DcsvIo.D2.Caching.Local.Default.csproj" />
@@ -158,7 +156,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <ItemGroup>
     <InternalsVisibleTo Include="DcsvIo.D2.Tests" />
-    <InternalsVisibleTo Include="DcsvIo.D2.Private.Packages.Tests" />
   </ItemGroup>
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
@@ -168,11 +165,11 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
       Instrumentation.GrpcNetClient, and Instrumentation.Process remain
       non-stable (beta/rc only on nuget.org). NuGet NU5104 forbids a
       stable package version from depending on prerelease packages.
-      Graduate to a non-prerelease Version when those three ship stable.
+      Graduate to a non-prerelease Version when they ship stable.
     -->
-    <Version>0.1.3-beta.1</Version>
+    <Version>0.2.19-beta.1</Version>
     <PackageId>DcsvIo.D2.Telemetry</PackageId>
-    <Description>OpenTelemetry SDK setup for D2 — traces, metrics, logs, OTLP exporters, an IP-restricted Prometheus endpoint, and aggregation of every shared library's ActivitySource and Meter.</Description>
+    <Description>OpenTelemetry SDK setup for D2 - traces, metrics, logs, OTLP exporters, an IP-restricted Prometheus endpoint, and aggregation of every shared library's ActivitySource and Meter.</Description>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

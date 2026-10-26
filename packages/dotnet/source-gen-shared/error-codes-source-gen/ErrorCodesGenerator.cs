@@ -15,10 +15,10 @@ using Microsoft.CodeAnalysis;
 /// constants class into <c>DcsvIo.D2.Result</c> by reading
 /// <c>contracts/error-codes/error-codes.spec.json</c> via
 /// <c>AdditionalFiles</c>. A thin shell over the shared
-/// <see cref="ErrorCodesEngine"/> — it owns only the generic catalog's
-/// identity (assembly name + this type's FQN, both load-bearing for the
+/// <see cref="ErrorCodesEngine"/> - it owns only the generic catalog's
+/// identity (assembly name + this type's FQN, both of which set the
 /// on-disk generated path) + its <see cref="CatalogConfig"/>; all generation
-/// logic lives in the shared engine. Single-target — only emits when the
+/// logic lives in the shared engine. Single-target - only emits when the
 /// consuming assembly is <c>DcsvIo.D2.Result</c>.
 /// </summary>
 [Generator]
@@ -43,7 +43,7 @@ public sealed class ErrorCodesGenerator : IIncrementalGenerator
         "/// <remarks>\n" +
         "/// Generated from the spec file - cross-language drift between the .NET\n" +
         "/// constants and the TS-side @dcsv-io/d2-result catalog is structurally impossible\n" +
-        "/// (the TS emitter consumes the same spec via tools/ts-codegen).\n" +
+        "/// (the TS emitter consumes the same spec).\n" +
         "/// </remarks>\n";
 
     private const string _ALL_CODES_DOC =
@@ -112,7 +112,9 @@ public sealed class ErrorCodesGenerator : IIncrementalGenerator
         ConstantsSummary: _CONSTANTS_SUMMARY,
         AllCodesDoc: _ALL_CODES_DOC,
         GetHttpStatusDoc: _GET_HTTP_STATUS_DOC,
-        DomainPrefix: null,
+        DomainPrefix: "GEN_",
+        Owner: "gen",
+        DomainToken: "common",
         EmitKebabCase: false,
         EmitFailures: true,
         FailuresClassName: null,

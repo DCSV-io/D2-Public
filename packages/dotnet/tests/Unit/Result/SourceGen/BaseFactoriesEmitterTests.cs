@@ -25,12 +25,11 @@ using FailuresEmitter = ResultErrorCodesSourceGen::DcsvIo.D2.ErrorCodes.SourceGe
 /// (<c>FactoryHost.Base</c>): the non-generic + generic <c>D2Result</c>
 /// factories and the per-code booleans. Drives the shared
 /// <see cref="BaseFactoriesEmitter"/> with the real generic catalog config +
-/// synthetic specs. Behavioral equivalence with the previously hand-rolled
-/// factories is pinned at runtime by the existing <c>D2ResultTests</c> /
-/// <c>D2ResultBooleansTests</c> / <c>D2ResultGenericTests</c> (which call the
-/// now-generated factories through the unchanged public surface) and the
-/// byte-parity golden; this suite pins the emitter's source-shape per
-/// <c>factoryShape</c>.
+/// synthetic specs. The runtime behavior of the generated factories is pinned by
+/// <c>D2ResultTests</c> / <c>D2ResultBooleansTests</c> /
+/// <c>D2ResultGenericTests</c> (which call the generated factories through the
+/// public surface) and the byte-parity golden; this suite pins the emitter's
+/// source shape per <c>factoryShape</c>.
 /// </summary>
 public sealed class BaseFactoriesEmitterTests
 {
@@ -40,7 +39,7 @@ public sealed class BaseFactoriesEmitterTests
     public void EmitFactories_StandardShape_ConstructsUniversalSignature()
     {
         var spec = MakeSpec(Entry(
-            "NOT_FOUND",
+            "GEN_NOT_FOUND",
             404,
             "TK.Common.Errors.NOT_FOUND",
             "NotFound",
@@ -53,15 +52,15 @@ public sealed class BaseFactoriesEmitterTests
         src.Should().Contain("public partial class D2Result");
         src.Should().NotContain("sealed partial class D2Result");
 
-        // The one universal error-factory shape: every factory (incl. the
-        // previously-restricted NOT_FOUND) emits the full opts surface.
+        // The one standard error-factory shape: every factory, NOT_FOUND
+        // included, emits the full set of optional parameters.
         src.Should().Contain(
             "public static D2Result NotFound(IReadOnlyList<TKMessage>? messages = null, "
             + "IReadOnlyList<InputError>? inputErrors = null, string? errorCode = null, "
             + "ErrorCategory? category = null, string? traceId = null)");
         src.Should().Contain("messages ??= [TK.Common.Errors.NOT_FOUND];");
         src.Should().Contain("statusCode: HttpStatusCode.NotFound,");
-        src.Should().Contain("errorCode: errorCode ?? ErrorCodes.NOT_FOUND,");
+        src.Should().Contain("errorCode: errorCode ?? ErrorCodes.GEN_NOT_FOUND,");
         src.Should().Contain("category: category ?? ErrorCategory.NotFound);");
 
         // inputErrors is passed positionally before statusCode.
@@ -76,7 +75,7 @@ public sealed class BaseFactoriesEmitterTests
     public void EmitFactories_AnyEntry_EmitsErrorCodeAndCategoryOverrideParams()
     {
         var spec = MakeSpec(Entry(
-            "FORBIDDEN",
+            "GEN_FORBIDDEN",
             403,
             "TK.Common.Errors.FORBIDDEN",
             "Forbidden",
@@ -90,7 +89,7 @@ public sealed class BaseFactoriesEmitterTests
             "public static D2Result Forbidden(IReadOnlyList<TKMessage>? messages = null, "
             + "IReadOnlyList<InputError>? inputErrors = null, string? errorCode = null, "
             + "ErrorCategory? category = null, string? traceId = null)");
-        src.Should().Contain("errorCode: errorCode ?? ErrorCodes.FORBIDDEN,");
+        src.Should().Contain("errorCode: errorCode ?? ErrorCodes.GEN_FORBIDDEN,");
         src.Should().Contain("category: category ?? ErrorCategory.PolicyDenied);");
         src.Should().Contain("statusCode: HttpStatusCode.Forbidden,");
     }
@@ -99,7 +98,7 @@ public sealed class BaseFactoriesEmitterTests
     public void EmitGenericFactories_AnyEntry_EmitsErrorCodeAndCategoryOverrideParams()
     {
         var spec = MakeSpec(Entry(
-            "FORBIDDEN",
+            "GEN_FORBIDDEN",
             403,
             "TK.Common.Errors.FORBIDDEN",
             "Forbidden",
@@ -114,11 +113,11 @@ public sealed class BaseFactoriesEmitterTests
             "public static new D2Result<TData> Forbidden(IReadOnlyList<TKMessage>? messages = null, "
             + "IReadOnlyList<InputError>? inputErrors = null, string? errorCode = null, "
             + "ErrorCategory? category = null, string? traceId = null)");
-        src.Should().Contain("errorCode: errorCode ?? ErrorCodes.FORBIDDEN,");
+        src.Should().Contain("errorCode: errorCode ?? ErrorCodes.GEN_FORBIDDEN,");
         src.Should().Contain("category: category ?? ErrorCategory.PolicyDenied);");
         src.Should().Contain("statusCode: HttpStatusCode.Forbidden,");
 
-        // Generic twin carries `default` data and the `new` keyword.
+        // The generic twin passes `default` data and uses the `new` keyword.
         src.Should().Contain("false,");
         src.Should().Contain("default,");
     }
@@ -127,7 +126,7 @@ public sealed class BaseFactoriesEmitterTests
     public void EmitFactories_CarriesInputErrorsErrorCodeAndCategoryParams()
     {
         var spec = MakeSpec(Entry(
-            "VALIDATION_FAILED",
+            "GEN_VALIDATION_FAILED",
             400,
             "TK.Common.Errors.VALIDATION_FAILED",
             "ValidationFailed",
@@ -142,7 +141,7 @@ public sealed class BaseFactoriesEmitterTests
             + "IReadOnlyList<InputError>? inputErrors = null, string? errorCode = null, "
             + "ErrorCategory? category = null, string? traceId = null)");
         src.Should().Contain("statusCode: HttpStatusCode.BadRequest,");
-        src.Should().Contain("errorCode: errorCode ?? ErrorCodes.VALIDATION_FAILED,");
+        src.Should().Contain("errorCode: errorCode ?? ErrorCodes.GEN_VALIDATION_FAILED,");
         src.Should().Contain("category: category ?? ErrorCategory.ValidationFailure);");
 
         // inputErrors is passed positionally before statusCode.
@@ -156,7 +155,7 @@ public sealed class BaseFactoriesEmitterTests
     public void EmitFactories_NoneShape_EmitsNoFactory()
     {
         var spec = MakeSpec(Entry(
-            "SOME_FOUND", 206, "TK.Common.Errors.SOME_FOUND", "SomeFound", "none", "Doc."));
+            "GEN_SOME_FOUND", 206, "TK.Common.Errors.SOME_FOUND", "SomeFound", "none", "Doc."));
 
         var src = BaseFactoriesEmitter.EmitFactories(spec, Config).GeneratedSource;
 
@@ -169,7 +168,7 @@ public sealed class BaseFactoriesEmitterTests
     public void EmitGenericFactories_CarryNewKeywordAndDefaultData()
     {
         var spec = MakeSpec(Entry(
-            "CONFLICT", 409, "TK.Common.Errors.CONFLICT", "Conflict", "standard", "Doc."));
+            "GEN_CONFLICT", 409, "TK.Common.Errors.CONFLICT", "Conflict", "standard", "Doc."));
 
         var src = BaseFactoriesEmitter.EmitGenericFactories(spec, Config).GeneratedSource;
 
@@ -192,7 +191,7 @@ public sealed class BaseFactoriesEmitterTests
     public void EmitGenericFactories_PassesInputErrorsAfterDefaultData()
     {
         var spec = MakeSpec(Entry(
-            "VALIDATION_FAILED",
+            "GEN_VALIDATION_FAILED",
             400,
             "TK.Common.Errors.VALIDATION_FAILED",
             "ValidationFailed",
@@ -203,7 +202,7 @@ public sealed class BaseFactoriesEmitterTests
 
         src.Should().Contain("public static new D2Result<TData> ValidationFailed(");
 
-        // false, default, messages, inputErrors — the 4th positional ctor arg.
+        // false, default, messages, inputErrors - the 4th positional ctor arg.
         var defaultIdx = src.IndexOf("default,", System.StringComparison.Ordinal);
         var inputErrorsIdx = src.IndexOf("inputErrors,", System.StringComparison.Ordinal);
         defaultIdx.Should().BeLessThan(inputErrorsIdx);
@@ -213,7 +212,7 @@ public sealed class BaseFactoriesEmitterTests
     public void EmitBooleans_NonNoneCode_EmitsErrorCodeKeyedBoolean()
     {
         var spec = MakeSpec(Entry(
-            code: "RATE_LIMITED",
+            code: "GEN_RATE_LIMITED",
             httpStatus: 429,
             userMessageKey: "TK.Common.Errors.TOO_MANY_REQUESTS",
             factoryName: "TooManyRequests",
@@ -224,16 +223,38 @@ public sealed class BaseFactoriesEmitterTests
 
         src.Should().Contain("public partial class D2Result");
         src.Should().Contain("[JsonIgnore]");
-        src.Should().Contain("public bool IsRateLimited => ErrorCode == ErrorCodes.RATE_LIMITED;");
+        src.Should().Contain("public bool IsRateLimited => ErrorCode == ErrorCodes.GEN_RATE_LIMITED;");
+    }
+
+    [Fact]
+    public void EmitBooleans_GenNotFound_EmitsIsNotFound_NotIsGenNotFound()
+    {
+        // REST-stable boolean: GEN_NOT_FOUND -> IsNotFound (strip DomainPrefix rest),
+        // never IsGenNotFound.
+        var spec = MakeSpec(Entry(
+            code: "GEN_NOT_FOUND",
+            httpStatus: 404,
+            userMessageKey: "TK.Common.Errors.NOT_FOUND",
+            factoryName: "NotFound",
+            factoryShape: "standard",
+            doc: "Not found."));
+
+        var src = BaseFactoriesEmitter.EmitBooleans(spec, Config).GeneratedSource;
+
+        src.Should().Contain(
+            "public bool IsNotFound => ErrorCode == ErrorCodes.GEN_NOT_FOUND;");
+        src.Should().NotContain("IsGenNotFound");
     }
 
     [Fact]
     public void EmitBooleans_BooleanKeyedNoneCode_StillEmitsBoolean()
     {
-        // IDEMPOTENCY_IN_FLIGHT / SOME_FOUND / PARTIAL_SUCCESS are none-shape but
-        // DO key a boolean (matching the hand-rolled surface).
+        // IDEMPOTENCY_IN_FLIGHT is none-shape but DO key a boolean
+        // (IsIdempotencyInFlight), which this test asserts. SOME_FOUND and
+        // PARTIAL_SUCCESS do the same: the generated D2Result.Booleans.g.cs of
+        // the result package declares IsSomeFound and IsPartialSuccess.
         var spec = MakeSpec(Entry(
-            code: "IDEMPOTENCY_IN_FLIGHT",
+            code: "GEN_IDEMPOTENCY_IN_FLIGHT",
             httpStatus: 409,
             userMessageKey: "TK.Common.Errors.IDEMPOTENCY_IN_FLIGHT",
             factoryName: "IdempotencyInFlight",
@@ -243,15 +264,15 @@ public sealed class BaseFactoriesEmitterTests
         var src = BaseFactoriesEmitter.EmitBooleans(spec, Config).GeneratedSource;
 
         src.Should().Contain(
-            "public bool IsIdempotencyInFlight => ErrorCode == ErrorCodes.IDEMPOTENCY_IN_FLIGHT;");
+            "public bool IsIdempotencyInFlight => ErrorCode == ErrorCodes.GEN_IDEMPOTENCY_IN_FLIGHT;");
     }
 
     [Fact]
     public void EmitBooleans_SerializationCode_EmitsNoBoolean()
     {
-        // COULD_NOT_BE_* are none-shape AND not boolean-keyed — no boolean.
+        // COULD_NOT_BE_* are none-shape AND not boolean-keyed - no boolean.
         var spec = MakeSpec(Entry(
-            code: "COULD_NOT_BE_SERIALIZED",
+            code: "GEN_COULD_NOT_BE_SERIALIZED",
             httpStatus: 500,
             userMessageKey: "TK.Common.Errors.COULD_NOT_BE_SERIALIZED",
             factoryName: "CouldNotBeSerialized",
@@ -264,18 +285,19 @@ public sealed class BaseFactoriesEmitterTests
     }
 
     [Theory]
-    [InlineData("UNHANDLED_EXCEPTION", "TK.Common.Errors.UNKNOWN", "UnhandledException")]
-    [InlineData("RATE_LIMITED", "TK.Common.Errors.TOO_MANY_REQUESTS", "TooManyRequests")]
+    [InlineData("GEN_UNHANDLED_EXCEPTION", "TK.Common.Errors.UNKNOWN", "UnhandledException")]
+    [InlineData("GEN_RATE_LIMITED", "TK.Common.Errors.TOO_MANY_REQUESTS", "TooManyRequests")]
     public void EmitFactories_NameMismatchQuirks_UseSpecUserMessageKey(
         string code, string userMessageKey, string factoryName)
     {
-        // The code and its default TK legitimately differ for two entries —
+        // The code and its default TK differ for these entries:
         // UNHANDLED_EXCEPTION -> UNKNOWN and RATE_LIMITED -> TOO_MANY_REQUESTS.
-        // Both are the universal standard shape so a delegating 500/429 path can
-        // stamp a specific domain code on the base status.
+        // Both use the standard shape, so a per-domain 500 or 429 factory that
+        // delegates to the base factory can set a specific domain code on the
+        // base status.
         var spec = MakeSpec(Entry(
             code: code,
-            httpStatus: code == "RATE_LIMITED" ? 429 : 500,
+            httpStatus: code == "GEN_RATE_LIMITED" ? 429 : 500,
             userMessageKey: userMessageKey,
             factoryName: factoryName,
             factoryShape: "standard",
@@ -289,12 +311,11 @@ public sealed class BaseFactoriesEmitterTests
     [Fact]
     public void EmitFactories_UnhandledException_EmitsErrorCodeAndCategoryOverride()
     {
-        // The 500/internal_error UNHANDLED_EXCEPTION entry is the universal
-        // standard shape so a delegating per-domain 500 factory can stamp its own
-        // code + category on the base InternalServerError status (the mechanism
-        // KeyCustodianFailures uses).
+        // The 500/internal_error UNHANDLED_EXCEPTION entry uses the standard
+        // shape, so a per-domain 500 factory that delegates to it can set its own
+        // code + category on the base InternalServerError status.
         var spec = MakeSpec(Entry(
-            "UNHANDLED_EXCEPTION",
+            "GEN_UNHANDLED_EXCEPTION",
             500,
             "TK.Common.Errors.UNKNOWN",
             "UnhandledException",
@@ -309,21 +330,21 @@ public sealed class BaseFactoriesEmitterTests
             + "IReadOnlyList<InputError>? inputErrors = null, string? errorCode = null, "
             + "ErrorCategory? category = null, string? traceId = null)");
         src.Should().Contain("statusCode: HttpStatusCode.InternalServerError,");
-        src.Should().Contain("errorCode: errorCode ?? ErrorCodes.UNHANDLED_EXCEPTION,");
+        src.Should().Contain("errorCode: errorCode ?? ErrorCodes.GEN_UNHANDLED_EXCEPTION,");
         src.Should().Contain("category: category ?? ErrorCategory.InternalError);");
     }
 
     [Fact]
     public void EmitFactories_500Entry_DelegatesViaUnhandledException()
     {
-        // A per-domain 500 entry delegates to D2Result.UnhandledException stamping
-        // its own code + category — the generator-side proof for the
-        // KEYCUSTODIAN_PRECONDITION_VIOLATED path.
+        // A per-domain 500 entry (here DOMAIN_PRECONDITION_VIOLATED) delegates to
+        // D2Result.UnhandledException and sets its own code + category. This is the
+        // generator-side check for that path.
         var entry = Entry(
             "DOMAIN_PRECONDITION_VIOLATED",
             500,
             "TK.Common.Errors.UNKNOWN",
-            "PreconditionViolated",
+            "DomainPreconditionViolated",
             "standard",
             "Doc.",
             category: "internal_error");
@@ -370,7 +391,7 @@ public sealed class BaseFactoriesEmitterTests
     public void EmitFactories_RunsTwiceWithIdenticalInput_ProducesIdenticalSource()
     {
         var spec = MakeSpec(Entry(
-            "NOT_FOUND", 404, "TK.Common.Errors.NOT_FOUND", "NotFound", "standard", "Doc."));
+            "GEN_NOT_FOUND", 404, "TK.Common.Errors.NOT_FOUND", "NotFound", "standard", "Doc."));
 
         var first = BaseFactoriesEmitter.EmitFactories(spec, Config).GeneratedSource;
         var second = BaseFactoriesEmitter.EmitFactories(spec, Config).GeneratedSource;

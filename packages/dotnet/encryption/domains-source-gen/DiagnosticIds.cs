@@ -18,7 +18,7 @@ internal static class DiagnosticIds
     /// <summary>Two entries share the same wire <c>value</c>.</summary>
     public const string DuplicateValue = "D2ED003";
 
-    /// <summary>Entry's <c>constName</c> doesn't match the UPPER_SNAKE_CASE pattern.</summary>
+    /// <summary>Entry's <c>constName</c> does not match the UPPER_SNAKE_CASE pattern.</summary>
     public const string InvalidConstName = "D2ED004";
 
     /// <summary>Entry's <c>value</c> is empty or whitespace-only.</summary>
@@ -35,4 +35,23 @@ internal static class DiagnosticIds
 
     /// <summary>Entry's <c>consumerService</c> violates the <c>[a-z0-9-]{1,64}</c> grammar.</summary>
     public const string InvalidConsumerService = "D2ED009";
+
+    /// <summary>
+    /// The <c>D2EncryptionDomainsExtensionNamespace</c> property is not a
+    /// dot-separated sequence of C# identifiers.
+    /// </summary>
+    public const string InvalidExtensionNamespace = "D2ED010";
+
+    /// <summary>
+    /// The <c>D2EncryptionDomainsExtensionNamespace</c> property is set and the
+    /// <c>D2EncryptionDomainsExtensionClassPrefix</c> property is absent or not a
+    /// C# identifier.
+    /// </summary>
+    public const string InvalidExtensionClassPrefix = "D2ED011";
+
+    /// <summary>
+    /// The <c>D2EncryptionDomainsExtensionClassPrefix</c> property is set and the
+    /// <c>D2EncryptionDomainsExtensionNamespace</c> property is not.
+    /// </summary>
+    public const string ExtensionClassPrefixWithoutNamespace = "D2ED012";
 }

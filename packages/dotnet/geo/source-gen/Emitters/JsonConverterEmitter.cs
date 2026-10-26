@@ -15,23 +15,24 @@ using DcsvIo.D2.SourceGen;
 using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
-/// Emits the three <c>JsonConverter&lt;T&gt;</c> classes paired with the
-/// wrapper structs from <see cref="WrapperStructEmitter"/>. Each emitted
-/// converter carries an internal <c>FrozenSet&lt;string&gt;</c> closed-set
-/// validation table sourced directly from the matching spec catalog;
-/// deserialization of an unknown wire value throws
-/// <see cref="System.Text.Json.JsonException"/> (strict deserialization
-/// policy). The validation table is exposed via the internal
-/// <c>IsKnown(string)</c> entrypoint so the wrapper struct's
-/// <c>TryParse</c> path can consult the same source of truth.
+/// Emits the <c>JsonConverter&lt;T&gt;</c> classes paired with the wrapper
+/// structs from <see cref="WrapperStructEmitter"/> (<c>SubdivisionCode</c>,
+/// <c>LocaleCode</c> and <c>TimezoneCode</c>). Each emitted converter has an
+/// internal <c>FrozenSet&lt;string&gt;</c> closed-set validation table built
+/// directly from the matching spec catalog. Deserializing an unknown wire
+/// value throws <see cref="System.Text.Json.JsonException"/> (strict
+/// deserialization policy). The internal <c>IsKnown(string)</c> method
+/// exposes the validation table, so the wrapper struct's <c>TryParse</c> path
+/// uses the same table.
 /// </summary>
 internal static class JsonConverterEmitter
 {
     private const string _NAMESPACE = EmitterHelpers.AbstractionsNamespace;
 
     /// <summary>
-    /// Emits the three JsonConverter classes. Returns one result per
-    /// converter so the dispatcher can write each into its own hint name.
+    /// Emits the JsonConverter classes for the subdivision, locale and
+    /// timezone wrapper structs. Returns one result per converter, each with
+    /// its own hint name.
     /// </summary>
     /// <param name="context">The aggregate spec context.</param>
     /// <returns>The per-converter emit results.</returns>
@@ -186,7 +187,7 @@ internal static class JsonConverterEmitter
         sb.AppendLine("        {");
         sb.AppendLine("            throw new JsonException(");
         sb.AppendLine(
-            $"                $\"Unknown {displayLabel} '{{value}}' — not present in "
+            $"                $\"Unknown {displayLabel} '{{value}}' - not present in "
             + "the closed catalog set.\");");
         sb.AppendLine("        }");
         sb.AppendLine();

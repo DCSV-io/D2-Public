@@ -13,9 +13,8 @@ namespace DcsvIo.D2.Encryption;
 /// On the encrypt path this signals programmer error (the keyring no longer
 /// contains its declared active kid). On the decrypt path this is the
 /// expected outcome when a message was encrypted under a key that has been
-/// retired and removed from the running keyring — the caller (typically the
-/// messaging bus) routes the message to a DLQ for forensic decrypt by the
-/// ops CLI.
+/// retired and removed from the running keyring. Such a message is typically
+/// routed to a DLQ for forensic decrypt by the ops CLI.
 /// </remarks>
 public sealed class KidNotInKeyringException : EncryptionException
 {

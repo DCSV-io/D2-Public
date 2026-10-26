@@ -15,9 +15,9 @@ using Xunit;
 
 /// <summary>
 /// Pins every <see cref="DiagnosticIds"/> constant to its documented identifier
-/// shape and confirms there are no duplicates. Diagnostic IDs ship as part of
-/// the lib's contract — accidental renames break operator tooling that greps
-/// build logs for these IDs.
+/// shape and checks that no two constants share a value. The diagnostic IDs
+/// are part of the library contract, and a rename breaks operator tooling that
+/// searches build logs for them.
 /// </summary>
 public sealed class DiagnosticIdsTests
 {
@@ -36,8 +36,8 @@ public sealed class DiagnosticIdsTests
     [Fact]
     public void IdConstants_AreUnique()
     {
-        // Adversarial: two constants pointing at the same string is a copy-paste bug
-        // that would silently merge two distinct diagnostics into one.
+        // Two constants with the same string value are a copy-paste error that
+        // merges two distinct diagnostics into one.
         var ids = CollectIds();
 
         ids.Should().OnlyHaveUniqueItems();
@@ -52,9 +52,9 @@ public sealed class DiagnosticIdsTests
     [InlineData("D2I18N006", nameof(DiagnosticIds.MalformedJsonCatalog))]
     public void IdConstants_HaveStableValues(string expectedId, string constantName)
     {
-        // Stability gate: changing any of these IDs is a breaking change to the
-        // build-warning surface. Force any future renumbering to update the test
-        // inline data, surfacing the change to PR review.
+        // Changing any of these IDs is a breaking change to the build-warning
+        // surface. A renumbering fails this test until the inline data
+        // changes, which shows the change in the pull request.
         var actual = typeof(DiagnosticIds)
             .GetField(constantName, BindingFlags.Public | BindingFlags.Static)
             !.GetRawConstantValue();

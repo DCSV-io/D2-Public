@@ -12,11 +12,11 @@ using System.Text;
 using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
-/// Shared helpers used by every per-catalog DATA emitter in this directory.
-/// Encapsulates the per-target namespace, the standard file-header banner,
-/// and the safe-C#-identifier coercion that the nested static-class
-/// emitters share (numeric-leading short codes get a leading underscore;
-/// hyphens / slashes / colons are not allowed as members).
+/// Shared helpers for the per-catalog data emitters in this directory. They
+/// provide the per-target namespace, the standard file-header banner, and the
+/// safe-C#-identifier coercion that the nested static-class emitters share
+/// (numeric-leading short codes get a leading underscore; hyphens, slashes
+/// and colons are not allowed in member names).
 /// </summary>
 internal static class DefaultEmitterHelpers
 {
@@ -27,18 +27,18 @@ internal static class DefaultEmitterHelpers
     public const string DefaultNamespace = "DcsvIo.D2.Geo.Default";
 
     /// <summary>
-    /// The <c>DcsvIo.D2.Geo.Abstractions</c> namespace used in <c>using</c>
-    /// directives in every emitted file so the data values can reference
-    /// the spec-derived types (<c>Country</c> record, <c>CountryCode</c>
-    /// enum, <c>SubdivisionCode</c> wrapper struct, etc.).
+    /// The <c>DcsvIo.D2.Geo.Abstractions</c> namespace written in the
+    /// <c>using</c> directive of every emitted file, so the data values can
+    /// reference the spec-derived types (<c>Country</c> record,
+    /// <c>CountryCode</c> enum, <c>SubdivisionCode</c> wrapper struct, etc.).
     /// </summary>
     public const string AbstractionsNamespace = EmitterHelpers.AbstractionsNamespace;
 
     /// <summary>
-    /// The C# reserved-keyword set — identifiers that match these must be
-    /// prefixed with <c>@</c> to compile. Includes all language keywords as
-    /// of C# 12 / .NET 8+. Contextual keywords are EXCLUDED — they're legal
-    /// identifiers outside their narrow grammar contexts.
+    /// The C# reserved-keyword set. An identifier that matches one of these
+    /// must be prefixed with <c>@</c> to compile. The set includes all language
+    /// keywords as of C# 12 / .NET 8+. It excludes contextual keywords, which
+    /// are legal identifiers outside their narrow grammar contexts.
     /// </summary>
     private static readonly HashSet<string> sr_cSharpReservedKeywords = new HashSet<string>(
         System.StringComparer.Ordinal)
@@ -57,8 +57,8 @@ internal static class DefaultEmitterHelpers
     };
 
     /// <summary>
-    /// Appends the auto-generated file banner identical to the Abstractions
-    /// emitters so cross-target tooling lights up identically.
+    /// Appends the auto-generated file banner. It is the same banner the
+    /// Abstractions emitters write.
     /// </summary>
     /// <param name="sb">The destination buffer.</param>
     public static void AppendFileHeader(StringBuilder sb) =>
@@ -83,12 +83,12 @@ internal static class DefaultEmitterHelpers
     /// <summary>
     /// Coerces a code segment (subdivision short-code, IANA location, BCP47
     /// region/script subtag) into a safe C# identifier. Numeric-leading
-    /// segments get a leading underscore (e.g. <c>"02"</c> → <c>"_02"</c>).
+    /// segments get a leading underscore (e.g. <c>"02"</c> -> <c>"_02"</c>).
     /// C# reserved keywords get a leading <c>@</c> verbatim sigil
-    /// (e.g. <c>"as"</c> → <c>"@as"</c>, <c>"is"</c> → <c>"@is"</c>).
+    /// (e.g. <c>"as"</c> -> <c>"@as"</c>, <c>"is"</c> -> <c>"@is"</c>).
     /// Returns the segment verbatim when it is already a valid identifier.
     /// Returns <c>null</c> when the segment contains characters that cannot
-    /// be salvaged (hyphen, slash, colon, dot, ...) — callers MUST handle
+    /// be salvaged (hyphen, slash, colon, dot, ...). The caller MUST handle
     /// the <c>null</c> case (skip or report).
     /// </summary>
     /// <param name="segment">The raw segment.</param>
@@ -98,8 +98,8 @@ internal static class DefaultEmitterHelpers
         if (segment.Falsey())
             return null;
 
-        // Fast path — already a valid identifier (starts with letter / underscore,
-        // remainder is letters / digits / underscores).
+        // Fast path: already a valid identifier (starts with a letter or
+        // underscore, remainder is letters, digits or underscores).
         if (IsValidIdentifier(segment))
         {
             return sr_cSharpReservedKeywords.Contains(segment)
@@ -107,7 +107,7 @@ internal static class DefaultEmitterHelpers
                 : segment;
         }
 
-        // Numeric-leading case (e.g. "02", "13", "541") — prepend underscore.
+        // Numeric-leading case (e.g. "02", "13", "541"): prepend an underscore.
         if (char.IsDigit(segment[0]))
         {
             var prefixed = "_" + segment;
@@ -115,7 +115,7 @@ internal static class DefaultEmitterHelpers
                 return prefixed;
         }
 
-        // Unsalvageable — contains hyphen / slash / colon / dot / ...
+        // Unsalvageable: contains a hyphen, slash, colon, dot or similar.
         return null;
     }
 
@@ -147,8 +147,8 @@ internal static class DefaultEmitterHelpers
     }
 
     /// <summary>
-    /// Emits a C# string literal — quoted + escaped. Returns the verbatim
-    /// <c>null</c> token when the value is <c>null</c>.
+    /// Emits a quoted, escaped C# string literal. Returns the <c>null</c>
+    /// token when the value is <c>null</c>.
     /// </summary>
     /// <param name="value">The value (may be null).</param>
     /// <returns>The C#-source representation.</returns>
@@ -161,8 +161,8 @@ internal static class DefaultEmitterHelpers
     }
 
     /// <summary>
-    /// Emits a nullable-int C# literal. Returns the verbatim <c>null</c>
-    /// token when the value is <c>null</c>.
+    /// Emits a nullable-int C# literal. Returns the <c>null</c> token when
+    /// the value is <c>null</c>.
     /// </summary>
     /// <param name="value">The value (may be null).</param>
     /// <returns>The C#-source representation.</returns>
@@ -177,8 +177,9 @@ internal static class DefaultEmitterHelpers
     /// <summary>
     /// Maps the spec's day-of-week wire string (<c>"Sunday"</c> ..
     /// <c>"Saturday"</c>) to the matching <c>GeoDayOfWeek</c> enum literal.
-    /// Falls back to <c>GeoDayOfWeek.Sunday</c> for unrecognized input
-    /// (defensive — Tier-2 specs always carry valid values).
+    /// Returns <c>GeoDayOfWeek.Sunday</c> when the input is null, empty or
+    /// whitespace (Tier-2 specs always carry valid values). Any other value
+    /// is used as the member name without validation.
     /// </summary>
     /// <param name="wireValue">The wire string.</param>
     /// <returns>The matching enum literal source.</returns>
@@ -258,9 +259,9 @@ internal static class DefaultEmitterHelpers
 
     /// <summary>
     /// Maps a <c>GeopoliticalEntitySpec.Type</c> wire string to the matching
-    /// <c>EnumEmitter</c>-emitted enum literal — passes through verbatim since
-    /// the wire form already matches the C# member name (e.g.
-    /// <c>"Continent"</c> → <c>GeopoliticalEntityType.Continent</c>).
+    /// <c>EnumEmitter</c>-emitted enum literal. The wire string is used
+    /// unchanged because it already matches the C# member name (e.g.
+    /// <c>"Continent"</c> -> <c>GeopoliticalEntityType.Continent</c>).
     /// </summary>
     /// <param name="wireValue">The wire string.</param>
     /// <returns>The matching enum literal source.</returns>

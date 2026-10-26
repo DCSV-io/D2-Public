@@ -21,7 +21,7 @@ internal static class DiagnosticIds
     /// <summary>Two cause entries share the same <c>constName</c> or <c>value</c>.</summary>
     public const string DuplicateCause = "D2DLQ004";
 
-    /// <summary>Entry's <c>constName</c> doesn't match UPPER_SNAKE_CASE.</summary>
+    /// <summary>Entry's <c>constName</c> does not match UPPER_SNAKE_CASE.</summary>
     public const string InvalidConstName = "D2DLQ005";
 
     /// <summary>Entry's <c>value</c> is empty or whitespace-only.</summary>

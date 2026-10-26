@@ -16,12 +16,12 @@ using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
 /// Emits the static lookup table backing
-/// <c>SubdivisionCode.ParentCountry</c>. Pre-computed from the
-/// subdivisions spec: each ISO 3166-2 code maps to its parent
-/// <see cref="Spec.CountrySpec.Iso31661Alpha2Code"/> via the spec's
-/// <c>countryISO31661Alpha2Code</c> back-reference. The lookup ships as
-/// a sealed internal static class so the cross-cutting derivation lives
-/// in one well-known place; the wrapper struct just dispatches via
+/// <c>SubdivisionCode.ParentCountry</c>. The table is computed from the
+/// subdivisions spec at generation time: each ISO 3166-2 code maps to its
+/// parent <see cref="Spec.CountrySpec.Iso31661Alpha2Code"/> through the
+/// spec's <c>countryISO31661Alpha2Code</c> back-reference. The lookup is a
+/// sealed internal static class, so this derivation is in one place, and the
+/// wrapper struct only calls
 /// <c>SubdivisionParentCountryLookup.GetParent</c>.
 /// </summary>
 internal static class ParentCountryTableEmitter
@@ -29,9 +29,9 @@ internal static class ParentCountryTableEmitter
     private const string _NAMESPACE = EmitterHelpers.AbstractionsNamespace;
 
     /// <summary>
-    /// Emits the parent-country lookup. Returns a singleton result; an
-    /// absent <c>subdivisions.spec.json</c> produces an empty table that
-    /// throws on every lookup (no silent fallback).
+    /// Emits the parent-country lookup. Returns a single result. When
+    /// <c>subdivisions.spec.json</c> is absent, the emitted table is empty and
+    /// throws on every lookup, with no silent fallback.
     /// </summary>
     /// <param name="context">The aggregate spec context.</param>
     /// <returns>The single emit result.</returns>
@@ -52,7 +52,7 @@ internal static class ParentCountryTableEmitter
         sb.AppendLine(
             "/// owning <see cref=\"Country\"/>. Pre-computed at codegen time from");
         sb.AppendLine(
-            "/// <c>subdivisions.spec.json</c> — every subdivision's parent country");
+            "/// <c>subdivisions.spec.json</c> - every subdivision's parent country");
         sb.AppendLine(
             "/// is derived once at codegen time. Consumed exclusively by");
         sb.AppendLine(
@@ -97,7 +97,7 @@ internal static class ParentCountryTableEmitter
             "    /// <paramref name=\"subdivisionCode\"/>. Throws");
         sb.AppendLine(
             "    /// <see cref=\"InvalidOperationException\"/> when the code is not present");
-        sb.AppendLine("    /// in the catalog — fail-loud is intentional (every codegen-issued");
+        sb.AppendLine("    /// in the catalog - fail-loud is intentional (every codegen-issued");
         sb.AppendLine("    /// SubdivisionCode must be in the table; absence is a bug, not a");
         sb.AppendLine("    /// user-input case).");
         sb.AppendLine("    /// </summary>");

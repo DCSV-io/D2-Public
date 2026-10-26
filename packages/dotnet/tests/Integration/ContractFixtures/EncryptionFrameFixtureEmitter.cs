@@ -32,7 +32,7 @@ public sealed class EncryptionFrameFixtureEmitter
 
     private static SortedDictionary<string, object?> EnumerateConstants(Type type)
     {
-        // Encryption-frame catalog uses int + byte constants — collect both.
+        // Encryption-frame catalog uses int + byte constants - collect both.
         var fields = type
             .GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)
             .Where(f => f.IsLiteral && (f.FieldType == typeof(int) || f.FieldType == typeof(byte)))

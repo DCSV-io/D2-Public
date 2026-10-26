@@ -40,8 +40,8 @@ public sealed class JwksKeySetSnapshotTests
     [Fact]
     public void Construction_DefensivelyCopiesKeysDictionary()
     {
-        // The "immutable snapshot" contract requires that mutating the
-        // SOURCE dictionary post-construction does NOT affect the snapshot.
+        // The "immutable snapshot" contract requires that changing the
+        // source dictionary after construction does not change the snapshot.
         var key1 = MakeRsaKey("kid-1");
         var key2 = MakeRsaKey("kid-2");
         var sourceDict = new Dictionary<string, SecurityKey> { ["kid-1"] = key1 };
@@ -53,11 +53,11 @@ public sealed class JwksKeySetSnapshotTests
             SourceUri = new Uri("https://edge.internal/.well-known/jwks.json"),
         };
 
-        // Mutate source after construction.
+        // Change the source dictionary after construction.
         sourceDict["kid-2"] = key2;
         sourceDict.Remove("kid-1");
 
-        // Snapshot remains as it was at construction time.
+        // The snapshot keeps the keys it had at construction time.
         snapshot.Keys.Should().HaveCount(1);
         snapshot.Keys.Should().ContainKey("kid-1");
         snapshot.Keys.Should().NotContainKey("kid-2");
@@ -66,9 +66,9 @@ public sealed class JwksKeySetSnapshotTests
     [Fact]
     public void Construction_EmptyKeys_Allowed()
     {
-        // Adversarial: an empty key set is valid (degraded upstream); JWT
-        // validation simply fails "kid not found" downstream — the snapshot
-        // type itself doesn't gate this.
+        // Adversarial: an empty key set is valid (degraded upstream). JWT
+        // validation then fails with "kid not found" downstream, and the
+        // snapshot type itself does not reject an empty key set.
         var snapshot = new JwksKeySetSnapshot
         {
             Keys = new Dictionary<string, SecurityKey>(),
@@ -82,12 +82,12 @@ public sealed class JwksKeySetSnapshotTests
     [Fact]
     public void Equality_SameContentDifferentInstances_NotEqualPostDefensiveCopy()
     {
-        // After defensive copy, two snapshots constructed from the same source
-        // dictionary hold DIFFERENT Dictionary instances internally. The default
-        // record equality compares dictionary references, so two snapshots will
-        // NOT be equal even if their contents match. This is acceptable for a
-        // snapshot type; consumers who need content-equality compare the Keys
-        // dictionaries explicitly.
+        // The defensive copy gives two snapshots constructed from the same
+        // source dictionary different Dictionary instances internally. The
+        // default record equality compares dictionary references, so the two
+        // snapshots are not equal even when their contents match. This is
+        // acceptable for a snapshot type; content equality requires comparing
+        // the Keys dictionaries explicitly.
         var keys = new Dictionary<string, SecurityKey> { ["kid-1"] = MakeRsaKey("kid-1") };
         var fetched = new DateTimeOffset(2026, 5, 10, 12, 0, 0, TimeSpan.Zero);
         var source = new Uri("https://edge.internal/.well-known/jwks.json");
@@ -95,7 +95,8 @@ public sealed class JwksKeySetSnapshotTests
         var a = new JwksKeySetSnapshot { Keys = keys, FetchedAt = fetched, SourceUri = source };
         var b = new JwksKeySetSnapshot { Keys = keys, FetchedAt = fetched, SourceUri = source };
 
-        // Defensive copy → different internal Dictionary instances → not equal.
+        // The defensive copy produces different internal Dictionary instances,
+        // so the snapshots are not equal.
         a.Should().NotBe(b);
     }
 

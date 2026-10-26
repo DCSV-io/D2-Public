@@ -12,13 +12,16 @@ using Microsoft.Extensions.Hosting;
 
 /// <summary>
 /// Fails host startup when one or more subscribers opt into idempotency
-/// (the <c>idempotency</c> field on the spec entry → carried as
-/// <see cref="MqSubscriptionDescriptor.Idempotency"/>) but no functional
-/// <see cref="IDistributedCache"/> AND no operator-provided
-/// <see cref="IMessageIdempotencyStore"/> are registered. Without this
-/// guard the consumer silently no-ops the idempotency check on every
-/// delivery — the safety feature appears configured but does nothing.
+/// (the <c>idempotency</c> field on the spec entry, carried as
+/// <see cref="MqSubscriptionDescriptor.Idempotency"/>) but neither a
+/// functional <see cref="IDistributedCache"/> nor a host-provided
+/// <see cref="IMessageIdempotencyStore"/> is registered.
 /// </summary>
+/// <remarks>
+/// Without this guard the consumer would skip the idempotency check on every
+/// delivery without any error, so the feature would look configured and do
+/// nothing.
+/// </remarks>
 internal sealed class IdempotencyStartupCheck : IHostedService
 {
     private readonly SubscriberRegistry r_registry;
@@ -46,10 +49,10 @@ internal sealed class IdempotencyStartupCheck : IHostedService
         if (idempotentSubs.Count == 0) return Task.CompletedTask;
 
         // CacheIdempotencyStore needs IDistributedCache. If the cache is
-        // present, the default store works — early return. If absent, the
-        // operator may still have plugged in their own store (e.g. tests
-        // with an in-memory fake) — try resolving the actual instance and
-        // accept anything that's not the default cache-backed type.
+        // registered, the default store works, so return early. If it is not,
+        // the host may still have registered its own store (for example a
+        // test's in-memory fake): resolve the registered instance and accept
+        // any store that is not the default cache-backed type.
         var hasCache = r_serviceProvider.GetService<IDistributedCache>() is not null;
         if (hasCache) return Task.CompletedTask;
 
@@ -61,9 +64,9 @@ internal sealed class IdempotencyStartupCheck : IHostedService
         }
         catch
         {
-            // Resolution threw — most likely the default CacheIdempotencyStore
+            // Resolution threw - most likely the default CacheIdempotencyStore
             // failed to construct because IDistributedCache is missing, which
-            // is exactly the misconfiguration this check exists to surface.
+            // is the misconfiguration this check exists to detect.
             // Fall through to the throw below.
         }
 

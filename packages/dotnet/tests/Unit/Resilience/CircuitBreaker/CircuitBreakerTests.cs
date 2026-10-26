@@ -65,7 +65,7 @@ public sealed class CircuitBreakerTests
     }
 
     // ----------------------------------------------------------------------
-    // Closed → Open transition at threshold
+    // Closed -> Open transition at threshold
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -92,7 +92,7 @@ public sealed class CircuitBreakerTests
     [Fact]
     public async Task ExecuteAsync_MixedExceptionAndValueFailures_HitThresholdToOpen()
     {
-        // Adversarial: failure source mix is irrelevant — both count.
+        // Adversarial: failure source mix is irrelevant - both count.
         var cb = new CircuitBreaker<int>(
             r => r == 0,
             options: new(3));
@@ -107,7 +107,7 @@ public sealed class CircuitBreakerTests
         }
 
         await cb.ExecuteAsync(_ => ValueTask.FromResult(0)); // value failure
-        await cb.ExecuteAsync(_ => ValueTask.FromResult(0)); // value failure → opens
+        await cb.ExecuteAsync(_ => ValueTask.FromResult(0)); // value failure -> opens
 
         cb.State.Should().Be(CircuitState.Open);
     }
@@ -176,7 +176,7 @@ public sealed class CircuitBreakerTests
     }
 
     // ----------------------------------------------------------------------
-    // Open → HalfOpen transition (probe success closes)
+    // Open -> HalfOpen transition (probe success closes)
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -206,7 +206,7 @@ public sealed class CircuitBreakerTests
     [Fact]
     public async Task ExecuteAsync_AfterCooldown_HalfOpenProbeFailureReopens()
     {
-        // Coverage: callback IS provided (non-null) on the HalfOpen→Open
+        // Coverage: callback IS provided (non-null) on the HalfOpen->Open
         // re-open path inside RecordFailure. Companion to the
         // null-callback variant below.
         var clock = new FakeClock();
@@ -218,7 +218,7 @@ public sealed class CircuitBreakerTests
         await ForceOpen(cb);
         clock.Advance(TimeSpan.FromMilliseconds(150));
 
-        // Probe throws → straight back to Open.
+        // Probe throws -> straight back to Open.
         var act = async () => await cb.ExecuteAsync(
             _ => throw new InvalidOperationException("probe failed"));
 
@@ -233,8 +233,8 @@ public sealed class CircuitBreakerTests
     [Fact]
     public async Task ExecuteAsync_HalfOpen_ProbeValueFailureReopens()
     {
-        // Adversarial: probe returns a value-failure (not exception) → still
-        // counts as failure → reopens.
+        // Adversarial: probe returns a value-failure (not exception) -> still
+        // counts as failure -> reopens.
         var clock = new FakeClock();
         var cb = new CircuitBreaker<int>(
             isFailure: r => r == 0,
@@ -273,7 +273,7 @@ public sealed class CircuitBreakerTests
         // Wait briefly for the probe to be in-flight.
         await Task.Delay(20);
 
-        // Second caller while probe is in-flight → fallback path.
+        // Second caller while probe is in-flight -> fallback path.
         var fallbackInvoked = false;
         var second = await cb.ExecuteAsync(
             _ => ValueTask.FromResult(1),
@@ -363,7 +363,7 @@ public sealed class CircuitBreakerTests
     [Fact]
     public async Task ExecuteAsync_HalfOpen_ProbeFailureNoCallback_DoesNotThrow()
     {
-        // Coverage: r_onStateChange?.Invoke(...) on the HalfOpen→Open
+        // Coverage: r_onStateChange?.Invoke(...) on the HalfOpen->Open
         // re-open path inside RecordFailure when callback is null.
         var clock = new FakeClock();
         var cb = NewBreaker(
@@ -383,7 +383,7 @@ public sealed class CircuitBreakerTests
     [Fact]
     public async Task Reset_FromClosed_DoesNotFireStateChange()
     {
-        // Adversarial: idempotent — no-op when already Closed.
+        // Adversarial: idempotent - no-op when already Closed.
         var transitions = new List<(CircuitState From, CircuitState To)>();
         var cb = NewBreaker(
             onStateChange: (from, to) => transitions.Add((from, to)));
@@ -459,7 +459,7 @@ public sealed class CircuitBreakerTests
     public async Task HighConcurrentSuccesses_OnClosedBreaker_FailureCountStaysZero()
     {
         // Adversarial: 100 concurrent successes. RecordSuccess uses
-        // Interlocked.Exchange(failureCount, 0) — verify it's never observed
+        // Interlocked.Exchange(failureCount, 0) - verify it's never observed
         // as nonzero (no torn reads / ABA issues).
         var cb = NewBreaker(options: new(failureThreshold: 5));
         const int concurrent_threads = 100;
@@ -490,11 +490,11 @@ public sealed class CircuitBreakerTests
     [Fact]
     public async Task OnStateChange_CallbackThrows_ExceptionPropagatesToCaller()
     {
-        // Defensive: the onStateChange callback is invoked synchronously on
-        // the thread triggering the transition, with no try/catch wrapper.
-        // A throwing callback propagates to the caller — the test pins the
-        // current behavior. (Could be argued either way; the explicit
-        // contract documented here is "keep your callback fast and safe".)
+        // The onStateChange callback is invoked synchronously on the thread
+        // triggering the transition, with no try/catch wrapper. A throwing
+        // callback propagates to the caller, and this test pins that current
+        // behavior. The resilience package README states the contract: the
+        // callback must be fast and must not throw.
         var cb = new CircuitBreaker<int>(
             isFailure: _ => false,
             options: new(failureThreshold: 1),
@@ -504,7 +504,7 @@ public sealed class CircuitBreakerTests
             _ => throw new TimeoutException("upstream"));
 
         // The callback's InvalidOperationException replaces the original
-        // upstream TimeoutException because RecordFailure → callback fires
+        // upstream TimeoutException because RecordFailure -> callback fires
         // BEFORE the catch's `throw;` rethrows the upstream exception.
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("callback boom");
@@ -515,7 +515,7 @@ public sealed class CircuitBreakerTests
     {
         // Adversarial: an operation that throws OperationCanceledException
         // for reasons UNRELATED to the supplied CT (e.g. an internal timeout
-        // CTS that fired) MUST count as a failure — the CB has no way to
+        // CTS that fired) MUST count as a failure - the CB has no way to
         // know it wasn't a "real" failure. Verify FailureCount increments.
         var cb = NewBreaker(options: new(failureThreshold: 5));
 

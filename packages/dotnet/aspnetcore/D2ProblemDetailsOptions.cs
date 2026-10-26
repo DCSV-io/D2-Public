@@ -28,7 +28,7 @@ using DcsvIo.D2.Headers.Http;
 /// <c>Request.Body</c>, or any user-input source. Request path is
 /// included as the RFC 7807 <c>instance</c> field (route templates are
 /// operational metadata, not PII); the request method is included for
-/// disambiguation when the same instance carries different verbs.
+/// disambiguation when the same instance serves different verbs.
 /// </para>
 /// </remarks>
 public sealed record D2ProblemDetailsOptions
@@ -48,7 +48,7 @@ public sealed record D2ProblemDetailsOptions
     /// Gets or sets a value indicating whether a freshly-generated
     /// correlation id (used when the request did not carry one) is echoed
     /// back to the response. When <c>true</c> (the default), the freshly
-    /// (used when the request did not carry one) is written back to the
+    /// generated id is written back to the
     /// response via <see cref="CorrelationIdHeaderName"/> so the caller
     /// can include it in subsequent requests / log lines for end-to-end
     /// correlation. Mirrors the <c>Idempotency-Key</c> echo precedent.
@@ -58,8 +58,8 @@ public sealed record D2ProblemDetailsOptions
     /// <summary>
     /// Gets or sets a value indicating whether the customizer populates
     /// the RFC 7807 instance field. When <c>true</c> (the default), the
-    /// customizer populates the RFC 7807
-    /// <c>instance</c> field with <c>{Method} {Path}</c> (e.g.
+    /// customizer sets the RFC 7807
+    /// <c>instance</c> field to <c>{Method} {Path}</c> (e.g.
     /// <c>"GET /api/users/123"</c>). PII-safe: route templates + method
     /// are operational metadata, never user input. Set <c>false</c> to
     /// preserve ASP.NET Core's default null instance (rarely useful).

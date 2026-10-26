@@ -14,18 +14,19 @@ using DcsvIo.D2.SourceGen;
 using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
-/// Pure logic for emitting <c>MutableRequestContext</c> from the COMBINED
-/// non-derived properties of all parsed context specs in a generator run.
-/// Derived properties (e.g. impersonation flavor / impersonator org) are
-/// emitted as computed getters that walk the actor chain.
+/// Pure logic for emitting <c>MutableRequestContext</c> from the combined
+/// properties of all parsed context specs in a generator run. Non-derived
+/// properties are emitted as settable properties. Derived properties (for example
+/// impersonation kind and impersonator org) are emitted as computed getters that
+/// read the actor chain.
 /// </summary>
 /// <remarks>
-/// Cross-transport propagation of the small operational subset
-/// (<c>RequestId</c>, <c>RequestPath</c>, fingerprints, <c>WhoIsHashId</c>)
-/// happens via the hand-written <c>PropagatedContext</c> record + a single
-/// transport-portable header (<c>x-d2-context</c>). Identity (UserId, OrgId,
-/// Scopes, etc.) rebuilds at every hop from the JWT — the messaging /
-/// gRPC layers do not propagate it.
+/// Cross-transport propagation of the operational subset that the spec marks
+/// <c>propagate: true</c> (for example <c>RequestId</c>, <c>RequestPath</c>,
+/// fingerprints and <c>WhoIsHashId</c>) uses the generated <c>PropagatedContext</c>
+/// record and a single transport-portable header (<c>x-d2-context</c>). Identity
+/// (UserId, OrgId, Scopes and the other identity fields) is not propagated; each
+/// hop rebuilds it from the JWT.
 /// </remarks>
 internal static class MutableEmitter
 {
@@ -34,9 +35,18 @@ internal static class MutableEmitter
     private const string _REQUEST_INTERFACE =
         "DcsvIo.D2.Context.Abstractions.IRequestContext";
 
+    // The spec's claimForm value for a set whose elements are copied unchanged,
+    // so element validation happens where the set is converted, over the whole set.
+    private const string _VERBATIM_SET_FORM = "verbatimSet";
+
+    // The spec's claimForm value for a string property whose claim is an array of
+    // strings, such as RFC 8176 amr: every non-empty string element is kept, joined
+    // with one space.
+    private const string _SPACE_JOINED_FORM = "spaceJoined";
+
     /// <summary>
-    /// Emits the mutable concrete from the combined property set of
-    /// <paramref name="auth"/> + <paramref name="request"/>.
+    /// Emits the mutable concrete class from the combined property set of
+    /// <paramref name="auth"/> and <paramref name="request"/>.
     /// </summary>
     /// <param name="auth">The auth-context spec.</param>
     /// <param name="request">The request-context spec.</param>
@@ -45,10 +55,12 @@ internal static class MutableEmitter
     {
         var diagnostics = ImmutableArray.CreateBuilder<EmitDiagnostic>();
 
-        // Property-name collision check across the combined hierarchy.
-        // EXCEPTION: properties that intentionally map to the same JWT claim
-        // (e.g. Subject as string? AND UserId as Guid? — both reading "sub" with
-        // different parse modes) are allowed when they live in the same spec.
+        // Property-name collision check across the combined hierarchy. The check
+        // compares property names only: a name repeated inside one spec, or in both
+        // the auth spec and the request spec, is reported, and two properties that
+        // read the same JWT claim under different names (for example Subject as
+        // string? and UserId as Guid?, both reading "sub" with different parse
+        // modes) do not collide.
         var allProps = new List<(ContextSpec Spec, PropertySpec Property)>();
         foreach (var section in auth.Sections)
         {
@@ -67,11 +79,8 @@ internal static class MutableEmitter
         {
             if (seen.TryGetValue(prop.Name, out var firstSpec))
             {
-                if (!ReferenceEquals(firstSpec, spec))
-                {
-                    diagnostics.Add(EmitDiagnostics.PropertyNameCollision(
-                        prop.Name, firstSpec.Name, spec.Name));
-                }
+                diagnostics.Add(EmitDiagnostics.PropertyNameCollision(
+                    prop.Name, firstSpec.Name, spec.Name));
             }
             else
             {
@@ -79,12 +88,12 @@ internal static class MutableEmitter
             }
         }
 
-        // allProps is built for collision detection above; reading it here
-        // keeps the variable from looking unused now that the envelope
-        // emission has been retired.
-        _ = allProps;
+        // A collision is a build error, so no class is emitted. Code that uses the class
+        // then also fails to compile, beside the D2CTX003 error that names the collision.
+        var mutableSource = diagnostics.Count == 0
+            ? EmitMutable(auth, request)
+            : string.Empty;
 
-        var mutableSource = EmitMutable(auth, request);
         return new EmitResult($"{_CLASS_NAME}.g.cs", mutableSource, diagnostics.ToImmutable());
     }
 
@@ -181,7 +190,7 @@ internal static class MutableEmitter
             return;
         }
 
-        // Unknown derived rule (D2CTX005 already fired in InterfaceEmitter — emit a placeholder).
+        // Unknown derived rule (InterfaceEmitter already reported D2CTX005): emit a placeholder.
         sb.AppendLine($"{pad}public {prop.Type} {prop.Name} => default;");
     }
 
@@ -197,7 +206,7 @@ internal static class MutableEmitter
         switch (prop.Name)
         {
             case "ImmediateCallerClientId":
-                // Per RFC 8693 §4.1: outermost act = current actor = immediate caller.
+                // Per RFC 8693 section 4.1: outermost act = current actor = immediate caller.
                 // ActorChain is flattened outermost-first, so FirstOrDefault is correct.
                 sb.AppendLine($"{pad}public {prop.Type} {prop.Name}");
                 sb.AppendLine($"{pad}{{");
@@ -212,7 +221,7 @@ internal static class MutableEmitter
                 return;
 
             case "OriginatingClientId":
-                // Per RFC 8693 §4.1: most-deeply-nested act = earliest actor = originator.
+                // Per RFC 8693 section 4.1: most-deeply-nested act = earliest actor = originator.
                 // ActorChain is flattened outermost-first, so LastOrDefault is the deepest entry.
                 // Fallback to Subject for pure service-identity tokens (no act chain).
                 sb.AppendLine($"{pad}public {prop.Type} {prop.Name}");
@@ -327,7 +336,7 @@ internal static class MutableEmitter
         sb.AppendLine(
             "    /// and populates the mutable context. Sets <c>IsAuthenticated = false</c>");
         sb.AppendLine(
-            "    /// deliberately — the caller MUST set <c>IsAuthenticated = true</c> after");
+            "    /// deliberately - the caller MUST set <c>IsAuthenticated = true</c> after");
         sb.AppendLine(
             "    /// confirming JWT signature, expiry, audience, and issuer via the auth");
         sb.AppendLine("    /// middleware (typically DcsvIo.D2.Auth's JwtValidator).");
@@ -421,6 +430,10 @@ internal static class MutableEmitter
                 sb.AppendLine(
                     $"                ctx.{prop.Name} = {elVar}.GetString().ToNullIfEmpty();");
                 sb.AppendLine("            }");
+
+                if (prop.ClaimForm == _SPACE_JOINED_FORM)
+                    EmitSpaceJoinedFromJsonArray(sb, prop, elVar);
+
                 return;
 
             case TypeVocabulary.BoolNullable:
@@ -506,8 +519,8 @@ internal static class MutableEmitter
                 return;
 
             case TypeVocabulary.StringList:
-                // Per RFC 7519 §4.1.3 — claim value MAY be a single string OR an
-                // array of strings.
+                // Per RFC 7519 section 4.1.3, the claim value may be a single string or
+                // an array of strings.
                 sb.AppendLine($"            if ({elVar}.ValueKind == JsonValueKind.String)");
                 sb.AppendLine("            {");
                 sb.AppendLine(
@@ -541,9 +554,77 @@ internal static class MutableEmitter
                 return;
 
             case TypeVocabulary.StringSet:
+                if (prop.ClaimForm == _VERBATIM_SET_FORM)
+                {
+                    EmitVerbatimSetFromJson(sb, prop, elVar);
+                    return;
+                }
+
                 sb.AppendLine($"            ctx.{prop.Name} = ScopeClaimParser.Parse({elVar});");
                 return;
         }
+    }
+
+    // A space-joined string property reads a JSON array claim by joining its non-empty
+    // string elements with one space; a non-string element is skipped. An array with no
+    // such element leaves the property unassigned, as an empty string does.
+    private static void EmitSpaceJoinedFromJsonArray(
+        StringBuilder sb, PropertySpec prop, string elVar)
+    {
+        sb.AppendLine($"            else if ({elVar}.ValueKind == JsonValueKind.Array)");
+        sb.AppendLine("            {");
+        sb.AppendLine($"                ctx.{prop.Name} = string.Join(");
+        sb.AppendLine("                    \" \",");
+        sb.AppendLine($"                    {elVar}.EnumerateArray()");
+        sb.AppendLine("                        .Where(e => e.ValueKind == JsonValueKind.String)");
+        sb.AppendLine("                        .Select(e => e.GetString().ToNullIfEmpty())");
+        sb.AppendLine("                        .Where(v => v is not null))");
+        sb.AppendLine("                    .ToNullIfEmpty();");
+        sb.AppendLine("            }");
+    }
+
+    // A verbatim set contains every element the claim had, so a malformed
+    // element fails the conversion of the whole set. It is not dropped here,
+    // which would leave a set that looks well formed but is quietly smaller. A
+    // non-string element is copied as its raw JSON text, which no element
+    // grammar accepts, so the whole set fails and does not shrink.
+    //
+    // An empty array leaves the property unassigned. The ClaimsPrincipal
+    // reading cannot do otherwise: ASP.NET expands an array claim into one
+    // Claim per element, so an empty array reaches it as no claim at all. Both
+    // readings therefore treat that input the same way.
+    private static void EmitVerbatimSetFromJson(
+        StringBuilder sb, PropertySpec prop, string elVar)
+    {
+        var set = $"set_{prop.Name}";
+        sb.AppendLine(
+            $"            var {set} = new HashSet<string>(StringComparer.Ordinal);");
+        sb.AppendLine($"            if ({elVar}.ValueKind == JsonValueKind.Array)");
+        sb.AppendLine("            {");
+        sb.AppendLine(
+            $"                foreach (var item_{prop.Name} in {elVar}.EnumerateArray())");
+        sb.AppendLine("                {");
+        sb.AppendLine(
+            $"                    {set}.Add(item_{prop.Name}.ValueKind == JsonValueKind.String");
+        sb.AppendLine(
+            $"                        ? item_{prop.Name}.GetString()!");
+        sb.AppendLine(
+            $"                        : item_{prop.Name}.GetRawText());");
+        sb.AppendLine("                }");
+        sb.AppendLine("            }");
+        sb.AppendLine($"            else if ({elVar}.ValueKind == JsonValueKind.String)");
+        sb.AppendLine("            {");
+        sb.AppendLine($"                {set}.Add({elVar}.GetString()!);");
+        sb.AppendLine("            }");
+        sb.AppendLine("            else");
+        sb.AppendLine("            {");
+        sb.AppendLine($"                {set}.Add({elVar}.GetRawText());");
+        sb.AppendLine("            }");
+        sb.AppendLine();
+        sb.AppendLine($"            if ({set}.Count > 0)");
+        sb.AppendLine("            {");
+        sb.AppendLine($"                ctx.{prop.Name} = {set};");
+        sb.AppendLine("            }");
     }
 
     private static void EmitJsonEnumAssignment(
@@ -573,7 +654,7 @@ internal static class MutableEmitter
         sb.AppendLine(
             "    /// Trusts that the auth middleware has already validated signature, expiry,");
         sb.AppendLine(
-            "    /// audience, and issuer before constructing the ClaimsPrincipal — that's the");
+            "    /// audience, and issuer before constructing the ClaimsPrincipal - that's the");
         sb.AppendLine("    /// AspNetCore authentication middleware's contract.");
         sb.AppendLine("    /// </remarks>");
         sb.AppendLine("    /// <param name=\"principal\">The authenticated principal.</param>");
@@ -607,7 +688,7 @@ internal static class MutableEmitter
     {
         var claim = prop.Claim!;
 
-        // Multi-valued claims (e.g. RFC 7519 §4.1.3 aud) get FindAll because
+        // Multi-valued claims (for example RFC 7519 section 4.1.3 aud) use FindAll because
         // ASP.NET expands array claims into multiple Claim entries.
         if (prop.Type == TypeVocabulary.StringList)
         {
@@ -621,6 +702,42 @@ internal static class MutableEmitter
             sb.AppendLine($"        if (claims_{prop.Name}.Count > 0)");
             sb.AppendLine("        {");
             sb.AppendLine($"            ctx.{prop.Name} = claims_{prop.Name};");
+            sb.AppendLine("        }");
+            return;
+        }
+
+        // ASP.NET expands a JSON array claim into one Claim per element, so a
+        // verbatim set reads every entry rather than the first. A single entry
+        // holding a serialized array arrives as one unparseable element, which
+        // fails the whole set. The set is never narrowed to its first member.
+        if (prop.ClaimForm == _VERBATIM_SET_FORM)
+        {
+            sb.AppendLine(
+                $"        var claims_{prop.Name} = "
+                + $"principal.FindAll(\"{Escape(claim)}\")");
+            sb.AppendLine($"            .Select(c => c.Value)");
+            sb.AppendLine($"            .ToList();");
+            sb.AppendLine($"        if (claims_{prop.Name}.Count > 0)");
+            sb.AppendLine("        {");
+            sb.AppendLine(
+                $"            ctx.{prop.Name} = "
+                + $"new HashSet<string>(claims_{prop.Name}, StringComparer.Ordinal);");
+            sb.AppendLine("        }");
+            return;
+        }
+
+        // ASP.NET expands a JSON array claim into one Claim per element, so a
+        // space-joined string reads every entry rather than the first.
+        if (prop.Type == TypeVocabulary.StringNullable && prop.ClaimForm == _SPACE_JOINED_FORM)
+        {
+            sb.AppendLine(
+                $"        var joined_{prop.Name} = string.Join(\" \", "
+                + $"principal.FindAll(\"{Escape(claim)}\")");
+            sb.AppendLine($"            .Select(c => c.Value.ToNullIfEmpty())");
+            sb.AppendLine($"            .Where(v => v is not null)).ToNullIfEmpty();");
+            sb.AppendLine($"        if (joined_{prop.Name} is not null)");
+            sb.AppendLine("        {");
+            sb.AppendLine($"            ctx.{prop.Name} = joined_{prop.Name};");
             sb.AppendLine("        }");
             return;
         }

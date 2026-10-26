@@ -7,25 +7,25 @@
 namespace DcsvIo.D2.Result;
 
 /// <summary>
-/// Guard extensions for the multi-value-threading pattern — the workhorse for command
-/// + complex handlers that orchestrate across services and need to bail early on any
-/// upstream failure while continuing with the unwrapped payload as a local.
+/// Guard extensions for the multi-value-threading pattern: a method that calls several
+/// services returns early on any upstream failure and otherwise continues with the
+/// unwrapped payload as a local.
 /// </summary>
 public static class D2ResultGuardExtensions
 {
     extension<TInner>(D2Result<TInner> result)
     {
         /// <summary>
-        /// One-line guard helper for the dominant handler pattern: bail early on failure,
-        /// continue with the unwrapped data on success.
+        /// One-line guard helper: return early on failure, continue with the unwrapped
+        /// data on success.
         /// <para>
-        /// Returns <c>true</c> when <c>result</c> failed — populating
+        /// Returns <c>true</c> when <c>result</c> failed - populating
         /// <paramref name="bubbled"/> with a <see cref="D2Result{TOuter}.BubbleFail"/>
-        /// shaped for the OUTER handler's payload type. The caller returns
+        /// shaped for the outer handler's payload type. The caller returns
         /// <paramref name="bubbled"/> immediately.
         /// </para>
         /// <para>
-        /// Returns <c>false</c> when <c>result</c> succeeded — populating
+        /// Returns <c>false</c> when <c>result</c> succeeded - populating
         /// <paramref name="data"/> with the unwrapped payload. The caller continues with
         /// <paramref name="data"/> as a local.
         /// </para>
@@ -38,7 +38,7 @@ public static class D2ResultGuardExtensions
         /// </summary>
         ///
         /// <typeparam name="TOuter">
-        /// The payload type of the OUTER handler's return — used to shape
+        /// The payload type of the outer handler's return - used to shape
         /// <paramref name="bubbled"/>.
         /// </typeparam>
         /// <param name="bubbled">

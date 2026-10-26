@@ -17,7 +17,7 @@ using Microsoft.CodeAnalysis.Text;
 /// Roslyn incremental source generator that emits the <c>JwtClaimTypes</c>
 /// constants class into <c>DcsvIo.D2.Auth.Abstractions</c> by reading
 /// <c>contracts/jwt-claims/jwt-claims.spec.json</c> via <c>AdditionalFiles</c>.
-/// Single-target — only emits when the consuming assembly is
+/// Single-target: it emits only when the consuming assembly is
 /// <c>DcsvIo.D2.Auth.Abstractions</c>.
 /// </summary>
 [Generator]

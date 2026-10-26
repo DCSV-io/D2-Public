@@ -11,12 +11,12 @@ using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// <c>LoggerMessage</c> delegates for <see cref="BaseHandler{TSelf, TInput, TOutput}"/>.
-/// PII safety: NO delegate accepts <see cref="Exception"/> —
-/// the receiving log delegate signature IS the contract; future callers will
-/// pass real exceptions whose <c>Message</c> can carry broker URIs, connection
-/// strings, OAuth tokens, presigned URLs, raw user input, and similar PII.
-/// Callers compute <c>ex.GetType().Name</c> (and any structured detail they
-/// want surfaced) before invoking the delegate.
+/// PII safety: NO delegate accepts <see cref="Exception"/>. The signature of
+/// each log delegate is the contract: the <c>Message</c> of a real exception
+/// can contain broker URIs, connection strings, OAuth tokens, presigned URLs,
+/// raw user input and similar PII, so no delegate takes one. The code that
+/// invokes a delegate computes <c>ex.GetType().Name</c> (and any structured
+/// detail to surface) first.
 /// </summary>
 /// <remarks>
 /// Marked <c>partial</c> because the <c>LoggerMessage</c> source generator
@@ -95,4 +95,28 @@ internal static partial class BaseHandlerLog
         string handlerName,
         string exceptionType,
         double durationMs);
+
+    [LoggerMessage(
+        EventId = 8,
+        Level = LogLevel.Warning,
+        Message = "Handler {HandlerName} refused a null input before any scope check")]
+    public static partial void HandlerNullInput(ILogger logger, string handlerName);
+
+    [LoggerMessage(
+        EventId = 9,
+        Level = LogLevel.Error,
+        Message = "Handler {HandlerName} declares ElevateScopes with no ScopeRequirement "
+            + "and refuses every caller until the declaration is paired")]
+    public static partial void HandlerElevateWithoutScopeRequirement(
+        ILogger logger,
+        string handlerName);
+
+    [LoggerMessage(
+        EventId = 10,
+        Level = LogLevel.Error,
+        Message = "Handler {HandlerName} declares ElevateScopes but the request context "
+            + "registered for this scope is not a MutableRequestContext")]
+    public static partial void HandlerElevateContextNotMutable(
+        ILogger logger,
+        string handlerName);
 }

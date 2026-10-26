@@ -14,8 +14,8 @@ using DcsvIo.D2.Validation;
 using Xunit;
 
 /// <summary>
-/// Adversarial + property tests for <see cref="DefaultPhoneValidator"/> beyond
-/// the cross-language parity corpus — idempotency, fast-return on garbage, and
+/// Adversarial and property tests for <see cref="DefaultPhoneValidator"/> beyond
+/// the cross-language parity corpus: idempotency, fast return on garbage, and
 /// the null / empty / whitespace falsey paths.
 /// </summary>
 public sealed class PhoneValidatorTests
@@ -30,7 +30,7 @@ public sealed class PhoneValidatorTests
     {
         var result = sr_Validator.Validate(input, CountryCode.US);
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be("VALIDATION_FAILED");
+        result.ErrorCode.Should().Be("GEN_VALIDATION_FAILED");
         result.InputErrors[0].Field.Should().Be("phone");
         result.InputErrors[0].Errors[0].Key.Should().Be(TK.Common.Validation.PHONE_INVALID.Key);
     }
@@ -42,10 +42,11 @@ public sealed class PhoneValidatorTests
     [Fact]
     public void Rejects_NonNumericGarbage()
     {
-        // NOT a vanity-letter number: libphonenumber-csharp maps letters to
-        // digits (CALL -> 2255, a VALID number), so a "202-555-CALL"-style
-        // input would PASS here while libphonenumber-js rejects it. Use a
-        // non-letter-mappable garbage string both ports reject.
+        // This is not a vanity-letter number: libphonenumber-csharp maps letters to
+        // digits (CALL -> 2255, a valid number), so a "202-555-CALL"-style
+        // input would pass here while libphonenumber-js rejects it. The input is
+        // a garbage string whose mapped digits do not form a valid number, which
+        // both ports reject.
         sr_Validator.Validate("not-a-phone", CountryCode.US).Success.Should().BeFalse();
     }
 
@@ -63,7 +64,7 @@ public sealed class PhoneValidatorTests
         var first = sr_Validator.Validate("(202) 555-0143", CountryCode.US);
         first.Success.Should().BeTrue();
 
-        // The E.164 form carries the country, so no default region is needed.
+        // The E.164 form includes the country, so no default region is needed.
         var second = sr_Validator.Validate(first.Data);
         second.Success.Should().BeTrue();
         second.Data.Should().Be(first.Data);

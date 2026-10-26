@@ -9,13 +9,12 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <IsRoslynComponent>true</IsRoslynComponent>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IncludeBuildOutput>false</IncludeBuildOutput>
-    <NoWarn>$(NoWarn);CS1591;RS2008</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <!--
-      Pull in the shared source-gen scaffolding (polyfills + EmitDiagnostic
-      record + LoadResult<TSpec> + SpecFile). The Link metadata groups the
+      Include the shared source-gen scaffolding (polyfills, the EmitDiagnostic
+      record, LoadResult<TSpec> and SpecFile). The Link metadata groups the
       included files under a virtual "Shared" folder in IDE views.
     -->
     <Compile Include="$(D2SourceGenSharedRoot)**\*.cs">

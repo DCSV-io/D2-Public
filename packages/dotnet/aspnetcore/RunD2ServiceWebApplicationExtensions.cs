@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Builder;
 using Serilog;
 
 /// <summary>
-/// Startup wrapper for D² services — installs Serilog
+/// Startup wrapper for D2 services - installs Serilog
 /// <c>Log.Information</c> "Starting" + <c>Log.Fatal</c>-on-startup-fault +
 /// <c>Log.CloseAndFlushAsync</c>-on-finally around
 /// <see cref="WebApplication.RunAsync(string?)"/>.
@@ -28,8 +28,8 @@ public static class RunD2ServiceWebApplicationExtensions
         /// emits a <c>Log.Information</c> "Starting {ServiceName}
         /// ({EnvironmentName})" line at entry;
         /// catches every exception, logs <c>Log.Fatal</c> with PII-safe
-        /// exception rendering (type FullName + first stack frame only —
-        /// never <c>ex.Message</c>, since exception messages can carry
+        /// exception rendering (type FullName + first stack frame only -
+        /// never <c>ex.Message</c>, since exception messages can contain
         /// arbitrary content interpolated from runtime data including
         /// connection strings, user input, and configured secrets), and
         /// re-throws so the host exit code reflects failure;
@@ -40,12 +40,12 @@ public static class RunD2ServiceWebApplicationExtensions
         /// <para>
         /// PII discipline: this wrapper deliberately does NOT pass
         /// <c>ex.Message</c> to the structured-log line. Exception messages
-        /// at host startup can carry connection strings, configured
+        /// at host startup can contain connection strings, configured
         /// secrets, and host-environment specifics that must not flow
         /// through the log pipeline as a single property value where
         /// downstream sinks would render them verbatim. The PII-safe
         /// rendering captures the exception type FullName + the first
-        /// stack frame's method + file:line — sufficient for operators to
+        /// stack frame's method + file:line - sufficient for operators to
         /// triage the failure class via dashboards + a deeper stack-trace
         /// lookup in the host's process logs.
         /// </para>

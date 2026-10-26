@@ -33,7 +33,7 @@ public sealed class LocaleLookupTests
         LocaleLookup.All.Count.Should().Be(LocaleLookup.ByCode.Count);
     }
 
-    // §1.2 category: Domain-specific — headline locale pins.
+    // Category: Domain-specific - headline locale pins.
     [Fact]
     public void Locale_EnUS_AllFieldsPinned()
     {
@@ -82,7 +82,7 @@ public sealed class LocaleLookupTests
         ptBR.CountryIso31661Alpha2Code.Should().Be(CountryCode.BR);
     }
 
-    // §1.2 category: Cross-field — code rep + nav rep must agree.
+    // Category: Cross-field - code rep + nav rep must agree.
     [Fact]
     public void Locale_EveryRecord_LanguageNavMatchesCode()
     {

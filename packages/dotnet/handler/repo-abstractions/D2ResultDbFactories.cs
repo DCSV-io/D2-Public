@@ -12,20 +12,20 @@ using DcsvIo.D2.I18n;
 using DcsvIo.D2.Result;
 
 /// <summary>
-/// DB-flavored semantic factories layered on <see cref="D2Result"/> /
-/// <see cref="D2Result{TData}"/>. Mirrors the built-in factories
-/// (<c>Conflict</c>, <c>NotFound</c>, etc.) but for failures that originate
-/// inside a data store. Pair these with the booleans on
-/// <see cref="D2ResultDbBooleans"/> so callers can both emit and discriminate
-/// typed DB failures.
+/// Semantic factories for database failures, layered on
+/// <see cref="D2Result"/> / <see cref="D2Result{TData}"/>. They mirror the
+/// built-in factories (<c>Conflict</c>, <c>NotFound</c>, etc.) but cover
+/// failures that originate inside a data store. The booleans on
+/// <see cref="D2ResultDbBooleans"/> pair with these factories, so code can
+/// both emit and discriminate typed DB failures.
 /// </summary>
 /// <remarks>
 /// The default messages come from the <c>common_errors_*</c> namespace and
-/// are deliberately generic ("This value is already in use"). Handlers that
-/// know the constraint name should override and supply a domain-specific
-/// <see cref="TKMessage"/> + <see cref="InputError"/> for crisp UX
-/// (e.g. <c>auth_errors_EMAIL_ALREADY_TAKEN</c> with
-/// <c>new InputError("email", "EMAIL_ALREADY_TAKEN")</c>).
+/// are deliberately generic ("This value is already in use"). A handler that
+/// knows the constraint name should supply a domain-specific
+/// <see cref="TKMessage"/> and <see cref="InputError"/> instead, for a precise
+/// user message: a message key of the domain's own catalog paired with an
+/// <see cref="InputError"/> for the field the constraint covers.
 /// </remarks>
 public static class D2ResultDbFactories
 {
@@ -167,8 +167,8 @@ public static class D2ResultDbFactories
 
         /// <summary>
         /// Deadlock / serialization failure (HTTP 409, error code
-        /// <see cref="DbErrorCodes.DB_DEADLOCK"/>). Caller may retry the
-        /// whole operation.
+        /// <see cref="DbErrorCodes.DB_DEADLOCK"/>). The whole operation may
+        /// be retried.
         /// </summary>
         /// <param name="messages">
         /// Optional translation messages; defaults to

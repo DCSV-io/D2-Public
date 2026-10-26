@@ -8,13 +8,20 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <IsTestProject>true</IsTestProject>
     <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <!--
+      Coverlet resolves custom attributes on compiler-generated types to apply
+      its exclude-by-attribute filter. Shared-framework assemblies are not copied
+      beside the test binaries, so that resolution throws and coverlet abandons
+      the whole module - silently, and the assembly then reads as unmeasured.
+    -->
+    <PreserveCompilationContext>true</PreserveCompilationContext>
 
     <!--
       Test-project-only warning suppressions. Public-API XML-doc + comment-style
       enforcement remains active for non-test libraries.
 
       CS1591 (Roslyn) / SA1600 (StyleCop): missing XML doc on public types/members.
-      Test method names follow `Method_Scenario_ExpectedResult` which IS the
+      Test method names follow `Method_Scenario_ExpectedResult`, which is the
       documentation; requiring a `summary` echo on every test adds noise.
 
       SA1512: single-line `//` comments not followed by blank lines. Section
@@ -23,21 +30,20 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     -->
     <!--
       xUnit1051: "use TestContext.Current.CancellationToken on every awaited
-      method that accepts a ct" — well-intentioned but exceptionally noisy in
-      unit tests that don't model cancellation; xUnit's own timeout already
-      bounds runaway tests. Suppressed for clarity.
+      method that accepts a ct". It reports on every such call in unit tests
+      that do not model cancellation, and xUnit's own timeout already bounds
+      runaway tests, so it is suppressed.
     -->
     <NoWarn>$(NoWarn);1591;SA1600;SA1512;xUnit1051</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <!--
-      Microsoft.AspNetCore.App framework reference — required so test code can
+      Microsoft.AspNetCore.App framework reference - required so test code can
       construct AspNetCore primitives (DefaultHttpContext, RouteEndpointBuilder,
-      EndpointBuilder, IApplicationBuilder for integration tests, etc.) when
-      exercising DcsvIo.D2.Auth.Http (and DcsvIo.D2.Auth.Grpc). Adding via
-      FrameworkReference (not a PackageReference) follows the AspNetCore
-      conventional opt-in.
+      EndpointBuilder, IApplicationBuilder for integration tests, etc.). It is
+      a FrameworkReference, not a PackageReference, which is the usual opt-in
+      for AspNetCore.
     -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
@@ -54,63 +60,46 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <PackageReference Include="JetBrains.Annotations" />
     <!--
       Microsoft.Extensions.{DependencyInjection,Logging,Logging.Abstractions,Hosting}
-      packages were previously listed here as explicit PackageReferences. They've
-      been removed because the test project now declares a FrameworkReference to
-      Microsoft.AspNetCore.App (so it can construct AspNetCore primitives for
-      DcsvIo.D2.Auth.Http + DcsvIo.D2.Auth.Grpc tests), and the framework
-      reference ships those packages — leaving explicit PackageReferences
-      triggers NU1510 ("will not be pruned"). Versions are still pinned via
-      Directory.Packages.props.
+      packages are not listed here as explicit PackageReferences. The test
+      project declares a FrameworkReference to Microsoft.AspNetCore.App (so it
+      can construct AspNetCore primitives), and the framework reference ships
+      those packages - explicit PackageReferences would trigger NU1510 ("will
+      not be pruned"). Versions are still pinned via Directory.Packages.props.
     -->
     <!--
-      Microsoft.CodeAnalysis.CSharp — needed by SrcGen integration tests
+      Microsoft.CodeAnalysis.CSharp - needed by SrcGen integration tests
       (Unit/Auth/SourceGen, Unit/Context/SourceGen) which drive
       CSharpGeneratorDriver against synthetic compilations. The SrcGen csprojs
-      mark this PrivateAssets="all" so it doesn't propagate; tests need an
+      mark this PrivateAssets="all" so it does not propagate; tests need an
       explicit reference.
     -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
-    <!-- Microsoft.EntityFrameworkCore.InMemory — provider-free in-memory provider used by
+    <!-- Microsoft.EntityFrameworkCore.InMemory - provider-free in-memory provider used by
          Unit/DataGovernance/EntityFrameworkCore/ model-build-only tests. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
-    <!-- Npgsql.EntityFrameworkCore.PostgreSQL — relational provider used by the
+    <!-- Npgsql.EntityFrameworkCore.PostgreSQL - relational provider used by the
          AnonymizationTierClassifier model-build-only tests (UseNpgsql with a dummy
          connection string; no live DB connection is ever opened). Required because
          InMemory is a non-relational provider and cannot model column names, JSON
-         mappings, or table-splitting — all of which the classifier reads via
+         mappings, or table-splitting - all of which the classifier reads via
          GetColumnName() / IsMappedToJson() / GetTableName(). -->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
-    <!-- Testcontainers.Redis — for Integration/Caching/Distributed tests against a real Redis container -->
+    <!-- Testcontainers.Redis - for Integration/Caching/Distributed tests against a real Redis container -->
     <PackageReference Include="Testcontainers.Redis" />
-    <!-- Testcontainers.RabbitMq — for Integration/Messaging tests against a real RabbitMQ container -->
+    <!-- Testcontainers.RabbitMq - for Integration/Messaging tests against a real RabbitMQ container -->
     <PackageReference Include="Testcontainers.RabbitMq" />
-    <!-- Testcontainers.PostgreSql — for Integration/DataGovernance/AnonymizationEngine
+    <!-- Testcontainers.PostgreSql - for Integration/DataGovernance/AnonymizationEngine
          end-to-end tests: a real PostgreSQL container, EnsureCreated synthetic schema,
          and adversarial Tier-A/B anonymization assertions. -->
     <PackageReference Include="Testcontainers.PostgreSql" />
-    <!-- RabbitMQ.Client — for unit tests that need to construct AMQP exception types directly -->
+    <!-- RabbitMQ.Client - for unit tests that need to construct AMQP exception types directly -->
     <PackageReference Include="RabbitMQ.Client" />
-    <!-- Microsoft.AspNetCore.TestHost — in-memory web host for end-to-end
-         middleware-pipeline tests of DcsvIo.D2.Auth.Http. -->
+    <!-- Microsoft.AspNetCore.TestHost - in-memory test server for the
+         integration tests that host a web pipeline. -->
     <PackageReference Include="Microsoft.AspNetCore.TestHost" />
-    <!-- Grpc.Tools — drives protoc + the C# plugin for the test-only
-         only; PrivateAssets="all" so the analyzer / build targets do not flow
-         to anything that ProjectReferences this csproj. -->
-    <PackageReference Include="Grpc.Tools">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <!-- Grpc.Net.Client — client-side channel for the in-process integration
-         test (constructs a GrpcChannel atop the TestServer's HttpClient). -->
-    <PackageReference Include="Grpc.Net.Client" />
-    <!-- Google.Protobuf — runtime types (IMessage, IBufferMessage, etc.)
-         consumed by the generated proto code; required to compile the
-         Grpc.Tools-emitted source files. -->
+    <!-- Google.Protobuf - runtime types (IMessage, IBufferMessage, etc.), used
+         by the gRPC result-codec fixture emitter. -->
     <PackageReference Include="Google.Protobuf" />
-    <PackageReference Include="coverlet.msbuild">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
@@ -118,9 +107,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <ProjectReference Include="..\i18n\keys\DcsvIo.D2.I18n.Keys.csproj" />
     <ProjectReference Include="..\i18n\core\DcsvIo.D2.I18n.csproj" />
     <!--
-      SrcGens (i18n / context / scopes) are referenced as NORMAL libraries
+      SrcGens (i18n / context / scopes) are referenced as normal libraries
       (not as Analyzers) so the loader / emitter / EmitDiagnostic logic can
-      be unit-tested directly. The Tests project does NOT run the generators
+      be unit-tested directly. The Tests project does not run the generators
       (no AdditionalFiles for messages JSON / spec JSON wired here).
     -->
     <ProjectReference Include="..\i18n\source-gen\DcsvIo.D2.I18n.SourceGen.csproj" />
@@ -129,12 +118,12 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <ProjectReference Include="..\auth\protocol-audiences-source-gen\DcsvIo.D2.Auth.ProtocolAudiences.SourceGen.csproj" />
     <!--
       The unified error-codes engine (namespace DcsvIo.D2.ErrorCodes.SourceGen)
-      compiles into BOTH error-codes generator assemblies. To let the tests
-      name the engine's internal types without a CS0433 ambiguity, the result
-      shell's copy is aliased out of the global namespace; the auth shell's copy
-      stays in global, so `using DcsvIo.D2.ErrorCodes.SourceGen;` resolves
-      unambiguously to the auth assembly's copy (the engine types are
-      catalog-agnostic — either copy is equivalent for pure-logic tests).
+      compiles into every error-codes generator assembly. To let the tests
+      reach the engine's internal types without a CS0433 ambiguity, the
+      result shell's copy is aliased out of the global namespace as
+      ResultErrorCodesSourceGen, and the test files import it with
+      `extern alias ResultErrorCodesSourceGen;` (the engine types are
+      catalog-agnostic - any copy is equivalent for pure-logic tests).
     -->
     <ProjectReference Include="..\source-gen-shared\error-codes-source-gen\DcsvIo.D2.Result.ErrorCodes.SourceGen.csproj" Aliases="ResultErrorCodesSourceGen" />
     <ProjectReference Include="..\result\envelope-source-gen\DcsvIo.D2.Result.Envelope.SourceGen.csproj" />
@@ -150,21 +139,23 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <ProjectReference Include="..\encryption\domains-source-gen\DcsvIo.D2.EncryptionDomains.SourceGen.csproj" />
     <ProjectReference Include="..\encryption\frame-source-gen\DcsvIo.D2.EncryptionFrame.SourceGen.csproj" />
     <ProjectReference Include="..\messaging\dlq-failure-metadata-source-gen\DcsvIo.D2.Messaging.DlqMetadata.SourceGen.csproj" />
+    <ProjectReference Include="..\messaging\source-gen\DcsvIo.D2.Messaging.SourceGen.csproj" />
     <ProjectReference Include="..\validation\source-gen\DcsvIo.D2.Validation.SourceGen.csproj" />
     <ProjectReference Include="..\resilience\DcsvIo.D2.Resilience.csproj" />
     <ProjectReference Include="..\result\core\DcsvIo.D2.Result.csproj" />
     <!--
-      DcsvIo.D2.Result.Grpc — the gRPC envelope codec (ToProto / ToD2Result /
+      DcsvIo.D2.Result.Grpc - the gRPC envelope codec (ToProto / ToD2Result /
       HandleAsync / IsTransientGrpcException). Tests cover full round-trip
-      fidelity + the v1-bug-fix regression (no ex.Message leak) + transient
+      fidelity, that ex.Message does not leak into the result, and transient
       predicate classification.
     -->
     <ProjectReference Include="..\result\grpc\DcsvIo.D2.Result.Grpc.csproj" />
     <ProjectReference Include="..\utilities\DcsvIo.D2.Utilities.csproj" />
+    <ProjectReference Include="..\env-files\DcsvIo.D2.EnvFiles.csproj" />
     <!--
-      DcsvIo.D2.Spiffe — the shared SPIFFE workload-identity grammar.
+      DcsvIo.D2.Spiffe - the shared SPIFFE workload-identity grammar.
       Tests exercise the SpiffeWorkloadIdentity Create/Parse/Uri/FromTrusted
-      adversarial matrix directly (the moved grammar tests).
+      adversarial matrix directly.
     -->
     <ProjectReference Include="..\workload-identity\DcsvIo.D2.Spiffe.csproj" />
     <ProjectReference Include="..\aspnetcore\DcsvIo.D2.AspNetCore.csproj" />
@@ -184,6 +175,18 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <ProjectReference Include="..\logging\DcsvIo.D2.Logging.csproj" />
     <ProjectReference Include="..\telemetry\core\DcsvIo.D2.Telemetry.csproj" />
     <ProjectReference Include="..\time\DcsvIo.D2.Time.csproj" />
+    <ProjectReference Include="..\password-hashing\DcsvIo.D2.PasswordHashing.csproj" />
+    <ProjectReference Include="..\usernames\DcsvIo.D2.Usernames.csproj" />
+    <ProjectReference Include="..\outbox\core\DcsvIo.D2.Outbox.csproj" />
+    <ProjectReference Include="..\outbox\entity-framework-core\DcsvIo.D2.Outbox.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\outbox\entity-framework-core-postgres\DcsvIo.D2.Outbox.EntityFrameworkCore.Postgres.csproj" />
+    <ProjectReference Include="..\pagination\DcsvIo.D2.Pagination.csproj" />
+    <ProjectReference Include="..\pagination\entity-framework-core\DcsvIo.D2.Pagination.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\pagination\entity-framework-core-nodatime\DcsvIo.D2.Pagination.EntityFrameworkCore.NodaTime.csproj" />
+    <ProjectReference Include="..\pagination\entity-framework-core-postgres\DcsvIo.D2.Pagination.EntityFrameworkCore.Postgres.csproj" />
+    <ProjectReference Include="..\handler\analyzers\DcsvIo.D2.Handler.Analyzers.csproj" />
+    <!-- Ensure Konscious Argon2id is present for PHC unit tests (transitive net8 -> net10). -->
+    <PackageReference Include="Konscious.Security.Cryptography.Argon2" />
     <ProjectReference Include="..\messaging\abstractions\DcsvIo.D2.Messaging.Abstractions.csproj" />
     <ProjectReference Include="..\messaging\rabbitmq\DcsvIo.D2.Messaging.RabbitMq.csproj" />
     <ProjectReference Include="..\headers\common\DcsvIo.D2.Headers.Common.csproj" />
@@ -191,7 +194,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <ProjectReference Include="..\headers\amqp\DcsvIo.D2.Headers.Amqp.csproj" />
     <ProjectReference Include="..\headers\grpc\DcsvIo.D2.Headers.Grpc.csproj" />
     <!--
-      DcsvIo.D2.Geo.Abstractions — the contract-fixtures parity emitters
+      DcsvIo.D2.Geo.Abstractions - the contract-fixtures parity emitters
       (GeoEnumsFixtureEmitter / GeoWrapperStructsFixtureEmitter /
       GeoCatalogFixtureEmitter) reflect on the codegen-emitted enums +
       wrapper structs + GeoCatalog constants to write the canonical JSON
@@ -199,7 +202,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     -->
     <ProjectReference Include="..\geo\abstractions\DcsvIo.D2.Geo.Abstractions.csproj" />
     <!--
-      DcsvIo.D2.Geo.Default — catalog data + DefaultGeoNameResolver +
+      DcsvIo.D2.Geo.Default - catalog data + DefaultGeoNameResolver +
       Default-layer record-returning IRequestContext extensions. Tests
       exercise the resolver cascade, cache-aside discipline, DI
       composition, and the Default-layer extension boundary contract.
@@ -209,29 +212,30 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     -->
     <ProjectReference Include="..\geo\default\DcsvIo.D2.Geo.Default.csproj" />
     <!--
-      DcsvIo.D2.Location — Coordinates, StreetAddress, AdminLocation value objects +
-      hash composer + postal-code validator. Tests exercise all three VO
-      smart-constructors, the canonical geohash-10 normalization pipeline, and the
+      DcsvIo.D2.Location - Coordinates, StreetAddress, AdminLocation value objects +
+      hash composer + postal-code validator. Tests exercise the Coordinates,
+      StreetAddress and AdminLocation smart-constructors, the canonical
+      geohash-10 normalization pipeline, and the
       GeohashEncoder / PlusCodeEncoder internal helpers (visible via InternalsVisibleTo).
     -->
     <ProjectReference Include="..\location\core\DcsvIo.D2.Location.csproj" />
     <!--
-      DcsvIo.D2.Contacts — the six composable PII value objects (Personal,
+      DcsvIo.D2.Contacts - the composable PII value objects (Personal,
       NameAffixes, Demographics, Professional, EmailAddress, PhoneNumber). Tests
       exercise every Create smart-constructor floor + the Email/Phone validator
       seam + the Personal HashId invariants + per-VO redaction policy.
     -->
     <ProjectReference Include="..\contacts\core\DcsvIo.D2.Contacts.csproj" />
     <!--
-      DcsvIo.D2.EntityFrameworkCore — generic, VO-agnostic EF Core migration helpers.
+      DcsvIo.D2.EntityFrameworkCore - generic, VO-agnostic EF Core migration helpers.
       Currently ships CreateD2Index<TEntity> (MigrationBuilder extension for indexing
-      ComplexProperty member columns — EF Core 10 complex-member-index workaround).
+      ComplexProperty member columns - EF Core 10 complex-member-index workaround).
       Unit tests live in Unit/SharedEntityFrameworkCore/ and exercise DeriveColumnName
       plus CreateD2Index emission + all adversarial null/empty/invalid-expression guards.
     -->
     <ProjectReference Include="..\entity-framework-core\core\DcsvIo.D2.EntityFrameworkCore.csproj" />
     <!--
-      DcsvIo.D2.EntityFrameworkCore.Postgres — PostgreSQL-specific EF Core startup
+      DcsvIo.D2.EntityFrameworkCore.Postgres - PostgreSQL-specific EF Core startup
       machinery: PgAdvisoryLock, AdvisoryLockMigrator<TContext>,
       DesignTimeDbContextFactoryBase<TContext>, NpgsqlContextDefaults (mechanism
       only). Domain AdvisoryLocks catalogs emit into owning-module assemblies.
@@ -239,13 +243,13 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     -->
     <ProjectReference Include="..\entity-framework-core\postgres\DcsvIo.D2.EntityFrameworkCore.Postgres.csproj" />
     <!--
-      DcsvIo.D2.AdvisoryLocks.SourceGen — referenced as a normal library (not an
+      DcsvIo.D2.AdvisoryLocks.SourceGen - referenced as a normal library (not an
       Analyzer) so the emitter / loader / generator pure-logic can be unit-tested
       directly. Tests live in Unit/AdvisoryLocks/SourceGen/.
     -->
     <ProjectReference Include="..\entity-framework-core\locks-source-gen\DcsvIo.D2.AdvisoryLocks.SourceGen.csproj" />
     <!--
-      DcsvIo.D2.Contacts.EntityFrameworkCore — per-VO complex-type and value-converter
+      DcsvIo.D2.Contacts.EntityFrameworkCore - per-VO complex-type and value-converter
       mapping helpers (MapPersonal / MapNameAffixes / MapDemographics / MapProfessional /
       MapStreetAddress / MapAdminLocation complex-type helpers; MapEmailAddress /
       MapPhoneNumber value-converter helpers with the .Unique(template) coupling). Unit
@@ -254,7 +258,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     -->
     <ProjectReference Include="..\contacts\entity-framework-core\DcsvIo.D2.Contacts.EntityFrameworkCore.csproj" />
     <!--
-      DcsvIo.D2.Location.EntityFrameworkCore — per-VO complex-type and value-converter
+      DcsvIo.D2.Location.EntityFrameworkCore - per-VO complex-type and value-converter
       mapping helpers for the Location VOs (MapStreetAddress / MapAdminLocation /
       MapCoordinates). Unit tests live in Unit/Location/EntityFrameworkCore/ and exercise
       every public helper via ModelBuilder + built-IModel introspection (model-build-only,
@@ -262,27 +266,27 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     -->
     <ProjectReference Include="..\location\entity-framework-core\DcsvIo.D2.Location.EntityFrameworkCore.csproj" />
     <!--
-      DcsvIo.D2.Geo.SourceGen — Roslyn IIncrementalGenerator that emits the
+      DcsvIo.D2.Geo.SourceGen - Roslyn IIncrementalGenerator that emits the
       geo-default lookup data + GeoDataInitializer coordinator. Tests cover
       the per-emitter EmitAll() output shape (snapshot-style assertions over
       the emitted source string) against synthetic GeoSpecContext inputs.
       Internal record/method visibility is reached via the
       InternalsVisibleTo declaration on DcsvIo.D2.Geo.SourceGen.
-      Build-only — analyzer/build assets do NOT propagate to consumers of
+      Build-only - analyzer/build assets do NOT propagate to consumers of
       this csproj (consistent with the other source-gen project references).
     -->
-    <ProjectReference Include="..\geo\source-gen\DcsvIo.D2.Geo.SourceGen.csproj" />
+    <ProjectReference Include="..\geo\source-gen\DcsvIo.D2.Geo.SourceGen.csproj" Aliases="global,GeoSourceGen" />
     <!--
-      DcsvIo.D2.ErrorCodes.Category — the foundational zero-dep leaf hosting the
+      DcsvIo.D2.ErrorCodes.Category - the foundational zero-dep leaf hosting the
       relocated ErrorCategory enum + ErrorCategoryWire mapping +
       ErrorCategoryJsonConverter (generated from error-category.spec.json).
-      Tests cover enum↔wire round-trip, the strict JSON converter, and the
+      Tests cover enum<-wire round-trip, the strict JSON converter, and the
       cross-runtime fixture. Referenced as a normal library so tests reflect the
       generated API directly.
     -->
     <ProjectReference Include="..\error-codes\category\DcsvIo.D2.ErrorCodes.Category.csproj" />
     <!--
-      DcsvIo.D2.ErrorCodes.Category.SourceGen — referenced as a normal library
+      DcsvIo.D2.ErrorCodes.Category.SourceGen - referenced as a normal library
       (not an Analyzer) so the category emitter's pure logic
       (ErrorCategoryEmitter.WireToMemberName / ErrorCategorySpecLoader) can be
       unit-tested directly without the full Roslyn build pipeline, and so the
@@ -293,7 +297,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     -->
     <ProjectReference Include="..\error-codes\category-source-gen\DcsvIo.D2.ErrorCodes.Category.SourceGen.csproj" Aliases="CategorySourceGen" />
     <!--
-      DcsvIo.D2.ErrorCodes.Registry — the generated merged cross-catalog registry
+      DcsvIo.D2.ErrorCodes.Registry - the generated merged cross-catalog registry
       (ErrorCodeRegistry static class + ErrorCodeInfo record struct). The
       ErrorCategory enum is the relocated DcsvIo.D2.ErrorCodes.Category leaf
       (referenced above). Tests cover TryResolve / Resolve / All + adversarial
@@ -302,7 +306,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     -->
     <ProjectReference Include="..\error-codes\registry\DcsvIo.D2.ErrorCodes.Registry.csproj" />
     <!--
-      DcsvIo.D2.ErrorCodes.Registry.SourceGen — referenced as a normal library
+      DcsvIo.D2.ErrorCodes.Registry.SourceGen - referenced as a normal library
       (not as an Analyzer) so the registry generator's internal logic
       (RegistrySpecLoader, RegistryCollisionChecker, RegistryEmitter,
       RegistryDiagnosticIds) can be unit-tested directly without the full
@@ -312,32 +316,32 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <!--
       Aliased out of the global namespace to avoid CS0433 ambiguity with the
       shared engine types (CatalogConfig, ErrorCodeEntry, ErrorCodesSpec) that
-      compile into both DcsvIo.D2.Auth.ErrorCodes.SourceGen and
-      DcsvIo.D2.ErrorCodes.Registry.SourceGen. The registry-source-gen tests
+      compile into DcsvIo.D2.ErrorCodes.Registry.SourceGen and into the
+      error-codes generator assemblies. The registry-source-gen tests
       import the alias explicitly via `extern alias`.
     -->
     <ProjectReference Include="..\error-codes\registry-source-gen\DcsvIo.D2.ErrorCodes.Registry.SourceGen.csproj" Aliases="RegistrySourceGen" />
     <!--
-      DcsvIo.D2.DataGovernance.Abstractions — marker interfaces, [Anonymizable]
+      DcsvIo.D2.DataGovernance.Abstractions - marker interfaces, [Anonymizable]
       attribute, AnonymizeKind, AnonymizationRule, AnonymizationOutcome, and the
       IAnonymizationEngine seam. Unit tests live in Unit/DataGovernance/Abstractions/.
     -->
     <ProjectReference Include="..\data-governance\abstractions\DcsvIo.D2.DataGovernance.Abstractions.csproj" />
     <!--
-      DcsvIo.D2.DataGovernance.EntityFrameworkCore — the D2:Anonymize annotation key,
+      DcsvIo.D2.DataGovernance.EntityFrameworkCore - the D2:Anonymize annotation key,
       fluent Anonymize* extensions, AnonymizableAttributeConvention, and
       ApplyAnonymizationConventions(). Unit tests live in
       Unit/DataGovernance/EntityFrameworkCore/.
     -->
     <ProjectReference Include="..\data-governance\entity-framework-core\DcsvIo.D2.DataGovernance.EntityFrameworkCore.csproj" />
     <!--
-      DcsvIo.D2.Validation.Abstractions — the three validator contracts
+      DcsvIo.D2.Validation.Abstractions - the validator contracts
       (IEmailValidator, IPhoneValidator, IPostalCodeValidator). Required by
       parity / adversarial tests that reference the interfaces.
     -->
     <ProjectReference Include="..\validation\abstractions\DcsvIo.D2.Validation.Abstractions.csproj" />
     <!--
-      DcsvIo.D2.Validation — default implementations (DefaultEmailValidator,
+      DcsvIo.D2.Validation - default implementations (DefaultEmailValidator,
       DefaultPhoneValidator, DefaultPostalCodeValidator) + DI extension.
       Internal helpers (PostalCodeRegexData.SR_Map) are reachable via
       InternalsVisibleTo declared in DcsvIo.D2.Validation.csproj.

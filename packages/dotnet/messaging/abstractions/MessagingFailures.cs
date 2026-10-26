@@ -12,7 +12,7 @@ using DcsvIo.D2.Result;
 /// <summary>
 /// Pre-built <see cref="D2Result"/> failures for messaging-layer input
 /// validation + boundary errors. Mirrors <c>InputFailures</c> in the cache
-/// abstractions — keeps the bus surface pure errors-as-values.
+/// abstractions - keeps the bus surface pure errors-as-values.
 /// </summary>
 public static class MessagingFailures
 {

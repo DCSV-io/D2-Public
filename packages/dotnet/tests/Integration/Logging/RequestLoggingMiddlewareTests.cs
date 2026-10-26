@@ -51,7 +51,7 @@ public sealed class RequestLoggingMiddlewareTests
 
         // Either the Serilog middleware emitted at Verbose (matched but
         // wrong-level for our suppression contract) OR didn't emit at all
-        // because the level filter dropped it before write — both shapes
+        // because the level filter dropped it before write - both shapes
         // satisfy the suppression contract. Pin: NO Information-level event.
         if (requestEvent is not null)
             requestEvent.Level.Should().NotBe(LogEventLevel.Information);
@@ -77,9 +77,10 @@ public sealed class RequestLoggingMiddlewareTests
     [Fact]
     public async Task ApiEcho_LogEventNeverContainsRemoteIpRelatedKeys()
     {
-        // Negative regression — pins the design decision that we do NOT log
-        // any form of the connection-remote IP. Internal services see the
-        // upstream Edge IP (footgun); Edge sees PII (a PII-handling path).
+        // Negative regression - pins the design decision that the event holds
+        // no form of the connection-remote IP. An internal service would log
+        // the address of its upstream proxy, which is not the client's; the
+        // front-facing service would log the client's address, which is PII.
         var (host, sink) = await LoggingTestHostBuilder.BuildAsync();
         using var hostScope = host;
         var client = host.GetTestClient();
@@ -124,7 +125,7 @@ public sealed class RequestLoggingMiddlewareTests
 
     /// <summary>
     /// Selects the Serilog request-logging middleware's request-completion
-    /// event from the sink — distinct from the MEL HostingApplicationDiagnostics
+    /// event from the sink - distinct from the MEL HostingApplicationDiagnostics
     /// event that AspNetCore emits in parallel (which uses different property
     /// names like <c>Method</c> vs <c>RequestMethod</c>).
     /// </summary>

@@ -21,13 +21,13 @@ using SystemClock = DcsvIo.D2.Time.SystemClock;
 /// <summary>
 /// Immutable demographic value object: an optional date of birth and an optional
 /// biological-sex classification. When supplied, the date of birth must not be in
-/// the future and must fall within a 150-year window of the current date. The
-/// all-null caller is rejected as a degenerate empty record.
+/// the future and must fall within a 150-year window of the current date. A call
+/// with every argument null is rejected as a degenerate empty record.
 /// </summary>
 /// <remarks>
 /// <b>Self-redacting special-category PII.</b> Both <see cref="DateOfBirth"/> and
 /// <see cref="BiologicalSex"/> are marked <c>[RedactData(PersonalInformation)]</c>
-/// — date of birth is directly identifying and biological sex is special-category
+/// - date of birth is directly identifying and biological sex is special-category
 /// data; both are masked automatically by the Serilog destructuring policy.
 /// </remarks>
 public sealed record Demographics
@@ -52,9 +52,9 @@ public sealed record Demographics
     /// <param name="biologicalSex">Optional biological-sex classification.</param>
     /// <param name="clock">
     /// Optional clock used to resolve the current date for the date-of-birth
-    /// bounds. Defaults to <see cref="SystemClock"/>; tests inject a
-    /// <see cref="TestClock"/> fixed to a deterministic instant for boundary
-    /// coverage.
+    /// bounds. Defaults to <see cref="SystemClock"/>; a
+    /// <see cref="TestClock"/> fixed to a deterministic instant lets a test
+    /// check the date-of-birth limits at their edges.
     /// </param>
     /// <returns>
     /// <c>Ok</c> on success;
@@ -66,7 +66,7 @@ public sealed record Demographics
         BiologicalSex? biologicalSex = null,
         IClock? clock = null)
     {
-        // Degenerate empty record — both fields absent.
+        // Degenerate empty record - both fields absent.
         if (dateOfBirth is null && biologicalSex is null)
         {
             return D2Result<Demographics>.ValidationFailed(
@@ -77,14 +77,14 @@ public sealed record Demographics
         {
             var today = (clock ?? new SystemClock()).GetCurrentInstant().InUtc().Date;
 
-            // Future — strictly greater than today (born-today is valid).
+            // Future - strictly greater than today (born-today is valid).
             if (dob > today)
             {
                 return D2Result<Demographics>.ValidationFailed(
                     messages: [TK.Contacts.Validation.DOB_FUTURE]);
             }
 
-            // Too old — older than 150 years. The exactly-150-years boundary is
+            // Too old - older than 150 years. The exactly-150-years boundary is
             // valid (floor is inclusive; comparison is strictly less-than).
             var floor = today.PlusYears(-150);
             if (dob < floor)

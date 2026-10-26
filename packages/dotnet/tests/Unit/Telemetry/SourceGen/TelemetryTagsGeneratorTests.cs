@@ -157,7 +157,7 @@ public sealed class TelemetryTagsGeneratorTests
         const string siblingSpec = """
         {
           "errorCodes": [
-            { "code": "AUTH_A", "httpStatus": 401, "category": "validation_failure",
+            { "code": "LIB_AUTH_A", "httpStatus": 401, "category": "validation_failure",
               "userMessageKey": "TK", "factoryName": "A", "doc": "A" }
           ]
         }
@@ -170,8 +170,8 @@ public sealed class TelemetryTagsGeneratorTests
         result.GeneratedTrees.Should().HaveCount(1);
         var src = result.GeneratedTrees.Single().ToString();
 
-        // Cross-spec tag emits TAG_CODE constant only — no nested values class
-        // (consumers reference AuthErrorCodes.* directly).
+        // A cross-spec tag emits the TAG_CODE constant only, with no nested values
+        // class (the values are in AuthErrorCodes.*).
         src.Should().Contain("public const string TAG_CODE = \"code\";");
         src.Should().NotContain("public static class Code");
     }

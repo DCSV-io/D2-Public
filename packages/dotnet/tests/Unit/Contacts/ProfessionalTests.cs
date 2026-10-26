@@ -14,7 +14,7 @@ using Xunit;
 
 /// <summary>
 /// Adversarial coverage for <see cref="Professional"/>: company-name-required
-/// floor, per-field length caps, and the company-website URL parser —
+/// floor, per-field length caps, and the company-website URL parser -
 /// scheme enforcement, relative-URL rejection, and security-adversarial schemes.
 /// </summary>
 public sealed class ProfessionalTests
@@ -133,7 +133,7 @@ public sealed class ProfessionalTests
     }
 
     // -----------------------------------------------------------------------
-    // Website — valid
+    // Website - valid
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -174,7 +174,7 @@ public sealed class ProfessionalTests
     }
 
     // -----------------------------------------------------------------------
-    // Website — invalid (adversarial)
+    // Website - invalid (adversarial)
     // -----------------------------------------------------------------------
 
     [Theory]

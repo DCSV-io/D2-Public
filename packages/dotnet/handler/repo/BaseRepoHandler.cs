@@ -15,11 +15,11 @@ using DcsvIo.D2.Result;
 using Microsoft.EntityFrameworkCore;
 
 /// <summary>
-/// EF-flavored <see cref="BaseHandler{TSelf, TInput, TOutput}"/> subclass
-/// that converts database failures into typed <see cref="D2Result"/>
-/// outcomes. Catches the BCL-typed
-/// <see cref="DbUpdateConcurrencyException"/> directly; everything else is
-/// routed through an injected <see cref="IDbExceptionClassifier"/> so the
+/// <see cref="BaseHandler{TSelf, TInput, TOutput}"/> subclass for Entity Framework
+/// Core that converts database failures into typed <see cref="D2Result"/>
+/// outcomes. Handles the BCL-typed
+/// <see cref="DbUpdateConcurrencyException"/> directly; everything else goes
+/// through an injected <see cref="IDbExceptionClassifier"/>, so the
 /// base class stays provider-agnostic.
 /// </summary>
 /// <typeparam name="TSelf">CRTP self-type.</typeparam>
@@ -33,17 +33,17 @@ using Microsoft.EntityFrameworkCore;
 /// </para>
 /// <list type="bullet">
 ///   <item>
-///     <see cref="DbUpdateConcurrencyException"/> →
+///     <see cref="DbUpdateConcurrencyException"/> ->
 ///     <c>D2Result.ConcurrencyConflict()</c>.
 ///   </item>
 ///   <item>
-///     Anything else → <c>classifier.Classify(ex)</c>; if it returns a
+///     Anything else -> <c>classifier.Classify(ex)</c>; if it returns a
 ///     <see cref="DbFailureKind"/>, the matching factory is dispatched
-///     (e.g. <see cref="DbFailureKind.UniqueViolation"/> →
+///     (e.g. <see cref="DbFailureKind.UniqueViolation"/> ->
 ///     <c>D2Result.UniqueViolation()</c>).
 ///   </item>
 ///   <item>
-///     Classifier returned <c>null</c> → fall through unchanged
+///     Classifier returned <c>null</c> -> fall through unchanged
 ///     (BaseHandler already produced a
 ///     <c>D2Result.UnhandledException</c>).
 ///   </item>
@@ -51,7 +51,7 @@ using Microsoft.EntityFrameworkCore;
 /// <para>
 /// Per-handler refinement: override <see cref="MapDbException"/> to attach
 /// a domain-specific <c>TKMessage</c> + <c>InputError</c> for known
-/// constraint failures (e.g. unique-violation on the user-email index →
+/// constraint failures (e.g. unique-violation on the user-email index ->
 /// return <c>UniqueViolation</c> with the localized "email already in use"
 /// message and an <c>InputError</c> on the email field). Returning
 /// <c>null</c> from the override falls back to the generic factory.
@@ -60,6 +60,7 @@ using Microsoft.EntityFrameworkCore;
 public abstract class BaseRepoHandler<TSelf, TInput, TOutput>
     : BaseHandler<TSelf, TInput, TOutput>
     where TSelf : BaseRepoHandler<TSelf, TInput, TOutput>
+    where TInput : notnull
 {
     private readonly IDbExceptionClassifier r_classifier;
 
@@ -68,12 +69,12 @@ public abstract class BaseRepoHandler<TSelf, TInput, TOutput>
     /// <see cref="BaseRepoHandler{TSelf, TInput, TOutput}"/> class.
     /// </summary>
     /// <param name="context">
-    /// The handler context (request + logger) — DI-resolved per-request.
+    /// The handler context (request + logger) - DI-resolved per-request.
     /// </param>
     /// <param name="classifier">
     /// The provider-specific DB exception classifier (e.g. PostgreSQL,
-    /// SQL Server). Composition roots register an implementation via the
-    /// provider package's DI extension (e.g. <c>AddD2Postgres()</c>).
+    /// SQL Server). The provider package's DI extension (e.g.
+    /// <c>AddD2Postgres()</c>) registers an implementation.
     /// </param>
     protected BaseRepoHandler(
         HandlerContext<TSelf> context,
@@ -89,14 +90,14 @@ public abstract class BaseRepoHandler<TSelf, TInput, TOutput>
         CancellationToken ct = default,
         HandlerOptions? options = null)
     {
-        var (result, exception) = await RunCorePipelineAsync(input, ct, options)
-            .ConfigureAwait(false);
+        var (result, exception) = await RunCorePipelineAsync(input, ct, options);
+
         if (exception is null)
             return result;
 
         var traceId = Context.Request.TraceId;
 
-        // BCL-typed concurrency conflict — provider-agnostic, classified directly.
+        // BCL-typed concurrency conflict - provider-agnostic, classified directly.
         if (exception is DbUpdateConcurrencyException)
         {
             var concurrencyOverride = MapDbException(exception, DbFailureKind.ConcurrencyConflict);
@@ -129,13 +130,13 @@ public abstract class BaseRepoHandler<TSelf, TInput, TOutput>
         Exception exception,
         DbFailureKind kind) => null;
 
-    // Wildcard arm throws rather than returning a degraded result. A future
-    // DbFailureKind enum value added without a corresponding case here will
-    // crash loudly at runtime (ArgumentOutOfRangeException) the first time
-    // the new kind is dispatched, surfacing the gap immediately instead of
-    // silently degrading to a generic UnhandledException. Compile-time
-    // exhaustiveness would be preferable but CS8509 is masked by any wildcard
-    // arm; the loud throw is the next-best safety net.
+    // The wildcard arm throws and does not return a degraded result. A
+    // DbFailureKind enum value added later without a corresponding case here
+    // throws ArgumentOutOfRangeException the first time that kind is
+    // dispatched, which shows the gap at once and avoids silently degrading
+    // to a generic UnhandledException. Compile-time exhaustiveness would be
+    // preferable, but any wildcard arm masks CS8509, so the throw is the
+    // next-best safeguard.
     private static D2Result<TOutput?> DispatchDefault(DbFailureKind kind, string? traceId)
         => kind switch
         {
@@ -158,7 +159,7 @@ public abstract class BaseRepoHandler<TSelf, TInput, TOutput>
             _ => throw new ArgumentOutOfRangeException(
                 nameof(kind),
                 kind,
-                $"Unhandled {nameof(DbFailureKind)} value — add a dispatch arm in "
+                $"Unhandled {nameof(DbFailureKind)} value - add a dispatch arm in "
                 + $"{nameof(BaseRepoHandler<TSelf, TInput, TOutput>)}.{nameof(DispatchDefault)}."),
         };
 }

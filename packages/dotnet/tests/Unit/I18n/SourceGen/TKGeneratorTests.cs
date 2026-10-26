@@ -6,23 +6,29 @@
 
 namespace DcsvIo.D2.Tests.Unit.I18n.SourceGen;
 
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using AwesomeAssertions;
 using DcsvIo.D2.I18n.SourceGen;
+using DcsvIo.D2.Tests.Unit.SourceGen.Fixtures;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using Xunit;
 
 /// <summary>
-/// IIncrementalGenerator integration tests for dual-target TK emission —
-/// public <c>DcsvIo.D2.I18n.Keys</c> → <c>TK</c>; private
-/// <c>DcsvIo.D2.Private.I18n.Keys.Extensions</c> → <c>ProductTK</c> (distinct FQN).
+/// IIncrementalGenerator integration tests for emission of both TK types. The
+/// generator emits <c>TK</c> into the shared keys assembly and a prefixed key
+/// class into a host assembly that sets the extension properties, under
+/// different fully qualified names, so that a host can add its own keys
+/// without colliding with the shared catalog.
 /// </summary>
 public sealed class TKGeneratorTests
 {
+    private const string _EXTENSION_ASSEMBLY = "Fixture.I18n.Host";
+
     private const string _PUBLIC_EN_US = """
     {
       "common_errors_NOT_FOUND": "Not found."
@@ -35,6 +41,12 @@ public sealed class TKGeneratorTests
       "files_errors_NOT_FOUND": "File not found."
     }
     """;
+
+    private static readonly Dictionary<string, string> sr_extensionProperties = new()
+    {
+        ["D2TkExtensionNamespace"] = "Example.Ext",
+        ["D2TkExtensionClassPrefix"] = "Sample",
+    };
 
     [Fact]
     public void Generator_PublicKeysAssembly_EmitsTKUnderSharedI18n()
@@ -57,25 +69,27 @@ public sealed class TKGeneratorTests
     }
 
     [Fact]
-    public void Generator_PrivateI18nKeysExtensions_MultiCatalog_EmitsProductTKUnion()
+    public void Generator_ExtensionTarget_MultiCatalog_EmitsPrefixedTKUnion()
     {
-        // Private host merges public∪private en-US catalogs into ProductTK.
+        // The host assembly merges the shared catalog and the host's own en-US
+        // catalog into the prefixed key class.
         var driver = RunGenerator(
-            assemblyName: "DcsvIo.D2.Private.I18n.Keys.Extensions",
+            assemblyName: _EXTENSION_ASSEMBLY,
             catalogs:
             [
                 ("public/contracts/messages/en-US.json", _PUBLIC_EN_US),
                 ("host/contracts/messages/en-US.json", _PRIVATE_EN_US),
-            ]);
+            ],
+            buildProperties: sr_extensionProperties);
 
         var result = driver.GetRunResult();
         result.GeneratedTrees.Should().HaveCount(1);
         Path.GetFileName(result.GeneratedTrees.Single().FilePath)
-            .Should().Be("ProductTK.g.cs");
+            .Should().Be("SampleTK.g.cs");
 
         var src = result.GeneratedTrees.Single().ToString();
-        src.Should().Contain("namespace DcsvIo.D2.Private.I18n;");
-        src.Should().Contain("public static partial class ProductTK");
+        src.Should().Contain("namespace Example.Ext;");
+        src.Should().Contain("public static partial class SampleTK");
         src.Should().Contain("NOT_FOUND");
         src.Should().Contain("KID_INVALID");
         src.Should().NotContain("public static partial class TK");
@@ -96,23 +110,25 @@ public sealed class TKGeneratorTests
     }
 
     [Fact]
-    public void Generator_PrivateHost_MissingEnUs_EmitsMissingEnUsDiagnostic()
+    public void Generator_ExtensionTarget_MissingEnUs_EmitsMissingEnUsDiagnostic()
     {
         var driver = RunGenerator(
-            assemblyName: "DcsvIo.D2.Private.I18n.Keys.Extensions",
-            catalogs: []);
+            assemblyName: _EXTENSION_ASSEMBLY,
+            catalogs: [],
+            buildProperties: sr_extensionProperties);
 
         var result = driver.GetRunResult();
         result.Diagnostics.Should()
             .Contain(d => d.Id == DiagnosticIds.MissingEnUsJson);
         result.GeneratedTrees.Should().HaveCount(1);
         result.GeneratedTrees.Single().ToString()
-            .Should().Contain("public static partial class ProductTK");
+            .Should().Contain("public static partial class SampleTK");
     }
 
     private static GeneratorDriver RunGenerator(
         string assemblyName,
-        (string Path, string Content)[] catalogs)
+        (string Path, string Content)[] catalogs,
+        IReadOnlyDictionary<string, string>? buildProperties = null)
     {
         var compilation = CSharpCompilation.Create(
             assemblyName: assemblyName,
@@ -130,7 +146,9 @@ public sealed class TKGeneratorTests
 
         var driver = CSharpGeneratorDriver.Create(
             generators: [generator],
-            additionalTexts: additionalTexts);
+            additionalTexts: additionalTexts,
+            optionsProvider: FixtureAnalyzerConfigOptionsProvider.FromBuildProperties(
+                buildProperties ?? new Dictionary<string, string>()));
 
         return driver.RunGenerators(compilation);
     }

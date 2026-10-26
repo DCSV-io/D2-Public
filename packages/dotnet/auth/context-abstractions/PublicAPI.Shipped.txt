@@ -1,5 +1,6 @@
 #nullable enable
 DcsvIo.D2.AuthContext.Abstractions.IAuthContext
+DcsvIo.D2.AuthContext.Abstractions.IAuthContext.AccessibleOrgIds.get -> System.Collections.Generic.IReadOnlySet<string!>!
 DcsvIo.D2.AuthContext.Abstractions.IAuthContext.ActorChain.get -> System.Collections.Generic.IReadOnlyList<DcsvIo.D2.Auth.Abstractions.ActorEntry!>!
 DcsvIo.D2.AuthContext.Abstractions.IAuthContext.Audience.get -> System.Collections.Generic.IReadOnlyList<string!>!
 DcsvIo.D2.AuthContext.Abstractions.IAuthContext.AuthMethod.get -> string?
@@ -21,6 +22,7 @@ DcsvIo.D2.AuthContext.Abstractions.IAuthContext.OrgRole.get -> DcsvIo.D2.Auth.Ab
 DcsvIo.D2.AuthContext.Abstractions.IAuthContext.OrgType.get -> DcsvIo.D2.Auth.Abstractions.OrgType?
 DcsvIo.D2.AuthContext.Abstractions.IAuthContext.OriginatingClientId.get -> string?
 DcsvIo.D2.AuthContext.Abstractions.IAuthContext.RequestedByClientId.get -> string?
+DcsvIo.D2.AuthContext.Abstractions.IAuthContext.RootOrgId.get -> System.Guid?
 DcsvIo.D2.AuthContext.Abstractions.IAuthContext.Scopes.get -> System.Collections.Generic.IReadOnlySet<string!>!
 DcsvIo.D2.AuthContext.Abstractions.IAuthContext.SessionId.get -> System.Guid?
 DcsvIo.D2.AuthContext.Abstractions.IAuthContext.Subject.get -> string?

@@ -10,25 +10,23 @@ using System.Diagnostics.Metrics;
 
 /// <summary>
 /// Static OTel <see cref="Meter"/> for the default local-cache impl.
-/// Per-call observability is intentionally minimal — no spans, no per-op
-/// logs — because the cache work itself is ~60ns and per-call instrumentation
-/// would dominate it. Aggregate counters give us the signal that matters
-/// (hit rate, miss rate, eviction count) without per-op overhead.
+/// The cache emits no span or log per call, because a cache operation takes
+/// about 60ns and a span or log per call would take longer than the operation
+/// itself. It increments counters for hits, misses and evictions instead.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Class is <c>public</c> so the meter name constant
-/// (<see cref="METER_NAME"/>) is reachable cross-assembly — consumed by
-/// <c>DcsvIo.D2.Telemetry</c>'s aggregation registration so local-cache
-/// hits / misses / evictions reach the OTLP / Prometheus exporters without
-/// per-host opt-in. The counter fields remain <c>internal</c> — only the
-/// lib's own hot-path code increments them.
+/// The class is <c>public</c> so the meter name constant
+/// (<see cref="METER_NAME"/>) is reachable from other assemblies, which
+/// register the meter so local-cache hits / misses / evictions reach the OTLP /
+/// Prometheus exporters without per-host opt-in. The counter fields remain
+/// <c>internal</c> because only the lib's own hot-path code increments them.
 /// </para>
 /// </remarks>
 public static class LocalCacheTelemetry
 {
     /// <summary>
-    /// The OpenTelemetry <see cref="Meter"/> name. Hosts add this via
+    /// The OpenTelemetry <see cref="Meter"/> name. Register it with
     /// <c>.WithMetrics(m =&gt; m.AddMeter(LocalCacheTelemetry.METER_NAME))</c>
     /// when wiring telemetry without <c>DcsvIo.D2.Telemetry</c>'s aggregator.
     /// </summary>

@@ -17,12 +17,13 @@ using Microsoft.CodeAnalysis.Text;
 using Xunit;
 
 /// <summary>
-/// IIncrementalGenerator integration tests — drive
-/// <see cref="ProtocolAudiencesGenerator"/> via a synthetic
-/// <see cref="CSharpGeneratorDriver"/> rather than the build pipeline. Asserts
-/// assembly-name gating, AdditionalFiles wiring, missing-spec + malformed-spec
-/// degradation paths, and cache stability. Validated against the real shared
-/// source-gen scaffolding (no test doubles).
+/// IIncrementalGenerator integration tests that drive
+/// <see cref="ProtocolAudiencesGenerator"/> through a synthetic
+/// <see cref="CSharpGeneratorDriver"/> and not the build pipeline. They assert
+/// assembly-name gating, AdditionalFiles wiring, the missing-spec and
+/// malformed-spec degradation paths, and cache stability. The generator and
+/// the shared source-gen scaffolding run unmodified; the only test double is
+/// <c>InMemoryAdditionalText</c>, which supplies the spec files.
 /// </summary>
 public sealed class ProtocolAudiencesGeneratorTests
 {
@@ -62,8 +63,8 @@ public sealed class ProtocolAudiencesGeneratorTests
                 specJson: _SAMPLE_SPEC)
             .GetRunResult().GeneratedTrees.Single().ToString();
 
-        // Ordinal name sort: D2_EDGE_SELF_AUDIENCE precedes D2_INTERNAL_AUDIENCE
-        // regardless of spec order.
+        // The generator sorts names ordinally, so D2_EDGE_SELF_AUDIENCE comes
+        // before D2_INTERNAL_AUDIENCE whatever the order in the spec.
         var edgeIdx = src.IndexOf("D2_EDGE_SELF_AUDIENCE", System.StringComparison.Ordinal);
         var internalIdx = src.IndexOf("D2_INTERNAL_AUDIENCE", System.StringComparison.Ordinal);
         edgeIdx.Should().BeGreaterThanOrEqualTo(0);
@@ -94,7 +95,8 @@ public sealed class ProtocolAudiencesGeneratorTests
         result.Diagnostics.Should()
             .Contain(d => d.Id == DiagnosticIds.MissingSpecFile);
 
-        // An empty shell is still emitted so downstream compilation can see the type.
+        // The generator still emits an empty shell, so downstream compilation
+        // can see the type.
         result.GeneratedTrees.Should().HaveCount(1);
     }
 
@@ -158,8 +160,8 @@ public sealed class ProtocolAudiencesGeneratorTests
     private static string Normalize(string s) => s.Replace("\r\n", "\n").Trim();
 
     /// <summary>
-    /// Minimal AdditionalText shim for synthesizing AdditionalFiles in generator
-    /// tests without filesystem I/O.
+    /// Minimal AdditionalText implementation that synthesizes AdditionalFiles
+    /// in generator tests without file system I/O.
     /// </summary>
     private sealed class InMemoryAdditionalText : AdditionalText
     {

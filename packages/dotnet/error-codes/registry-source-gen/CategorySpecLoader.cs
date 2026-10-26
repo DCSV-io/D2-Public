@@ -13,9 +13,9 @@ using System.Text.Json;
 
 /// <summary>
 /// Reads the closed <c>ErrorCategory</c> wire set from
-/// <c>error-category.spec.json</c> (surfaced via <c>AdditionalFiles</c>). The
-/// registry generator cross-checks every code's <c>category</c> against this
-/// set so a code referencing an unknown category fails with a clear diagnostic
+/// <c>error-category.spec.json</c> (provided through <c>AdditionalFiles</c>).
+/// <c>Check</c> compares every code's <c>category</c> against this set, so a
+/// code that references an unknown category produces a diagnostic
 /// (<c>D2ERC007</c>) instead of emitting a reference to a non-existent enum
 /// member.
 /// </summary>
@@ -27,8 +27,8 @@ internal static class CategorySpecLoader
     /// <summary>
     /// Parses the error-category spec content into the closed set of category
     /// wire strings. Returns an empty set if the spec is malformed (the
-    /// membership check then degrades to a no-op, leaving the existing
-    /// per-spec validation in place).
+    /// membership check then does nothing, and the existing per-spec
+    /// validation stays in place).
     /// </summary>
     /// <param name="json">Raw JSON content of <c>error-category.spec.json</c>.</param>
     /// <returns>The set of category wire strings (ordinal comparison).</returns>
@@ -63,7 +63,7 @@ internal static class CategorySpecLoader
         catch (JsonException)
         {
             // A malformed category spec leaves the wire set empty; the
-            // membership check below becomes a no-op (no false D2ERC007s).
+            // membership check below does nothing, so it reports no false D2ERC007.
             return ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
         }
 
@@ -74,7 +74,7 @@ internal static class CategorySpecLoader
     /// Cross-checks every registry entry's <c>category</c> against the closed
     /// wire set. Returns one <c>D2ERC007</c> diagnostic per entry whose
     /// category is not a member. If <paramref name="wireSet"/> is empty the
-    /// check is skipped (the spec was absent or malformed — the existing
+    /// check is skipped (the spec was absent or malformed; the existing
     /// per-spec validation already covers that case).
     /// </summary>
     /// <param name="entries">All aggregated registry entries.</param>

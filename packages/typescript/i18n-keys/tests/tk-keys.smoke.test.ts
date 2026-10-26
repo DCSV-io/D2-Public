@@ -47,8 +47,9 @@ describe("TK constants", () => {
         "key" in node &&
         typeof (node as { key: unknown }).key === "string"
       ) {
-        // TKMessage leaf — its key must be a non-empty string and it must
-        // carry no params (the catalog constants are bare key messages).
+        // TKMessage leaf: the key must be a non-empty string and the message
+        // must have no params, because the catalog constants are bare key
+        // messages.
         const message = node as { key: string; params?: unknown };
         expect(message.key.length).toBeGreaterThan(0);
         expect(message.params).toBeUndefined();

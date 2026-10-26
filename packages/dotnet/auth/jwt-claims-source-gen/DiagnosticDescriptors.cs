@@ -37,7 +37,7 @@ internal static class DiagnosticDescriptors
         id: DiagnosticIds.InvalidConstName,
         title: "Claim constName violates UPPER_SNAKE_CASE pattern",
         messageFormat:
-            "Claim constName '{0}' is invalid — must match ^[A-Z][A-Z0-9_]*$",
+            "Claim constName '{0}' is invalid - must match ^[A-Z][A-Z0-9_]*$",
         category: _CATEGORY,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------
 
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
 import { TK } from "@dcsv-io/d2-i18n-keys";
@@ -11,7 +11,8 @@ import { TK } from "@dcsv-io/d2-i18n-keys";
 const here = dirname(fileURLToPath(import.meta.url));
 
 function findMessagesEnUs(): string {
-  // Walk up until monorepo (public/contracts) or public OSS (contracts/) is found.
+  // Walk up until the monorepo layout (public/contracts) or the public clone
+  // layout (contracts/) is found.
   let dir = here;
 
   for (let i = 0; i < 12; i++) {
@@ -42,7 +43,7 @@ function findMessagesEnUs(): string {
 
 const EN_US_PATH = findMessagesEnUs();
 
-/** Decompose a flat i18n key — mirrors the emitter's decomposeKey logic. */
+/** Decompose a flat i18n key - mirrors the emitter's decomposeKey logic. */
 function decompose(
   key: string,
 ): { domain: string; category: string; constant: string } | undefined {
@@ -70,21 +71,20 @@ describe("TK catalog", () => {
     expect(TK.common.errors.CANCELED.key).toBe("common_errors_CANCELED");
   });
 
-  // long test description — cannot wrap
-  it("TK.webclient.app.ACCOUNT_SESSIONS_NO_SESSION_SELECTED resolves to the correct key string", () => {
-    expect(TK.webclient.app.ACCOUNT_SESSIONS_NO_SESSION_SELECTED.key).toBe(
-      "webclient_app_account_sessions_no_session_selected",
+  it("TK.common.pagination.CURSOR_INVALID resolves to the correct key string", () => {
+    expect(TK.common.pagination.CURSOR_INVALID.key).toBe(
+      "common_pagination_CURSOR_INVALID",
     );
   });
 
   it("TK leaf values are TKMessage instances whose key matches the original key", () => {
-    // Each leaf is a TKMessage instance (`{ key }`) — the constant IS the
-    // message, droppable straight into D2Result.messages.
+    // Each leaf is a TKMessage instance (`{ key }`). The constant is the
+    // message, so it can be added to D2Result.messages directly.
     expect(typeof TK.common.errors.NOT_FOUND).toBe("object");
     expect(TK.common.errors.NOT_FOUND.key).toBe("common_errors_NOT_FOUND");
     expect(TK.auth.errors.UNAUTHORIZED.key).toBe("auth_errors_UNAUTHORIZED");
-    expect(TK.webclient.forms.VALIDATION_FAILED.key).toBe(
-      "webclient_forms_validation_failed",
+    expect(TK.common.validation.EMAIL_INVALID.key).toBe(
+      "common_validation_EMAIL_INVALID",
     );
   });
 
@@ -106,7 +106,7 @@ describe("TK catalog", () => {
     for (const key of Object.keys(catalog)) {
       const entry = decompose(key);
       if (entry === undefined) {
-        // Fewer than 3 segments — expected skip (e.g. "$schema").
+        // Fewer than 3 segments (for example "$schema"): skipped on purpose.
         continue;
       }
 
@@ -136,20 +136,21 @@ describe("TK catalog", () => {
   // Structural invariants.
   // -------------------------------------------------------------------------
 
-  it("TK has at least the expected top-level domains", () => {
+  it("TK carries the open domains and no product domain", () => {
+    // The open catalog is emitted from the open message root only, so it
+    // contains no domain declared outside that root.
     const domains = Object.keys(TK).sort();
     expect(domains).toContain("auth");
     expect(domains).toContain("common");
-    expect(domains).toContain("webclient");
+    expect(domains).toContain("contacts");
     expect(domains).toContain("geo");
-    expect(domains).toContain("files");
-    expect(domains).toContain("comms");
-    expect(domains).toContain("middleware");
+    expect(domains).not.toContain("webclient");
   });
 
-  it("TK.common has errors, time, ui, and validation categories", () => {
+  it("TK.common has errors, pagination, time, ui, and validation categories", () => {
     const categories = Object.keys(TK.common).sort();
     expect(categories).toContain("errors");
+    expect(categories).toContain("pagination");
     expect(categories).toContain("time");
     expect(categories).toContain("ui");
     expect(categories).toContain("validation");

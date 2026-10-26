@@ -11,23 +11,24 @@ using Microsoft.Extensions.Logging;
 /// <summary>
 /// High-performance <c>[LoggerMessage]</c> source-generated log delegates for the
 /// mutual-TLS peer-certificate validator. The only <c>[LoggerMessage]</c> surface
-/// in <c>DcsvIo.D2.AspNetCore</c> — a peer-certificate rejection at the TLS
-/// handshake is a security event worth a structured, allocation-free record.
+/// in <c>DcsvIo.D2.AspNetCore</c> - a peer-certificate rejection at the TLS
+/// handshake is a security event, so it gets a structured, allocation-free log
+/// entry.
 /// </summary>
 /// <remarks>
-/// No delegate accepts an <see cref="System.Exception"/> parameter (§3.1 — a logged
+/// No delegate accepts an <see cref="System.Exception"/> parameter (a logged
 /// <c>ex.Message</c> can leak certificate subject / subject-alternative-name bytes).
 /// On the exception path the type name is rendered PII-safely via
 /// <c>SanitizedExceptionRender.TypeName</c> and passed as a plain string.
-/// Certificate bytes are NEVER logged — only a content-free reason code and the
-/// workload identifier (a non-PII service label). EventIds 9560+ (distinct from the
-/// KeyCustodian Infra 9530+ range).
+/// Certificate bytes are never logged - only a content-free reason code and the
+/// workload identifier (a non-PII service label). EventIds 9560+, distinct from
+/// the 9530+ range that another component's log delegates use.
 /// </remarks>
 internal static partial class MtlsLog
 {
     /// <summary>
     /// Logs that a presented client certificate was rejected by the default-deny
-    /// peer validator. No certificate bytes are logged — only a content-free reason
+    /// peer validator. No certificate bytes are logged - only a content-free reason
     /// code and the workload identifier (when one could be parsed).
     /// </summary>
     /// <param name="logger">The logger.</param>
@@ -42,8 +43,8 @@ internal static partial class MtlsLog
 
     /// <summary>
     /// Logs that the peer validator caught an exception while validating a presented
-    /// certificate (default-deny — the certificate is rejected). The exception is
-    /// rendered PII-safely (type name only — never the message).
+    /// certificate (default-deny - the certificate is rejected). The exception is
+    /// rendered PII-safely (type name only - never the message).
     /// </summary>
     /// <param name="logger">The logger.</param>
     /// <param name="reason">A content-free reason code.</param>

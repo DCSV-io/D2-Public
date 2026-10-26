@@ -26,7 +26,7 @@ public static class AnonymizationModelBuilderExtensions
         /// <para>
         /// Call from <c>ConfigureConventions(ModelConfigurationBuilder)</c> on the host
         /// <see cref="DbContext"/>. The fluent <c>Anonymize*</c> calls in
-        /// <see cref="AnonymizeMappingExtensions"/> do not require this activation — they write
+        /// <see cref="AnonymizeMappingExtensions"/> do not require this activation - they write
         /// the annotation directly. Only properties decorated with
         /// <see cref="AnonymizableAttribute"/> need the convention.
         /// </para>

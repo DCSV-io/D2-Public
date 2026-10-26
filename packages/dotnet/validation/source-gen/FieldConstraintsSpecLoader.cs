@@ -13,9 +13,9 @@ using DcsvIo.D2.SourceGen;
 
 /// <summary>
 /// Pure logic for parsing <c>field-constraints.spec.json</c> into a
-/// <see cref="FieldConstraintsSpec"/> record. Responsible only for JSON-shape
-/// validation; semantic validation (name uniqueness, SCREAMING_SNAKE shape,
-/// positive value, enum-member identifier shape, etc.) lives in
+/// <see cref="FieldConstraintsSpec"/> record. Validates only the JSON shape;
+/// semantic validation (name uniqueness, SCREAMING_SNAKE shape,
+/// positive value, enum-member identifier shape, etc.) happens in
 /// <see cref="FieldConstraintsEmitter"/>.
 /// </summary>
 internal static class FieldConstraintsSpecLoader
@@ -28,7 +28,7 @@ internal static class FieldConstraintsSpecLoader
     private const string _DOC_KEY = "doc";
     private const string _BACKING_KEY = "backing";
 
-    // The only backing type the emitter supports (closed lists are small) —
+    // The only backing type the emitter supports (closed lists are small) -
     // mirrors the schema's `backing` enum and the emitter's hardcoded `: byte`.
     private const string _SUPPORTED_BACKING = "byte";
 

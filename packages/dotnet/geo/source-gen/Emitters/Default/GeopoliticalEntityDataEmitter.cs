@@ -14,20 +14,21 @@ using DcsvIo.D2.SourceGen;
 using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
-/// Emits the per-entity DATA — single shape per entity + cycle-resolution
-/// via friend-assembly <c>internal set</c> + two-pass populate. Output is
-/// a single file (<c>GeopoliticalEntityLookup.g.cs</c>) carrying a static
-/// <c>GeopoliticalEntities</c> accessor + a static
+/// Emits the per-entity data: one shape per entity, with reference cycles
+/// resolved through friend-assembly <c>internal set</c> and a two-pass
+/// populate. The output is a single file
+/// (<c>GeopoliticalEntityLookup.g.cs</c>) containing a static
+/// <c>GeopoliticalEntities</c> accessor and a static
 /// <c>GeopoliticalEntityLookup</c> class with the FrozenDictionary
 /// indexes and the <c>WireNav()</c> wire-nav method.
 /// </summary>
 /// <remarks>
-/// First pass (static ctor) materializes every <c>GeopoliticalEntity</c>
-/// record with scalar required-init fields populated (including the
-/// typed <c>MemberCountryIso31661Alpha2Codes</c> FrozenSet);
-/// <c>MemberCountries</c> nav starts empty. Wire-nav step resolves each
+/// The first pass (static ctor) creates every <c>GeopoliticalEntity</c>
+/// record with the scalar required-init fields populated (including the
+/// typed <c>MemberCountryIso31661Alpha2Codes</c> FrozenSet). The
+/// <c>MemberCountries</c> nav starts empty. The wire-nav step resolves each
 /// member code to its <c>Country</c> record and populates the nav list
-/// via the friend-assembly <c>internal set</c> accessor.
+/// through the friend-assembly <c>internal set</c> accessor.
 /// </remarks>
 internal static class GeopoliticalEntityDataEmitter
 {
@@ -45,10 +46,12 @@ internal static class GeopoliticalEntityDataEmitter
             return ImmutableArray<EmitResult>.Empty;
 
         var entries = SortByShortCode(gpesEnv.Entries);
+        var diagnostics = ImmutableArray.CreateBuilder<EmitDiagnostic>();
 
-        // Build the valid-CountryCode member set so we can defensively skip
-        // member codes referencing countries not in the catalog (e.g. XK
-        // Kosovo not present in countries.spec.json — known orphan).
+        // Build the valid CountryCode member set so the emitter can skip
+        // member codes that reference countries not in the catalog (for
+        // example XK Kosovo, which is not in countries.spec.json and is a
+        // known orphan).
         var validCountryMembers = new HashSet<string>(System.StringComparer.Ordinal);
         if (context.Countries is { } countriesEnv)
         {
@@ -154,7 +157,7 @@ internal static class GeopoliticalEntityDataEmitter
 
             sb.AppendLine(
                 $"        byCode[GeopoliticalEntityCode.{entry.ShortCode}] = "
-                + GpeRecordLiteral(entry, validCountryMembers) + ";");
+                + GpeRecordLiteral(entry, validCountryMembers, diagnostics) + ";");
         }
 
         sb.AppendLine();
@@ -215,12 +218,13 @@ internal static class GeopoliticalEntityDataEmitter
         return ImmutableArray.Create(new EmitResult(
             HintName: "GeopoliticalEntityLookup.g.cs",
             GeneratedSource: sb.ToString().LfNormalized(),
-            Diagnostics: ImmutableArray<EmitDiagnostic>.Empty));
+            Diagnostics: diagnostics.ToImmutable()));
     }
 
     private static string GpeRecordLiteral(
         GeopoliticalEntitySpec entry,
-        HashSet<string> validCountryMembers)
+        HashSet<string> validCountryMembers,
+        ImmutableArray<EmitDiagnostic>.Builder diagnostics)
     {
         var sb = new StringBuilder();
         sb.Append("new GeopoliticalEntity { ");
@@ -231,8 +235,15 @@ internal static class GeopoliticalEntityDataEmitter
         var validCodes = new List<string>();
         foreach (var code in entry.CountryIso31661Alpha2Codes)
         {
-            if (code.Falsey() || !validCountryMembers.Contains(code))
+            if (code.Falsey())
                 continue;
+
+            if (!validCountryMembers.Contains(code))
+            {
+                diagnostics.Add(EmitDiagnostics.UnknownFk(
+                    "countryISO31661Alpha2Codes", entry.ShortCode, code));
+                continue;
+            }
 
             validCodes.Add(code);
         }

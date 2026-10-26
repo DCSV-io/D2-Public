@@ -80,21 +80,51 @@ public sealed class D2TelemetryOptionsTests
     [Fact]
     public void AdditionalActivitySources_Override_AppliesNewList()
     {
-        var custom = new[] { "DcsvIo.D2.Private.Edge", "DcsvIo.D2.Private.Edge.Auth" };
+        var custom = new[] { "Sample.Product", "Sample.Product.Auth" };
 
         var opts = new D2TelemetryOptions { AdditionalActivitySources = custom };
 
-        opts.AdditionalActivitySources.Should().BeEquivalentTo("DcsvIo.D2.Private.Edge", "DcsvIo.D2.Private.Edge.Auth");
+        opts.AdditionalActivitySources.Should().BeEquivalentTo("Sample.Product", "Sample.Product.Auth");
     }
 
     [Fact]
-    public void AdditionalMeters_Override_AppliesNewList()
+    public void AdditionalMeters_Override_AppliesNewSet()
     {
-        var custom = new[] { "DcsvIo.D2.Private.Edge", "DcsvIo.D2.Private.Edge.Auth" };
+        var custom = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "Sample.Product",
+            "Sample.Product.Auth",
+        };
 
         var opts = new D2TelemetryOptions { AdditionalMeters = custom };
 
-        opts.AdditionalMeters.Should().BeEquivalentTo("DcsvIo.D2.Private.Edge", "DcsvIo.D2.Private.Edge.Auth");
+        opts.AdditionalMeters.Should().BeEquivalentTo("Sample.Product", "Sample.Product.Auth");
+    }
+
+    [Fact]
+    public void AdditionalMeters_AddedAfterConstruction_HoldsEachNameOnce()
+    {
+        // The set is mutable so a configure callback can add to it after the
+        // container has built the instance; adding a name twice adds one name.
+        var opts = new D2TelemetryOptions();
+
+        opts.AdditionalMeters.Add("Sample.Product.Auth");
+        opts.AdditionalMeters.Add("Sample.Product.Auth");
+        opts.AdditionalMeters.Add("Sample.Product.Keys");
+
+        opts.AdditionalMeters.Should().BeEquivalentTo(
+            "Sample.Product.Auth", "Sample.Product.Keys");
+    }
+
+    [Fact]
+    public void AdditionalMeters_NamesDifferingInCase_AreDifferentNames()
+    {
+        var opts = new D2TelemetryOptions();
+
+        opts.AdditionalMeters.Add("Sample.Product.Auth");
+        opts.AdditionalMeters.Add("sample.product.auth");
+
+        opts.AdditionalMeters.Should().HaveCount(2);
     }
 
     [Fact]
@@ -108,7 +138,7 @@ public sealed class D2TelemetryOptionsTests
     {
         var paths = new[] { "/x" };
         var sources = new[] { "S" };
-        var meters = new[] { "M" };
+        var meters = new HashSet<string>(StringComparer.Ordinal) { "M" };
 
         var a = new D2TelemetryOptions
         {

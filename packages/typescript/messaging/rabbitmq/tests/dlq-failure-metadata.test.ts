@@ -16,7 +16,7 @@ function decode(header: string): Record<string, unknown> {
   return JSON.parse(header) as Record<string, unknown>;
 }
 
-describe("DlqFailureHeaderBuilder — .NET DlqFailureHeaderBuilder parity", () => {
+describe("DlqFailureHeaderBuilder - .NET DlqFailureHeaderBuilder parity", () => {
   it("fromException: cause + error type name, no detail, PII-safe", () => {
     const meta = decode(
       DlqFailureHeaderBuilder.fromException(new TypeError("secret user input")),
@@ -25,7 +25,8 @@ describe("DlqFailureHeaderBuilder — .NET DlqFailureHeaderBuilder parity", () =
       DlqFailureCauses.HANDLER_EXCEPTION,
     );
     expect(meta[DlqFailureMetadataFields.ERROR_CODE]).toBe("TypeError");
-    // detail is NEVER built from the exception message (which held user input).
+    // The detail is never built from the exception message, which can contain
+    // user input.
     expect(meta[DlqFailureMetadataFields.DETAIL]).toBeUndefined();
     expect(meta[DlqFailureMetadataFields.ATTEMPT_COUNT]).toBe(0);
     expect(JSON.stringify(meta)).not.toContain("secret user input");
@@ -33,9 +34,9 @@ describe("DlqFailureHeaderBuilder — .NET DlqFailureHeaderBuilder parity", () =
 
   it("fromResult: joins message KEYS (translation tokens) into detail", () => {
     const result = fail({
-      errorCode: "KEYCUSTODIAN_SEAL_KEY_UNAVAILABLE",
+      errorCode: "DOM_SAMPLE_ORDER_UNAVAILABLE",
       messages: [
-        tk("keycustodian.errors.SEAL_KEY_UNAVAILABLE"),
+        tk("sample.errors.SEAL_KEY_UNAVAILABLE"),
         tk("common.errors.RETRY"),
       ],
     });
@@ -44,18 +45,19 @@ describe("DlqFailureHeaderBuilder — .NET DlqFailureHeaderBuilder parity", () =
       DlqFailureCauses.HANDLER_RESULT_FAILURE,
     );
     expect(meta[DlqFailureMetadataFields.ERROR_CODE]).toBe(
-      "KEYCUSTODIAN_SEAL_KEY_UNAVAILABLE",
+      "DOM_SAMPLE_ORDER_UNAVAILABLE",
     );
     expect(meta[DlqFailureMetadataFields.DETAIL]).toBe(
-      "keycustodian.errors.SEAL_KEY_UNAVAILABLE; common.errors.RETRY",
+      "sample.errors.SEAL_KEY_UNAVAILABLE; common.errors.RETRY",
     );
   });
 
   it("fromResult: unknown error code + empty messages omit detail", () => {
     const meta = decode(DlqFailureHeaderBuilder.fromResult(fail()));
-    // Pins the code-absent fallback to the wire literal that the .NET sibling
-    // (`DlqFailureHeaderBuilder.cs:76`) also emits — both runtimes stay in
-    // byte parity if the local `_UNKNOWN_ERROR_CODE` sentinel ever drifts.
+    // Pins the fallback for an absent error code to the wire literal that the
+    // .NET sibling (`DlqFailureHeaderBuilder.cs:76`) also emits. The test fails
+    // when the local `_UNKNOWN_ERROR_CODE` sentinel changes, so both runtimes
+    // keep byte parity.
     expect(meta[DlqFailureMetadataFields.ERROR_CODE]).toBe("UNKNOWN");
     expect(meta[DlqFailureMetadataFields.DETAIL]).toBeUndefined();
   });
@@ -99,11 +101,11 @@ describe("DlqFailureHeaderBuilder — .NET DlqFailureHeaderBuilder parity", () =
     const withCtx = decode(
       DlqFailureHeaderBuilder.fromException(new Error("x"), {
         traceId: "abc123",
-        nackedBy: "audit-svc",
+        nackedBy: "orders-svc",
       }),
     );
     expect(withCtx[DlqFailureMetadataFields.TRACE_ID]).toBe("abc123");
-    expect(withCtx[DlqFailureMetadataFields.NACKED_BY]).toBe("audit-svc");
+    expect(withCtx[DlqFailureMetadataFields.NACKED_BY]).toBe("orders-svc");
 
     const withoutCtx = decode(
       DlqFailureHeaderBuilder.fromException(new Error("x")),

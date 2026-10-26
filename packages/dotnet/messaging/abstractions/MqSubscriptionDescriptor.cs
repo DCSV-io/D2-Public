@@ -17,8 +17,8 @@ namespace DcsvIo.D2.Messaging;
 /// message this subscription consumes. The handler's <c>TIn</c> generic
 /// parameter MUST resolve to this type.</param>
 /// <param name="QueueName">Queue name (or prefix for
-/// <see cref="QueuePattern.FanoutExclusiveAutoDelete"/>; consumer host
-/// auto-suffixes a per-replica token at startup).</param>
+/// <see cref="QueuePattern.FanoutExclusiveAutoDelete"/>, which gets a
+/// per-replica token suffix at startup).</param>
 /// <param name="Pattern">Queue topology pattern.</param>
 /// <param name="RoutingKeyBinding">AMQP routing-key binding pattern (with
 /// optional <c>*</c> / <c>#</c> wildcards). Empty for fanout.</param>

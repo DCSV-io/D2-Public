@@ -14,14 +14,12 @@ using Microsoft.Extensions.DependencyInjection;
 /// the fluent <see cref="IResilientPipelineBuilder{TKey, TValue}"/> DSL.
 /// </summary>
 /// <remarks>
-/// All registrations are KEYED. The library intentionally provides no
-/// unkeyed registration path — two unkeyed registrations of the same
-/// <c>(TKey, TValue)</c> shape would silently overwrite each other
-/// (last-wins), and the resulting "phantom shadowing" footgun would
-/// surface only at runtime when one consumer's resilience config
-/// mysteriously affected another. Forcing keyed registration eliminates
-/// that bug class entirely; consumers resolve via
-/// <c>[FromKeyedServices(serviceKey)]</c>.
+/// All registrations are keyed. The library provides no unkeyed registration
+/// path - two unkeyed registrations of the same <c>(TKey, TValue)</c> shape
+/// would silently overwrite each other (the last registration wins), and the
+/// shadowing would appear only at run time, as one registration's resilience
+/// configuration affecting another. Keyed registration prevents that.
+/// Resolve a pipeline with <c>[FromKeyedServices(serviceKey)]</c>.
 /// </remarks>
 public static class ResilientPipelineServiceCollectionExtensions
 {
@@ -37,8 +35,8 @@ public static class ResilientPipelineServiceCollectionExtensions
         /// <typeparam name="TKey">Per-call key type.</typeparam>
         /// <typeparam name="TValue">The value type produced by the operation.</typeparam>
         /// <param name="serviceKey">
-        /// The DI key under which to register the pipeline. Consumers resolve
-        /// via <c>[FromKeyedServices(serviceKey)]</c>.
+        /// The DI key under which to register the pipeline. Resolve the
+        /// pipeline with <c>[FromKeyedServices(serviceKey)]</c>.
         /// </param>
         /// <param name="configure">
         /// Callback receiving an <see cref="IResilientPipelineBuilder{TKey, TValue}"/>

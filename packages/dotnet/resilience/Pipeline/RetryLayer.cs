@@ -10,7 +10,7 @@ using DcsvIo.D2.Resilience.Retry;
 
 /// <summary>
 /// Pipeline layer that retries the wrapped operation per a configured
-/// <see cref="RetryOptions{TValue}"/>. The per-call key is ignored —
+/// <see cref="RetryOptions{TValue}"/>. The per-call key is ignored -
 /// retry policy is per-operation, not per-key.
 /// </summary>
 /// <typeparam name="TKey">Per-call key type (ignored by this layer).</typeparam>

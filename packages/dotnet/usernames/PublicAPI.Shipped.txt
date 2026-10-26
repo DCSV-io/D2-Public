@@ -1,0 +1,36 @@
+#nullable enable
+DcsvIo.D2.Usernames.Data.DefaultUsernameAdjectives
+DcsvIo.D2.Usernames.Data.DefaultUsernameNouns
+DcsvIo.D2.Usernames.FriendlyUsername
+DcsvIo.D2.Usernames.FriendlyUsername.<Clone>$() -> DcsvIo.D2.Usernames.FriendlyUsername!
+DcsvIo.D2.Usernames.FriendlyUsername.Deconstruct(out string! Username, out string! DisplayUsername) -> void
+DcsvIo.D2.Usernames.FriendlyUsername.DisplayUsername.get -> string!
+DcsvIo.D2.Usernames.FriendlyUsername.DisplayUsername.init -> void
+DcsvIo.D2.Usernames.FriendlyUsername.Equals(DcsvIo.D2.Usernames.FriendlyUsername? other) -> bool
+DcsvIo.D2.Usernames.FriendlyUsername.FriendlyUsername(string! Username, string! DisplayUsername) -> void
+DcsvIo.D2.Usernames.FriendlyUsername.Username.get -> string!
+DcsvIo.D2.Usernames.FriendlyUsername.Username.init -> void
+DcsvIo.D2.Usernames.FriendlyUsernameGenerator
+DcsvIo.D2.Usernames.FriendlyUsernameGeneratorOptions
+DcsvIo.D2.Usernames.FriendlyUsernameGeneratorOptions.Adjectives.get -> System.Collections.Generic.IReadOnlyList<string!>?
+DcsvIo.D2.Usernames.FriendlyUsernameGeneratorOptions.Adjectives.init -> void
+DcsvIo.D2.Usernames.FriendlyUsernameGeneratorOptions.FriendlyUsernameGeneratorOptions() -> void
+DcsvIo.D2.Usernames.FriendlyUsernameGeneratorOptions.MaxSuffix.get -> int
+DcsvIo.D2.Usernames.FriendlyUsernameGeneratorOptions.MaxSuffix.init -> void
+DcsvIo.D2.Usernames.FriendlyUsernameGeneratorOptions.MaxWordLength.get -> int
+DcsvIo.D2.Usernames.FriendlyUsernameGeneratorOptions.MaxWordLength.init -> void
+DcsvIo.D2.Usernames.FriendlyUsernameGeneratorOptions.MinSuffix.get -> int
+DcsvIo.D2.Usernames.FriendlyUsernameGeneratorOptions.MinSuffix.init -> void
+DcsvIo.D2.Usernames.FriendlyUsernameGeneratorOptions.Nouns.get -> System.Collections.Generic.IReadOnlyList<string!>?
+DcsvIo.D2.Usernames.FriendlyUsernameGeneratorOptions.Nouns.init -> void
+const DcsvIo.D2.Usernames.FriendlyUsernameGeneratorOptions.DEFAULT_MAX_SUFFIX = 999 -> int
+const DcsvIo.D2.Usernames.FriendlyUsernameGeneratorOptions.DEFAULT_MAX_WORD_LENGTH = 12 -> int
+const DcsvIo.D2.Usernames.FriendlyUsernameGeneratorOptions.DEFAULT_MIN_SUFFIX = 1 -> int
+override DcsvIo.D2.Usernames.FriendlyUsername.Equals(object? obj) -> bool
+override DcsvIo.D2.Usernames.FriendlyUsername.GetHashCode() -> int
+override DcsvIo.D2.Usernames.FriendlyUsername.ToString() -> string!
+static DcsvIo.D2.Usernames.Data.DefaultUsernameAdjectives.All.get -> System.Collections.Generic.IReadOnlyList<string!>!
+static DcsvIo.D2.Usernames.Data.DefaultUsernameNouns.All.get -> System.Collections.Generic.IReadOnlyList<string!>!
+static DcsvIo.D2.Usernames.FriendlyUsername.operator !=(DcsvIo.D2.Usernames.FriendlyUsername? left, DcsvIo.D2.Usernames.FriendlyUsername? right) -> bool
+static DcsvIo.D2.Usernames.FriendlyUsername.operator ==(DcsvIo.D2.Usernames.FriendlyUsername? left, DcsvIo.D2.Usernames.FriendlyUsername? right) -> bool
+static DcsvIo.D2.Usernames.FriendlyUsernameGenerator.GenerateFriendlyUsername(DcsvIo.D2.Usernames.FriendlyUsernameGeneratorOptions? config = null) -> DcsvIo.D2.Result.D2Result<DcsvIo.D2.Usernames.FriendlyUsername!>!

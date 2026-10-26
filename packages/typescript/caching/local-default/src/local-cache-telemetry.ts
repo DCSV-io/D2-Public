@@ -6,8 +6,8 @@ import { type Counter, metrics } from "@opentelemetry/api";
 
 /**
  * OpenTelemetry meter name for the default local-cache implementation.
- * Hosts register this via MeterProvider setup so local-cache counters
- * reach OTLP / Prometheus exporters.
+ * Register it in the MeterProvider setup so local-cache counters reach
+ * OTLP / Prometheus exporters.
  */
 // Byte-identical twin of .NET LocalCacheTelemetry: meter "DcsvIo.D2.Caching.Local" v1.0.0,
 // counters d2.cache.local.{hits,misses,sets,removes,evictions} with the same units and
@@ -26,8 +26,8 @@ export interface CacheInstrumentMeta {
 }
 
 /**
- * Source-of-truth instrument metadata for createLocalCacheCounters and dual-runtime
- * parity tests. Must match .NET LocalCacheTelemetry.cs Counter registrations.
+ * Instrument metadata that createLocalCacheCounters registers. Must match
+ * .NET LocalCacheTelemetry.cs Counter registrations.
  */
 export const LOCAL_CACHE_INSTRUMENTS: readonly CacheInstrumentMeta[] = [
   {
@@ -57,7 +57,10 @@ export const LOCAL_CACHE_INSTRUMENTS: readonly CacheInstrumentMeta[] = [
   },
 ];
 
-/** Bundle of the five aggregate counters owned by {@link DefaultLocalCache}. */
+/**
+ * Bundle of the aggregate counters owned by {@link DefaultLocalCache}: hits,
+ * misses, sets, removes and evictions.
+ */
 export interface LocalCacheCounters {
   hits: Counter;
   misses: Counter;
@@ -67,10 +70,10 @@ export interface LocalCacheCounters {
 }
 
 /**
- * Creates the five local-cache counters against the current global
- * MeterProvider. Call from the {@link DefaultLocalCache} constructor so
- * counters bind after telemetry bootstrap (module-load bind permanently
- * no-ops when imported before setup).
+ * Creates the local-cache counters of {@link LocalCacheCounters} against the
+ * current global MeterProvider. Call it from the {@link DefaultLocalCache}
+ * constructor so counters bind after telemetry bootstrap (module-load bind
+ * permanently no-ops when imported before setup).
  */
 export function createLocalCacheCounters(): LocalCacheCounters {
   const meter = metrics.getMeter(

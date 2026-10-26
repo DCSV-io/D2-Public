@@ -10,18 +10,18 @@ import { fail, ok } from "../src/factories.js";
 import { HttpStatusCode } from "../src/http-status-codes.js";
 import { ErrorCategoryWire } from "@dcsv-io/d2-error-category";
 
-describe("combine() — fixed-arity tuple form", () => {
-  it("all-success → tuple of payloads", () => {
+describe("combine() - fixed-arity tuple form", () => {
+  it("all-success -> tuple of payloads", () => {
     const r = combine(ok<number>(1), ok<string>("two"));
     expect(r.success).toBe(true);
     expect(r.data).toEqual([1, "two"]);
   });
 
-  it("one fail → aggregated failure result", () => {
+  it("one fail -> aggregated failure result", () => {
     const r = combine(ok<number>(1), notFound());
     expect(r.failed).toBe(true);
     expect(r.statusCode).toBe(HttpStatusCode.NotFound);
-    expect(r.errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
   });
 
   it("multiple failures aggregate messages + inputErrors", () => {
@@ -43,36 +43,36 @@ describe("combine() — fixed-arity tuple form", () => {
   });
 });
 
-describe("combine() / combineMany() — category always validation_failure", () => {
-  // .NET AggregateFailure always calls ValidationFailed(…) regardless of input categories.
+describe("combine() / combineMany() - category always validation_failure", () => {
+  // .NET AggregateFailure always calls ValidationFailed(...) regardless of input categories.
   // TS must match: any heterogeneous mix collapses to validation_failure.
-  it("combineMany([notFound(), forbidden()]) → category validation_failure", () => {
+  it("combineMany([notFound(), forbidden()]) -> category validation_failure", () => {
     const r = combineMany([notFound(), forbidden()]);
     expect(r.failed).toBe(true);
     expect(r.category).toBe(ErrorCategoryWire.ValidationFailure);
   });
 
-  it("combineMany([notFound()]) single not_found failure → category validation_failure", () => {
+  it("combineMany([notFound()]) single not_found failure -> category validation_failure", () => {
     const r = combineMany([notFound()]);
     expect(r.failed).toBe(true);
     expect(r.category).toBe(ErrorCategoryWire.ValidationFailure);
   });
 
-  it("combine(notFound(), forbidden()) fixed-arity → category validation_failure", () => {
+  it("combine(notFound(), forbidden()) fixed-arity -> category validation_failure", () => {
     const r = combine(notFound(), forbidden());
     expect(r.failed).toBe(true);
     expect(r.category).toBe(ErrorCategoryWire.ValidationFailure);
   });
 
-  it("combineMany([validationFailed()]) → category still validation_failure", () => {
+  it("combineMany([validationFailed()]) -> category still validation_failure", () => {
     const r = combineMany([validationFailed()]);
     expect(r.failed).toBe(true);
     expect(r.category).toBe(ErrorCategoryWire.ValidationFailure);
   });
 });
 
-describe("combineMany() — iterable form", () => {
-  it("empty input → ok with empty array", () => {
+describe("combineMany() - iterable form", () => {
+  it("empty input -> ok with empty array", () => {
     const r = combineMany<number>([]);
     expect(r.success).toBe(true);
     expect(r.data).toEqual([]);
@@ -89,10 +89,10 @@ describe("combineMany() — iterable form", () => {
     ]);
     expect(r.failed).toBe(true);
     expect(r.statusCode).toBe(HttpStatusCode.NotFound);
-    expect(r.errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
   });
 
-  it("all-success → ok with array", () => {
+  it("all-success -> ok with array", () => {
     const r = combineMany<number>([ok(1), ok(2), ok(3)]);
     expect(r.success).toBe(true);
     expect(r.data).toEqual([1, 2, 3]);
@@ -105,6 +105,6 @@ describe("combineMany() — iterable form", () => {
     const r = combineMany<number>([failNoCode]);
     expect(r.failed).toBe(true);
     expect(r.statusCode).toBe(HttpStatusCode.BadRequest);
-    expect(r.errorCode).toBe(ErrorCodes.VALIDATION_FAILED);
+    expect(r.errorCode).toBe(ErrorCodes.GEN_VALIDATION_FAILED);
   });
 });

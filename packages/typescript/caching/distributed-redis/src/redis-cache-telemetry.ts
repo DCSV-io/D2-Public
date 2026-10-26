@@ -6,8 +6,8 @@ import { type Counter, metrics } from "@opentelemetry/api";
 
 /**
  * OpenTelemetry meter name for the Redis distributed-cache implementation.
- * Hosts register this via MeterProvider setup so Redis-cache counters
- * reach OTLP / Prometheus exporters.
+ * Register it in the MeterProvider setup so Redis-cache counters reach
+ * OTLP / Prometheus exporters.
  */
 // Byte-identical twin of .NET RedisCacheTelemetry: meter
 // "DcsvIo.D2.Caching.Distributed.Redis" v1.0.0, counters
@@ -28,8 +28,8 @@ export interface CacheInstrumentMeta {
 }
 
 /**
- * Source-of-truth instrument metadata for createRedisCacheCounters and dual-runtime
- * parity tests. Must match .NET RedisCacheTelemetry.cs Counter registrations.
+ * Instrument metadata that createRedisCacheCounters registers. Must match
+ * .NET RedisCacheTelemetry.cs Counter registrations.
  */
 export const REDIS_CACHE_INSTRUMENTS: readonly CacheInstrumentMeta[] = [
   {
@@ -64,7 +64,10 @@ export const REDIS_CACHE_INSTRUMENTS: readonly CacheInstrumentMeta[] = [
   },
 ];
 
-/** Bundle of the six aggregate counters owned by {@link RedisDistributedCache}. */
+/**
+ * Bundle of the aggregate counters owned by {@link RedisDistributedCache}:
+ * hits, misses, sets, removes, broadcasts and errors.
+ */
 export interface RedisCacheCounters {
   hits: Counter;
   misses: Counter;
@@ -75,10 +78,10 @@ export interface RedisCacheCounters {
 }
 
 /**
- * Creates the six Redis-cache counters against the current global
- * MeterProvider. Call from the {@link RedisDistributedCache} constructor
- * so counters bind after telemetry bootstrap (module-load bind permanently
- * no-ops when imported before setup).
+ * Creates the Redis-cache counters of {@link RedisCacheCounters} against the
+ * current global MeterProvider. Call it from the {@link RedisDistributedCache}
+ * constructor so counters bind after telemetry bootstrap (module-load bind
+ * permanently no-ops when imported before setup).
  */
 export function createRedisCacheCounters(): RedisCacheCounters {
   const meter = metrics.getMeter(

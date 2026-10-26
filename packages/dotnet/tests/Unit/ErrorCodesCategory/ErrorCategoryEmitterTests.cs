@@ -14,9 +14,8 @@ using Xunit;
 
 /// <summary>
 /// Unit tests for the pure-logic <c>WireToMemberName</c> mapping in
-/// <see cref="ErrorCategoryEmitter"/> — the snake_case wire string → PascalCase
-/// enum member transform that must be stable and reversible (the parity tests
-/// compare wire strings against enum values via this map).
+/// <see cref="ErrorCategoryEmitter"/> - the snake_case wire string -> PascalCase
+/// enum member transform that must be stable and reversible.
 /// </summary>
 public sealed class ErrorCategoryEmitterTests
 {

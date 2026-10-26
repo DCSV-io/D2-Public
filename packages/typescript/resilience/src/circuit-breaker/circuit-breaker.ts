@@ -8,15 +8,15 @@ import { CircuitState } from "./circuit-state.js";
 
 /**
  * Three-state circuit breaker. Mirrors .NET `CircuitBreaker<T>`.
- * Closed → after `failureThreshold` consecutive failures → Open. Open →
- * after `cooldownMs` → HalfOpen. HalfOpen → success → Closed (resets
- * counter); HalfOpen → failure → Open (cooldown re-armed).
+ * Closed -> after `failureThreshold` consecutive failures -> Open. Open ->
+ * after `cooldownMs` -> HalfOpen. HalfOpen -> success -> Closed (resets
+ * counter); HalfOpen -> failure -> Open (cooldown re-armed).
  *
  * HalfOpen admits exactly ONE probe at a time: the first caller to reach the
  * HalfOpen slot runs the operation; concurrent callers (who observe the probe
  * already in flight) receive the `fallback` result (when one is supplied) or a
- * {@link CircuitOpenError}. JS is single-threaded, so a plain boolean flag —
- * check-and-set synchronously BEFORE the first `await` — is the structural
+ * {@link CircuitOpenError}. JS is single-threaded, so a plain boolean flag,
+ * checked and set synchronously BEFORE the first `await`, is the structural
  * equivalent of .NET's lock-free `Interlocked.CompareExchange` on its
  * probe-in-flight flag.
  *
@@ -32,14 +32,14 @@ export class CircuitBreaker<T> {
 
   constructor(private readonly opts: CircuitBreakerOptions<T>) {
     if (opts.failureThreshold < 1)
-      throw new RangeError("failureThreshold must be ≥ 1");
-    if (opts.cooldownMs < 0) throw new RangeError("cooldownMs must be ≥ 0");
+      throw new RangeError("failureThreshold must be >= 1");
+    if (opts.cooldownMs < 0) throw new RangeError("cooldownMs must be >= 0");
     this.now = opts.nowFunc ?? Date.now;
   }
 
   /**
-   * Current state — for tests + observability. A pure read: when the circuit
-   * is Open and the cooldown has elapsed it REPORTS HalfOpen (the state the
+   * Current state, readable for observability. A pure read: when the circuit
+   * is Open and the cooldown has elapsed it returns HalfOpen (the state the
    * next {@link execute} would transition into) without mutating or firing
    * {@link CircuitBreakerOptions.onStateChange}; the actual transition (and the
    * callback) happen inside {@link execute}.
@@ -51,8 +51,8 @@ export class CircuitBreaker<T> {
   }
 
   /**
-   * Executes `op` through the breaker. When the circuit is Open — or HalfOpen
-   * with a probe already in flight — returns `fallback()` if supplied, else
+   * Executes `op` through the breaker. When the circuit is Open, or HalfOpen
+   * with a probe already in flight, it returns `fallback()` if supplied, else
    * throws {@link CircuitOpenError}. Mirrors .NET
    * `ExecuteAsync(operation, fallback?, ct)`.
    */
@@ -60,9 +60,9 @@ export class CircuitBreaker<T> {
     op: () => Promise<T>,
     fallback?: () => T | Promise<T>,
   ): Promise<T> {
-    // Open → HalfOpen once the cooldown has elapsed. Done here (not in the
+    // Open -> HalfOpen once the cooldown has elapsed. Done here (not in the
     // getter) so the transition mutates state AND fires onStateChange exactly
-    // once, mirroring .NET's ExecuteAsync Open→HalfOpen CompareExchange.
+    // once, mirroring .NET's ExecuteAsync Open->HalfOpen CompareExchange.
     if (this.state === CircuitState.Open && this.cooldownExpired())
       this.transitionTo(CircuitState.HalfOpen);
 
@@ -87,7 +87,7 @@ export class CircuitBreaker<T> {
       const result = await op();
       if (this.opts.isFailure?.(result) === true) {
         // A returned-but-failed value counts toward the breaker WITHOUT
-        // throwing — the caller still receives the value.
+        // throwing - the caller still receives the value.
         this.onFailure();
         return result;
       }
@@ -137,7 +137,7 @@ export class CircuitBreaker<T> {
 
   /**
    * Sets the state and fires {@link CircuitBreakerOptions.onStateChange} only
-   * on a REAL transition (no-op when already in `to`) — mirrors .NET's
+   * on a REAL transition (no-op when already in `to`), which mirrors .NET's
    * `prev != newState` guard around every `onStateChange` invocation.
    */
   private transitionTo(to: CircuitState): void {

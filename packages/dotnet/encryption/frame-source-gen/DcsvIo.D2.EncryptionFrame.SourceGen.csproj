@@ -8,7 +8,6 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <IsRoslynComponent>true</IsRoslynComponent>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IncludeBuildOutput>false</IncludeBuildOutput>
-    <NoWarn>$(NoWarn);CS1591;RS2008</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

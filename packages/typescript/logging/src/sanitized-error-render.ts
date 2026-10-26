@@ -5,9 +5,9 @@
 /**
  * Safe error metadata for logging. The `message` field of an `Error` can
  * carry untrusted strings (broker URIs with embedded credentials, user
- * input echoed back, etc.) — never log it directly. This helper extracts
- * type name + first stack frame, which are operator-meaningful but
- * structurally safe.
+ * input echoed back, etc.), so never log it directly. This helper extracts
+ * the type name and the first stack frame, which identify the failure for an
+ * operator and are structurally safe.
  */
 export interface SanitizedErrorRender {
   /** Constructor name (e.g. `"TypeError"`, `"AmqpConnectError"`). */
@@ -18,7 +18,7 @@ export interface SanitizedErrorRender {
 
 /**
  * Extracts the safe shape from an unknown error value. Matches the .NET
- * `SanitizedExceptionRender.TypeName(ex)` + `FirstFrame(ex)` helpers.
+ * `SanitizedExceptionRender.TypeName(ex)` and `FirstFrame(ex)` helpers.
  */
 export function sanitizedErrorRender(err: unknown): SanitizedErrorRender {
   if (err instanceof Error) {

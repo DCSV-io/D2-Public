@@ -18,7 +18,7 @@ using Xunit;
 /// </summary>
 public sealed class RedisFixture : IAsyncLifetime
 {
-    // TEST-INFRA: up to 3 startup attempts, 5 s backoff — guards against slow image
+    // TEST-INFRA: up to 3 startup attempts, 5 s backoff - guards against slow image
     // pulls and transient Docker hiccups on CI without retrying actual test logic.
     private const int _STARTUP_ATTEMPTS = 3;
     private const int _STARTUP_BACKOFF_MS = 5_000;
@@ -51,7 +51,6 @@ public sealed class RedisFixture : IAsyncLifetime
     public async ValueTask DisposeAsync() => await _container.DisposeAsync();
 
     private static RedisContainer BuildContainer() =>
-        new RedisBuilder()
-            .WithImage("redis:7-alpine")
+        new RedisBuilder("redis:8.2.4-bookworm")
             .Build();
 }

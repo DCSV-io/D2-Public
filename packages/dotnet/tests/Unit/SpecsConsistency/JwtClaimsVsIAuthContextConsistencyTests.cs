@@ -19,10 +19,10 @@ using Xunit;
 /// Cross-spec consistency: every <c>claim:</c> annotation in
 /// <c>contracts/auth-context/IAuthContext.spec.json</c> must reference an
 /// existing entry (by <c>value</c>) in
-/// <c>contracts/jwt-claims/jwt-claims.spec.json</c>. Forward direction only —
+/// <c>contracts/jwt-claims/jwt-claims.spec.json</c>. Forward direction only -
 /// reverse (every jwt-claims entry has a corresponding IAuthContext property)
 /// is intentionally not enforced because <c>IAT</c> / <c>EXP</c> /
-/// <c>ACT_KIND</c> live outside the top-level IAuthContext properties.
+/// <c>ACT_KIND</c> are not top-level IAuthContext properties.
 /// </summary>
 public sealed class JwtClaimsVsIAuthContextConsistencyTests
 {
@@ -89,8 +89,8 @@ public sealed class JwtClaimsVsIAuthContextConsistencyTests
         var entries = LoadJwtClaimsEntries();
         foreach (var entry in entries)
         {
-            // Inline check — UPPER_SNAKE_CASE: starts with [A-Z], rest are
-            // [A-Z0-9_]. Avoids the Regex/GeneratedRegex ceremony for a tiny
+            // Inline check - UPPER_SNAKE_CASE: starts with [A-Z], rest are
+            // [A-Z0-9_]. This avoids Regex/GeneratedRegex for a short
             // pure-ASCII validator.
             IsUpperSnakeCase(entry.ConstName).Should().BeTrue(
                 $"claim constName '{entry.ConstName}' must be UPPER_SNAKE_CASE");
@@ -101,7 +101,7 @@ public sealed class JwtClaimsVsIAuthContextConsistencyTests
     {
         if (s.Falsey()) return false;
         if (s[0] < 'A' || s[0] > 'Z') return false;
-        for (int i = 1; i < s.Length; i++)
+        for (var i = 1; i < s.Length; i++)
         {
             var c = s[i];
             var ok = (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';

@@ -13,12 +13,12 @@ import type { D2Result } from "@dcsv-io/d2-result";
 const _DETAIL_MAX_CHARS = 256;
 
 /**
- * Fallback `errorCode` for a handler result failure that carries no error code.
- * Wire-mirrors the .NET sibling's `result.ErrorCode ?? "UNKNOWN"` sentinel
- * (`DlqFailureHeaderBuilder.cs:76`) so both runtimes emit an identical DLQ
- * header value. Kept as a local named constant on this side (the file's
- * `_DETAIL_MAX_CHARS` pattern); promoting BOTH runtimes to a single
- * spec-emitted constant is a tracked follow-up (touches out-of-diff .NET).
+ * Fallback `errorCode` for a handler result failure that has no error code. It
+ * mirrors the .NET `result.ErrorCode ?? "UNKNOWN"` sentinel in
+ * `DlqFailureHeaderBuilder.cs`, so both runtimes emit an identical DLQ
+ * header value. It is a local named constant here, like `_DETAIL_MAX_CHARS`,
+ * and `DlqFailureHeaderBuilder.cs` writes the literal inline. Neither runtime
+ * reads the value from a spec-emitted constant.
  */
 const _UNKNOWN_ERROR_CODE = "UNKNOWN";
 
@@ -35,10 +35,10 @@ export interface DlqFailureContext {
  * DLX. Byte-compatible with the .NET `DlqFailureHeaderBuilder`: field names come
  * from the spec-emitted `DlqFailureMetadataFields`, causes from
  * `DlqFailureCauses`, and null optionals are OMITTED (matching the .NET
- * `WhenWritingNull` policy). PII discipline: `detail` is NEVER built from an
- * error's message (handler code can interpolate user input) — for a result
- * failure it joins the result's translation-token keys; for every other cause
- * it stays absent.
+ * `WhenWritingNull` policy). PII rule: `detail` is NEVER built from an
+ * error's message, because handler code can interpolate user input. For a
+ * result failure it joins the result's translation-token keys; for every other
+ * cause it stays absent.
  */
 export const DlqFailureHeaderBuilder = {
   /** Header for a handler exception. `errorCode` = the error's type name. */

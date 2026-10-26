@@ -16,39 +16,38 @@ using DcsvIo.D2.SourceGen;
 using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
-/// Emits the closed-set <c>enum</c> types for catalogs that carry a small
+/// Emits the closed-set <c>enum</c> types for catalogs that have a small
 /// closed identifier vocabulary. Naming convention: the identifier enum
-/// carries the <c>*Code</c> suffix; the bare singular name (Country,
+/// has the <c>*Code</c> suffix, and the bare singular name (Country,
 /// Currency, Language, GeopoliticalEntity) is reserved for the spec-derived
 /// data record. This mirrors the open-set wrapper-struct catalogs
-/// (SubdivisionCode / LocaleCode / TimezoneCode) so the identifier-type
-/// concept is symmetric across enum-backed + struct-backed catalogs.
+/// (SubdivisionCode / LocaleCode / TimezoneCode), so the identifier types of
+/// enum-backed and struct-backed catalogs follow the same pattern.
 /// <list type="bullet">
 ///   <item><c>CountryCode</c> (backing = ISO 3166-1 numeric).</item>
 ///   <item><c>CurrencyCode</c> (backing = ISO 4217 numeric).</item>
 ///   <item><c>LanguageCode</c> (sequential 1..N).</item>
 ///   <item><c>GeopoliticalEntityCode</c> (sequential 1..N).</item>
-///   <item>Fixed-vocabulary enums — <c>GeopoliticalEntityType</c> (exact
+///   <item>Fixed-vocabulary enums - <c>GeopoliticalEntityType</c> (exact
 ///     stable integer assignments preserved across the wire and across
 ///     .NET / TS), <c>WritingDirection</c>, <c>DateFormatPattern</c>,
 ///     <c>CurrencyAcceptanceLevel</c>.</item>
 /// </list>
-/// Each emitted enum carries
-/// <c>[JsonConverter(typeof(JsonStringEnumConverter))]</c> so the wire
+/// Each emitted enum has
+/// <c>[JsonConverter(typeof(JsonStringEnumConverter))]</c>, so the wire
 /// format is the canonical alpha identifier (e.g. <c>"US"</c>, <c>"USD"</c>,
-/// <c>"en"</c>) — never the numeric backing field. Per the strict wire-code
-/// policy there is NO <c>Unknown</c> sentinel — unknown wire codes throw
-/// <see cref="System.Text.Json.JsonException"/> at deserialization (caller
-/// boundary maps to 400 ValidationFailed).
+/// <c>"en"</c>) and never the numeric backing field. The strict wire-code
+/// policy allows no <c>Unknown</c> sentinel: an unknown wire code throws
+/// <see cref="System.Text.Json.JsonException"/> at deserialization.
 /// </summary>
 internal static class EnumEmitter
 {
     private const string _NAMESPACE = EmitterHelpers.AbstractionsNamespace;
 
     /// <summary>
-    /// Emits every enum + supporting closed-vocabulary enum used by the
-    /// abstractions assembly. Returns one <see cref="EmitResult"/> per type
-    /// so the dispatcher can write each into its own <c>.g.cs</c> hint name.
+    /// Emits every identifier enum and closed-vocabulary enum of the
+    /// abstractions assembly. Returns one <see cref="EmitResult"/> per type,
+    /// each with its own <c>.g.cs</c> hint name.
     /// </summary>
     /// <param name="context">The aggregate spec context.</param>
     /// <returns>The per-type emit results.</returns>
@@ -118,7 +117,7 @@ internal static class EnumEmitter
         sb.AppendLine();
         sb.AppendLine("/// <summary>");
         sb.AppendLine("/// Classification for entries in <c>CountryCurrencyAcceptance</c>");
-        sb.AppendLine("/// — codifies the de-facto-over-politically-correct rule: enumerate");
+        sb.AppendLine("/// - codifies the de-facto-over-politically-correct rule: enumerate");
         sb.AppendLine("/// every currency genuinely accepted in commerce (legal tender, widely");
         sb.AppendLine("/// accepted, tourist-zone), not just the sovereign currency on paper.");
         sb.AppendLine("/// </summary>");
@@ -131,12 +130,12 @@ internal static class EnumEmitter
         sb.AppendLine("    LegalTender = 0,");
         sb.AppendLine();
         sb.AppendLine(
-            "    /// <summary>De-facto commercial acceptance — ubiquitous in trade "
+            "    /// <summary>De-facto commercial acceptance - ubiquitous in trade "
             + "though not legally required.</summary>");
         sb.AppendLine("    WidelyAccepted = 1,");
         sb.AppendLine();
         sb.AppendLine(
-            "    /// <summary>Narrow tourist-zone / specialty acceptance — present "
+            "    /// <summary>Narrow tourist-zone / specialty acceptance - present "
             + "in tourism economies but not broadly usable.</summary>");
         sb.AppendLine("    Tourist = 2,");
         sb.AppendLine("}");
@@ -149,8 +148,10 @@ internal static class EnumEmitter
 
     private static EmitResult EmitGeopoliticalEntityType()
     {
-        // 23 values across 4 region-tagged categories with EXACT, stable
-        // integer assignments preserved across the wire and across .NET / TS.
+        // The members below are tagged by the categories General
+        // Geopolitical, Economic, Political and Military. Their integer
+        // assignments are exact and stable across the wire and across
+        // .NET / TS.
         var sb = new StringBuilder();
         AppendFileHeader(sb);
         sb.AppendLine();
@@ -164,7 +165,7 @@ internal static class EnumEmitter
         sb.AppendLine(
             "/// integer assignments preserved across all four region-tagged");
         sb.AppendLine(
-            "/// categories — stable across the wire and across .NET / TS for");
+            "/// categories - stable across the wire and across .NET / TS for");
         sb.AppendLine("/// cross-runtime round-tripping.");
         sb.AppendLine("/// </summary>");
         sb.AppendLine("[JsonConverter(typeof(JsonStringEnumConverter))]");
@@ -209,7 +210,7 @@ internal static class EnumEmitter
         sb.AppendLine("    ResourceSharingAgreement = 17,");
         sb.AppendLine();
         sb.AppendLine("    // --- Political (6) ---");
-        sb.AppendLine("    /// <summary>Political union (e.g. EUR — European Union).</summary>");
+        sb.AppendLine("    /// <summary>Political union (e.g. EUR - European Union).</summary>");
         sb.AppendLine("    PoliticalUnion = 20,");
         sb.AppendLine();
         sb.AppendLine("    /// <summary>Human-rights agreement.</summary>");
@@ -276,7 +277,7 @@ internal static class EnumEmitter
         sb.AppendLine(
             "/// enforced by the embedded <c>JsonStringEnumConverter</c>. Unknown wire codes");
         sb.AppendLine(
-            "/// throw <see cref=\"System.Text.Json.JsonException\"/> — caller boundary maps");
+            "/// throw <see cref=\"System.Text.Json.JsonException\"/> - caller boundary maps");
         sb.AppendLine("/// to 400 ValidationFailed (strict deserialization policy).");
         sb.AppendLine("/// </summary>");
         sb.AppendLine("[JsonConverter(typeof(JsonStringEnumConverter))]");
@@ -294,15 +295,16 @@ internal static class EnumEmitter
                     CultureInfo.InvariantCulture,
                     out var numeric))
             {
-                // Fall back to sequential offset when numeric is unparseable;
-                // this is defensive — every Tier-2 entry should carry a valid
-                // ISO numeric.
+                // Fall back to a sequential offset when the numeric does not
+                // parse. Every Tier-2 entry should carry a valid ISO numeric,
+                // so this branch is a safeguard.
                 numeric = (ushort)(60000 + index);
             }
 
-            // ISO 3166-1 reserves a few numerics for transitional codes (e.g.,
-            // exceptional reservations). De-dup if collision (shouldn't happen
-            // in well-formed catalog).
+            // ISO 3166-1 reserves a few numerics for transitional codes (for
+            // example, exceptional reservations). On a collision, increment
+            // the numeric until it is unused. A well-formed catalog has no
+            // collision.
             while (!emittedNumerics.Add(numeric))
                 numeric = (ushort)(numeric + 1);
 
@@ -352,7 +354,8 @@ internal static class EnumEmitter
         foreach (var entry in sorted)
         {
             // Some historical currencies share ISO 4217 numeric codes (the
-            // numeric is reused after retirement). De-dup defensively.
+            // numeric is reused after retirement). Increment the numeric
+            // until it is unused.
             ushort numeric;
             if (!entry.Iso4217NumericCode.Falsey() &&
                 ushort.TryParse(
@@ -374,14 +377,14 @@ internal static class EnumEmitter
             var alpha = entry.Iso4217AlphaCode;
             if (alpha.Falsey() || !IsValidIdentifier(alpha))
             {
-                // skip currencies whose alpha code is not a valid C# identifier.
+                // Skip currencies whose alpha code is not a valid C# identifier.
                 index++;
                 continue;
             }
 
             if (!emittedAlphas.Add(alpha))
             {
-                // duplicate alpha — skip the second occurrence.
+                // Duplicate alpha code: skip the second occurrence.
                 index++;
                 continue;
             }
@@ -415,13 +418,13 @@ internal static class EnumEmitter
         sb.AppendLine(
             "/// ISO 639-1 alpha-2 language identifier. Members named with the");
         sb.AppendLine(
-            "/// PascalCase form of the alpha-2 code (<c>En</c>, <c>Fr</c>, etc. —");
+            "/// PascalCase form of the alpha-2 code (<c>En</c>, <c>Fr</c>, etc. -");
         sb.AppendLine(
             "/// alpha-2 codes are two lowercase ASCII letters, capitalized here to");
         sb.AppendLine(
             "/// match C# member-name conventions). Backing field assigned sequentially");
         sb.AppendLine(
-            "/// — no canonical numeric assignment exists in ISO 639-1. Unknown wire");
+            "/// - no canonical numeric assignment exists in ISO 639-1. Unknown wire");
         sb.AppendLine(
             "/// codes throw <see cref=\"System.Text.Json.JsonException\"/>.");
         sb.AppendLine("/// </summary>");
@@ -437,11 +440,11 @@ internal static class EnumEmitter
         sb.AppendLine(
             "/// <c>[JsonStringEnumMemberName]</c> (the .NET 9+ attribute) on both");
         sb.AppendLine(
-            "/// serialize and deserialize — keeps wire-form parity with the TS-side");
+            "/// serialize and deserialize - keeps wire-form parity with the TS-side");
         sb.AppendLine(
             "/// <c>LanguageCode</c> const-object (which uses lowercase string values).");
         sb.AppendLine(
-            "/// LanguageCode is the ONLY geo enum needing this attribute — CountryCode /");
+            "/// LanguageCode is the ONLY geo enum needing this attribute - CountryCode /");
         sb.AppendLine(
             "/// CurrencyCode / GeopoliticalEntityCode / GeopoliticalEntityType / etc. all use");
         sb.AppendLine(
@@ -463,9 +466,9 @@ internal static class EnumEmitter
                 continue;
 
             // [JsonStringEnumMemberName] is the .NET 9+ attribute that
-            // JsonStringEnumConverter honors for a custom wire name — NOT
-            // [EnumMember] (DataContract), which System.Text.Json ignores.
-            // Wire form = the ISO 639-1 lowercase code (matches TS-side).
+            // JsonStringEnumConverter reads for a custom wire name.
+            // System.Text.Json ignores [EnumMember] (DataContract). The wire
+            // form is the lowercase ISO 639-1 code, as on the TypeScript side.
             var wireValue = entry.Iso6391Code.ToLowerInvariant();
             sb.AppendLine(
                 $"    /// <summary>{EscapeXmlDoc(entry.Name)} "
@@ -502,7 +505,7 @@ internal static class EnumEmitter
         sb.AppendLine(
             "/// named with the well-known abbreviation (<c>EU</c>, <c>NATO</c>,");
         sb.AppendLine(
-            "/// <c>USMCA</c>, <c>BRICS</c>) — the short code from the catalog. Backing");
+            "/// <c>USMCA</c>, <c>BRICS</c>) - the short code from the catalog. Backing");
         sb.AppendLine(
             "/// field assigned sequentially. Unknown wire codes throw");
         sb.AppendLine(
@@ -573,7 +576,7 @@ internal static class EnumEmitter
         if (value.Falsey())
             return string.Empty;
 
-        // ISO 639-1 codes are two lowercase ASCII letters — uppercase the first
+        // ISO 639-1 codes are two lowercase ASCII letters. Uppercase the first
         // and leave the rest lowercase.
         var first = char.ToUpperInvariant(value[0]);
         if (value.Length == 1)

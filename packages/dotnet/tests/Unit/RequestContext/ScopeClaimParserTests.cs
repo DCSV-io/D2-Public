@@ -14,14 +14,14 @@ using Xunit;
 
 /// <summary>
 /// Adversarial coverage for <see cref="ScopeClaimParser"/>.
-/// Per RFC 6749 §3.3 the separator is ASCII SP only — accepting tab / CR /
+/// Per RFC 6749 section 3.3 the separator is ASCII SP only - accepting tab / CR /
 /// LF / unicode whitespace would diverge from issuer-side validation and
 /// could let scope strings through that the issuer never intended to grant.
 /// </summary>
 public sealed class ScopeClaimParserTests
 {
     // ------------------------------------------------------------------
-    // ParseString — happy path + null/whitespace
+    // ParseString - happy path + null/whitespace
     // ------------------------------------------------------------------
 
     [Theory]
@@ -33,7 +33,7 @@ public sealed class ScopeClaimParserTests
     [InlineData("\r\n")]
     public void ParseString_NullOrWhitespace_ReturnsEmptySet(string? input)
     {
-        // Note: " " (single space) → Falsey returns false; the string IS split
+        // Note: " " (single space) -> Falsey returns false; the string IS split
         // and produces an empty set after RemoveEmptyEntries. Either way, count == 0.
         var result = ScopeClaimParser.ParseString(input);
 
@@ -54,12 +54,12 @@ public sealed class ScopeClaimParserTests
     [Fact]
     public void ParseString_MultipleSpaceSeparated_ReturnsAll()
     {
-        const string input = "self.read self.write auth.password.change";
+        const string input = "self.read self.write orders.order.cancel";
 
         var result = ScopeClaimParser.ParseString(input);
 
         result.Should().HaveCount(3);
-        result.Should().BeEquivalentTo(["self.read", "self.write", "auth.password.change"]);
+        result.Should().BeEquivalentTo(["self.read", "self.write", "orders.order.cancel"]);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class ScopeClaimParserTests
     }
 
     // ------------------------------------------------------------------
-    // ParseString — RFC 6749 §3.3 strictness (THE CRITICAL TESTS)
+    // ParseString - RFC 6749 section 3.3 strictness (THE CRITICAL TESTS)
     // ------------------------------------------------------------------
 
     [Theory]
@@ -99,7 +99,7 @@ public sealed class ScopeClaimParserTests
     public void ParseString_AsciiWhitespaceOtherThanSpace_DoesNotSplit(string input)
     {
         // Adversarial: a sloppy parser using string.Split() with no separator
-        // arg would split on all whitespace. RFC 6749 §3.3 grammar = SP only.
+        // arg would split on all whitespace. RFC 6749 section 3.3 grammar = SP only.
         // The whole input must remain a single scope token.
         var result = ScopeClaimParser.ParseString(input);
 
@@ -107,7 +107,7 @@ public sealed class ScopeClaimParserTests
     }
 
     [Theory]
-    [InlineData("a b")] // NBSP
+    [InlineData("a\u00a0b")] // NBSP
     [InlineData("a b")] // EM SPACE
     [InlineData("a b")] // THIN SPACE
     [InlineData("a　b")] // IDEOGRAPHIC SPACE
@@ -121,7 +121,7 @@ public sealed class ScopeClaimParserTests
     }
 
     // ------------------------------------------------------------------
-    // Parse(JsonElement) — String shape
+    // Parse(JsonElement) - String shape
     // ------------------------------------------------------------------
 
     [Fact]
@@ -145,7 +145,7 @@ public sealed class ScopeClaimParserTests
     }
 
     // ------------------------------------------------------------------
-    // Parse(JsonElement) — Array shape
+    // Parse(JsonElement) - Array shape
     // ------------------------------------------------------------------
 
     [Fact]
@@ -161,7 +161,7 @@ public sealed class ScopeClaimParserTests
     [Fact]
     public void Parse_ArrayWithEmptyStrings_DropsEmpty()
     {
-        // No-empty-strings-as-data invariant — array elements that are "" must
+        // No-empty-strings-as-data invariant - array elements that are "" must
         // be filtered, not added to the set.
         using var doc = JsonDocument.Parse("""["self.read","","self.write",""]""");
 
@@ -207,7 +207,7 @@ public sealed class ScopeClaimParserTests
     }
 
     // ------------------------------------------------------------------
-    // Parse(JsonElement) — non-string-non-array shapes
+    // Parse(JsonElement) - non-string-non-array shapes
     // ------------------------------------------------------------------
 
     [Theory]
@@ -234,13 +234,13 @@ public sealed class ScopeClaimParserTests
     }
 
     // ------------------------------------------------------------------
-    // Adversarial — DoS / pathological size
+    // Adversarial - DoS / pathological size
     // ------------------------------------------------------------------
 
     [Fact]
     public void ParseString_VeryLongSingleScope_Preserved()
     {
-        // 1000-char scope token — non-standard but must round-trip cleanly.
+        // 1000-char scope token - non-standard but must round-trip cleanly.
         var longScope = new string('x', 1000);
 
         var result = ScopeClaimParser.ParseString(longScope);
@@ -251,7 +251,7 @@ public sealed class ScopeClaimParserTests
     [Fact]
     public void ParseString_ManyScopes_Handled()
     {
-        // 1000 unique scopes — typical token will have a handful, but must scale.
+        // 1000 unique scopes - typical token will have a handful, but must scale.
         var sb = new StringBuilder();
         for (var i = 0; i < 1000; i++)
         {
@@ -266,7 +266,7 @@ public sealed class ScopeClaimParserTests
     }
 
     // ------------------------------------------------------------------
-    // RFC 6749 grammar — visible ASCII scope-token chars survive
+    // RFC 6749 grammar - visible ASCII scope-token chars survive
     // ------------------------------------------------------------------
 
     [Theory]
@@ -286,8 +286,8 @@ public sealed class ScopeClaimParserTests
     [Fact]
     public void ParseString_OrdinalCaseSensitive_DoesNotDeduplicateAcrossCase()
     {
-        // HashSet uses StringComparer.Ordinal — scope.read and SCOPE.READ are
-        // distinct tokens. Forces scope-mint discipline (canonical case at issuer).
+        // HashSet uses StringComparer.Ordinal - scope.read and SCOPE.READ are
+        // distinct tokens. Issuers must therefore mint scopes in canonical case.
         const string input = "self.read SELF.READ Self.Read";
 
         var result = ScopeClaimParser.ParseString(input);

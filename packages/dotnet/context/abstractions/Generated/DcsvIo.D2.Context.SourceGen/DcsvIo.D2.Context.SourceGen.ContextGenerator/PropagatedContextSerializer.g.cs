@@ -17,21 +17,21 @@ namespace DcsvIo.D2.Context.Abstractions;
 
 /// <summary>
 /// Wire encode / decode for <see cref="PropagatedContext"/> as a single
-/// header value. Identical encoding on every transport — AMQP header
-/// (<c>x-d2-context</c>), gRPC metadata, HTTP header — so transports
+/// header value. Identical encoding on every transport - AMQP header
+/// (<c>x-d2-context</c>), gRPC metadata, HTTP header - so transports
 /// don't need transport-specific serialization logic.
 /// </summary>
 /// <remarks>
-/// Encoding: canonical-JSON (camelCase, omit-null, no whitespace) → UTF-8 →
+/// Encoding: canonical-JSON (camelCase, omit-null, no whitespace) -> UTF-8 ->
 /// base64url. Base64url is chosen over plain base64 to keep the value safe
 /// in HTTP headers (no <c>+</c> / <c>/</c> / <c>=</c> meta-chars). Typical
-/// payload is ~150–300 bytes; well under any practical header limit.
+/// payload is ~150-300 bytes; well under any practical header limit.
 /// </remarks>
 public static class PropagatedContextSerializer
 {
     /// <summary>Hard cap on accepted header length. Defends downstream
     /// memory + parser cost from a hostile or accidentally-bloated header.
-    /// 2 KiB base64url decodes to ~1.5 KiB of JSON — far above any
+    /// 2 KiB base64url decodes to ~1.5 KiB of JSON - far above any
     /// legitimate <see cref="PropagatedContext"/> payload.</summary>
     public const int MAX_HEADER_LENGTH = 2048;
 
@@ -64,13 +64,13 @@ public static class PropagatedContextSerializer
     /// <see cref="Encode"/>. Returns null on any failure path
     /// (malformed base64, bad JSON, oversize wire payload, any single
     /// field exceeding its <c>maxLength</c> spec cap): the consumer
-    /// then proceeds with a null context — propagation is opportunistic,
+    /// then proceeds with a null context - propagation is opportunistic,
     /// never required.</summary>
     /// <param name="encoded">The encoded header value.</param>
     public static PropagatedContext? TryDecode(string? encoded)
     {
         if (encoded.Falsey()) return null;
-        // null/empty/whitespace-only header → no propagation context.
+        // null/empty/whitespace-only header -> no propagation context.
         // Falsey()-returns-false implies non-null;
         // the ! is required because Falsey doesn't carry NotNullWhenAttribute.
         if (encoded!.Length > MAX_HEADER_LENGTH) return null;
@@ -97,7 +97,7 @@ public static class PropagatedContextSerializer
     /// this method bounds individual fields so a forged context can't
     /// blow up downstream log scope keys / DB columns / etc. with a
     /// 1.5 KiB single field. Returning <c>false</c> drops the entire
-    /// context — propagation is opportunistic, never required.</summary>
+    /// context - propagation is opportunistic, never required.</summary>
     private static bool FieldsWithinBounds(PropagatedContext ctx)
     {
         if (ctx.RequestId is { Length: > 256 }) return false;
@@ -105,6 +105,7 @@ public static class PropagatedContextSerializer
         if (ctx.IdempotencyKey is { Length: > 255 }) return false;
         if (ctx.SessionFingerprint is { Length: > 512 }) return false;
         if (ctx.CurrentFingerprint is { Length: > 512 }) return false;
+        if (ctx.DeviceKey is { Length: > 128 }) return false;
         if (ctx.WhoIsHashId is { Length: > 128 }) return false;
         if (ctx.CallPath is { Count: > 16 }) return false;
 

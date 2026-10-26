@@ -12,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 /// <summary>
-/// ASP.NET Core middleware extension for installing the D² opinionated
+/// ASP.NET Core middleware extension for installing the D2 opinionated
 /// security-header set per OWASP Secure Headers Project guidance.
 /// </summary>
 public static class SecurityHeadersApplicationBuilderExtensions
@@ -21,13 +21,13 @@ public static class SecurityHeadersApplicationBuilderExtensions
     extension(IApplicationBuilder app)
     {
         /// <summary>
-        /// Installs the security-headers middleware. Each response carries
+        /// Installs the security-headers middleware. Each response includes
         /// the OWASP-aligned default header set:
         /// <c>X-Content-Type-Options</c>, <c>X-Frame-Options</c>,
         /// <c>Referrer-Policy</c>, <c>X-Permitted-Cross-Domain-Policies</c>,
         /// <c>Cross-Origin-Resource-Policy</c>,
         /// <c>Cross-Origin-Opener-Policy</c>, and (HTTPS-only)
-        /// <c>Strict-Transport-Security</c>. Each header carries the default
+        /// <c>Strict-Transport-Security</c>. Each header has the default
         /// literal documented on
         /// <see cref="D2SecurityHeadersOptions"/>; the
         /// <paramref name="configure"/> callback overrides per-header on the
@@ -43,16 +43,16 @@ public static class SecurityHeadersApplicationBuilderExtensions
         /// </para>
         /// <para>
         /// Per-header override semantic:
-        /// <c>null</c> override → the OWASP default value is written;
-        /// empty / whitespace override → the header is suppressed
+        /// <c>null</c> override -> the OWASP default value is written;
+        /// empty / whitespace override -> the header is suppressed
         /// (not written);
-        /// non-empty override → the override literal is written.
+        /// non-empty override -> the override literal is written.
         /// </para>
         /// <para>
         /// HSTS preload submission is intentionally NOT included by default
-        /// (preload is a one-way door — once the apex domain is in the
+        /// (preload is hard to reverse - once the apex domain is in the
         /// browser-built-in preload list, removal is slow and incomplete).
-        /// Each service that wants preload submission opts in by setting
+        /// A service that wants preload submission opts in by setting
         /// <see cref="D2SecurityHeadersOptions.StrictTransportSecurity"/>
         /// to a value that includes <c>preload</c>.
         /// </para>
@@ -61,7 +61,7 @@ public static class SecurityHeadersApplicationBuilderExtensions
         /// <see cref="IApplicationBuilder"/> registers the middleware
         /// multiple times; ASP.NET Core invokes them sequentially. The
         /// duplicate writes are idempotent (each overwrites the prior
-        /// value) so the behavior is benign — but per-pipeline registration
+        /// value) so the behavior is benign - but per-pipeline registration
         /// SHOULD happen exactly once at composition root.
         /// </para>
         /// </remarks>
@@ -85,9 +85,9 @@ public static class SecurityHeadersApplicationBuilderExtensions
 
             if (optionsAccessor is null)
             {
-                // No DI registration — build a snapshot, apply configure,
-                // and embed directly. Primary path is when callers have
-                // not pre-registered options via builder.Services.
+                // No DI registration - build a snapshot, apply configure,
+                // and embed directly. This is the primary path when options
+                // were not pre-registered via builder.Services.
                 var snapshot = new D2SecurityHeadersOptions();
                 configure?.Invoke(snapshot);
                 return app.UseMiddleware<SecurityHeadersMiddleware>(

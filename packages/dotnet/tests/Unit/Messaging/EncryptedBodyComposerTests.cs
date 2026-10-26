@@ -16,17 +16,17 @@ using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 /// <summary>
-/// Adversarial coverage of the encrypt/decrypt round-trip + boundary failures.
-/// Uses real <see cref="IPayloadCrypto"/> (no mocks) since the codepath goes
-/// through actual AES-GCM — mocking the crypto layer would hide the bugs we
-/// care about (AAD binding, kid round-trip, tag mismatch). Descriptors are
-/// constructed in-line so tests don't depend on the codegen'd registry.
+/// Adversarial coverage of the encrypt and decrypt round-trip and of boundary
+/// failures. The tests use the real <see cref="IPayloadCrypto"/> with no mocks,
+/// because the code path runs through AES-GCM and a mock would hide failures
+/// in AAD binding, the kid round-trip and tag mismatch. Each test builds its
+/// descriptors in-line, so the tests do not depend on the generated registry.
 /// </summary>
 public sealed class EncryptedBodyComposerTests
 {
-    // Synthetic SYMMETRIC domain (unknown → Symmetric by EncryptionDomainModes.ModeFor).
-    // Public sealed path uses EncryptionDomains.FIXTURE_SEALED (catalog-declared).
-    // Product sealed domains (audit/notifications/courier) are private-only.
+    // Synthetic symmetric domain: EncryptionDomainModes.ModeFor returns Symmetric for an
+    // unknown domain. The sealed path uses EncryptionDomains.FIXTURE_SEALED, which the
+    // public catalog declares.
     private const string _SYMMETRIC_DOMAIN = "payload-fixture-symmetric";
     private const string _SEALED_DOMAIN = "payload-fixture-sealed";
     private const string _SEALED_CONSUMER = "payload-fixture-sealed";
@@ -44,9 +44,9 @@ public sealed class EncryptedBodyComposerTests
         var asJson = Encoding.UTF8.GetString(body);
         asJson.Should().StartWith("{");
 
-        // Body must be the message JSON DIRECTLY — no envelope wrapper.
-        // Plaintext wire shape invariant: a plaintext descriptor cannot carry
-        // any identity / context fields by construction.
+        // The body is the message JSON itself, with no envelope wrapper.
+        // Wire-shape invariant for plaintext: a plaintext descriptor carries
+        // no identity or context fields, by construction.
         asJson.Should().NotContain("\"envelope\":");
         asJson.Should().NotContain("\"userId\":");
     }
@@ -137,7 +137,7 @@ public sealed class EncryptedBodyComposerTests
         var decomposeSp = BuildProviderForSymmetric("kid-b");
         var act = () => EncryptedBodyComposer.Decompose<SampleAuditEvent>(
             body, descriptor, decomposeSp);
-        act.Should().Throw<Exception>("missing kid is fatal — caller maps to DLQ");
+        act.Should().Throw<Exception>("missing kid is fatal - caller maps to DLQ");
     }
 
     [Fact]
@@ -183,9 +183,9 @@ public sealed class EncryptedBodyComposerTests
     [Fact]
     public void ReadKidFromFrame_UnknownVersionByte_Throws()
     {
-        // Version byte 3 (unknown — 1 is symmetric, 2 is sealed) — the
-        // version gate must reject before attempting to read the rest of
-        // the frame as a kid.
+        // Version byte 3 is unknown (1 is symmetric and 2 is sealed). The
+        // version check rejects the frame before it reads the rest of the
+        // frame as a kid.
         var frame = new byte[] { 3, 5, (byte)'k', (byte)'i', (byte)'d', (byte)'-', (byte)'a' };
         var act = () => EncryptedBodyComposer.ReadKidFromFrame(frame);
         act.Should().Throw<InvalidOperationException>()
@@ -195,10 +195,10 @@ public sealed class EncryptedBodyComposerTests
     [Fact]
     public void ReadKidFromFrame_SealedV2Frame_ReturnsRecipientKid()
     {
-        // A REAL sealed frame (production sealer) — the version-aware header
-        // read must surface the recipient kid for the x-d2-encryption-kid
-        // AMQP header so DLQ triage can identify the archive-opener key
-        // without decrypting.
+        // A real sealed frame from the production sealer. The version-aware
+        // header read returns the recipient kid for the x-d2-encryption-kid
+        // AMQP header, which identifies the archive-opener key without
+        // decrypting the frame.
         using var recipient = System.Security.Cryptography.ECDiffieHellman.Create(
             System.Security.Cryptography.ECCurve.NamedCurves.nistP256);
         var keyring = new RecipientPublicKeyring(
@@ -224,8 +224,8 @@ public sealed class EncryptedBodyComposerTests
     [Fact]
     public void ReadKidFromFrame_V1Frame_UnchangedBehavior()
     {
-        // Regression pin: the v1 read path is byte-for-byte the pre-sealed
-        // behavior — same kid, same offsets.
+        // Regression pin: the v1 read path reads the same kid at the same
+        // offsets as before the sealed frame existed.
         var sp = BuildProviderForSymmetric("kid-v1-pin");
         var descriptor = EncryptedDescriptor(_SYMMETRIC_DOMAIN);
         var (body, _) = EncryptedBodyComposer.Compose(new SampleAuditEvent(), descriptor, sp);
@@ -268,8 +268,9 @@ public sealed class EncryptedBodyComposerTests
     [Fact]
     public void Compose_SealedDescriptor_ResolvesSealerByConsumerService_ReturnsV2Frame()
     {
-        // The keyed sealer is resolved by CONSUMER SERVICE (not domain). Two sealed domains
-        // sharing a consumer share one sealer — proven by resolving under the consumer key.
+        // The keyed sealer is resolved by consumer service and not by domain. Two sealed
+        // domains that share a consumer share one sealer, which the test shows by
+        // resolving under the consumer key.
         var sp = BuildProviderForSealed(_SEALED_CONSUMER);
         var descriptor = SealedDescriptor(_SEALED_DOMAIN);
 
@@ -304,9 +305,10 @@ public sealed class EncryptedBodyComposerTests
     [Fact]
     public void Compose_SealedDescriptor_NoSealerRegistered_Throws()
     {
-        // A producer host that never registered a sealer for the consumer service lacks the
-        // keyed registration → GetRequiredKeyedService throws → publish fails loud (never
-        // plaintext). This is the second-producer-cannot-seal shape.
+        // A producer host that never registered a sealer for the consumer service has no
+        // keyed registration, so GetRequiredKeyedService throws and the publish fails with
+        // an exception and never sends plaintext. This is the case of a second producer
+        // that cannot seal.
         var sp = new ServiceCollection().BuildServiceProvider();
         var descriptor = SealedDescriptor(_SEALED_DOMAIN);
 
@@ -318,8 +320,9 @@ public sealed class EncryptedBodyComposerTests
     [Fact]
     public void Decompose_SealedDescriptor_NoOpenerRegistered_Throws()
     {
-        // Seal on a host that HAS the sealer, then attempt to open on a host with NEITHER →
-        // no opener registration → throw → caller maps to DLQ (never a silent drop).
+        // Seal on a host that has the sealer, then open on a host with neither. The host has
+        // no opener registration, so Decompose throws and the message is not dropped
+        // silently.
         var composeSp = BuildProviderForSealed(_SEALED_CONSUMER);
         var descriptor = SealedDescriptor(_SEALED_DOMAIN);
         var (body, _) = EncryptedBodyComposer.Compose(new SampleAuditEvent(), descriptor, composeSp);
@@ -341,7 +344,7 @@ public sealed class EncryptedBodyComposerTests
 
         var act = () => EncryptedBodyComposer.Decompose<SampleAuditEvent>(body, descriptor, sp);
 
-        act.Should().Throw<Exception>("AEAD tag verification rejects any tamper → DLQ");
+        act.Should().Throw<Exception>("AEAD tag verification rejects any tamper -> DLQ");
     }
 
     private static MqMessageDescriptor SealedDescriptor(string domain) => new(
@@ -386,7 +389,7 @@ public sealed class EncryptedBodyComposerTests
         Exchange: "d2.test.events",
         ExchangeType: "fanout",
         Encryption: MqMessageDescriptor.PLAINTEXT,
-        EncryptionReason: "test fixture — never touches a real broker",
+        EncryptionReason: "test fixture - never touches a real broker",
         DefaultRoutingKey: string.Empty);
 
     private static MqMessageDescriptor EncryptedDescriptor(string domain) => new(

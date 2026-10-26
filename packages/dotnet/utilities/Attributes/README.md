@@ -2,19 +2,22 @@
 Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 
-# DcsvIo.D2.Utilities — Attributes
+# DcsvIo.D2.Utilities - Attributes
 
 > Part of [`DcsvIo.D2.Utilities`](../README.md).
 
-Marker attributes consumed reflectively elsewhere in the stack. Zero behavior on their own — they exist to label types/members so other infrastructure (Serilog destructuring, codegen, contract tests) can pick them up.
+Marker attributes that other code reads reflectively. They have no behavior of their own; they label types and members
+so other infrastructure (Serilog destructuring, codegen, contract tests) can find them.
 
-| File                     | Contents                                                                                                                                                                                                                   |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `RedactDataAttribute.cs` | `[RedactData(Reason = ..., CustomReason = "...")]` — marker attribute consumed by a Serilog destructuring policy (hosts register the policy themselves, typically via `DcsvIo.D2.Logging`). Targets `AttributeTargets.All` (types, properties, fields, parameters). |
+| File                     | Contents                                                                                                                                                                                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RedactDataAttribute.cs` | `[RedactData(Reason = ..., CustomReason = "...")]` - marker attribute consumed by a Serilog destructuring policy (hosts register the policy themselves, typically via `DcsvIo.D2.Logging`). Targets `AttributeTargets.All` (types, properties, fields, parameters). |
 
 ## `[RedactData]` attribute
 
-Marker attribute consumed by a Serilog destructuring policy at host startup. Hosts that compose logging must register the `[RedactData]`-aware policy themselves (typically via `DcsvIo.D2.Logging`). Apply to types, properties, fields, parameters — anywhere PII or secrets might leak into logs/spans/metrics.
+Marker attribute consumed by a Serilog destructuring policy at host startup. Hosts that compose logging must register
+the `[RedactData]`-aware policy themselves (typically via `DcsvIo.D2.Logging`). Apply to types, properties, fields,
+parameters - anywhere PII or secrets might leak into logs/spans/metrics.
 
 ```csharp
 public sealed record User

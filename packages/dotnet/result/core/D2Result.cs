@@ -17,10 +17,10 @@ using DcsvIo.D2.I18n;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <see cref="Messages"/> entries are <see cref="TKMessage"/> instances — translation
+/// <see cref="Messages"/> entries are <see cref="TKMessage"/> instances - translation
 /// keys with optional parameter bindings. The wire format ships them as
-/// <c>{ "key": "..." }</c> objects; SvelteKit / browser-side Paraglide translates
-/// them on receipt. Server-side translation (for outbound notifications) goes
+/// <c>{ "key": "..." }</c> objects, and the receiving client translates them.
+/// Server-side translation (for outbound notifications) goes
 /// through <see cref="ITranslator"/>.
 /// </para>
 /// <para>
@@ -33,11 +33,11 @@ using DcsvIo.D2.I18n;
 /// Property names are explicitly bound to <see cref="D2ResultEnvelopeFieldNames"/>
 /// codegen-emitted constants via <see cref="JsonPropertyNameAttribute"/>. The
 /// wire shape is explicit per-property and spec-derived, so the camelCase
-/// envelope ships unchanged under ANY <c>JsonSerializerOptions</c> — callers
+/// envelope ships unchanged under any <c>JsonSerializerOptions</c> - callers
 /// do not need to set <c>PropertyNamingPolicy = JsonNamingPolicy.CamelCase</c>
 /// for the envelope keys to render correctly. The TS-side <c>@dcsv-io/d2-result</c>
-/// catalog consumes the same spec; cross-language wire drift on these 8
-/// field names is structurally impossible.
+/// catalog consumes the same spec; cross-language wire drift on the field names
+/// in <see cref="D2ResultEnvelopeFieldNames"/> is structurally impossible.
 /// </para>
 /// </remarks>
 public partial class D2Result
@@ -147,11 +147,7 @@ public partial class D2Result
     /// <summary>
     /// Returns a new <see cref="D2Result"/> with the same shape (Success,
     /// Messages, InputErrors, StatusCode, ErrorCode, Category) but with the
-    /// supplied <paramref name="traceId"/> in place of the original. Used by
-    /// <c>BaseHandler.RunCorePipelineAsync</c> to auto-inject the request
-    /// trace id on every result that crosses the handler boundary, so
-    /// handlers don't have to thread it through every <c>D2Result.Ok(...)</c>
-    /// call site.
+    /// supplied <paramref name="traceId"/> in place of the original.
     /// </summary>
     /// <param name="traceId">The trace id to attach.</param>
     /// <returns>A new <see cref="D2Result"/> with <paramref name="traceId"/> applied.</returns>

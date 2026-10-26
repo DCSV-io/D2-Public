@@ -16,15 +16,15 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
 /// <summary>
-/// The unified error-codes generation engine. ONE engine drives every
+/// The unified error-codes generation engine. One engine drives every
 /// <c>*-error-codes</c> catalog; each consuming assembly wires a thin
 /// <c>[Generator]</c> shell that calls <see cref="Run"/> with its own
 /// <see cref="CatalogConfig"/>. The shell keeps its assembly identity + the
-/// <c>ErrorCodesGenerator</c> type FQN (both load-bearing for the on-disk
+/// <c>ErrorCodesGenerator</c> type FQN (both set the on-disk
 /// <c>Generated/{assembly}/{typeFQN}/</c> output path), while this engine owns
 /// all the catalog-agnostic logic: spec loading, constants + failures
 /// emission, the domain-prefix diagnostic (<c>D2ERC001</c>), and the
-/// userMessageKey → en-US.json TK-existence cross-check (<c>D2ERC002</c>).
+/// userMessageKey -> en-US.json TK-existence cross-check (<c>D2ERC002</c>).
 /// </summary>
 internal static class ErrorCodesEngine
 {
@@ -43,8 +43,8 @@ internal static class ErrorCodesEngine
     /// <param name="config">The catalog configuration.</param>
     /// <param name="resolvePerCatalogDescriptor">
     /// Maps a per-catalog diagnostic id (<c>D2EC*</c> / <c>D2AEC*</c>) to its
-    /// Roslyn descriptor. The shell owns these so the pre-existing
-    /// per-catalog diagnostic-id families do not churn; the engine resolves
+    /// Roslyn descriptor. The shell owns these so the per-catalog
+    /// diagnostic-id families keep their existing ids; the engine resolves
     /// its own <c>D2ERC*</c> ids before delegating to this.
     /// </param>
     public static void Run(
@@ -61,8 +61,8 @@ internal static class ErrorCodesEngine
             .Collect();
 
         // 2. Reduce en-US.json to a value-equatable key set at the earliest
-        //    boundary so a translation-VALUE edit does not invalidate the
-        //    cache — only a key ADD/REMOVE re-runs the TK cross-check.
+        //    boundary so a translation value edit does not invalidate the
+        //    cache - only adding or removing a key re-runs the TK cross-check.
         var messageKeys = context.AdditionalTextsProvider
             .Where(static file => IsEnUsMessages(file.Path))
             .Select(static (file, ct) => MessageKeySet.Parse(
@@ -71,7 +71,7 @@ internal static class ErrorCodesEngine
 
         // 3. Surface error-category.spec.json so the category-membership check
         //    validates against the spec-derived closed set rather than a
-        //    hand-maintained subset. Absent / malformed → empty set → the check
+        //    hand-maintained subset. Absent / malformed -> empty set -> the check
         //    degrades to a no-op (same as the en-US.json TK cross-check).
         var categorySpecs = context.AdditionalTextsProvider
             .Where(static file => IsCategorySpec(file.Path))
@@ -114,7 +114,7 @@ internal static class ErrorCodesEngine
 
             // The spec-derived closed category set the membership check
             // validates against. Empty when error-category.spec.json was not
-            // surfaced / was unparseable — the check then degrades to a no-op.
+            // surfaced / was unparseable - the check then degrades to a no-op.
             var categoryWireSet = categorySpecContents.IsDefaultOrEmpty
                 ? ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal)
                 : CategoryWireSetLoader.LoadWireSet(
@@ -125,12 +125,13 @@ internal static class ErrorCodesEngine
                 spc.ReportDiagnostic(ToRoslynDiagnostic(d, Resolve));
 
             // Engine-level TK-existence cross-check (factory-bearing catalogs
-            // only — the generic constants-only catalog has no userMessageKey
+            // only - the generic constants-only catalog has no userMessageKey
             // and no en-US.json AdditionalFile).
             if (config.EmitFailures)
             {
-                // Dual message roots: merge every en-US.json AdditionalFile key set
-                // (public∪private). First-file-only would drop private product keys.
+                // More than one message root can surface an en-US.json
+                // AdditionalFile: merge the key sets of all of them. Using only
+                // the first file would drop the keys of the others.
                 var keySet = keySets.IsDefaultOrEmpty
                     ? MessageKeySet.Empty
                     : MessageKeySet.Union(keySets);
@@ -175,7 +176,7 @@ internal static class ErrorCodesEngine
             return;
         }
 
-        // FactoryHost.Domain — the delegating non-generic + generic classes.
+        // FactoryHost.Domain - the delegating non-generic + generic classes.
         var failures = FailuresEmitter.Emit(spec, config);
         foreach (var d in failures.Diagnostics)
             spc.ReportDiagnostic(ToRoslynDiagnostic(d, resolve));
@@ -192,7 +193,7 @@ internal static class ErrorCodesEngine
     private static IEnumerable<EmitDiagnostic> TkExistenceDiagnostics(
         ErrorCodesSpec spec, MessageKeySet keySet)
     {
-        // No key set means en-US.json was not surfaced / was unparseable —
+        // No key set means en-US.json was not surfaced / was unparseable -
         // skip the cross-check rather than fire false positives.
         if (keySet.IsEmpty)
             yield break;

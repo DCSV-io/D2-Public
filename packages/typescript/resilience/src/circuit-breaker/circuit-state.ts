@@ -4,7 +4,7 @@
 
 /**
  * Three-state circuit breaker state. Mirrors .NET `CircuitState`:
- * `Closed` → `Open` → (after cooldown) `HalfOpen` → `Closed`/`Open`.
+ * `Closed` -> `Open` -> (after cooldown) `HalfOpen` -> `Closed`/`Open`.
  */
 export const CircuitState = {
   Closed: "closed",

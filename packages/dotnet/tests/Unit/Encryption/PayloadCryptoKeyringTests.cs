@@ -13,8 +13,8 @@ using Xunit;
 
 /// <summary>
 /// Adversarial tests for <see cref="PayloadCryptoKeyring"/> construction and
-/// disposal. The keyring holds raw key bytes so its invariants gate every
-/// downstream encryption path.
+/// disposal. The keyring holds raw key bytes, so these tests pin the
+/// invariants of its construction and disposal.
 /// </summary>
 public sealed class PayloadCryptoKeyringTests
 {
@@ -22,15 +22,15 @@ public sealed class PayloadCryptoKeyringTests
     public void Ctor_Happy_ExposesActiveKidAndKidsAndAad()
     {
         var key = TestKeyrings.RandomKey();
-        var aad = TestKeyrings.AadFor("audit");
+        var aad = TestKeyrings.AadFor("orders");
 
         using var ring = new PayloadCryptoKeyring(
-            activeKid: "audit-2026q2",
-            keys: new Dictionary<string, byte[]> { ["audit-2026q2"] = key },
+            activeKid: "orders-2026q2",
+            keys: new Dictionary<string, byte[]> { ["orders-2026q2"] = key },
             aadContext: aad);
 
-        ring.ActiveKid.Should().Be("audit-2026q2");
-        ring.AllKids.Should().BeEquivalentTo("audit-2026q2");
+        ring.ActiveKid.Should().Be("orders-2026q2");
+        ring.AllKids.Should().BeEquivalentTo("orders-2026q2");
         ring.AadContext.ToArray().Should().BeEquivalentTo(aad.ToArray());
     }
 
@@ -41,36 +41,36 @@ public sealed class PayloadCryptoKeyringTests
         var snapshot = (byte[])key.Clone();
 
         using var ring = new PayloadCryptoKeyring(
-            activeKid: "audit-2026q2",
-            keys: new Dictionary<string, byte[]> { ["audit-2026q2"] = key },
-            aadContext: TestKeyrings.AadFor("audit"));
+            activeKid: "orders-2026q2",
+            keys: new Dictionary<string, byte[]> { ["orders-2026q2"] = key },
+            aadContext: TestKeyrings.AadFor("orders"));
 
-        // Mutate the caller's copy — the keyring's copy must be independent.
+        // Mutate the caller's copy - the keyring's copy must be independent.
         Array.Clear(key, 0, key.Length);
 
-        ring.TryGetKey("audit-2026q2", out var stored).Should().BeTrue();
+        ring.TryGetKey("orders-2026q2", out var stored).Should().BeTrue();
         stored.ToArray().Should().BeEquivalentTo(snapshot);
     }
 
     [Fact]
     public void Ctor_DefensiveCopies_AadIndependentOfCallerBuffer()
     {
-        var aadBuffer = "audit"u8.ToArray();
+        var aadBuffer = "orders"u8.ToArray();
         using var ring = new PayloadCryptoKeyring(
-            activeKid: "audit-2026q2",
-            keys: new Dictionary<string, byte[]> { ["audit-2026q2"] = TestKeyrings.RandomKey() },
+            activeKid: "orders-2026q2",
+            keys: new Dictionary<string, byte[]> { ["orders-2026q2"] = TestKeyrings.RandomKey() },
             aadContext: aadBuffer);
 
         Array.Clear(aadBuffer, 0, aadBuffer.Length);
 
-        ring.AadContext.ToArray().Should().BeEquivalentTo("audit"u8.ToArray());
+        ring.AadContext.ToArray().Should().BeEquivalentTo("orders"u8.ToArray());
     }
 
     [Fact]
     public void Ctor_NullActiveKid_Throws()
     {
         var act = () => new PayloadCryptoKeyring(
-            null!, new Dictionary<string, byte[]>(), TestKeyrings.AadFor("audit"));
+            null!, new Dictionary<string, byte[]>(), TestKeyrings.AadFor("orders"));
         act.Should().Throw<ArgumentNullException>();
     }
 
@@ -78,7 +78,7 @@ public sealed class PayloadCryptoKeyringTests
     public void Ctor_EmptyActiveKid_Throws()
     {
         var act = () => new PayloadCryptoKeyring(
-            string.Empty, new Dictionary<string, byte[]>(), TestKeyrings.AadFor("audit"));
+            string.Empty, new Dictionary<string, byte[]>(), TestKeyrings.AadFor("orders"));
         act.Should().Throw<ArgumentException>();
     }
 
@@ -89,7 +89,7 @@ public sealed class PayloadCryptoKeyringTests
         var act = () => new PayloadCryptoKeyring(
             oversize,
             new Dictionary<string, byte[]> { [oversize] = TestKeyrings.RandomKey() },
-            TestKeyrings.AadFor("audit"));
+            TestKeyrings.AadFor("orders"));
         act.Should().Throw<ArgumentException>();
     }
 
@@ -97,8 +97,8 @@ public sealed class PayloadCryptoKeyringTests
     public void Ctor_EmptyAad_Throws()
     {
         var act = () => new PayloadCryptoKeyring(
-            "audit-2026q2",
-            new Dictionary<string, byte[]> { ["audit-2026q2"] = TestKeyrings.RandomKey() },
+            "orders-2026q2",
+            new Dictionary<string, byte[]> { ["orders-2026q2"] = TestKeyrings.RandomKey() },
             ReadOnlyMemory<byte>.Empty);
         act.Should().Throw<ArgumentException>().WithMessage("*aadContext*");
     }
@@ -107,7 +107,7 @@ public sealed class PayloadCryptoKeyringTests
     public void Ctor_NullKeys_Throws()
     {
         var act = () => new PayloadCryptoKeyring(
-            "audit-2026q2", null!, TestKeyrings.AadFor("audit"));
+            "orders-2026q2", null!, TestKeyrings.AadFor("orders"));
         act.Should().Throw<ArgumentNullException>();
     }
 
@@ -115,9 +115,9 @@ public sealed class PayloadCryptoKeyringTests
     public void Ctor_ActiveKidNotInKeys_Throws()
     {
         var act = () => new PayloadCryptoKeyring(
-            "audit-2026q2",
+            "orders-2026q2",
             new Dictionary<string, byte[]> { ["other-kid"] = TestKeyrings.RandomKey() },
-            TestKeyrings.AadFor("audit"));
+            TestKeyrings.AadFor("orders"));
         act.Should().Throw<ArgumentException>();
     }
 
@@ -125,9 +125,9 @@ public sealed class PayloadCryptoKeyringTests
     public void Ctor_KeyWrongLength_Throws()
     {
         var act = () => new PayloadCryptoKeyring(
-            "audit-2026q2",
-            new Dictionary<string, byte[]> { ["audit-2026q2"] = new byte[16] },
-            TestKeyrings.AadFor("audit"));
+            "orders-2026q2",
+            new Dictionary<string, byte[]> { ["orders-2026q2"] = new byte[16] },
+            TestKeyrings.AadFor("orders"));
         act.Should().Throw<ArgumentException>().WithMessage("*32 bytes*");
     }
 
@@ -135,38 +135,38 @@ public sealed class PayloadCryptoKeyringTests
     public void Ctor_NullKeyBytes_Throws()
     {
         var act = () => new PayloadCryptoKeyring(
-            "audit-2026q2",
-            new Dictionary<string, byte[]> { ["audit-2026q2"] = null! },
-            TestKeyrings.AadFor("audit"));
+            "orders-2026q2",
+            new Dictionary<string, byte[]> { ["orders-2026q2"] = null! },
+            TestKeyrings.AadFor("orders"));
         act.Should().Throw<ArgumentNullException>();
     }
 
     [Fact]
     public void TryGetKey_PresentKid_ReturnsTrue()
     {
-        using var ring = TestKeyrings.AuditSingleKey();
-        ring.TryGetKey("audit-2026q2", out var key).Should().BeTrue();
+        using var ring = TestKeyrings.OrdersSingleKey();
+        ring.TryGetKey("orders-2026q2", out var key).Should().BeTrue();
         key.Length.Should().Be(PayloadCryptoKeyring.KEY_SIZE_BYTES);
     }
 
     [Fact]
     public void TryGetKey_AbsentKid_ReturnsFalse()
     {
-        using var ring = TestKeyrings.AuditSingleKey();
-        ring.TryGetKey("audit-1999q9", out _).Should().BeFalse();
+        using var ring = TestKeyrings.OrdersSingleKey();
+        ring.TryGetKey("orders-1999q9", out _).Should().BeFalse();
     }
 
     [Fact]
     public void TryGetKey_NullKid_ReturnsFalse()
     {
-        using var ring = TestKeyrings.AuditSingleKey();
+        using var ring = TestKeyrings.OrdersSingleKey();
         ring.TryGetKey(null, out _).Should().BeFalse();
     }
 
     [Fact]
     public void Dispose_IsIdempotent()
     {
-        var ring = TestKeyrings.AuditSingleKey();
+        var ring = TestKeyrings.OrdersSingleKey();
         ring.Dispose();
         var act = ring.Dispose;
         act.Should().NotThrow();
@@ -179,12 +179,12 @@ public sealed class PayloadCryptoKeyringTests
         // before dispose, then verify the actual stored buffer was zeroed.
         var key = TestKeyrings.RandomKey();
         var ring = new PayloadCryptoKeyring(
-            "audit-2026q2",
-            new Dictionary<string, byte[]> { ["audit-2026q2"] = key },
-            TestKeyrings.AadFor("audit"));
+            "orders-2026q2",
+            new Dictionary<string, byte[]> { ["orders-2026q2"] = key },
+            TestKeyrings.AadFor("orders"));
 
         // Snapshot the keyring's internal copy (different object than `key`).
-        ring.TryGetKey("audit-2026q2", out var live).Should().BeTrue();
+        ring.TryGetKey("orders-2026q2", out var live).Should().BeTrue();
         var liveSnapshotBeforeDispose = live.ToArray();
         liveSnapshotBeforeDispose.Should().NotBeEquivalentTo(
             new byte[PayloadCryptoKeyring.KEY_SIZE_BYTES]);
@@ -192,7 +192,7 @@ public sealed class PayloadCryptoKeyringTests
         ring.Dispose();
 
         // After dispose, the internal buffer is zeroed. The ROM token we
-        // captured aliases the same byte[] inside the keyring — verify it is
+        // captured aliases the same byte[] inside the keyring - verify it is
         // now all zeros.
         live.ToArray().Should().BeEquivalentTo(new byte[PayloadCryptoKeyring.KEY_SIZE_BYTES]);
     }
@@ -200,16 +200,16 @@ public sealed class PayloadCryptoKeyringTests
     [Fact]
     public void TryGetKey_AfterDispose_Throws()
     {
-        var ring = TestKeyrings.AuditSingleKey();
+        var ring = TestKeyrings.OrdersSingleKey();
         ring.Dispose();
-        var act = () => ring.TryGetKey("audit-2026q2", out _);
+        var act = () => ring.TryGetKey("orders-2026q2", out _);
         act.Should().Throw<ObjectDisposedException>();
     }
 
     [Fact]
     public void AllKids_AfterDispose_Throws()
     {
-        var ring = TestKeyrings.AuditSingleKey();
+        var ring = TestKeyrings.OrdersSingleKey();
         ring.Dispose();
         var act = () => ring.AllKids.Count;
         act.Should().Throw<ObjectDisposedException>();
@@ -218,7 +218,7 @@ public sealed class PayloadCryptoKeyringTests
     [Fact]
     public void AadContext_AfterDispose_Throws()
     {
-        var ring = TestKeyrings.AuditSingleKey();
+        var ring = TestKeyrings.OrdersSingleKey();
         ring.Dispose();
         var act = () => ring.AadContext;
         act.Should().Throw<ObjectDisposedException>();
@@ -227,7 +227,7 @@ public sealed class PayloadCryptoKeyringTests
     [Fact]
     public void ToString_DoesNotLeakKeyBytesOrAad()
     {
-        using var ring = TestKeyrings.AuditTwoKeys();
+        using var ring = TestKeyrings.OrdersTwoKeys();
         var s = ring.ToString();
 
         s.Should().NotBeNull();
@@ -240,7 +240,7 @@ public sealed class PayloadCryptoKeyringTests
     [Fact]
     public void ToString_AfterDispose_ReturnsRedactedSentinel()
     {
-        var ring = TestKeyrings.AuditSingleKey();
+        var ring = TestKeyrings.OrdersSingleKey();
         ring.Dispose();
         ring.ToString().Should().Contain("disposed");
     }
@@ -248,8 +248,8 @@ public sealed class PayloadCryptoKeyringTests
     [Fact]
     public void AllKids_ReturnsBothActiveAndRetiring()
     {
-        using var ring = TestKeyrings.AuditTwoKeys();
-        ring.AllKids.OrderBy(k => k).Should().BeEquivalentTo(["audit-2026q1", "audit-2026q2"]);
+        using var ring = TestKeyrings.OrdersTwoKeys();
+        ring.AllKids.OrderBy(k => k).Should().BeEquivalentTo(["orders-2026q1", "orders-2026q2"]);
     }
 
     [Fact]
@@ -259,7 +259,7 @@ public sealed class PayloadCryptoKeyringTests
         using var ring = new PayloadCryptoKeyring(
             maxKid,
             new Dictionary<string, byte[]> { [maxKid] = TestKeyrings.RandomKey() },
-            TestKeyrings.AadFor("audit"));
+            TestKeyrings.AadFor("orders"));
         ring.ActiveKid.Length.Should().Be(PayloadCryptoKeyring.MAX_KID_LENGTH);
     }
 
@@ -268,13 +268,13 @@ public sealed class PayloadCryptoKeyringTests
     {
         var oversize = new string('k', PayloadCryptoKeyring.MAX_KID_LENGTH + 1);
         var act = () => new PayloadCryptoKeyring(
-            "audit-2026q2",
+            "orders-2026q2",
             new Dictionary<string, byte[]>
             {
-                ["audit-2026q2"] = TestKeyrings.RandomKey(),
+                ["orders-2026q2"] = TestKeyrings.RandomKey(),
                 [oversize] = TestKeyrings.RandomKey(),
             },
-            TestKeyrings.AadFor("audit"));
+            TestKeyrings.AadFor("orders"));
         act.Should().Throw<ArgumentException>();
     }
 }

@@ -11,16 +11,16 @@ using AwesomeAssertions;
 using DcsvIo.D2.ErrorCodes.Category;
 using DcsvIo.D2.Result;
 using DcsvIo.D2.Result.Grpc;
-using global::D2.Services.Protos.Common.V1;
+using global::D2.Services.Protos.Common.V2;
 using global::Grpc.Core;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
 /// <summary>
-/// Tests for <c>HandleAsync</c> — the resilience wrapper around
+/// Tests for <c>HandleAsync</c> - the resilience wrapper around
 /// <see cref="AsyncUnaryCall{TResponse}"/>. Covers success re-materialization,
 /// <see cref="RpcException"/> fail-open, generic-exception fail-open, and the
-/// v1-bug-fix regression: exception messages must NEVER appear in the returned
+/// regression that exception messages must NEVER appear in the returned
 /// result messages or log output.
 /// </summary>
 public sealed class HandleAsyncTests
@@ -53,7 +53,7 @@ public sealed class HandleAsyncTests
         result.Category.Should().Be(ErrorCategory.NotFound);
     }
 
-    // ── RpcException → ServiceUnavailable ────────────────────────────────
+    // ── RpcException -> ServiceUnavailable ────────────────────────────────
 
     [Theory]
     [InlineData(StatusCode.Internal)]
@@ -61,8 +61,7 @@ public sealed class HandleAsyncTests
     [InlineData(StatusCode.DeadlineExceeded)]
     [InlineData(StatusCode.ResourceExhausted)]
     [InlineData(StatusCode.NotFound)]
-    [InlineData(StatusCode.PermissionDenied)]
-    public async Task RpcException_NonCancelled_Returns_ServiceUnavailable(StatusCode code)
+    public async Task RpcException_NonCanceled_Returns_ServiceUnavailable(StatusCode code)
     {
         var rpcEx = new RpcException(new Status(code, "transport detail"));
         var call = MakeFailedCall(rpcEx);
@@ -73,12 +72,28 @@ public sealed class HandleAsyncTests
         result.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
     }
 
-    // ── RpcException Cancelled → Canceled ────────────────────────────────
-
-    [Fact]
-    public async Task RpcException_Cancelled_Returns_Canceled()
+    [Theory]
+    [InlineData(StatusCode.Unauthenticated, HttpStatusCode.Unauthorized)]
+    [InlineData(StatusCode.PermissionDenied, HttpStatusCode.Forbidden)]
+    public async Task RpcException_CredentialRejection_ReturnsTheMatchingAuthStatus(
+        StatusCode code,
+        HttpStatusCode expected)
     {
-        var rpcEx = new RpcException(new Status(StatusCode.Cancelled, string.Empty));
+        var call = MakeFailedCall(new RpcException(new Status(code, "transport detail")));
+
+        var result = await call.HandleAsync(r => r.Result!, r => r.Data);
+
+        result.StatusCode.Should().Be(expected);
+    }
+
+    // ── RpcException Cancelled -> Canceled ──────────────── british-spelling:exempt-line
+
+    // StatusCode.Cancelled is the spelling of the Grpc.Core library. british-spelling:exempt-line
+    [Fact]
+    public async Task RpcException_Cancelled_Returns_Canceled() // british-spelling:exempt-line
+    {
+        var rpcEx = new RpcException(
+            new Status(StatusCode.Cancelled, string.Empty)); // british-spelling:exempt-line
         var call = MakeFailedCall(rpcEx);
 
         var result = await call.HandleAsync(r => r.Result!, r => r.Data);
@@ -87,13 +102,13 @@ public sealed class HandleAsyncTests
         result.StatusCode.Should().Be(HttpStatusCode.BadRequest, "Canceled maps to 400 per D2Result.Canceled factory");
     }
 
-    // ── OperationCanceledException → Canceled ─────────────────────────────
+    // ── OperationCanceledException -> Canceled ─────────────────────────────
 
     [Fact]
     public async Task OperationCanceledException_Returns_Canceled()
     {
-        // FIX-1 regression: raw OCE (never reached the gRPC layer as RpcException)
-        // must map to Canceled, not UnhandledException (500).
+        // Regression: a raw OCE (one that never reached the gRPC layer as an
+        // RpcException) must map to Canceled, not UnhandledException (500).
         const string sentinel_secret = "CANCEL_SENTINEL_should_not_leak_abc123";
         var oce = new OperationCanceledException(sentinel_secret);
         var call = MakeFailedCall(oce);
@@ -106,7 +121,7 @@ public sealed class HandleAsyncTests
         result.StatusCode.Should().Be(HttpStatusCode.BadRequest, "Canceled maps to 400 per D2Result.Canceled factory");
         result.Category.Should().Be(ErrorCategory.ValidationFailure, "Canceled category is ValidationFailure");
 
-        // TraceId threads through
+        // The result carries the TraceId
         result.TraceId.Should().Be("trace-oce");
 
         // ex.Message (the sentinel) must NOT appear in messages or logs
@@ -118,7 +133,7 @@ public sealed class HandleAsyncTests
         combined.Should().Contain("OperationCanceledException", "type name is logged for diagnostics");
     }
 
-    // ── Generic exception → UnhandledException ────────────────────────────
+    // ── Generic exception -> UnhandledException ────────────────────────────
 
     [Fact]
     public async Task GenericException_Returns_UnhandledException()
@@ -131,11 +146,11 @@ public sealed class HandleAsyncTests
         result.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
     }
 
-    // ── v1-BUG-FIX REGRESSION: ex.Message must never leak ────────────────
-    // v1's [LoggerMessage] accepted Exception which could render ex.Message
-    // (containing broker URIs, passwords, JWT contents) into user-facing messages
-    // and logs. v2 must keep user-facing messages as TK constants only and log
-    // only sanitized diagnostics (type name + first frame + status code).
+    // ── REGRESSION: ex.Message must never leak ───────────────────────────
+    // A [LoggerMessage] method that accepts an Exception can render ex.Message
+    // (which can contain broker URIs, passwords, JWT contents) into user-facing
+    // messages and logs. User-facing messages must be TK constants only, and logs
+    // must carry only sanitized diagnostics (type name + first frame + status code).
 
     [Fact]
     public async Task RpcException_Message_NeverAppearsInResultMessages()
@@ -208,7 +223,7 @@ public sealed class HandleAsyncTests
         await act.Should().NotThrowAsync();
     }
 
-    // ── TraceId threads into fail-open results ────────────────────────────
+    // ── TraceId is set on fail-open results ───────────────────────────────
 
     [Fact]
     public async Task RpcException_TraceId_AppearsInFailResult()

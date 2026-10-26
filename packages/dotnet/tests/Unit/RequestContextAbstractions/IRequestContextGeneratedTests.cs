@@ -20,7 +20,7 @@ using Xunit;
 
 /// <summary>
 /// Reflection smoke proving the codegen-emitted <see cref="IRequestContext"/>
-/// interface carries every NEW property in the spec (transport / network /
+/// interface has every NEW property in the spec (transport / network /
 /// fingerprint / WhoIs sections) AND inherits every <see cref="IAuthContext"/>
 /// property via <c>extends</c>.
 /// </summary>
@@ -43,7 +43,7 @@ public sealed class IRequestContextGeneratedTests
 
         specPropertyNames.Should().NotBeEmpty();
 
-        // GetProperties (no DeclaredOnly) returns inherited too — but we want
+        // GetProperties (no DeclaredOnly) returns inherited too - but we want
         // to assert each NEW spec property is reachable on IRequestContext.
         // Use BindingFlags including FlattenHierarchy.
         const BindingFlags public_instance_flat =
@@ -140,7 +140,7 @@ public sealed class IRequestContextGeneratedTests
     [Fact]
     public void Properties_AreReadOnly_GettersOnly()
     {
-        // Adversarial: same encapsulation discipline as IAuthContext.
+        // Adversarial: same encapsulation requirement as IAuthContext.
         var declared = typeof(IRequestContext)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 

@@ -23,7 +23,7 @@ function expectValidationFailed(
     .NOT_NULL_VIOLATION,
 ): void {
   expect(result.success).toBe(false);
-  expect(result.errorCode).toBe(ErrorCodes.VALIDATION_FAILED);
+  expect(result.errorCode).toBe(ErrorCodes.GEN_VALIDATION_FAILED);
   expect(result.statusCode).toBe(HttpStatusCode.BadRequest);
   expect(result.statusCode).toBe(400);
   expect(result.inputErrors).toHaveLength(1);
@@ -67,7 +67,7 @@ describe("DefaultLocalCache unit matrix", () => {
     const result = await cache.get("missing");
 
     expect(result.success).toBe(false);
-    expect(result.errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect(result.errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
     cache.dispose();
   });
 
@@ -102,7 +102,7 @@ describe("DefaultLocalCache unit matrix", () => {
     const result = await cache.get("k");
 
     expect(result.success).toBe(false);
-    expect(result.errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect(result.errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
     cache.dispose();
   });
 
@@ -114,7 +114,7 @@ describe("DefaultLocalCache unit matrix", () => {
     now = 50;
     const result = await cache.get("k");
 
-    expect(result.errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect(result.errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
     cache.dispose();
   });
 
@@ -151,7 +151,7 @@ describe("DefaultLocalCache unit matrix", () => {
     const lower = await cache.get<number>("key");
 
     expect(upper.success).toBe(true);
-    expect(lower.errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect(lower.errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
     cache.dispose();
   });
 
@@ -165,7 +165,7 @@ describe("DefaultLocalCache unit matrix", () => {
     const nfdHit = await cache.get<string>(nfd);
 
     expect(nfcHit.success).toBe(true);
-    expect(nfdHit.errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect(nfdHit.errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
     expect(nfc).not.toBe(nfd);
     cache.dispose();
   });
@@ -181,7 +181,7 @@ describe("DefaultLocalCache unit matrix", () => {
 
     expect(hit.success).toBe(true);
     expect(hit.data).toBe("ok");
-    expect(miss.errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect(miss.errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
     cache.dispose();
   });
 
@@ -257,7 +257,7 @@ describe("DefaultLocalCache unit matrix", () => {
     expect(result.success).toBe(false);
     expect(result.isPartialSuccess).toBe(true);
     expect(result.statusCode).toBe(206);
-    expect(result.errorCode).toBe(ErrorCodes.SOME_FOUND);
+    expect(result.errorCode).toBe(ErrorCodes.GEN_SOME_FOUND);
     expect([...result.data!.keys()]).toEqual(["a"]);
     cache.dispose();
   });
@@ -266,7 +266,7 @@ describe("DefaultLocalCache unit matrix", () => {
     const cache = newCache();
     const result = await cache.getMany(["x", "y"]);
 
-    expect(result.errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect(result.errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
     cache.dispose();
   });
 
@@ -362,7 +362,7 @@ describe("DefaultLocalCache unit matrix", () => {
     const cache = newCache();
     const result = await cache.getTtl("missing");
 
-    expect(result.errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect(result.errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
     cache.dispose();
   });
 
@@ -398,7 +398,7 @@ describe("DefaultLocalCache unit matrix", () => {
     now = 100;
     const result = await cache.getTtl("k");
 
-    expect(result.errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect(result.errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
     cache.dispose();
   });
 
@@ -529,14 +529,15 @@ describe("DefaultLocalCache unit matrix", () => {
     await cache.set("k4", 4);
 
     expect((await cache.get("k1")).success).toBe(true);
-    expect((await cache.get("k2")).errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect((await cache.get("k2")).errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
     expect((await cache.get("k3")).success).toBe(true);
     expect((await cache.get("k4")).success).toBe(true);
     cache.dispose();
   });
 
-  // Regression: write-path must MRU-refresh. Bare Map.set on overwrite keeps
-  // insertion order and wrongly evicts the hot key under capacity pressure.
+  // Regression: the write path must refresh MRU recency. A bare Map.set on
+  // overwrite keeps insertion order and wrongly evicts the hot key under
+  // capacity pressure.
   it("set_overwrite_refreshesLruRecency", async () => {
     const now = 0;
     const cache = newCache(
@@ -552,7 +553,7 @@ describe("DefaultLocalCache unit matrix", () => {
 
     expect((await cache.get("k1")).success).toBe(true);
     expect((await cache.get("k1")).data).toBe(11);
-    expect((await cache.get("k2")).errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect((await cache.get("k2")).errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
     expect((await cache.get("k3")).success).toBe(true);
     expect((await cache.get("k4")).success).toBe(true);
     cache.dispose();
@@ -573,7 +574,7 @@ describe("DefaultLocalCache unit matrix", () => {
 
     expect((await cache.get("k1")).success).toBe(true);
     expect((await cache.get("k1")).data).toBe(11);
-    expect((await cache.get("k2")).errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect((await cache.get("k2")).errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
     expect((await cache.get("k3")).success).toBe(true);
     expect((await cache.get("k4")).success).toBe(true);
     cache.dispose();
@@ -663,7 +664,7 @@ describe("DefaultLocalCache unit matrix", () => {
     const b = await cache.get("b");
     const c = await cache.get("c");
 
-    expect(a.errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect(a.errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
     expect(b.success).toBe(true);
     expect(c.success).toBe(true);
     cache.dispose();
@@ -705,7 +706,7 @@ describe("DefaultLocalCache unit matrix", () => {
     const get = await cache.get("k");
 
     expect(rem.success).toBe(true);
-    expect(get.errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect(get.errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
     cache.dispose();
   });
 
@@ -723,8 +724,8 @@ describe("DefaultLocalCache unit matrix", () => {
     await cache.set("a", 1);
     await cache.set("b", 2);
     await cache.removeMany(["a", "b"]);
-    expect((await cache.get("a")).errorCode).toBe(ErrorCodes.NOT_FOUND);
-    expect((await cache.get("b")).errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect((await cache.get("a")).errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
+    expect((await cache.get("b")).errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
     cache.dispose();
   });
 
@@ -735,7 +736,7 @@ describe("DefaultLocalCache unit matrix", () => {
     const result = await cache.removeMany(["a", "missing"]);
 
     expect(result.success).toBe(true);
-    expect((await cache.get("a")).errorCode).toBe(ErrorCodes.NOT_FOUND);
+    expect((await cache.get("a")).errorCode).toBe(ErrorCodes.GEN_NOT_FOUND);
     cache.dispose();
   });
 
@@ -809,6 +810,350 @@ describe("DefaultLocalCache unit matrix", () => {
   });
 
   // -----------------------------------------------------------------------
+  // SET IF EQUAL
+  // -----------------------------------------------------------------------
+
+  it("setIfEqual_falseyKey_returnsValidationFailedFieldKey", async () => {
+    const cache = newCache();
+    const result = await cache.setIfEqual("", 1, 2);
+
+    expectValidationFailed(result, "key");
+    cache.dispose();
+  });
+
+  it.each([0, -1, Number.NaN])(
+    "setIfEqual_invalidExpirationMs_returnsValidationFailed_theory (%s)",
+    async (ms) => {
+      const cache = newCache();
+      const result = await cache.setIfEqual("k", 1, 2, ms);
+
+      expectInvalidField(result, "expirationMs");
+      cache.dispose();
+    },
+  );
+
+  it("setIfEqual_absentKey_returnsOkFalseAndWritesNothing", async () => {
+    // An absent key has nothing to compare against, so the caller's copy must
+    // not be written over the value the next reader loads in its place.
+    const cache = newCache();
+    const result = await cache.setIfEqual("k", "was", "now");
+
+    expect(result.success).toBe(true);
+    expect(result.data).toBe(false);
+    expect((await cache.get<string>("k")).success).toBe(false);
+    cache.dispose();
+  });
+
+  it("setIfEqual_storedValueMatches_writesAndReturnsOkTrue", async () => {
+    const cache = newCache();
+    await cache.set("k", "was");
+    const result = await cache.setIfEqual("k", "was", "now");
+
+    expect(result.success).toBe(true);
+    expect(result.data).toBe(true);
+    expect((await cache.get<string>("k")).data).toBe("now");
+    cache.dispose();
+  });
+
+  it("setIfEqual_storedValueDiffers_returnsOkFalseAndLeavesTheStoredValue", async () => {
+    const cache = newCache();
+    await cache.set("k", "something-else");
+    const result = await cache.setIfEqual("k", "was", "now");
+
+    expect(result.success).toBe(true);
+    expect(result.data).toBe(false);
+    expect((await cache.get<string>("k")).data).toBe("something-else");
+    cache.dispose();
+  });
+
+  it("setIfEqual_structurallyEqualObject_writes", async () => {
+    // The store holds values in a Map with no equality of its own, so the
+    // comparison is structural. Reference identity would reject nearly every
+    // write a caller expects to succeed, which is a silent failure.
+    const cache = newCache();
+    await cache.set("k", { a: 1, b: [2, 3], c: { d: "x" } });
+    const result = await cache.setIfEqual(
+      "k",
+      { a: 1, b: [2, 3], c: { d: "x" } },
+      { a: 9, b: [], c: { d: "y" } },
+    );
+
+    expect(result.data).toBe(true);
+    cache.dispose();
+  });
+
+  it("setIfEqual_objectKeyOrderDiffers_stillWrites", async () => {
+    const cache = newCache();
+    await cache.set("k", { a: 1, b: 2 });
+    const result = await cache.setIfEqual("k", { b: 2, a: 1 }, { a: 3, b: 4 });
+
+    expect(result.data).toBe(true);
+    cache.dispose();
+  });
+
+  it("setIfEqual_objectWithAnExtraMember_doesNotMatch", async () => {
+    const cache = newCache();
+    await cache.set("k", { a: 1, b: 2 });
+    const result = await cache.setIfEqual(
+      "k",
+      { a: 1, b: 2, extra: 3 },
+      { a: 9 },
+    );
+
+    expect(result.data).toBe(false);
+    cache.dispose();
+  });
+
+  it("setIfEqual_arrayOfDifferentLength_doesNotMatch", async () => {
+    const cache = newCache();
+    await cache.set("k", [1, 2, 3]);
+    const result = await cache.setIfEqual("k", [1, 2], [9]);
+
+    expect(result.data).toBe(false);
+    cache.dispose();
+  });
+
+  it("setIfEqual_twoDifferentInstants_doesNotMatch", async () => {
+    // A Date exposes no own enumerable property, so a walk over own properties
+    // alone finds nothing to disagree about and calls any two of them equal.
+    // The comparison the contract states is over the JSON form, and the two
+    // JSON forms here differ.
+    const cache = newCache();
+    await cache.set("k", new Date("2026-01-01T00:00:00.000Z"));
+    const result = await cache.setIfEqual<unknown>(
+      "k",
+      new Date("2026-06-30T00:00:00.000Z"),
+      "replaced",
+    );
+
+    expect(result.data).toBe(false);
+    expect(((await cache.get<Date>("k")).data as Date).toISOString()).toBe(
+      "2026-01-01T00:00:00.000Z",
+    );
+    cache.dispose();
+  });
+
+  it("setIfEqual_equalInstants_writes", async () => {
+    const cache = newCache();
+    await cache.set("k", new Date("2026-01-01T00:00:00.000Z"));
+    const result = await cache.setIfEqual<unknown>(
+      "k",
+      new Date("2026-01-01T00:00:00.000Z"),
+      "replaced",
+    );
+
+    expect(result.data).toBe(true);
+    expect((await cache.get<string>("k")).data).toBe("replaced");
+    cache.dispose();
+  });
+
+  it("setIfEqual_anInstantMemberDiffers_doesNotMatch", async () => {
+    // The same value held in a field of a plain object, which is how a
+    // caller's copy of a stored record reaches this member.
+    const cache = newCache();
+    await cache.set("k", { at: new Date("2026-01-01T00:00:00.000Z"), n: 1 });
+    const result = await cache.setIfEqual<unknown>(
+      "k",
+      { at: new Date("2026-06-30T00:00:00.000Z"), n: 1 },
+      "replaced",
+    );
+
+    expect(result.data).toBe(false);
+    cache.dispose();
+  });
+
+  it("setIfEqual_valuesTheWalkCannotCompare_doesNotMatch", async () => {
+    // A Map holds its entries outside its own properties and offers no JSON
+    // form, so neither the walk nor the JSON form can tell two of them apart.
+    // The member returns false rather than writing over a value it could not
+    // compare.
+    const cache = newCache();
+    await cache.set("k", new Map([["a", 1]]));
+    const result = await cache.setIfEqual<unknown>(
+      "k",
+      new Map([["b", 2]]),
+      "replaced",
+    );
+
+    expect(result.data).toBe(false);
+    cache.dispose();
+  });
+
+  it("setIfEqual_anArrayAgainstAnObject_doesNotMatch", async () => {
+    const cache = newCache();
+    await cache.set("k", [1, 2]);
+    const result = await cache.setIfEqual<unknown>(
+      "k",
+      { 0: 1, 1: 2 },
+      "replaced",
+    );
+
+    expect(result.data).toBe(false);
+    cache.dispose();
+  });
+
+  it("setIfEqual_aNullAgainstAnObject_doesNotMatch", async () => {
+    const cache = newCache();
+    await cache.set("k", { a: 1 });
+    const result = await cache.setIfEqual("k", null, "replaced");
+
+    expect(result.data).toBe(false);
+    cache.dispose();
+  });
+
+  it("setIfEqual_expiredKey_treatedAsAbsent_returnsOkFalse", async () => {
+    let now = 0;
+    const cache = newCache(undefined, () => now);
+    await cache.set("k", "was", 1_000);
+    now = 2_000;
+    const result = await cache.setIfEqual("k", "was", "now");
+
+    expect(result.data).toBe(false);
+    cache.dispose();
+  });
+
+  it("setIfEqual_omittedExpirationMs_usesDefault", async () => {
+    const now = 0;
+    const cache = newCache(undefined, () => now);
+    await cache.set("k", 1, 1_000);
+    await cache.setIfEqual("k", 1, 2);
+    const ttl = await cache.getTtl("k");
+
+    expect(ttl.data).toBe(3_600_000);
+    cache.dispose();
+  });
+
+  it("setIfEqual_afterDispose_throws", async () => {
+    const cache = newCache();
+    cache.dispose();
+
+    await expect(cache.setIfEqual("k", 1, 2)).rejects.toThrow();
+  });
+
+  // -----------------------------------------------------------------------
+  // REMOVE IF EQUAL
+  // -----------------------------------------------------------------------
+
+  it("removeIfEqual_falseyKey_returnsValidationFailedFieldKey", async () => {
+    const cache = newCache();
+    const result = await cache.removeIfEqual("", 1);
+
+    expectValidationFailed(result, "key");
+    cache.dispose();
+  });
+
+  it("removeIfEqual_absentKey_returnsOkFalse", async () => {
+    // A false result tells the caller that the entry it held is not the entry
+    // stored, which is the result when another writer replaced it.
+    const cache = newCache();
+    const result = await cache.removeIfEqual("k", "was");
+
+    expect(result.success).toBe(true);
+    expect(result.data).toBe(false);
+    cache.dispose();
+  });
+
+  it("removeIfEqual_storedValueMatches_removesAndReturnsOkTrue", async () => {
+    const cache = newCache();
+    await cache.set("k", "was");
+    const result = await cache.removeIfEqual("k", "was");
+
+    expect(result.success).toBe(true);
+    expect(result.data).toBe(true);
+    expect((await cache.get<string>("k")).success).toBe(false);
+    cache.dispose();
+  });
+
+  it("removeIfEqual_storedValueDiffers_returnsOkFalseAndLeavesTheStoredValue", async () => {
+    const cache = newCache();
+    await cache.set("k", "something-else");
+    const result = await cache.removeIfEqual("k", "was");
+
+    expect(result.success).toBe(true);
+    expect(result.data).toBe(false);
+    expect((await cache.get<string>("k")).data).toBe("something-else");
+    cache.dispose();
+  });
+
+  it("removeIfEqual_structurallyEqualObject_removes", async () => {
+    // The comparison is structural over the JSON form, as it is on setIfEqual.
+    const cache = newCache();
+    await cache.set("k", { a: 1, b: [2, 3], c: { d: "x" } });
+    const result = await cache.removeIfEqual("k", {
+      a: 1,
+      b: [2, 3],
+      c: { d: "x" },
+    });
+
+    expect(result.data).toBe(true);
+    expect((await cache.get("k")).success).toBe(false);
+    cache.dispose();
+  });
+
+  it("removeIfEqual_objectWithAnExtraMember_doesNotMatch", async () => {
+    const cache = newCache();
+    await cache.set("k", { a: 1, b: 2 });
+    const result = await cache.removeIfEqual("k", { a: 1, b: 2, extra: 3 });
+
+    expect(result.data).toBe(false);
+    cache.dispose();
+  });
+
+  it("removeIfEqual_twoDifferentInstants_doesNotMatch", async () => {
+    const cache = newCache();
+    await cache.set("k", new Date("2026-01-01T00:00:00.000Z"));
+    const result = await cache.removeIfEqual(
+      "k",
+      new Date("2026-06-30T00:00:00.000Z"),
+    );
+
+    expect(result.data).toBe(false);
+    expect((await cache.get("k")).success).toBe(true);
+    cache.dispose();
+  });
+
+  it("removeIfEqual_equalInstants_removes", async () => {
+    const cache = newCache();
+    await cache.set("k", new Date("2026-01-01T00:00:00.000Z"));
+    const result = await cache.removeIfEqual(
+      "k",
+      new Date("2026-01-01T00:00:00.000Z"),
+    );
+
+    expect(result.data).toBe(true);
+    expect((await cache.get("k")).success).toBe(false);
+    cache.dispose();
+  });
+
+  it("removeIfEqual_valuesTheWalkCannotCompare_doesNotMatch", async () => {
+    const cache = newCache();
+    await cache.set("k", new Map([["a", 1]]));
+    const result = await cache.removeIfEqual("k", new Map([["b", 2]]));
+
+    expect(result.data).toBe(false);
+    expect((await cache.get("k")).success).toBe(true);
+    cache.dispose();
+  });
+
+  it("removeIfEqual_expiredKey_treatedAsAbsent_returnsOkFalse", async () => {
+    let now = 0;
+    const cache = newCache(undefined, () => now);
+    await cache.set("k", "was", 1_000);
+    now = 2_000;
+    const result = await cache.removeIfEqual("k", "was");
+
+    expect(result.data).toBe(false);
+    cache.dispose();
+  });
+
+  it("removeIfEqual_afterDispose_throws", async () => {
+    const cache = newCache();
+    cache.dispose();
+
+    await expect(cache.removeIfEqual("k", 1)).rejects.toThrow();
+  });
+
+  // -----------------------------------------------------------------------
   // INCREMENT
   // -----------------------------------------------------------------------
 
@@ -874,7 +1219,7 @@ describe("DefaultLocalCache unit matrix", () => {
     const result = await cache.increment("k");
 
     expect(result.success).toBe(false);
-    expect(result.errorCode).toBe(ErrorCodes.CONFLICT);
+    expect(result.errorCode).toBe(ErrorCodes.GEN_CONFLICT);
     expect(result.statusCode).toBe(409);
     cache.dispose();
   });
@@ -885,7 +1230,7 @@ describe("DefaultLocalCache unit matrix", () => {
     await cache.set("k", 0.5);
     const result = await cache.increment("k");
 
-    expect(result.errorCode).toBe(ErrorCodes.CONFLICT);
+    expect(result.errorCode).toBe(ErrorCodes.GEN_CONFLICT);
     cache.dispose();
   });
 
@@ -895,7 +1240,7 @@ describe("DefaultLocalCache unit matrix", () => {
     await cache.set("k", undefined);
     const result = await cache.increment("k");
 
-    expect(result.errorCode).toBe(ErrorCodes.CONFLICT);
+    expect(result.errorCode).toBe(ErrorCodes.GEN_CONFLICT);
     cache.dispose();
   });
 
@@ -906,7 +1251,7 @@ describe("DefaultLocalCache unit matrix", () => {
     const result = await cache.increment("k");
 
     expect(result.statusCode).toBe(HttpStatusCode.Conflict);
-    expect(result.errorCode).toBe(ErrorCodes.CONFLICT);
+    expect(result.errorCode).toBe(ErrorCodes.GEN_CONFLICT);
     expect(result.messages).toEqual([TK.common.errors.CONFLICT]);
     cache.dispose();
   });
@@ -1015,7 +1360,7 @@ describe("DefaultLocalCache unit matrix", () => {
     const result = await cache.increment("k", 1);
 
     expectInvalidField(result, "amount");
-    // Store must be unchanged (refuse before write).
+    // The store must be unchanged (reject before write).
     const get = await cache.get<number>("k");
 
     expect(get.data).toBe(Number.MAX_SAFE_INTEGER);

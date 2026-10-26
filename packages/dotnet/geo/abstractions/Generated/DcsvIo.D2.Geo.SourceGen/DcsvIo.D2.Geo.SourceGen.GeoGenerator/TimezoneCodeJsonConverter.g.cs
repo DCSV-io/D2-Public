@@ -374,7 +374,7 @@ public sealed class TimezoneCodeJsonConverter : JsonConverter<TimezoneCode>
         if (!sr_validTimezoneCodes.Contains(value!))
         {
             throw new JsonException(
-                $"Unknown IANA timezone identifier '{value}' — not present in the closed catalog set.");
+                $"Unknown IANA timezone identifier '{value}' - not present in the closed catalog set.");
         }
 
         return TimezoneCode.FromString(value!);

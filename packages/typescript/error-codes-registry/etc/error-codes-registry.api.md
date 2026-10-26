@@ -26,6 +26,8 @@ export interface ErrorCodeInfo {
     readonly factoryName: string;
     readonly factoryShape: ErrorCodeFactoryShape;
     readonly httpStatus: number;
+    readonly isDeprecated: boolean;
+    readonly owner: string;
     readonly userMessageKey: TKMessage;
 }
 

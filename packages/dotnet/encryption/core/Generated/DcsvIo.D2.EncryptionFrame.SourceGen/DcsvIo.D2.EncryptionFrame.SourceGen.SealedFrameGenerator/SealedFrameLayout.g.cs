@@ -12,7 +12,7 @@ namespace DcsvIo.D2.Encryption;
 
 /// <summary>
 /// Spec-derived binary-layout constants for the D2 on-wire SEALED
-/// encryption frame (version 2 — the asymmetric ECDH-ES hybrid).
+/// encryption frame (version 2 - the asymmetric ECDH-ES hybrid).
 /// Mirrors the offsets and lengths consumed by
 /// <see cref="SealedFrame"/>'s Encode + Decode paths. TS-side
 /// reader ships out of @dcsv-io/d2-encryption-abstractions from the same spec.
@@ -30,43 +30,43 @@ public static class SealedFrameLayout
     /// <remarks>Kind: <c>byte_fixed</c>. Length value <c>1</c> (-1 = variable).</remarks>
     public const int VERSION_LENGTH = 1;
 
-    /// <summary>RECIPIENT_KID_LENGTH byte offset from frame start. Byte count of the UTF-8 encoded recipient kid that follows. Single byte (max 255). Decoder validates against CONSTRAINT_MIN_KID_LENGTH / CONSTRAINT_MAX_KID_LENGTH — the same kid grammar as the symmetric frame.</summary>
+    /// <summary>RECIPIENT_KID_LENGTH byte offset from frame start. Byte count of the UTF-8 encoded recipient kid that follows. Single byte (max 255). Decoder validates against CONSTRAINT_MIN_KID_LENGTH / CONSTRAINT_MAX_KID_LENGTH - the same kid grammar as the symmetric frame.</summary>
     /// <remarks>Kind: <c>byte_fixed</c>. Offset value <c>1</c> (-1 = variable).</remarks>
     public const int RECIPIENT_KID_LENGTH_OFFSET = 1;
 
-    /// <summary>RECIPIENT_KID_LENGTH byte length. Byte count of the UTF-8 encoded recipient kid that follows. Single byte (max 255). Decoder validates against CONSTRAINT_MIN_KID_LENGTH / CONSTRAINT_MAX_KID_LENGTH — the same kid grammar as the symmetric frame.</summary>
+    /// <summary>RECIPIENT_KID_LENGTH byte length. Byte count of the UTF-8 encoded recipient kid that follows. Single byte (max 255). Decoder validates against CONSTRAINT_MIN_KID_LENGTH / CONSTRAINT_MAX_KID_LENGTH - the same kid grammar as the symmetric frame.</summary>
     /// <remarks>Kind: <c>byte_fixed</c>. Length value <c>1</c> (-1 = variable).</remarks>
     public const int RECIPIENT_KID_LENGTH_LENGTH = 1;
 
-    /// <summary>RECIPIENT_KID byte offset from frame start. UTF-8 bytes of the recipient key id — which recipient sealing keypair (active or retiring kid of the consumer service) opens this frame. Length is variable, declared by RECIPIENT_KID_LENGTH. The opener resolves the kid against its own private recipient keyring. The kid does NOT encode the recipient service id; service binding lives in the AEAD associated data and key derivation.</summary>
+    /// <summary>RECIPIENT_KID byte offset from frame start. UTF-8 bytes of the recipient key id - which recipient sealing keypair (active or retiring kid of the consumer service) opens this frame. Length is variable, declared by RECIPIENT_KID_LENGTH. The opener resolves the kid against its own private recipient keyring. The kid does NOT encode the recipient service id; service binding lives in the AEAD associated data and key derivation.</summary>
     /// <remarks>Kind: <c>variable_utf8</c>. Offset value <c>2</c> (-1 = variable).</remarks>
     public const int RECIPIENT_KID_OFFSET = 2;
 
-    /// <summary>RECIPIENT_KID byte length. UTF-8 bytes of the recipient key id — which recipient sealing keypair (active or retiring kid of the consumer service) opens this frame. Length is variable, declared by RECIPIENT_KID_LENGTH. The opener resolves the kid against its own private recipient keyring. The kid does NOT encode the recipient service id; service binding lives in the AEAD associated data and key derivation.</summary>
+    /// <summary>RECIPIENT_KID byte length. UTF-8 bytes of the recipient key id - which recipient sealing keypair (active or retiring kid of the consumer service) opens this frame. Length is variable, declared by RECIPIENT_KID_LENGTH. The opener resolves the kid against its own private recipient keyring. The kid does NOT encode the recipient service id; service binding lives in the AEAD associated data and key derivation.</summary>
     /// <remarks>Kind: <c>variable_utf8</c>. Length value <c>-1</c> (-1 = variable).</remarks>
     public const int RECIPIENT_KID_LENGTH = -1;
 
-    /// <summary>EPH_PUB_LENGTH byte offset from frame start. Byte count of the ephemeral public key that follows, as a 2-byte BIG-ENDIAN unsigned integer. A P-256 SubjectPublicKeyInfo is ~91 bytes — beyond a single-byte prefix. Decoder validates against CONSTRAINT_MAX_EPH_PUB_LENGTH before allocating. Offset is variable — comes immediately after RECIPIENT_KID.</summary>
+    /// <summary>EPH_PUB_LENGTH byte offset from frame start. Byte count of the ephemeral public key that follows, as a 2-byte BIG-ENDIAN unsigned integer. A P-256 SubjectPublicKeyInfo is about 91 bytes - beyond a single-byte prefix. Decoder validates against CONSTRAINT_MAX_EPH_PUB_LENGTH before allocating. Offset is variable - comes immediately after RECIPIENT_KID.</summary>
     /// <remarks>Kind: <c>byte_fixed</c>. Offset value <c>-1</c> (-1 = variable).</remarks>
     public const int EPH_PUB_LENGTH_OFFSET = -1;
 
-    /// <summary>EPH_PUB_LENGTH byte length. Byte count of the ephemeral public key that follows, as a 2-byte BIG-ENDIAN unsigned integer. A P-256 SubjectPublicKeyInfo is ~91 bytes — beyond a single-byte prefix. Decoder validates against CONSTRAINT_MAX_EPH_PUB_LENGTH before allocating. Offset is variable — comes immediately after RECIPIENT_KID.</summary>
+    /// <summary>EPH_PUB_LENGTH byte length. Byte count of the ephemeral public key that follows, as a 2-byte BIG-ENDIAN unsigned integer. A P-256 SubjectPublicKeyInfo is about 91 bytes - beyond a single-byte prefix. Decoder validates against CONSTRAINT_MAX_EPH_PUB_LENGTH before allocating. Offset is variable - comes immediately after RECIPIENT_KID.</summary>
     /// <remarks>Kind: <c>byte_fixed</c>. Length value <c>2</c> (-1 = variable).</remarks>
     public const int EPH_PUB_LENGTH_LENGTH = 2;
 
-    /// <summary>EPH_PUB byte offset from frame start. The per-message ephemeral P-256 public key as SubjectPublicKeyInfo DER bytes. Raw binary (not UTF-8); length declared by the preceding EPH_PUB_LENGTH big-endian prefix. Wire-public by design — publishing the ephemeral public half is how ECDH-ES works; only the recipient's static private key can combine with it to derive the content-encryption key.</summary>
+    /// <summary>EPH_PUB byte offset from frame start. The per-message ephemeral P-256 public key as SubjectPublicKeyInfo DER bytes. Raw binary (not UTF-8); length declared by the preceding EPH_PUB_LENGTH big-endian prefix. Wire-public by design - publishing the ephemeral public half is how ECDH-ES works; only the recipient's static private key can combine with it to derive the content-encryption key.</summary>
     /// <remarks>Kind: <c>variable_binary_u16be</c>. Offset value <c>-1</c> (-1 = variable).</remarks>
     public const int EPH_PUB_OFFSET = -1;
 
-    /// <summary>EPH_PUB byte length. The per-message ephemeral P-256 public key as SubjectPublicKeyInfo DER bytes. Raw binary (not UTF-8); length declared by the preceding EPH_PUB_LENGTH big-endian prefix. Wire-public by design — publishing the ephemeral public half is how ECDH-ES works; only the recipient's static private key can combine with it to derive the content-encryption key.</summary>
+    /// <summary>EPH_PUB byte length. The per-message ephemeral P-256 public key as SubjectPublicKeyInfo DER bytes. Raw binary (not UTF-8); length declared by the preceding EPH_PUB_LENGTH big-endian prefix. Wire-public by design - publishing the ephemeral public half is how ECDH-ES works; only the recipient's static private key can combine with it to derive the content-encryption key.</summary>
     /// <remarks>Kind: <c>variable_binary_u16be</c>. Length value <c>-1</c> (-1 = variable).</remarks>
     public const int EPH_PUB_LENGTH = -1;
 
-    /// <summary>NONCE byte offset from frame start. AES-GCM nonce. Fixed 12 bytes (GCM-spec). Offset is variable — comes immediately after EPH_PUB. Generated fresh per seal; the content-encryption key is itself fresh per message, so nonce reuse across messages is structurally impossible.</summary>
+    /// <summary>NONCE byte offset from frame start. AES-GCM nonce. Fixed 12 bytes (GCM-spec). Offset is variable - comes immediately after EPH_PUB. Generated fresh per seal; the content-encryption key is itself fresh per message, so nonce reuse across messages is structurally impossible.</summary>
     /// <remarks>Kind: <c>byte_fixed</c>. Offset value <c>-1</c> (-1 = variable).</remarks>
     public const int NONCE_OFFSET = -1;
 
-    /// <summary>NONCE byte length. AES-GCM nonce. Fixed 12 bytes (GCM-spec). Offset is variable — comes immediately after EPH_PUB. Generated fresh per seal; the content-encryption key is itself fresh per message, so nonce reuse across messages is structurally impossible.</summary>
+    /// <summary>NONCE byte length. AES-GCM nonce. Fixed 12 bytes (GCM-spec). Offset is variable - comes immediately after EPH_PUB. Generated fresh per seal; the content-encryption key is itself fresh per message, so nonce reuse across messages is structurally impossible.</summary>
     /// <remarks>Kind: <c>byte_fixed</c>. Length value <c>12</c> (-1 = variable).</remarks>
     public const int NONCE_LENGTH = 12;
 
@@ -84,7 +84,7 @@ public static class SealedFrameLayout
     public const int CONSTRAINT_MAX_KID_LENGTH = 64;
     /// <summary>Byte width of the big-endian length prefix in front of the ephemeral public key (uint16).</summary>
     public const int CONSTRAINT_EPH_PUB_LENGTH_PREFIX_SIZE = 2;
-    /// <summary>Upper cap on the declared ephemeral-public-key length (allocation guard — a P-256 SubjectPublicKeyInfo is ~91 bytes).</summary>
+    /// <summary>Upper cap on the declared ephemeral-public-key length (allocation guard - a P-256 SubjectPublicKeyInfo is ~91 bytes).</summary>
     public const int CONSTRAINT_MAX_EPH_PUB_LENGTH = 256;
     /// <summary>AES-GCM nonce length in bytes (= NONCE_LENGTH; the prefix disambiguates from the per-field NONCE_LENGTH constant).</summary>
     public const int CONSTRAINT_NONCE_LENGTH = 12;

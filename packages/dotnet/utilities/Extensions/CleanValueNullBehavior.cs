@@ -7,18 +7,18 @@
 namespace DcsvIo.D2.Utilities.Extensions;
 
 /// <summary>
-/// Behavior options controlling how <see cref="EnumerableExtensions"/> handles
-/// a null value produced by the cleaner function.
+/// Selects what <see cref="EnumerableExtensions"/> does when the cleaner
+/// function returns null for an element.
 /// </summary>
 public enum CleanValueNullBehavior
 {
     /// <summary>
-    /// Skip null values (default).
+    /// Skips elements for which the cleaner returns null. This is the default.
     /// </summary>
     RemoveNulls,
 
     /// <summary>
-    /// Throw an <see cref="InvalidOperationException"/> when the cleaner
+    /// Throws an <see cref="InvalidOperationException"/> when the cleaner
     /// returns null for any element.
     /// </summary>
     ThrowOnNull,

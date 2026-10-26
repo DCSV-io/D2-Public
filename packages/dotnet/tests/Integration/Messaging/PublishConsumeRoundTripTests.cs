@@ -12,26 +12,21 @@ using DcsvIo.D2.Handler;
 using DcsvIo.D2.Messaging;
 using DcsvIo.D2.Messaging.RabbitMq;
 using DcsvIo.D2.Result;
+using DcsvIo.D2.Tests.Integration.Messaging.Fixtures;
 using DcsvIo.D2.Utilities.Extensions;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Xunit;
 
 [Collection("RabbitMq")]
 public sealed class PublishConsumeRoundTripTests
 {
-    // Genuine-stuck guard for the async-delivery waits below: a poll-ATTEMPT
-    // budget, never a wall-clock deadline. The prior flake was a DateTime.UtcNow
-    // deadline in the success path — xUnit runs the RabbitMq collection in parallel
-    // with the Unit-test collections, and under that thread-pool saturation the wall
-    // clock elapsed while the starved pool deferred the handler-dispatch continuation
-    // and the broker's async dead-lettering, tripping the deadline mid-progress. An
-    // attempt budget caps the number of polls, not elapsed time: each iteration
-    // awaits pollInterval, so under load the effective wait GROWS with the slowdown
-    // instead of expiring. At 50 ms/attempt this floor is ~2 min of real progress —
-    // far above any healthy delivery (which resolves in well under a second, <20
-    // attempts), so it is never load-reachable, yet a permanently-stuck test still
-    // terminates (this project ships no xunit.runner.json / framework test timeout).
+    // Stuck-guard for the async-delivery waits below: a poll-ATTEMPT budget, not
+    // a wall-clock deadline. Each iteration awaits pollInterval, so a slow machine
+    // lengthens the wait instead of expiring it mid-progress. A healthy delivery
+    // resolves in well under a second; exhausting this budget means the message is
+    // not arriving at all, so raise the budget only after establishing that the
+    // delivery is slow rather than absent. The budget is also what terminates a
+    // permanently stuck test - this project ships no framework test timeout.
     private const int _POLL_ATTEMPT_BUDGET = 2400;
 
     private readonly RabbitMqFixture r_fixture;
@@ -48,7 +43,7 @@ public sealed class PublishConsumeRoundTripTests
         TestCollector.Reset<AuditCapturingHandler>();
         var queue = "rt.audit." + Guid.NewGuid().ToString("N")[..8];
 
-        using var host = await StartHostAsync(services =>
+        await using var host = await StartHostAsync(services =>
         {
             services.AddTransient<AuditCapturingHandler>();
             services.AddD2Subscriber<AuditCapturingHandler, IntegrationAuditEvent>(
@@ -81,7 +76,7 @@ public sealed class PublishConsumeRoundTripTests
         TestCollector.Reset<PlaintextCapturingHandler>();
         var queue = "rt.plain." + Guid.NewGuid().ToString("N")[..8];
 
-        using var host = await StartHostAsync(services =>
+        await using var host = await StartHostAsync(services =>
         {
             services.AddTransient<PlaintextCapturingHandler>();
             services.AddD2Subscriber<PlaintextCapturingHandler, IntegrationPlaintextEvent>(
@@ -99,9 +94,9 @@ public sealed class PublishConsumeRoundTripTests
             publish.Failed.Should().BeFalse();
         }
 
-        // Filter by this test's marker so late/straggler deliveries (if any
-        // future suite reuses the handler type) cannot inflate Count while
-        // the expected payload is still missing — and so a timeout reports
+        // Filter by this test's marker so late/straggler deliveries from other
+        // tests that use the same handler type cannot inflate Count while
+        // the expected payload is still missing - and so a timeout reports
         // marker + collector state rather than a bare poll budget.
         await WaitFor(
             () => TestCollector
@@ -131,7 +126,7 @@ public sealed class PublishConsumeRoundTripTests
         var queueA = "rt.crossA." + Guid.NewGuid().ToString("N")[..8];
         var queueB = "rt.crossB." + Guid.NewGuid().ToString("N")[..8];
 
-        using var host = await StartHostAsync(services =>
+        await using var host = await StartHostAsync(services =>
         {
             services.AddTransient<MultiSubA>();
             services.AddTransient<MultiSubB>();
@@ -178,7 +173,7 @@ public sealed class PublishConsumeRoundTripTests
             .Select(i => $"m-{i}")
             .ToHashSet(StringComparer.Ordinal);
 
-        using var host = await StartHostAsync(services =>
+        await using var host = await StartHostAsync(services =>
         {
             services.AddTransient<AuditCapturingHandler>();
             services.AddD2Subscriber<AuditCapturingHandler, IntegrationAuditEvent>(
@@ -233,9 +228,10 @@ public sealed class PublishConsumeRoundTripTests
     {
         // traceparent propagation: producer-side publish span sets traceparent
         // on the AMQP message, consumer-side OnReceivedAsync starts a Consumer
-        // span whose parent is the publish span (same TraceId, SpanId == publish
-        // SpanId). Without trace propagation the consume span would either not
-        // exist or start a fresh trace.
+        // span whose parent is the publish span (same TraceId; the test asserts
+        // that the parent SpanId is set). Without
+        // trace propagation the consume span would either not exist or start a
+        // fresh trace.
         TestCollector.Reset<AuditCapturingHandler>();
         var queue = "rt.trace." + Guid.NewGuid().ToString("N")[..8];
 
@@ -253,7 +249,7 @@ public sealed class PublishConsumeRoundTripTests
         };
         ActivitySource.AddActivityListener(listener);
 
-        using var host = await StartHostAsync(services =>
+        await using var host = await StartHostAsync(services =>
         {
             services.AddTransient<AuditCapturingHandler>();
             services.AddD2Subscriber<AuditCapturingHandler, IntegrationAuditEvent>(
@@ -302,17 +298,18 @@ public sealed class PublishConsumeRoundTripTests
     [Trait("Category", "Integration")]
     public async Task MessagingOperationType_PublisherEmitsPublishValue_ConsumerEmitsReceiveValue()
     {
-        // §21.10 runtime-emission pin: the OTel canonical
-        // MESSAGING_OPERATION_TYPE attribute carries the value
+        // Runtime-emission pin: the OTel canonical
+        // MESSAGING_OPERATION_TYPE attribute has the value
         // "publish" on producer spans and "receive" on consumer spans.
         // Spec-driving the attribute NAME (MessagingActivityTags catalog)
         // closes the name-level drift surface; this test closes the
-        // value-level drift surface — a refactor renaming the publisher's
+        // value-level drift surface - a refactor renaming the publisher's
         // emission from "publish" to "send" would NOT fail any
         // name-only test, but breaks downstream dashboards / alert
-        // filters. The two values are enumerated in the spec catalog at
-        // contracts/otel-messaging-tags/otel-messaging-tags.spec.json
-        // doc text; this runtime pin asserts the production emit sites
+        // filters. The values "publish" and "receive" are in the doc text of
+        // the spec catalog at
+        // contracts/otel-messaging-tags/otel-messaging-tags.spec.json;
+        // this runtime pin asserts the production emit sites
         // ship those literal values.
         TestCollector.Reset<AuditCapturingHandler>();
         var queue = "rt.op-type." + Guid.NewGuid().ToString("N")[..8];
@@ -328,7 +325,7 @@ public sealed class PublishConsumeRoundTripTests
         };
         ActivitySource.AddActivityListener(listener);
 
-        using var host = await StartHostAsync(services =>
+        await using var host = await StartHostAsync(services =>
         {
             services.AddTransient<AuditCapturingHandler>();
             services.AddD2Subscriber<AuditCapturingHandler, IntegrationAuditEvent>(
@@ -374,7 +371,7 @@ public sealed class PublishConsumeRoundTripTests
                 "consumer emit site must ship the literal value \"receive\"");
     }
 
-    // Attempt-budgeted stuck-guard — see _POLL_ATTEMPT_BUDGET; no wall-clock deadline.
+    // Attempt-budgeted stuck-guard - see _POLL_ATTEMPT_BUDGET; no wall-clock deadline.
     private static async Task WaitFor(
         Func<bool> predicate,
         TimeSpan? pollInterval = null,
@@ -393,7 +390,7 @@ public sealed class PublishConsumeRoundTripTests
             + (extra.Falsey() ? string.Empty : " " + extra));
     }
 
-    private async Task<IHost> StartHostAsync(Action<IServiceCollection> configure)
+    private async Task<MessagingTestHost> StartHostAsync(Action<IServiceCollection> configure)
         => await MessagingHostBuilder.BuildAndStartAsync(r_fixture, configure);
 
     /// <summary>Distinct subscriber A for cross-talk testing.</summary>

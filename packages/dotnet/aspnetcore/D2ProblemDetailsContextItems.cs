@@ -16,20 +16,18 @@ namespace DcsvIo.D2.AspNetCore;
 /// RFC 7807 Shape A body D2Result-derived fields (<c>Type</c> + <c>Title</c>
 /// + <c>Status</c> + <c>Extensions[d2_error_code]</c> +
 /// <c>Extensions[d2_messages]</c> + <c>Extensions[d2_input_errors]</c>) from
-/// spec-derived constants — keeping path A
-/// (<c>D2ProblemDetailsExtensions.ToProblemDetails</c> in
-/// <c>DcsvIo.D2.Auth.Http</c>) and path B byte-identical. <c>Instance</c>
+/// spec-derived constants - keeping the auth-middleware emit path (path A)
+/// and path B byte-identical. <c>Instance</c>
 /// and the <c>traceId</c> / <c>correlationId</c> extensions are populated
 /// unconditionally (regardless of whether a <see cref="D2_RESULT"/> is
 /// stashed) so the raw-exception path still surfaces correlation metadata.
 /// </summary>
 /// <remarks>
-/// In-process slot keys are intentionally not cross-language wire formats —
+/// In-process slot keys are intentionally not cross-language wire formats -
 /// they're .NET-internal HttpContext machinery. The constant lives here
 /// (not in the cross-binding <c>in-process-keys</c> spec) because it's
 /// HTTP-only AND aspnetcore-customizer-internal. Keeping it local avoids
-/// pulling auth-abstractions transitive deps into aspnetcore consumers who
-/// don't already need them.
+/// adding auth-abstractions transitive dependencies to this library.
 /// </remarks>
 public static class D2ProblemDetailsContextItems
 {
@@ -38,9 +36,8 @@ public static class D2ProblemDetailsContextItems
     /// originating <see cref="DcsvIo.D2.Result.D2Result"/> failure so the
     /// <c>D2ProblemDetailsCustomizer</c> can populate the RFC 7807
     /// ProblemDetails body from spec-derived constants. Double-underscore
-    /// prefix marks the key as framework-internal (consumers should never
-    /// reference this key directly — populate via the
-    /// <c>SetD2Result</c> extension wrapper).
+    /// prefix marks the key as framework-internal (reference this key only
+    /// through the <c>SetD2Result</c> extension wrapper).
     /// </summary>
     public const string D2_RESULT = "__d2_result";
 }

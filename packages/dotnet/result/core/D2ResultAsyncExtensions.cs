@@ -10,11 +10,11 @@ namespace DcsvIo.D2.Result;
 // C# 14 `extension(T target) { ... }` block form. The block form fails for these methods due
 // to two real C# 14 compiler limitations:
 //   - CS1061 extension-resolution failure on nested generic receivers like
-//     `ValueTask<D2Result<TData>>` — the new block form does not currently resolve the
+//     `ValueTask<D2Result<TData>>` - the new block form does not currently resolve the
 //     extension when the receiver type itself is a closed generic wrapping another generic.
 //   - CA2012 "ValueTask awaited multiple times" false-positives on fluent chains
 //     `seed.BindAsync(...).BindAsync(...)` when expressed via the block form.
-// Migration is deferred until C# 15+ resolves the underlying compiler limitations OR until the
+// Migration is deferred until C# 15+ resolves the underlying compiler limitations or until the
 // fluent async extension pattern is refactored away.
 
 /// <summary>
@@ -23,7 +23,7 @@ namespace DcsvIo.D2.Result;
 /// asynchronous handler calls without intermediate <c>await</c>s in the call site.
 /// <para>
 /// All chaining operators are <b>short-circuiting</b>: if the awaited upstream result
-/// is a failure, the continuation is NOT invoked — the failure propagates via
+/// is a failure, the continuation is not invoked - the failure propagates via
 /// <see cref="D2Result{TData}.BubbleFail"/>.
 /// </para>
 /// </summary>
@@ -145,7 +145,7 @@ public static class D2ResultAsyncExtensions
     /// <summary>
     /// Same-shape async chain: awaits the upstream, then on success awaits
     /// <paramref name="next"/> which produces a result of the same payload type. Sugar
-    /// for <c>BindAsync</c> when <c>TData == TNext</c> — useful when state evolves
+    /// for <c>BindAsync</c> when <c>TData == TNext</c> - useful when state evolves
     /// step-to-step within a single payload type.
     /// </summary>
     ///

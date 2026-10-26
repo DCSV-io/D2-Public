@@ -11,7 +11,7 @@ using DcsvIo.D2.Auth.Audiences.SourceGen;
 using Xunit;
 
 /// <summary>
-/// Adversarial coverage for <see cref="AudiencesEmitter.Emit"/> — the pure-logic
+/// Adversarial coverage for <see cref="AudiencesEmitter.Emit"/> - the pure-logic
 /// half of the audiences source generator. Covers semantic validation
 /// (D2AUD002 / D2AUD003 / D2AUD004 / D2AUD005) and emission shape.
 /// </summary>
@@ -26,8 +26,8 @@ public sealed class AudiencesEmitterTests
     {
         var spec = new AudiencesSpec(
         [
-            Audience("Files", "https://files.internal", "Files service."),
-            Audience("Notifications", "https://notifications.internal", "Notifs service."),
+            Audience("Catalog", "https://catalog.example.internal", "Catalog service."),
+            Audience("Shipping", "https://shipping.example.internal", "Shipping service."),
         ]);
 
         var result = AudiencesEmitter.Emit(spec);
@@ -35,9 +35,9 @@ public sealed class AudiencesEmitterTests
         result.Diagnostics.Should().BeEmpty();
         result.GeneratedSource.Should().Contain("public static partial class Audiences");
         result.GeneratedSource.Should().Contain(
-            "public const string Files = \"https://files.internal\";");
+            "public const string Catalog = \"https://catalog.example.internal\";");
         result.GeneratedSource.Should().Contain(
-            "public const string Notifications = \"https://notifications.internal\";");
+            "public const string Shipping = \"https://shipping.example.internal\";");
     }
 
     [Fact]
@@ -67,12 +67,12 @@ public sealed class AudiencesEmitterTests
     {
         var spec = new AudiencesSpec(
         [
-            Audience("Files", "https://files.internal", "D2 Files service — blob CRUD."),
+            Audience("Catalog", "https://catalog.example.internal", "Catalog listings."),
         ]);
 
         var result = AudiencesEmitter.Emit(spec);
 
-        result.GeneratedSource.Should().Contain("/// D2 Files service — blob CRUD.");
+        result.GeneratedSource.Should().Contain("/// Catalog listings.");
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public sealed class AudiencesEmitterTests
     {
         var spec = new AudiencesSpec(
         [
-            Audience("Files", "https://files.internal"),
+            Audience("Catalog", "https://catalog.example.internal"),
         ]);
 
         var result = AudiencesEmitter.Emit(spec);
@@ -88,7 +88,7 @@ public sealed class AudiencesEmitterTests
         result.Diagnostics.Should().BeEmpty();
 
         // When description is null, the URL becomes the doc body.
-        result.GeneratedSource.Should().Contain("/// https://files.internal");
+        result.GeneratedSource.Should().Contain("/// https://catalog.example.internal");
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public sealed class AudiencesEmitterTests
     {
         var spec = new AudiencesSpec(
         [
-            Audience("Files", "https://files.internal", "A & B <crash> service."),
+            Audience("Catalog", "https://catalog.example.internal", "A & B <crash> service."),
         ]);
 
         var result = AudiencesEmitter.Emit(spec);
@@ -112,7 +112,7 @@ public sealed class AudiencesEmitterTests
     [Fact]
     public void Emit_EmitsHelperFunctions()
     {
-        var spec = new AudiencesSpec([Audience("Files", "https://files.internal")]);
+        var spec = new AudiencesSpec([Audience("Catalog", "https://catalog.example.internal")]);
 
         var result = AudiencesEmitter.Emit(spec);
 
@@ -129,30 +129,30 @@ public sealed class AudiencesEmitterTests
     {
         var spec = new AudiencesSpec(
         [
-            Audience("Files", "https://files.internal"),
-            Audience("Notifications", "https://notifications.internal"),
+            Audience("Catalog", "https://catalog.example.internal"),
+            Audience("Shipping", "https://shipping.example.internal"),
         ]);
 
         var result = AudiencesEmitter.Emit(spec);
 
         var src = result.GeneratedSource;
         src.Should().Contain("private static readonly HashSet<string> sr_allUrls");
-        src.Should().Contain("\"https://files.internal\"");
-        src.Should().Contain("\"https://notifications.internal\"");
+        src.Should().Contain("\"https://catalog.example.internal\"");
+        src.Should().Contain("\"https://shipping.example.internal\"");
         src.Should().Contain("private static readonly Dictionary<string, string> sr_byName");
-        src.Should().Contain("[\"Files\"] = \"https://files.internal\"");
+        src.Should().Contain("[\"Catalog\"] = \"https://catalog.example.internal\"");
         src.Should().Contain("private static readonly Dictionary<string, string> sr_byUrl");
-        src.Should().Contain("[\"https://files.internal\"] = \"Files\"");
+        src.Should().Contain("[\"https://catalog.example.internal\"] = \"Catalog\"");
     }
 
     // ----------------------------------------------------------------------
-    // D2AUD002 — invalid audience name
+    // D2AUD002 - invalid audience name
     // ----------------------------------------------------------------------
 
     [Theory]
-    [InlineData("files")] // lowercase first letter
-    [InlineData("123Files")] // starts with digit
-    [InlineData("_Files")] // underscore
+    [InlineData("catalog")] // lowercase first letter
+    [InlineData("123Catalog")] // starts with digit
+    [InlineData("_Catalog")] // underscore
     [InlineData("My-Service")] // hyphen
     [InlineData("My.Service")] // dot
     [InlineData("My Service")] // space
@@ -166,14 +166,14 @@ public sealed class AudiencesEmitterTests
         result.Diagnostics.Should().ContainSingle(
             d => d.DescriptorId == DiagnosticIds.InvalidAudienceName);
 
-        // Anchor on the leading-4-space indent so we don't false-positive on
-        // the class-level XML docstring that mentions "public const string".
+        // Anchor on the leading 4-space indent so that the check does not match
+        // the class-level XML doc comment, which mentions "public const string".
         result.GeneratedSource.Should().NotContain($"    public const string {badName} = ");
     }
 
     [Theory]
-    [InlineData("Files")] // canonical
-    [InlineData("FilesV2")] // digits in middle / end
+    [InlineData("Catalog")] // canonical
+    [InlineData("CatalogV2")] // digits in middle / end
     [InlineData("ABC123")] // all-uppercase + digits
     [InlineData("X")] // single letter
     public void Emit_ValidName_EmitsConstant(string goodName)
@@ -187,7 +187,7 @@ public sealed class AudiencesEmitterTests
     }
 
     // ----------------------------------------------------------------------
-    // D2AUD003 — duplicate audience name
+    // D2AUD003 - duplicate audience name
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -195,8 +195,8 @@ public sealed class AudiencesEmitterTests
     {
         var spec = new AudiencesSpec(
         [
-            Audience("Files", "https://files.internal"),
-            Audience("Files", "https://files-v2.internal"),
+            Audience("Catalog", "https://catalog.example.internal"),
+            Audience("Catalog", "https://catalog-v2.example.internal"),
         ]);
 
         var result = AudiencesEmitter.Emit(spec);
@@ -204,14 +204,14 @@ public sealed class AudiencesEmitterTests
         result.Diagnostics.Should().ContainSingle(
             d => d.DescriptorId == DiagnosticIds.DuplicateAudienceName);
 
-        // Only the FIRST mapping survives.
+        // Only the first mapping survives.
         result.GeneratedSource.Should().Contain(
-            "public const string Files = \"https://files.internal\";");
-        result.GeneratedSource.Should().NotContain("https://files-v2.internal");
+            "public const string Catalog = \"https://catalog.example.internal\";");
+        result.GeneratedSource.Should().NotContain("https://catalog-v2.example.internal");
     }
 
     // ----------------------------------------------------------------------
-    // D2AUD004 — duplicate audience URL
+    // D2AUD004 - duplicate audience URL
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -219,8 +219,8 @@ public sealed class AudiencesEmitterTests
     {
         var spec = new AudiencesSpec(
         [
-            Audience("Files", "https://shared.internal"),
-            Audience("Files2", "https://shared.internal"),
+            Audience("Catalog", "https://shared.internal"),
+            Audience("Catalog2", "https://shared.internal"),
         ]);
 
         var result = AudiencesEmitter.Emit(spec);
@@ -228,8 +228,8 @@ public sealed class AudiencesEmitterTests
         result.Diagnostics.Should().ContainSingle(
             d => d.DescriptorId == DiagnosticIds.DuplicateAudienceUrl);
         result.GeneratedSource.Should().Contain(
-            "public const string Files = \"https://shared.internal\";");
-        result.GeneratedSource.Should().NotContain("public const string Files2");
+            "public const string Catalog = \"https://shared.internal\";");
+        result.GeneratedSource.Should().NotContain("public const string Catalog2");
     }
 
     [Fact]
@@ -237,52 +237,52 @@ public sealed class AudiencesEmitterTests
     {
         var spec = new AudiencesSpec(
         [
-            Audience("Files", "https://shared.internal"),
-            Audience("FilesAlias", "https://shared.internal"),
+            Audience("Catalog", "https://shared.internal"),
+            Audience("CatalogAlias", "https://shared.internal"),
         ]);
 
         var result = AudiencesEmitter.Emit(spec);
 
         var dupe = result.Diagnostics.Single(
             d => d.DescriptorId == DiagnosticIds.DuplicateAudienceUrl);
-        dupe.Args[0].Should().Be("Files");
-        dupe.Args[1].Should().Be("FilesAlias");
+        dupe.Args[0].Should().Be("Catalog");
+        dupe.Args[1].Should().Be("CatalogAlias");
         dupe.Args[2].Should().Be("https://shared.internal");
     }
 
     // ----------------------------------------------------------------------
-    // D2AUD005 — invalid URL
+    // D2AUD005 - invalid URL
     // ----------------------------------------------------------------------
 
     [Theory]
     [InlineData("not a url")]
     [InlineData("/relative/path")] // not absolute
-    [InlineData("files.internal")] // missing scheme
+    [InlineData("catalog.example.internal")] // missing scheme
     [InlineData("")] // empty
     public void Emit_InvalidUrl_EmitsD2AUD005(string badUrl)
     {
-        var spec = new AudiencesSpec([Audience("Files", badUrl)]);
+        var spec = new AudiencesSpec([Audience("Catalog", badUrl)]);
 
         var result = AudiencesEmitter.Emit(spec);
 
         result.Diagnostics.Should().ContainSingle(
             d => d.DescriptorId == DiagnosticIds.InvalidAudienceUrl);
-        result.GeneratedSource.Should().NotContain("public const string Files = ");
+        result.GeneratedSource.Should().NotContain("public const string Catalog = ");
     }
 
     [Theory]
-    [InlineData("https://files.internal")]
-    [InlineData("https://files.internal/api/v1")]
+    [InlineData("https://catalog.example.internal")]
+    [InlineData("https://catalog.example.internal/api/v1")]
     [InlineData("http://localhost:5000")]
-    [InlineData("https://files.internal:8443/path?q=1")]
+    [InlineData("https://catalog.example.internal:8443/path?q=1")]
     public void Emit_ValidAbsoluteUrl_EmitsConstant(string goodUrl)
     {
-        var spec = new AudiencesSpec([Audience("Files", goodUrl)]);
+        var spec = new AudiencesSpec([Audience("Catalog", goodUrl)]);
 
         var result = AudiencesEmitter.Emit(spec);
 
         result.Diagnostics.Should().BeEmpty();
-        result.GeneratedSource.Should().Contain($"public const string Files = \"{goodUrl}\";");
+        result.GeneratedSource.Should().Contain($"public const string Catalog = \"{goodUrl}\";");
     }
 
     // ----------------------------------------------------------------------
@@ -302,8 +302,9 @@ public sealed class AudiencesEmitterTests
         // Helpers still emitted (with empty backing collections).
         result.GeneratedSource.Should().Contain("public static bool IsKnown(string audience)");
 
-        // Anchor on the 4-space indent so we don't match the class-level XML
-        // docstring that mentions "public const string {Name} = ...".
+        // Anchor on the 4-space indent so that the check does not match the
+        // class-level XML doc comment, which mentions
+        // "public const string {Name} = ...".
         result.GeneratedSource.Should().NotContain("    public const string ");
     }
 
@@ -316,17 +317,17 @@ public sealed class AudiencesEmitterTests
     {
         var spec = new AudiencesSpec(
         [
-            Audience("Files", "https://files.internal"),
+            Audience("Catalog", "https://catalog.example.internal"),
             Audience("bad-name", "https://x.internal"),
-            Audience("Notifications", "https://notifications.internal"),
+            Audience("Shipping", "https://shipping.example.internal"),
         ]);
 
         var result = AudiencesEmitter.Emit(spec);
 
         result.Diagnostics.Should().HaveCount(1);
         result.Diagnostics[0].DescriptorId.Should().Be(DiagnosticIds.InvalidAudienceName);
-        result.GeneratedSource.Should().Contain("public const string Files = ");
-        result.GeneratedSource.Should().Contain("public const string Notifications = ");
+        result.GeneratedSource.Should().Contain("public const string Catalog = ");
+        result.GeneratedSource.Should().Contain("public const string Shipping = ");
     }
 
     private static AudienceEntry Audience(string name, string url, string? description = null) =>

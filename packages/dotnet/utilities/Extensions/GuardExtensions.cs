@@ -17,27 +17,26 @@ using System.Runtime.CompilerServices;
 /// <see cref="Guid.Empty"/>).
 /// </summary>
 /// <remarks>
-/// These are programming-error fail-fast guards, not user-facing validation.
-/// They throw plain BCL exceptions (not <c>D2Result</c>, not TK messages)
-/// because a null-or-falsey required argument is a developer contract violation
-/// surfaced at the earliest possible point. The
+/// These guards fail fast on programming errors and are not user-facing
+/// validation. They throw plain BCL exceptions (not <c>D2Result</c>, not TK
+/// messages) because a null or falsey required argument is a developer contract
+/// violation, reported at the earliest possible point. The
 /// <see cref="System.Diagnostics.CodeAnalysis.NotNullAttribute"/> post-condition
-/// means callers can use the value directly after the call without a null-forgiving
+/// lets callers use the value directly after the call without a null-forgiving
 /// <c>!</c> operator.
 /// <para>
 /// The null branch produces <see cref="ArgumentNullException"/> with the standard
 /// BCL message <c>"Value cannot be null. (Parameter 'x')"</c>. The
 /// present-but-falsey branch produces <see cref="ArgumentException"/> with a
-/// developer-readable message naming the violation.
+/// developer-readable message that states the violation.
 /// </para>
 /// <para>
-/// Parameter names are auto-captured via
-/// <see cref="CallerArgumentExpressionAttribute"/> — never pass the
-/// <c>paramName</c> argument manually.
+/// <see cref="CallerArgumentExpressionAttribute"/> captures the parameter name
+/// automatically, so callers never pass the <c>paramName</c> argument.
 /// </para>
 /// <para>
 /// Plain reference types (DI services, loggers, options, contexts) have no
-/// present-but-falsey semantics beyond <see langword="null"/>; use
+/// present-but-falsey semantics beyond <see langword="null"/>. Use
 /// <see cref="ArgumentNullException.ThrowIfNull(object, string)"/> for those.
 /// </para>
 /// </remarks>
@@ -51,7 +50,7 @@ public static class GuardExtensions
         /// empty or contains only whitespace.
         /// </summary>
         /// <param name="paramName">
-        /// Auto-captured caller expression — do not supply manually.
+        /// Captured automatically from the caller's expression. Do not supply it.
         /// </param>
         /// <exception cref="ArgumentNullException">
         /// Thrown when the receiver is <see langword="null"/>.
@@ -78,7 +77,7 @@ public static class GuardExtensions
         /// collection contains zero elements.
         /// </summary>
         /// <param name="paramName">
-        /// Auto-captured caller expression — do not supply manually.
+        /// Captured automatically from the caller's expression. Do not supply it.
         /// </param>
         /// <exception cref="ArgumentNullException">
         /// Thrown when the receiver is <see langword="null"/>.
@@ -105,7 +104,7 @@ public static class GuardExtensions
         /// equals <see cref="Guid.Empty"/>.
         /// </summary>
         /// <param name="paramName">
-        /// Auto-captured caller expression — do not supply manually.
+        /// Captured automatically from the caller's expression. Do not supply it.
         /// </param>
         /// <exception cref="ArgumentNullException">
         /// Thrown when the receiver is <see langword="null"/>.
@@ -131,7 +130,7 @@ public static class GuardExtensions
         /// equals <see cref="Guid.Empty"/>.
         /// </summary>
         /// <param name="paramName">
-        /// Auto-captured caller expression — do not supply manually.
+        /// Captured automatically from the caller's expression. Do not supply it.
         /// </param>
         /// <exception cref="ArgumentException">
         /// Thrown when the receiver equals <see cref="Guid.Empty"/>.

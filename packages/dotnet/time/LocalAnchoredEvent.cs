@@ -20,7 +20,7 @@ using NodaTime.TimeZones;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Category 3 — Future local-anchored event.</b><br />
+/// <b>Category 3 - Future local-anchored event.</b><br />
 /// Storage: <c>scheduled_local TIMESTAMP</c> (from
 /// <see cref="ScheduledLocal" />) + <c>scheduled_zone TEXT</c> (from
 /// <see cref="IANAIdentifier" />) + <c>next_fire_utc TIMESTAMPTZ NULL</c>
@@ -29,7 +29,7 @@ using NodaTime.TimeZones;
 /// </para>
 /// <para>
 /// <b>DST ambiguity</b>: <see cref="ComputeNextFire"/> encapsulates the
-/// resolver strategy — callers must use it rather than hand-rolling
+/// resolver strategy - callers must use it rather than hand-rolling
 /// <c>ScheduledLocal.InZone(...)</c> calls. Recompute
 /// <see cref="NextFireUtc" /> when the tzdb updates or the scheduling
 /// parameters change.
@@ -38,7 +38,7 @@ using NodaTime.TimeZones;
 /// <b>Construction</b>: smart-constructor pattern via the static
 /// <see cref="Create"/> factory. The private positional constructor enforces
 /// IANA validation + canonicalization at the entry point.
-/// <see cref="ScheduledLocal"/> validation lives upstream — NodaTime's
+/// <see cref="ScheduledLocal"/> validation lives upstream - NodaTime's
 /// <see cref="LocalDateTime"/> constructor itself throws
 /// <see cref="System.ArgumentOutOfRangeException"/> for impossible calendar
 /// dates (Feb 30, April 31, Feb 29 in non-leap years, year out of NodaTime
@@ -46,11 +46,10 @@ using NodaTime.TimeZones;
 /// </para>
 /// <para>
 /// <b>JSON serialization</b>: the private constructor makes this type
-/// incompatible with default <c>System.Text.Json</c> deserialization. v2
-/// D2 persists this type via Npgsql.NodaTime EF Core (column-based,
-/// not JSON), and no current consumer round-trips it through JSON. If a
-/// future consumer needs JSON support, that consumer writes a
-/// <c>JsonConverter&lt;LocalAnchoredEvent&gt;</c> that calls
+/// incompatible with default <c>System.Text.Json</c> deserialization. D2
+/// persists this type via Npgsql.NodaTime EF Core (column-based, not
+/// JSON), and nothing round-trips it through JSON. A
+/// <c>JsonConverter&lt;LocalAnchoredEvent&gt;</c> must call
 /// <see cref="Create"/> rather than bypassing it.
 /// </para>
 /// </remarks>
@@ -68,12 +67,12 @@ public sealed record LocalAnchoredEvent
 
     /// <summary>
     /// Gets the scheduled local date-time (wall-clock, no zone attached).
-    /// <b>Category 3 — Future local-anchored.</b> Meaningless without
+    /// <b>Category 3 - Future local-anchored.</b> Meaningless without
     /// <see cref="IANAIdentifier" />. The caller is responsible for
     /// constructing a valid <see cref="LocalDateTime"/>; NodaTime's
     /// <c>LocalDateTime</c> constructor itself throws
     /// <see cref="System.ArgumentOutOfRangeException"/> for impossible dates
-    /// — those throws happen at the call site BEFORE <see cref="Create"/>
+    /// - those throws happen at the call site before <see cref="Create"/>
     /// is invoked.
     /// </summary>
     public LocalDateTime ScheduledLocal { get; }
@@ -88,7 +87,7 @@ public sealed record LocalAnchoredEvent
     /// <summary>
     /// Gets the denormalized UTC instant of the next scheduled firing, or
     /// <c>null</c> if not yet computed or the event has been canceled.
-    /// <b>Category 2 — Future fixed instant</b> (derived from Category-3
+    /// <b>Category 2 - Future fixed instant</b> (derived from Category-3
     /// source; recompute via <see cref="ComputeNextFire"/> when tzdb updates
     /// or scheduling changes). Sort/compare on this field.
     /// </summary>
@@ -97,7 +96,7 @@ public sealed record LocalAnchoredEvent
     /// <summary>
     /// Creates a <see cref="LocalAnchoredEvent"/> after validating +
     /// normalizing the IANA identifier. <see cref="ScheduledLocal"/> is
-    /// NOT validated here — invalid calendar dates throw at the
+    /// not validated here - invalid calendar dates throw at the
     /// <see cref="LocalDateTime"/> constructor call site, before
     /// <see cref="Create"/> is reached.
     /// </summary>
@@ -145,10 +144,10 @@ public sealed record LocalAnchoredEvent
     /// to resolve DST-skipped (spring-forward) and DST-ambiguous
     /// (fall-back) local times deterministically:
     /// <list type="bullet">
-    ///   <item>Skipped local times → map FORWARD to the next valid instant
+    ///   <item>Skipped local times -> map forward to the next valid instant
     ///     after the gap (e.g., 2:30 AM on US spring-forward day resolves
     ///     to 3:30 AM clock time, i.e. 2:30 AM + DST offset).</item>
-    ///   <item>Ambiguous local times → pick the FIRST occurrence (the
+    ///   <item>Ambiguous local times -> pick the first occurrence (the
     ///     pre-transition / earlier instant; e.g., 1:30 AM on US fall-back
     ///     day resolves to the 1:30 AM that occurred before the clock
     ///     turned back, not the second 1:30 AM after).</item>
@@ -158,12 +157,9 @@ public sealed record LocalAnchoredEvent
     /// <c>D2Result&lt;Instant&gt;.Ok(...)</c> with the computed <see cref="Instant"/>.
     /// In practice this method cannot fail (IANA was pre-validated at
     /// <see cref="Create"/>; <see cref="Resolvers.LenientResolver"/>
-    /// handles every DST case without throwing) — the
+    /// handles every DST case without throwing) - the
     /// <see cref="D2Result{TData}"/> return shape is preserved for API
-    /// consistency with the rest of the codebase's error-as-value pattern
-    /// and to allow future failure modes (e.g., tzdb removed the zone
-    /// between construction and computation) to surface without an API
-    /// break.
+    /// consistency with the rest of the codebase's error-as-value pattern.
     /// </returns>
     public D2Result<Instant> ComputeNextFire()
     {

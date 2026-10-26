@@ -23,7 +23,7 @@ public static class DlqFailureCauses
     /// <summary>Handler returned a non-Ok D2Result. The errorCode field carries result.ErrorCode.</summary>
     public const string HANDLER_RESULT_FAILURE = "HANDLER_RESULT_FAILURE";
 
-    /// <summary>Handler threw an unhandled exception. The errorCode field carries the exception type's FullName (NEVER ex.Message — PII guard).</summary>
+    /// <summary>Handler threw an unhandled exception. The errorCode field carries the exception type's FullName (NEVER ex.Message - PII guard).</summary>
     public const string HANDLER_EXCEPTION = "HANDLER_EXCEPTION";
 
     /// <summary>AEAD decrypt failed (kid missing from keyring, tag mismatch, etc.). Surfaces before the handler is ever invoked.</summary>
@@ -32,7 +32,7 @@ public static class DlqFailureCauses
     /// <summary>JSON deserialization of the message body failed. Surfaces before the handler is ever invoked.</summary>
     public const string DESERIALIZE_FAILURE = "DESERIALIZE_FAILURE";
 
-    /// <summary>Tiered-retry attempt counter hit MaxAttempts; message routed direct to DLQ without invoking the handler this time. The errorCode field also carries RETRIES_EXHAUSTED.</summary>
+    /// <summary>Tiered-retry attempt counter reached MaxAttempts; message routed direct to DLQ without invoking the handler this time. The errorCode field also carries RETRIES_EXHAUSTED.</summary>
     public const string RETRIES_EXHAUSTED = "RETRIES_EXHAUSTED";
 
     /// <summary>All declared cause wire-values in spec order.</summary>

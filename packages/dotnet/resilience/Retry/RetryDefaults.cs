@@ -40,7 +40,7 @@ internal static class RetryDefaults
     internal const bool JITTER = true;
 
     /// <summary>
-    /// Default exception-classifier — delegates to
+    /// Default exception-classifier - delegates to
     /// <see cref="RetryHelper.IsTransientException"/>. Cached static
     /// delegate (no <c>T</c> dependency, single shared instance).
     /// </summary>
@@ -48,7 +48,7 @@ internal static class RetryDefaults
         RetryHelper.IsTransientException;
 
     /// <summary>
-    /// Default delay function —
+    /// Default delay function -
     /// <see cref="Task.Delay(TimeSpan, CancellationToken)"/>. Cached static
     /// delegate (no <c>T</c> dependency, single shared instance).
     /// </summary>

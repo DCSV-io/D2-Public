@@ -11,22 +11,21 @@ using DcsvIo.D2.Utilities.Diagnostics;
 using Xunit;
 
 /// <summary>
-/// Adversarial coverage for the canonical PII-safe exception render
-/// (foundation-lib helper consumed by every <c>[LoggerMessage]</c> log
-/// surface that needs to surface exception-derived strings without
-/// leaking <see cref="Exception.Message"/>). Pinned invariants:
+/// Adversarial tests for the PII-safe exception render, which gives a
+/// <c>[LoggerMessage]</c> log entry an exception-derived string without
+/// leaking <see cref="Exception.Message"/>. The tests pin these invariants:
 /// (1) <c>TypeName</c> never contains <see cref="Exception.Message"/>;
 /// (2) <c>FirstFrame</c> never contains <see cref="Exception.Message"/>;
 /// (3) <c>FirstFrame</c> on a never-thrown exception returns the literal
-/// sentinel <c>"&lt;no frame&gt;"</c> (NOT null) so callers can
-/// string-interpolate without a null guard;
-/// (4) <c>FirstFrame</c> on a thrown exception identifies the throwing
-/// method via its method name in the rendered string;
-/// (5) <c>BrokerUnreachableException</c>-shaped messages (which embed
-/// AMQP URI passwords in their <c>Message</c>) never leak through either
-/// surface — covers the messaging-side adversarial case;
-/// (6) Empty-stack-trace edge case (<c>StackTrace = ""</c>) is handled
-/// gracefully (returns the sentinel rather than crashing).
+/// sentinel <c>"&lt;no frame&gt;"</c> and not null, so a caller can
+/// interpolate it into a string without a null guard;
+/// (4) <c>FirstFrame</c> on a thrown exception contains the name of the
+/// throwing method;
+/// (5) a message shaped like a <c>BrokerUnreachableException</c> message, which
+/// embeds the AMQP URI password in its <c>Message</c>, appears in neither
+/// output, which covers the messaging case;
+/// (6) an exception with an empty stack trace (<c>StackTrace = ""</c>) gets the
+/// sentinel and does not crash the render.
 /// </summary>
 public sealed class SanitizedExceptionRenderTests
 {
@@ -43,8 +42,8 @@ public sealed class SanitizedExceptionRenderTests
     [Fact]
     public void TypeName_NeverIncludesExceptionMessage()
     {
-        // Adversarial: build an exception whose Message would leak a secret.
-        // The render must NOT include that Message in its output.
+        // Build an exception whose Message holds a secret. The render must not
+        // include that Message in its output.
         const string sensitiveMessage = "secret-token-abc123-leak-bait";
         var ex = new InvalidOperationException(sensitiveMessage);
 
@@ -81,13 +80,10 @@ public sealed class SanitizedExceptionRenderTests
     [Fact]
     public void FirstFrame_OnNeverThrownException_ReturnsSentinel()
     {
-        // An exception that was constructed but never thrown has no
-        // StackTrace; the render must return the literal "<no frame>"
-        // sentinel (NOT null) so the messaging consumer + every other
-        // log site can string-interpolate the result without a null guard.
-        // This pins the canonical-merge decision (3-of-4 majority shape +
-        // safer for log interpolation) and prevents a regression to the
-        // pre-canonical messaging-side `string?` + `null` divergence.
+        // An exception that was constructed and never thrown has no StackTrace.
+        // The render must return the literal "<no frame>" sentinel and not null,
+        // so a log site can interpolate the result without a null guard. The
+        // assertion below fails if FirstFrame returns `null`.
         var ex = new InvalidOperationException("never thrown");
 
         var firstFrame = SanitizedExceptionRender.FirstFrame(ex);
@@ -99,13 +95,11 @@ public sealed class SanitizedExceptionRenderTests
     [Fact]
     public void FirstFrame_OnExceptionWithEmptyStackTrace_ReturnsSentinel()
     {
-        // Degenerate edge case: an exception with StackTrace = "" (not
-        // null) should still render the sentinel rather than emitting an
-        // empty / malformed frame description. We can't easily synthesize
-        // this in pure C# (StackTrace is settable only via reflection on
-        // some frameworks), so we approximate by constructing a
-        // never-thrown exception — same code path — and pin the sentinel
-        // shape against future regression.
+        // An exception with StackTrace = "" (not null) must also render the
+        // sentinel, not an empty or malformed frame description. StackTrace has
+        // no public setter, so this test cannot build that exception. It
+        // constructs a never-thrown exception, whose StackTrace is null, and
+        // pins the sentinel value that FirstFrame returns for it.
         var ex = new InvalidOperationException();
 
         var firstFrame = SanitizedExceptionRender.FirstFrame(ex);
@@ -116,12 +110,11 @@ public sealed class SanitizedExceptionRenderTests
     [Fact]
     public void TypeName_NeverReturnsNull_FullNameOrNameFallback()
     {
-        // Pin the `FullName ?? Name` fallback contract — the helper's
-        // return is documented as never null, so callers can safely
-        // string-interpolate without a null guard. For BCL exception
-        // types FullName is always non-null; the test pins the
-        // never-null invariant against any future regression that
-        // reordered the operands or dropped the `?? Name` fallback.
+        // The `FullName ?? Name` fallback means TypeName never returns null, so a
+        // caller can interpolate the result without a null guard. FullName is
+        // always non-null for a BCL exception type, so this test does not reach
+        // the `?? Name` fallback. It asserts that TypeName returns a non-null,
+        // non-empty string.
         var ex = new InvalidOperationException();
 
         var typeName = SanitizedExceptionRender.TypeName(ex);
@@ -133,10 +126,10 @@ public sealed class SanitizedExceptionRenderTests
     [Fact]
     public void BrokerUnreachableException_LikeMessage_NeverLeaksToFrame()
     {
-        // The classic messaging-side adversarial case: a
-        // BrokerUnreachableException's Message embeds the full AMQP URI
-        // including the password. Render must NOT carry that string into
-        // the log pipeline / DLQ headers.
+        // A BrokerUnreachableException's Message embeds the full AMQP URI,
+        // including the password. The render must not carry that string into the
+        // log pipeline or DLQ headers. The test throws an
+        // InvalidOperationException with that message text.
         const string amqpLeakBait = "amqp://admin:s3cret-broker-pw@rabbit:5672/vhost";
         Exception captured;
         try

@@ -12,34 +12,34 @@ using DcsvIo.D2.Utilities.Extensions;
 
 /// <summary>
 /// Pure helper that normalizes free-form place names (countries,
-/// subdivisions, etc.) into a canonical comparison form before they are
-/// fed into the geo name resolver's exact / fuzzy lookup table. The
-/// algorithm is deterministic, stateless, and thread-safe — concurrent
-/// callers can share a single reference to <see cref="Normalize"/>.
+/// subdivisions and so on) to a canonical comparison form for exact and
+/// fuzzy lookup. The algorithm is deterministic, stateless and
+/// thread-safe, so concurrent callers can share a single reference to
+/// <see cref="Normalize"/>.
 /// </summary>
 /// <remarks>
 /// <para>
 /// <b>Cross-language parity:</b> the TypeScript mirror in
 /// <c>@dcsv-io/d2-geo-abstractions</c> (<c>src/name-resolution/name-normalizer.ts</c>)
 /// implements the byte-equivalent algorithm using
-/// <c>String.prototype.normalize("NFD")</c> + a combining-mark strip +
-/// <c>toLocaleLowerCase("en-US")</c>. The two implementations MUST
-/// produce the same output for the same input — divergence breaks the
-/// name-resolver fixtures the cross-language parity suite enforces.
+/// <c>String.prototype.normalize("NFD")</c>, a combining-mark strip and
+/// <c>toLocaleLowerCase("en-US")</c>. The TypeScript and .NET implementations MUST
+/// produce the same output for the same input. A divergence breaks the
+/// name-resolver fixtures that the cross-language parity suite enforces.
 /// </para>
 /// <para>
 /// <b>Pipeline order (each step is observable on its own):</b>
 /// </para>
 /// <list type="number">
 ///   <item>
-///     <description>Null / empty / whitespace input short-circuits to
-///     <see cref="string.Empty"/> so callers can pipe raw user input in
-///     without first guarding against <c>null</c>.</description>
+///     <description>Null, empty or whitespace input short-circuits to
+///     <see cref="string.Empty"/>, so raw user input can be passed in
+///     without a <c>null</c> guard first.</description>
 ///   </item>
 ///   <item>
-///     <description>Unicode NFD decomposition (<see cref="NormalizationForm.FormD"/>) —
-///     splits accented characters into base letter + combining mark so the
-///     marks can be stripped in the next pass.</description>
+///     <description>Unicode NFD decomposition (<see cref="NormalizationForm.FormD"/>) -
+///     splits accented characters into a base letter and a combining mark,
+///     so the next step can strip the marks.</description>
 ///   </item>
 ///   <item>
 ///     <description>Strip all combining marks
@@ -49,14 +49,14 @@ using DcsvIo.D2.Utilities.Extensions;
 ///   <item>
 ///     <description>Replace the standalone ampersand token (<c> &amp; </c>
 ///     with surrounding whitespace) with <c> and </c> so "Trinidad &amp;
-///     Tobago" and "Trinidad and Tobago" compare equal. We deliberately
-///     match the spaced form only — touching every <c>&amp;</c> inside a
-///     name would mangle things like <c>"AT&amp;T"</c>.</description>
+///     Tobago" and "Trinidad and Tobago" compare equal. Only the spaced
+///     form matches, because replacing every <c>&amp;</c> inside a
+///     name would change names such as <c>"AT&amp;T"</c>.</description>
 ///   </item>
 ///   <item>
 ///     <description>Casefold via
 ///     <see cref="CultureInfo.InvariantCulture"/>'s <see cref="TextInfo.ToLower(string)"/>
-///     — invariant culture avoids the Turkish "dotless i" pitfall where
+///     - the invariant culture avoids the Turkish "dotless i" problem where
 ///     <c>"I".ToLower("tr-TR")</c> returns <c>"ı"</c>.</description>
 ///   </item>
 ///   <item>
@@ -78,11 +78,12 @@ public static class NameNormalizer
     /// <summary>
     /// Returns the canonical comparison form of <paramref name="input"/>.
     /// Returns <see cref="string.Empty"/> when <paramref name="input"/> is
-    /// <c>null</c>, empty, or whitespace-only. Pure / stateless / threadsafe.
+    /// <c>null</c>, empty or whitespace-only. Pure, stateless and
+    /// thread-safe.
     /// </summary>
     /// <param name="input">
-    /// The raw place name to normalize. May be <c>null</c>, empty, or
-    /// whitespace-only — the helper never throws on bad input.
+    /// The raw place name to normalize. May be <c>null</c>, empty or
+    /// whitespace-only - the helper never throws on bad input.
     /// </param>
     /// <returns>The canonical comparison form.</returns>
     public static string Normalize(string? input)

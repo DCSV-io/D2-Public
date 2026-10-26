@@ -12,33 +12,35 @@ using DcsvIo.D2.Auth.Abstractions;
 using DcsvIo.D2.Utilities.Extensions;
 
 /// <summary>
-/// Parses the RFC 8693 §2.1 nested <c>act</c> claim into a flat
-/// <see cref="IReadOnlyList{ActorEntry}"/> ordered outermost-first per RFC
-/// 8693 §4.1 ("the outermost act claim represents the current actor; the
+/// Parses the RFC 8693 section 2.1 nested <c>act</c> claim into a flat
+/// <see cref="IReadOnlyList{ActorEntry}"/> ordered outermost-first per
+/// RFC 8693 section 4.1 ("the outermost act claim represents the current actor; the
 /// least recent actor is the most deeply nested").
 /// </summary>
 /// <remarks>
 /// <para>
 /// <b>Strict-mode parsing.</b> Any structural malformation throws
-/// <see cref="MalformedActorChainException"/> rather than silently returning a
-/// degraded chain — silent fallbacks for signed-token bugs would mask broken
-/// upstream mint logic. Required-claim checks (see below) fire on every entry.
-/// Auth middleware MUST catch and convert to 401 Unauthorized — a malformed
-/// actor chain is a signed-token-with-bad-payload condition, not a handler bug.
+/// <see cref="MalformedActorChainException"/> and the parser never returns a
+/// degraded chain, because a silent fallback for a signed-token bug would hide a
+/// fault in the code that mints the token. The required-claim checks below run on
+/// every entry. The exception MUST be converted to 401 Unauthorized, because a
+/// malformed actor chain is a signed token with a bad payload and not a handler
+/// bug.
 /// </para>
 /// <para>
 /// <b>Required claims per entry:</b>
 /// <list type="bullet">
-///   <item>Every entry: <c>sub</c> (per RFC 8693 §2.1 "MUST contain a sub claim").</item>
+///   <item>Every entry: <c>sub</c> (per RFC 8693 section 2.1 "MUST contain a sub claim").</item>
 ///   <item>Service entries (no <c>d2_kind</c>): just <c>sub</c>.</item>
 ///   <item>Impersonation entries (<c>d2_kind</c> present): <c>sub</c> + <c>d2_kind</c> +
 ///   <c>d2_session_id</c> + <c>d2_org_id</c> + <c>d2_org_type</c> + <c>d2_org_role</c>.</item>
 /// </list>
 /// </para>
 /// <para>
-/// <b>Depth limit:</b> <see cref="MaxActDepth"/> (20). Beyond that we throw —
-/// real-world delegation chains are 1–4 hops; anything past 10 is suspicious;
-/// 20 is a hard wall against DoS via deeply-nested act claims.
+/// <b>Depth limit:</b> <see cref="MaxActDepth"/> (20). A chain deeper than 20
+/// throws, which bounds the work a deeply nested act claim can cause
+/// (denial of service, DoS). Delegation chains normally have 1-4 hops, and a chain
+/// longer than 10 is suspicious.
 /// </para>
 /// </remarks>
 public static class ActorChainParser
@@ -103,16 +105,16 @@ public static class ActorChainParser
     /// </exception>
     public static IReadOnlyList<ActorEntry> ParseFromJson(JsonElement actElement)
     {
-        // Undefined means TryGetProperty returned false — caller didn't have
-        // an act claim. Legitimate; return empty.
+        // Undefined means TryGetProperty returned false, so the caller had no
+        // act claim. That is valid; return empty.
         if (actElement.ValueKind == JsonValueKind.Undefined)
             return sr_empty;
 
-        // Anything else non-Object is malformed per RFC 8693 §2.1 (act is an object).
+        // Anything else non-Object is malformed per RFC 8693 section 2.1 (act is an object).
         if (actElement.ValueKind != JsonValueKind.Object)
         {
             throw new MalformedActorChainException(
-                $"Actor chain root must be a JSON object per RFC 8693 §2.1, "
+                $"Actor chain root must be a JSON object per RFC 8693 section 2.1, "
                 + $"got {actElement.ValueKind}.");
         }
 
@@ -134,7 +136,7 @@ public static class ActorChainParser
             if (!current.TryGetProperty(_ACT, out var nextAct))
                 break;
 
-            // Nested act must also be an object (or absent) — same rule.
+            // A nested act must also be an object or absent.
             if (nextAct.ValueKind != JsonValueKind.Object
                 && nextAct.ValueKind != JsonValueKind.Undefined)
             {
@@ -151,13 +153,13 @@ public static class ActorChainParser
 
     private static ActorEntry BuildEntry(JsonElement element, int depth)
     {
-        // Per RFC 8693 §2.1: every act entry MUST contain a sub claim.
+        // Per RFC 8693 section 2.1: every act entry MUST contain a sub claim.
         var subject = TryGetString(element, _SUB);
         if (subject.Falsey())
         {
             throw new MalformedActorChainException(
                 $"Actor entry at depth {depth} missing required 'sub' claim "
-                + "per RFC 8693 §2.1.");
+                + "per RFC 8693 section 2.1.");
         }
 
         var clientId = TryGetString(element, _CLIENT_ID);
@@ -173,13 +175,13 @@ public static class ActorChainParser
 
         if (kindStr.Falsey())
         {
-            // No d2_kind → Service entry (RFC 6749 §4.4 client_credentials
+            // No d2_kind -> Service entry (RFC 6749 section 4.4 client_credentials
             // propagated through delegation).
             kind = ActorKind.Service;
         }
         else
         {
-            // d2_kind present → Impersonation entry. Must parse to a valid
+            // d2_kind present -> Impersonation entry. Must parse to a valid
             // ImpersonationKind value.
             if (!kindStr.TryParseTruthyNull(out impKind))
             {
@@ -190,7 +192,7 @@ public static class ActorChainParser
 
             kind = ActorKind.Impersonation;
 
-            // Impersonation entries MUST carry session + agent's org context.
+            // Impersonation entries MUST carry the session and the agent's org context.
             var sessionIdStr = TryGetString(element, _D2_SESSION_ID);
             if (!sessionIdStr.TryParseTruthyNull(out sessionId))
             {
@@ -223,8 +225,9 @@ public static class ActorChainParser
                     + "'d2_org_role' (required for impersonator audit).");
             }
 
-            // OrgName is a display string — preserved if present, but not
-            // strictly required for audit (org_id + org_type carry the load).
+            // OrgName is a display string. The parser keeps it when present, and
+            // audit does not require it because org_id and org_type identify
+            // the organization.
         }
 
         return new ActorEntry(

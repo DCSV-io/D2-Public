@@ -17,7 +17,7 @@ import { SubdivisionLookup } from "../../src/subdivisions.js";
 import { initializeGeoData } from "../../src/generated/geo-data-initializer.g.js";
 
 describe("GeoDataInitializer coordinator", () => {
-  // §1.2 category: State-lifecycle — module-init side-effect already ran.
+  // Adversarial category: State-lifecycle - module-init side-effect already ran.
   it("post-init: every Country has a wired primaryLanguage OR null code", () => {
     for (const country of CountryLookup.all) {
       if (country.primaryLanguageIso6391Code === undefined)
@@ -32,9 +32,9 @@ describe("GeoDataInitializer coordinator", () => {
   });
 
   it("post-init: AQ has undefined primaryCurrency (BV/HM carry sovereign-country currency)", () => {
-    // AQ (Antarctica) has no primary currency per spec. BV and HM carry
-    // sovereign-country currency (NOK from Norway / AUD from Australia)
-    // even though they have no resident population.
+    // AQ (Antarctica) has no primary currency per spec. BV and HM have the
+    // currency of their sovereign country (NOK for Norway, AUD for Australia)
+    // although they have no resident population.
     expect(Countries.AQ.primaryCurrency).toBeUndefined();
   });
 
@@ -80,7 +80,7 @@ describe("GeoDataInitializer coordinator", () => {
     }
   });
 
-  // §1.2 category: State-lifecycle — idempotent re-invocation.
+  // Adversarial category: State-lifecycle - idempotent re-invocation.
   it("initializeGeoData: calling twice does not throw or rebuild state", () => {
     const usBefore = CountryLookup.byCode[CountryCode.US];
     const enBefore = LanguageLookup.byCode[LanguageCode.en];

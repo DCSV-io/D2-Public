@@ -6,30 +6,27 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <RootNamespace>DcsvIo.D2.Auth.Scopes.SourceGen</RootNamespace>
 
     <!--
-      Roslyn analyzers / source generators MUST target netstandard2.0
-      because Roslyn itself runs on the host's .NET Framework / Core
-      compilation environment. Override Directory.Build.props's net10.0.
+      A Roslyn analyzer or source generator must target netstandard2.0,
+      because Roslyn runs inside the .NET Framework or .NET Core compilation
+      host. This overrides the net10.0 target of Directory.Build.props.
     -->
     <TargetFramework>netstandard2.0</TargetFramework>
 
     <!-- Mark this as a Roslyn analyzer/generator component for tooling. -->
     <IsRoslynComponent>true</IsRoslynComponent>
 
-    <!-- Opt into the modern analyzer rule set. -->
+    <!-- Enable RS1035, which bans APIs an analyzer must not call, such as file and environment access. -->
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 
-    <!-- Don't ship this as a library to consumers — it's only an analyzer. -->
+    <!-- This project is only an analyzer, so its build output is not packed as a library. -->
     <IncludeBuildOutput>false</IncludeBuildOutput>
 
-    <!-- Internal helpers don't need XML docs; analyzer-release-tracking
-         (RS2008) only matters for shipped NuGet analyzer packages. -->
-    <NoWarn>$(NoWarn);CS1591;RS2008</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <!--
-      Pull in the shared source-gen scaffolding (polyfills + EmitDiagnostic
-      record + LoadResult<TSpec> + SpecFile). The Link metadata groups the
+      Compile in the shared source-gen scaffolding (polyfills, the EmitDiagnostic
+      record, LoadResult<TSpec> and SpecFile). The Link metadata groups the
       included files under a virtual "Shared" folder in IDE views.
     -->
     <Compile Include="$(D2SourceGenSharedRoot)**\*.cs">
@@ -39,8 +36,8 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
   <ItemGroup>
     <!--
-      PrivateAssets="all" so the analyzer dll travels with this project but
-      does NOT propagate to projects that reference it.
+      PrivateAssets="all" keeps the analyzer dll with this project and stops
+      these references propagating to a project that references it.
     -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />

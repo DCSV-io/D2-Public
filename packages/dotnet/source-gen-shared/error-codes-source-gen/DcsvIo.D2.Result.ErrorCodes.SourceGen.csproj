@@ -6,24 +6,22 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <RootNamespace>DcsvIo.D2.ResultErrorCodes.SourceGen</RootNamespace>
 
     <!--
-      Roslyn analyzers / source generators MUST target netstandard2.0
-      because Roslyn itself runs on the host's .NET Framework / Core
-      compilation environment. Override Directory.Build.props's net10.0.
+      Roslyn analyzers and source generators must target netstandard2.0
+      because Roslyn itself runs in the host's .NET Framework or .NET Core
+      compilation environment. This overrides the net10.0 target that
+      Directory.Build.props sets.
     -->
     <TargetFramework>netstandard2.0</TargetFramework>
 
     <!-- Mark this as a Roslyn analyzer/generator component for tooling. -->
     <IsRoslynComponent>true</IsRoslynComponent>
 
-    <!-- Opt into the modern analyzer rule set. -->
+    <!-- Enable RS1035, which bans APIs an analyzer must not call, such as file and environment access. -->
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 
-    <!-- Don't ship this as a library to consumers — it's only an analyzer. -->
+    <!-- Do not ship this as a library to consumers; it is only an analyzer. -->
     <IncludeBuildOutput>false</IncludeBuildOutput>
 
-    <!-- Internal helpers don't need XML docs; analyzer-release-tracking
-         (RS2008) only matters for shipped NuGet analyzer packages. -->
-    <NoWarn>$(NoWarn);CS1591;RS2008</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -38,9 +36,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <!--
       Pull in the unified error-codes generation engine (entry model + loader
       + constants/failures emitters + CatalogConfig + the D2ERC* engine
-      diagnostics). The same engine compiles into BOTH error-codes generator
-      shells (auth + generic); each shell supplies only its CatalogConfig +
-      its analyzer identity. One engine, zero duplicated logic.
+      diagnostics). The same engine compiles into every error-codes generator
+      shell; each shell supplies only its CatalogConfig + its analyzer
+      identity, so the generation logic is not duplicated.
     -->
     <Compile Include="$(D2ErrorCodesEmitRoot)**\*.cs">
       <Link>ErrorCodesEmit\%(RecursiveDir)%(Filename)%(Extension)</Link>

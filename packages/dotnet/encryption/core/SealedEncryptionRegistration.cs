@@ -11,9 +11,8 @@ namespace DcsvIo.D2.Encryption;
 /// (via <c>AddD2SealedEncryptionRecipient</c>). The
 /// <see cref="SealedEncryptionRegistry"/> aggregates these so the sealed
 /// startup self-check knows which recipients to verify. Deliberately
-/// <c>internal</c>: the sealed registration surface stays minimal until the
-/// registration-by-service sources populate it, so it can grow additively
-/// without a public-API break.
+/// <c>internal</c>, which keeps the sealed registration surface minimal so it
+/// can grow additively without a public-API break.
 /// </summary>
 internal sealed class SealedEncryptionRegistration
 {

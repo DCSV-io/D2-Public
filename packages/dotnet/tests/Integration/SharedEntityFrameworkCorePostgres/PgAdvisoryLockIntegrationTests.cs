@@ -42,7 +42,7 @@ public sealed class PgAdvisoryLockIntegrationTests
     }
 
     // =========================================================================
-    // TryAcquireSessionAsync — no contention
+    // TryAcquireSessionAsync - no contention
     // =========================================================================
 
     [Fact]
@@ -67,11 +67,11 @@ public sealed class PgAdvisoryLockIntegrationTests
         await using var second = await PgAdvisoryLock.TryAcquireSessionAsync(
             r_fixture.ConnectionString, _TEST_KEY_TRY);
         second.IsHeld.Should().BeTrue(
-            "the first lock was released by DisposeAsync — second acquire must succeed");
+            "the first lock was released by DisposeAsync - second acquire must succeed");
     }
 
     // =========================================================================
-    // TryAcquireSessionAsync — contention (skip-if-held semantics)
+    // TryAcquireSessionAsync - contention (skip-if-held semantics)
     // =========================================================================
 
     [Fact]
@@ -83,16 +83,16 @@ public sealed class PgAdvisoryLockIntegrationTests
 
         holder.IsHeld.Should().BeTrue();
 
-        // Second session on a different connection — should be skipped.
+        // Second session on a different connection - should be skipped.
         await using var contender = await PgAdvisoryLock.TryAcquireSessionAsync(
             r_fixture.ConnectionString, _TEST_KEY_TRY + 100);
 
         contender.IsHeld.Should().BeFalse(
-            "the key is already held by the first session — TryAcquire must skip");
+            "the key is already held by the first session - TryAcquire must skip");
     }
 
     // =========================================================================
-    // AcquireSessionBlockingAsync — happy path
+    // AcquireSessionBlockingAsync - happy path
     // =========================================================================
 
     [Fact]
@@ -116,11 +116,11 @@ public sealed class PgAdvisoryLockIntegrationTests
         await using var second = await PgAdvisoryLock.AcquireSessionBlockingAsync(
             r_fixture.ConnectionString, _TEST_KEY_BLOCK);
         second.IsHeld.Should().BeTrue(
-            "first lock was released by DisposeAsync — blocking acquire must succeed");
+            "first lock was released by DisposeAsync - blocking acquire must succeed");
     }
 
     // =========================================================================
-    // TryAcquireSessionAsync — server-side auto-release on connection drop
+    // TryAcquireSessionAsync - server-side auto-release on connection drop
     // =========================================================================
 
     [Fact]
@@ -133,7 +133,7 @@ public sealed class PgAdvisoryLockIntegrationTests
 
         // Force-drop the underlying connection via the internal test seam.
         // PostgreSQL session advisory locks are automatically released when the
-        // connection is dropped — no explicit pg_advisory_unlock is needed.
+        // connection is dropped - no explicit pg_advisory_unlock is needed.
         await first.ForceDropConnectionForTestAsync();
 
         // A second acquire on the SAME key from a fresh connection must now succeed,
@@ -142,7 +142,7 @@ public sealed class PgAdvisoryLockIntegrationTests
             r_fixture.ConnectionString, _TEST_KEY_DROP);
         second.IsHeld.Should().BeTrue(
             "PostgreSQL must auto-release the session advisory lock when the " +
-            "holding connection is dropped — a second acquire on the same key must succeed");
+            "holding connection is dropped - a second acquire on the same key must succeed");
 
         // Dispose the leaking first handle to satisfy [MustDisposeResource] (the
         // close already happened; DisposeAsync is idempotent on a closed connection).
@@ -168,6 +168,6 @@ public sealed class PgAdvisoryLockIntegrationTests
         // DisposeAsync on a not-held handle must complete without throwing.
         await notHeld.DisposeAsync();
 
-        // No assertion needed — reaching here means no exception was thrown.
+        // No assertion needed - reaching here means no exception was thrown.
     }
 }

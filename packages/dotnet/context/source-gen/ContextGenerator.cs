@@ -15,23 +15,23 @@ using Microsoft.CodeAnalysis.Text;
 
 /// <summary>
 /// Roslyn incremental source generator that emits all context types from
-/// the JSON spec files. Reads BOTH context spec files via
-/// <c>AdditionalFiles</c>; dispatches per assembly:
+/// the JSON spec files. It reads the <c>IAuthContext</c> and <c>IRequestContext</c>
+/// spec files via <c>AdditionalFiles</c> and dispatches per assembly:
 /// <list type="bullet">
 ///   <item>
-///     <c>DcsvIo.D2.AuthContext.Abstractions</c> → <c>IAuthContext.g.cs</c>.
+///     <c>DcsvIo.D2.AuthContext.Abstractions</c> -> <c>IAuthContext.g.cs</c>.
 ///   </item>
 ///   <item>
-///     <c>DcsvIo.D2.Context.Abstractions</c> → <c>IRequestContext.g.cs</c>,
+///     <c>DcsvIo.D2.Context.Abstractions</c> -> <c>IRequestContext.g.cs</c>,
 ///     <c>MutableRequestContext.g.cs</c>, <c>PropagatedContext.g.cs</c>,
 ///     <c>PropagatedContextExtensions.g.cs</c>,
 ///     <c>PropagatedContextSerializer.g.cs</c>.
 ///   </item>
-///   <item>Anything else → emit nothing.</item>
+///   <item>Any other assembly -> emit nothing.</item>
 /// </list>
-/// Per-field <c>maxLength</c> caps + the <c>propagate: true</c> field
-/// subset are spec-driven — codegen reads them and bakes the wire-format
-/// validator + projection extensions into the abstractions assembly.
+/// The per-field <c>maxLength</c> caps and the <c>propagate: true</c> field
+/// subset come from the spec: the generator reads them and writes the wire-format
+/// validator and the projection extensions into the abstractions assembly.
 /// </summary>
 [Generator]
 public sealed class ContextGenerator : IIncrementalGenerator
@@ -64,7 +64,7 @@ public sealed class ContextGenerator : IIncrementalGenerator
             var (specFiles, compilation) = tuple;
             var assemblyName = compilation.AssemblyName ?? string.Empty;
 
-            // Only the two target assemblies get emission.
+            // Only the auth-context and context-abstractions assemblies get emission.
             var isAuthTarget = string.Equals(
                 assemblyName, _AUTH_CONTEXT_ASSEMBLY, StringComparison.Ordinal);
             var isContextAbstractionsTarget = string.Equals(
@@ -173,6 +173,7 @@ public sealed class ContextGenerator : IIncrementalGenerator
         DiagnosticIds.PropertyNameCollision => DiagnosticDescriptors.PropertyNameCollision,
         DiagnosticIds.UnresolvableExtends => DiagnosticDescriptors.UnresolvableExtends,
         DiagnosticIds.UnknownDerivedRule => DiagnosticDescriptors.UnknownDerivedRule,
+        DiagnosticIds.UnknownClaimForm => DiagnosticDescriptors.UnknownClaimForm,
         DiagnosticIds.MissingSpecFile => DiagnosticDescriptors.MissingSpecFile,
         _ => throw new InvalidOperationException($"Unknown EmitDiagnostic descriptor id '{id}'."),
     };

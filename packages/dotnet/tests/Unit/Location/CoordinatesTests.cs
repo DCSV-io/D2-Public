@@ -12,15 +12,16 @@ using DcsvIo.D2.Location.ValueObjects;
 using Xunit;
 
 /// <summary>
-/// Adversarial test coverage for <see cref="Coordinates"/> per §7.1 matrix:
-/// happy path, out-of-range / NaN / Infinity, boundary values, AccuracyMeters
-/// not in hash, 3-factory cross-equivalence, round-trip determinism, invalid
-/// format inputs, HashId invariants, and canonical normalization.
+/// Adversarial test coverage for <see cref="Coordinates"/>:
+/// the happy path, out-of-range, NaN and Infinity inputs, boundary values,
+/// AccuracyMeters excluded from the hash, cross-equivalence of the factories
+/// Create, FromGeohash and FromPlusCode, round-trip determinism,
+/// invalid format inputs, HashId invariants, and canonical normalization.
 /// </summary>
 public sealed class CoordinatesTests
 {
     // -----------------------------------------------------------------------
-    // §1.2 Happy path — Create(lat, lon)
+    // Happy path - Create(lat, lon)
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -49,7 +50,7 @@ public sealed class CoordinatesTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 Out-of-range latitude
+    // Out-of-range latitude
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -68,7 +69,7 @@ public sealed class CoordinatesTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 Out-of-range longitude
+    // Out-of-range longitude
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -86,7 +87,7 @@ public sealed class CoordinatesTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 NaN and Infinity inputs
+    // NaN and Infinity inputs
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -132,8 +133,8 @@ public sealed class CoordinatesTests
     [Fact]
     public void Create_PositiveInfinityLongitude_ReturnsValidationFailed_FiniteRequired()
     {
-        // Exercises the double.IsFinite(longitude) guard on the positive-infinity path
-        // (the negative-infinity path is covered separately above).
+        // Covers the double.IsFinite(longitude) guard for positive infinity.
+        // Another test above covers negative infinity.
         var result = Coordinates.Create(0.0, double.PositiveInfinity);
 
         result.Success.Should().BeFalse();
@@ -162,7 +163,7 @@ public sealed class CoordinatesTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 Boundary values (inclusive bounds must succeed)
+    // Boundary values (the bounds are inclusive and succeed)
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -179,7 +180,7 @@ public sealed class CoordinatesTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 AccuracyMeters NOT in hash (Decision 4)
+    // AccuracyMeters is not part of the hash (Decision 4)
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -203,7 +204,7 @@ public sealed class CoordinatesTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 HashId invariants
+    // HashId invariants
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -230,7 +231,7 @@ public sealed class CoordinatesTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 Determinism
+    // Determinism
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -243,7 +244,7 @@ public sealed class CoordinatesTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 3-factory cross-equivalence
+    // 3-factory cross-equivalence
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -261,7 +262,9 @@ public sealed class CoordinatesTests
     [Fact]
     public void Create_ThenFromPlusCode_SameCanonicalCell_LatLonWithinSnapTolerance()
     {
-        // OLC → geohash snap introduces up to ~2m drift. Verify within tolerance.
+        // Snapping an Open Location Code (OLC) to a geohash cell moves the
+        // point by up to about 2m. The test checks the result stays within
+        // the tolerance.
         var fromLatLon = Coordinates.Create(40.7128, -74.006);
         var plusCode = fromLatLon.Data!.PlusCode;
 
@@ -283,7 +286,7 @@ public sealed class CoordinatesTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 FromGeohash — valid inputs
+    // FromGeohash - valid inputs
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -310,13 +313,14 @@ public sealed class CoordinatesTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 FromGeohash — precision normalization
+    // FromGeohash - precision normalization
     // -----------------------------------------------------------------------
 
     [Fact]
     public void FromGeohash_12CharInput_StoredGeohashIs10Chars()
     {
-        // 12-char geohash → truncated to 10 in stored Geohash field.
+        // A 12-character geohash is truncated to 10 characters in the stored
+        // Geohash field.
         var result = Coordinates.FromGeohash("dr5regw3ppzz");
 
         result.Success.Should().BeTrue();
@@ -326,7 +330,8 @@ public sealed class CoordinatesTests
     [Fact]
     public void FromGeohash_ShortHash_PadsToCanonical10Chars()
     {
-        // 5-char hash → decoded to cell center → re-encoded at 10 chars.
+        // A 5-character hash is decoded to the cell center and encoded again
+        // at 10 characters.
         var result = Coordinates.FromGeohash("dr5re");
 
         result.Success.Should().BeTrue();
@@ -334,7 +339,7 @@ public sealed class CoordinatesTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 FromGeohash — invalid inputs
+    // FromGeohash - invalid inputs
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -382,7 +387,7 @@ public sealed class CoordinatesTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 FromPlusCode — valid inputs
+    // FromPlusCode - valid inputs
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -396,7 +401,7 @@ public sealed class CoordinatesTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 FromPlusCode — invalid inputs
+    // FromPlusCode - invalid inputs
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -435,7 +440,7 @@ public sealed class CoordinatesTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 Cross-factory hash agreement
+    // Cross-factory hash agreement
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -448,7 +453,7 @@ public sealed class CoordinatesTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 Geohash field uses canonical 10-char geohash alphabet
+    // Geohash field uses canonical 10-char geohash alphabet
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -464,7 +469,7 @@ public sealed class CoordinatesTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 PlusCode format validation
+    // PlusCode format validation
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -479,7 +484,8 @@ public sealed class CoordinatesTests
     [Fact]
     public void Create_StoredPlusCode_Is13Chars_PinsProductionCodeLength()
     {
-        // Production codeLength = 12 → 8 pair digits + '+' + 4 grid digits = 13 chars.
+        // The production codeLength is 12: 8 pair digits + '+' + 4 grid
+        // digits = 13 characters.
         const int expected_pluscode_length = 13;
         var coord = Coordinates.Create(40.7128, -74.006).Data!;
 
@@ -487,7 +493,7 @@ public sealed class CoordinatesTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 Zero accuracy is valid (non-negative boundary)
+    // Zero accuracy is valid (the non-negative boundary)
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -499,7 +505,7 @@ public sealed class CoordinatesTests
     }
 
     // -----------------------------------------------------------------------
-    // Security-adversarial: CRLF / NUL byte injection rejected by FromGeohash
+    // Security-adversarial: FromGeohash and FromPlusCode reject CRLF and NUL byte injection
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -543,17 +549,18 @@ public sealed class CoordinatesTests
     }
 
     // -----------------------------------------------------------------------
-    // Hash-stability regression — golden-value pin (T9)
+    // Hash-stability regression - golden-value pin (T9)
     // -----------------------------------------------------------------------
 
     [Fact]
     public void Create_HashId_KnownInput_MatchesGoldenValue()
     {
-        // Pin: Coordinates.Create(40.7128, -74.006) →
+        // Pin: Coordinates.Create(40.7128, -74.006) ->
         //   geohash-10 cell center "dr5regw3pp"
-        //   → SHA-256(UTF-8("dr5regw3pp")) → v1.<64-hex>.
-        // Golden value sourced from parity-fixtures.json case "coords-only-nyc-create".
-        // A hash algorithm change causes this to fail and prevents silent drift.
+        //   -> SHA-256(UTF-8("dr5regw3pp")) -> v1.<64-hex>.
+        // The golden value comes from the parity-fixtures.json case
+        // "coords-only-nyc-create". A change to the hash algorithm fails this
+        // test and prevents silent drift.
         const string expected_hash =
             "v1.3c5339b07059d200d45867d4478967a34592818af0445a2aea3c2bd3ff54ef95";
         var result = Coordinates.Create(40.7128, -74.006);

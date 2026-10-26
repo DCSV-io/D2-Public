@@ -147,6 +147,7 @@ export type NameSuffix = (typeof NameSuffix)[keyof typeof NameSuffix] & {
 
 // @public (undocumented)
 export const NameSuffixSchema: z.ZodEnum<{
+    VI: "VI";
     Sr: "Sr";
     Other: "Other";
     Jr: "Jr";
@@ -155,7 +156,6 @@ export const NameSuffixSchema: z.ZodEnum<{
     III: "III";
     IV: "IV";
     V: "V";
-    VI: "VI";
     VII: "VII";
     VIII: "VIII";
     IX: "IX";

@@ -16,7 +16,7 @@ using Xunit;
 public sealed class D2ResultTests
 {
     // ----------------------------------------------------------------------
-    // Constructor — direct invocation
+    // Constructor - direct invocation
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -121,7 +121,8 @@ public sealed class D2ResultTests
     [Fact]
     public void Ctor_WithEmptyTraceId_PreservesEmptyString()
     {
-        // Adversarial: empty string vs null are distinct — caller's choice should be respected.
+        // Adversarial: an empty string and null are distinct; the constructor keeps the
+        // value passed in.
         var result = new D2Result(success: true, traceId: string.Empty);
 
         result.TraceId.Should().Be(string.Empty);
@@ -130,7 +131,7 @@ public sealed class D2ResultTests
     [Fact]
     public void Ctor_WithWhitespaceTraceId_PreservesWhitespace()
     {
-        // Adversarial: D2Result is value-bag, no normalization applied.
+        // Adversarial: D2Result stores the value it is given and applies no normalization.
         var result = new D2Result(success: true, traceId: "   ");
 
         result.TraceId.Should().Be("   ");
@@ -194,6 +195,32 @@ public sealed class D2ResultTests
     }
 
     // ----------------------------------------------------------------------
+    // NoContent
+    // ----------------------------------------------------------------------
+
+    [Fact]
+    public void NoContent_CreatesSuccessWithNoContentStatus()
+    {
+        var result = D2Result.NoContent();
+
+        result.Success.Should().BeTrue();
+        result.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        result.ErrorCode.Should().BeNull();
+        result.Messages.Should().BeEmpty();
+        result.TraceId.Should().BeNull();
+    }
+
+    [Fact]
+    public void NoContent_WithTraceId_CarriesIt()
+    {
+        var result = D2Result.NoContent(traceId: "t1");
+
+        result.Success.Should().BeTrue();
+        result.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        result.TraceId.Should().Be("t1");
+    }
+
+    // ----------------------------------------------------------------------
     // Fail (raw)
     // ----------------------------------------------------------------------
 
@@ -233,7 +260,7 @@ public sealed class D2ResultTests
     }
 
     // ----------------------------------------------------------------------
-    // Semantic factories — happy path + custom messages override
+    // Semantic factories - happy path + custom messages override
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -243,7 +270,7 @@ public sealed class D2ResultTests
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.NotFound);
-        result.ErrorCode.Should().Be(ErrorCodes.NOT_FOUND);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_NOT_FOUND);
         result.Messages.Should().Equal(TK.Common.Errors.NOT_FOUND);
     }
 
@@ -262,10 +289,10 @@ public sealed class D2ResultTests
     [Fact]
     public void NotFound_AcceptsUnifiedOpts_InputErrorsErrorCodeAndCategory()
     {
-        // Unified-shape regression pin: NotFound was previously the restricted
-        // shape (messages?, traceId? only). After the fold every error factory is
-        // the one universal standard shape, so a 404 can carry inputErrors and
-        // stamp a domain errorCode + category override.
+        // Regression pin for the unified shape: every error factory, NotFound
+        // included, takes the same standard options (messages, traceId, inputErrors,
+        // errorCode, category). A 404 can therefore carry inputErrors and a
+        // domain errorCode and category override.
         IReadOnlyList<InputError> errors =
         [
             new InputError("id", [TK.Common.Validation.ID_INVALID]),
@@ -293,7 +320,7 @@ public sealed class D2ResultTests
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        result.ErrorCode.Should().Be(ErrorCodes.FORBIDDEN);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_FORBIDDEN);
         result.Messages.Should().Equal(TK.Common.Errors.FORBIDDEN);
     }
 
@@ -304,7 +331,7 @@ public sealed class D2ResultTests
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        result.ErrorCode.Should().Be(ErrorCodes.UNAUTHORIZED);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_UNAUTHORIZED);
         result.Messages.Should().Equal(TK.Common.Errors.UNAUTHORIZED);
     }
 
@@ -315,7 +342,7 @@ public sealed class D2ResultTests
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        result.ErrorCode.Should().Be(ErrorCodes.VALIDATION_FAILED);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_VALIDATION_FAILED);
         result.Messages.Should().Equal(TK.Common.Errors.VALIDATION_FAILED);
     }
 
@@ -350,7 +377,7 @@ public sealed class D2ResultTests
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        result.ErrorCode.Should().Be(ErrorCodes.CONFLICT);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_CONFLICT);
         result.Messages.Should().Equal(TK.Common.Errors.CONFLICT);
     }
 
@@ -361,7 +388,7 @@ public sealed class D2ResultTests
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
-        result.ErrorCode.Should().Be(ErrorCodes.SERVICE_UNAVAILABLE);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_SERVICE_UNAVAILABLE);
         result.Messages.Should().Equal(TK.Common.Errors.SERVICE_UNAVAILABLE);
     }
 
@@ -380,7 +407,7 @@ public sealed class D2ResultTests
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
-        result.ErrorCode.Should().Be(ErrorCodes.UNHANDLED_EXCEPTION);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_UNHANDLED_EXCEPTION);
         result.Category.Should().Be(ErrorCategory.InternalError);
         result.Messages.Should().Equal(TK.Common.Errors.UNKNOWN);
     }
@@ -388,9 +415,9 @@ public sealed class D2ResultTests
     [Fact]
     public void UnhandledException_WithCustomErrorCode_OverridesDefault()
     {
-        // The 500 base factory accepts an errorCode override so a delegating
-        // per-domain 500 factory can stamp a specific code on the base status
-        // (the mechanism KeyCustodianFailures.PreconditionViolated uses).
+        // The base factory for status 500 accepts an errorCode override, so a
+        // per-domain 500 factory that delegates to it can set a specific code on
+        // the base status.
         var result = D2Result.UnhandledException(errorCode: "DOMAIN_PRECONDITION_VIOLATED");
 
         result.Success.Should().BeFalse();
@@ -417,7 +444,7 @@ public sealed class D2ResultTests
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.RequestEntityTooLarge);
-        result.ErrorCode.Should().Be(ErrorCodes.PAYLOAD_TOO_LARGE);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_PAYLOAD_TOO_LARGE);
         result.Messages.Should().Equal(TK.Common.Errors.PAYLOAD_TOO_LARGE);
     }
 
@@ -428,7 +455,7 @@ public sealed class D2ResultTests
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
-        result.ErrorCode.Should().Be(ErrorCodes.RATE_LIMITED);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_RATE_LIMITED);
         result.Messages.Should().Equal(TK.Common.Errors.TOO_MANY_REQUESTS);
     }
 
@@ -447,28 +474,46 @@ public sealed class D2ResultTests
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        result.ErrorCode.Should().Be(ErrorCodes.CANCELED);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_CANCELED);
         result.Messages.Should().Equal(TK.Common.Errors.CANCELED);
+    }
+
+    [Fact]
+    public void ForgeryRefused_DefaultsToTkMessage()
+    {
+        var result = D2Result.ForgeryRefused();
+
+        result.Success.Should().BeFalse();
+        result.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_FORGERY_REFUSED);
+        result.Messages.Should().Equal(TK.Common.Errors.FORBIDDEN);
+    }
+
+    [Fact]
+    public void ForgeryRefused_IsRecognizedByItsBooleanMember()
+    {
+        D2Result.ForgeryRefused().IsForgeryRefused.Should().BeTrue();
+        D2Result.Forbidden().IsForgeryRefused.Should().BeFalse();
     }
 
     [Fact]
     public void SomeFound_IsFailureWithPartialContentStatus()
     {
-        // Adversarial: SomeFound is on the partial-success ladder — Success is FALSE
-        // even though "we found some" is a partial-success outcome. Only the OK factory
-        // sets Success=true on the ladder.
+        // Adversarial: SomeFound is on the partial-success ladder, and Success
+        // is FALSE even though "we found some" is a partial-success outcome.
+        // Only the Ok factory sets Success=true on the partial-success ladder.
         var result = D2Result.SomeFound();
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.PartialContent);
-        result.ErrorCode.Should().Be(ErrorCodes.SOME_FOUND);
+        result.ErrorCode.Should().Be(ErrorCodes.GEN_SOME_FOUND);
         result.Messages.Should().Equal(TK.Common.Errors.SOME_FOUND);
     }
 
     [Fact]
     public void AllSemanticFailureFactories_PropagateTraceId()
     {
-        // Boundary: every factory accepts a traceId; verify each one carries it.
+        // Boundary: every factory accepts a traceId, and the result carries it.
         const string trace_id = "trace-xyz";
 
         D2Result.NotFound(traceId: trace_id).TraceId.Should().Be(trace_id);

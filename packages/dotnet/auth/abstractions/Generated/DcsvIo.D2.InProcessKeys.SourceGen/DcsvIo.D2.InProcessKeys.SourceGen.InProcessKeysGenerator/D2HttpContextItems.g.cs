@@ -21,7 +21,7 @@ namespace DcsvIo.D2.Auth.Abstractions.Http;
 public static class D2HttpContextItems
 {
     /// <summary>
-    /// Slot under which the inbound auth runtime writes the populated DcsvIo.D2.Context.Abstractions.IRequestContext on successful auth. HTTP middleware writes to HttpContext.Items[REQUEST_CONTEXT]; gRPC interceptor mirrors the write to ServerCallContext.UserState[REQUEST_CONTEXT] AND HttpContext.Items[REQUEST_CONTEXT] (gRPC-on-AspNetCore-Kestrel always has an HttpContext). Cross-binding identical value is what makes the cross-transport scoped IRequestContext resolver lambda work.
+    /// Slot under which the inbound auth runtime writes the populated DcsvIo.D2.Context.Abstractions.IRequestContext on successful auth. HTTP middleware writes to HttpContext.Items[REQUEST_CONTEXT]; gRPC interceptor mirrors the write to ServerCallContext.UserState[REQUEST_CONTEXT] AND HttpContext.Items[REQUEST_CONTEXT] (gRPC-on-AspNetCore-Kestrel always has an HttpContext). Both bindings use the same value, so the cross-transport scoped IRequestContext resolver lambda works.
     /// </summary>
     public const string REQUEST_CONTEXT = "D2.RequestContext";
 

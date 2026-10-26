@@ -19,8 +19,8 @@ using DcsvIo.D2.Validation.Abstractions;
 /// <summary>
 /// Immutable 5-line postal address value object. Line1 is required;
 /// Line2..Line5 are optional and may be populated in any combination
-/// (no gap rule — <see cref="Line1"/> + <see cref="Line5"/> with nulls
-/// between is valid). Uses two-stage normalization: the stored form
+/// (no gap rule - <see cref="Line1"/> + <see cref="Line5"/> with nulls
+/// between is valid). Normalizes in stages: the stored form
 /// preserves case + strips decorative punctuation; the hash form
 /// upper-cases + NFD-strips combining marks + applies a Unicode-category
 /// filter so dedup-equivalent inputs across scripts produce byte-identical
@@ -31,7 +31,7 @@ using DcsvIo.D2.Validation.Abstractions;
 /// <b>Self-redacting PII.</b> <see cref="Line1"/>, <see cref="Line2"/>,
 /// <see cref="Line3"/>, <see cref="Line4"/>, and <see cref="Line5"/> are marked
 /// <c>[RedactData(PersonalInformation)]</c> and are masked automatically by the
-/// Serilog destructuring policy — street-address lines are postal-address PII
+/// Serilog destructuring policy - street-address lines are postal-address PII
 /// (GDPR-sensitive). <see cref="HashId"/> is left visible because it is a one-way
 /// SHA-256 digest of the normalized address lines: opaque, non-reversible, and safe
 /// for correlation in logs and traces without leaking address content.
@@ -74,9 +74,9 @@ public sealed record StreetAddress
     /// <summary>
     /// Gets the stable hash identifier:
     /// <c>"v1." + SHA-256(NormalizeForHash(Line1) | ... | NormalizeForHash(Line5))</c>
-    /// as lowercase hex. All 5 slots always participate (deterministic
+    /// as lowercase hex. Every slot, Line1 to Line5, always participates (deterministic
     /// positional shape; missing lines contribute <c>""</c>).
-    /// Emitted unredacted in logs — it is a one-way SHA-256 digest (opaque,
+    /// Emitted unredacted in logs - it is a one-way SHA-256 digest (opaque,
     /// non-reversible) and is safe for correlation in logs and traces without
     /// leaking address content.
     /// </summary>
@@ -151,7 +151,7 @@ public sealed record StreetAddress
             NormalizeForHash(cleanedLine4) + "|" +
             NormalizeForHash(cleanedLine5);
 
-        // BCL static one-shot per §15.8 — no IDisposable instance to manage.
+        // BCL static one-shot - no IDisposable instance to manage.
         var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(hashInput));
         var hashId = "v1." + Convert.ToHexStringLower(hashBytes);
 
@@ -167,13 +167,11 @@ public sealed record StreetAddress
     }
 
     /// <summary>
-    /// Two-stage normalization stage 2 — thin forwarder to the shared
+    /// Normalization stage 2 (hash form) - thin forwarder to the shared
     /// <see cref="DcsvIo.D2.Utilities.Extensions.StringExtensions.NormalizeForHash(string?)"/>
-    /// extension in <c>DcsvIo.D2.Utilities</c>. The algorithm is byte-identical
-    /// to the original inline implementation (UPPERCASE + NFD-strip combining
-    /// marks + Unicode-category filter: Letter / Decimal-digit / ASCII space).
-    /// Kept as an internal method so existing test call-sites and
-    /// <c>AdminLocation</c> call-sites continue to compile without churn.
+    /// extension in <c>DcsvIo.D2.Utilities</c>. The algorithm is UPPERCASE +
+    /// NFD-strip combining marks + Unicode-category filter: Letter /
+    /// Decimal-digit / ASCII space.
     /// </summary>
     /// <param name="cleaned">
     /// A line value already passed through <c>CleanStored</c> (or null).
@@ -184,9 +182,9 @@ public sealed record StreetAddress
     internal static string NormalizeForHash(string? cleaned) => cleaned.NormalizeForHash();
 
     /// <summary>
-    /// Two-stage normalization stage 1 — produces the stored form
-    /// (trim → collapse internal whitespace → strip decorative
-    /// punctuation, CASE PRESERVED). Whitespace-only / null input → null.
+    /// Normalization stage 1 (stored form) - produces the stored form
+    /// (trim -> collapse internal whitespace -> strip decorative
+    /// punctuation, CASE PRESERVED). Whitespace-only / null input -> null.
     /// </summary>
     private static string? CleanStored(string? line)
     {
@@ -212,14 +210,14 @@ public sealed record StreetAddress
                 continue;
             }
 
-            // Format chars (BiDi overrides, zero-width joiners, etc.) — strip.
+            // Format chars (BiDi overrides, zero-width joiners, etc.) - strip.
             var cat = Rune.GetUnicodeCategory(rune);
             if (cat == UnicodeCategory.Format)
                 continue;
 
-            // Decorative end-of-sentence / list punctuation — strip from stored form.
+            // Decorative end-of-sentence / list punctuation - strip from stored form.
             // Keep hyphens, apostrophes, slashes, '#', '&', parentheses, brackets,
-            // braces, '*', '+', etc. (semantic chars callers may want preserved).
+            // braces, '*', '+', etc. (semantic chars the stored form preserves).
             if (cp is '.' or ',' or ';' or ':' or '!' or '?')
                 continue;
 
@@ -227,8 +225,9 @@ public sealed record StreetAddress
             lastWasSpace = false;
         }
 
-        // Trim trailing space (loop appends an internal space, then sees
-        // EOF — buffer may have a trailing space if input ended in whitespace).
+        // Trim trailing space (the loop appends an internal space, then
+        // reaches the end of the input - the buffer ends in a space if the
+        // input ended in whitespace).
         while (sb.Length > 0 && sb[sb.Length - 1] == ' ')
             sb.Length--;
 

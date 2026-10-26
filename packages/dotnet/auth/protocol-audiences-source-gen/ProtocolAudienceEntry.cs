@@ -11,13 +11,13 @@ namespace DcsvIo.D2.Auth.ProtocolAudiences.SourceGen;
 /// </summary>
 /// <param name="Name">
 /// SCREAMING_SNAKE_CASE identifier emitted as a <c>public const string</c> on the
-/// generated <c>WellKnownAudiences</c> class (e.g. <c>"D2_INTERNAL_AUDIENCE"</c> →
-/// <c>WellKnownAudiences.D2_INTERNAL_AUDIENCE</c>). Must match
+/// generated <c>WellKnownAudiences</c> class (for example <c>"D2_INTERNAL_AUDIENCE"</c>
+/// becomes <c>WellKnownAudiences.D2_INTERNAL_AUDIENCE</c>). Must match
 /// <c>^[A-Z][A-Z0-9_]*$</c>.
 /// </param>
 /// <param name="Value">
-/// The bare-token <c>aud</c>-claim value (e.g. <c>"d2.internal"</c>). The const's
-/// value is this string. Intentionally NOT URL-shaped — protocol audiences are
+/// The bare-token <c>aud</c>-claim value (for example <c>"d2.internal"</c>). The const's
+/// value is this string. It is intentionally not URL-shaped: protocol audiences are
 /// bare tokens, unlike the URL-shaped token-exchange targets in
 /// <c>contracts/auth-audiences/audiences.spec.json</c>. Must be non-empty.
 /// </param>

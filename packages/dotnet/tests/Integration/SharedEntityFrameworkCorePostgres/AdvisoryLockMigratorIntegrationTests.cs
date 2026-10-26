@@ -49,7 +49,7 @@ public sealed class AdvisoryLockMigratorIntegrationTests
     }
 
     // =========================================================================
-    // StartAsync — database-already-exists path
+    // StartAsync - database-already-exists path
     // =========================================================================
 
     [Fact]
@@ -67,7 +67,7 @@ public sealed class AdvisoryLockMigratorIntegrationTests
     }
 
     // =========================================================================
-    // StopAsync — always completes
+    // StopAsync - always completes
     // =========================================================================
 
     [Fact]
@@ -80,7 +80,7 @@ public sealed class AdvisoryLockMigratorIntegrationTests
     }
 
     // =========================================================================
-    // StartAsync — ensure-database creates a fresh DB
+    // StartAsync - ensure-database creates a fresh DB
     // =========================================================================
 
     [Fact]
@@ -110,14 +110,14 @@ public sealed class AdvisoryLockMigratorIntegrationTests
     }
 
     // =========================================================================
-    // StartAsync — concurrent-migrators serialization
+    // StartAsync - concurrent-migrators serialization
     // =========================================================================
 
     [Fact]
     public async Task StartAsync_TwoConcurrentMigrators_ExactlyOneMigratesOtherBlocksThenFindsNoPending()
     {
         // Two migrators race to acquire the same advisory lock against the same DB.
-        // The first acquires the lock, migrates (finds no pending — no migrations assembly),
+        // The first acquires the lock, migrates (finds no pending - no migrations assembly),
         // then releases. The second acquires, also finds no pending, and completes.
         // Both Task.WhenAll completions prove: no deadlock, no throw, DB created once.
         var uniqueDb = $"concurrent_migrator_{Guid.NewGuid():N}";
@@ -138,8 +138,8 @@ public sealed class AdvisoryLockMigratorIntegrationTests
             migrator1.StartAsync(cts.Token),
             migrator2.StartAsync(cts.Token));
 
-        // Verify the database exists — was created exactly once (the migrator is idempotent
-        // so the second run simply finds it present).
+        // Verify the database exists - was created exactly once (the migrator is idempotent
+        // so the second run finds it present).
         await using var checkCtx = new ProbeDbContext(
             new DbContextOptionsBuilder<ProbeDbContext>()
                 .UseNpgsql(connStr)
@@ -186,7 +186,7 @@ public sealed class AdvisoryLockMigratorIntegrationTests
     }
 
     // =========================================================================
-    // Minimal probe DbContext — no migrations, just proves schema presence
+    // Minimal probe DbContext - no migrations, just proves schema presence
     // =========================================================================
 
     private sealed class ProbeDbContext : DbContext

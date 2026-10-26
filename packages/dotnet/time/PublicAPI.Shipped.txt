@@ -1,7 +1,4 @@
 #nullable enable
-DcsvIo.D2.Time.EfCore.NodaTimeValueConverterExtensions
-DcsvIo.D2.Time.EfCore.NodaTimeValueConverterExtensions.extension(Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.NpgsqlDbContextOptionsBuilder!)
-DcsvIo.D2.Time.EfCore.NodaTimeValueConverterExtensions.extension(Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.NpgsqlDbContextOptionsBuilder!).AddD2NodaTime() -> Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.NpgsqlDbContextOptionsBuilder!
 DcsvIo.D2.Time.IClock
 DcsvIo.D2.Time.IClock.GetCurrentInstant() -> NodaTime.Instant
 DcsvIo.D2.Time.IsoDuration
@@ -32,7 +29,6 @@ override DcsvIo.D2.Time.LocalAnchoredEvent.ToString() -> string!
 override DcsvIo.D2.Time.ZonedInstant.Equals(object? obj) -> bool
 override DcsvIo.D2.Time.ZonedInstant.GetHashCode() -> int
 override DcsvIo.D2.Time.ZonedInstant.ToString() -> string!
-static DcsvIo.D2.Time.EfCore.NodaTimeValueConverterExtensions.AddD2NodaTime(this Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.NpgsqlDbContextOptionsBuilder! optionsBuilder) -> Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.NpgsqlDbContextOptionsBuilder!
 static DcsvIo.D2.Time.IsoDuration.Format(NodaTime.Duration duration) -> string!
 static DcsvIo.D2.Time.IsoDuration.Parse(string? iso) -> DcsvIo.D2.Result.D2Result<NodaTime.Duration>!
 static DcsvIo.D2.Time.LocalAnchoredEvent.Create(NodaTime.LocalDateTime scheduledLocal, string? ianaIdentifier, NodaTime.Instant? nextFireUtc = null) -> DcsvIo.D2.Result.D2Result<DcsvIo.D2.Time.LocalAnchoredEvent!>!

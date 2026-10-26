@@ -14,12 +14,12 @@ using Microsoft.Extensions.Options;
 using Xunit;
 
 /// <summary>
-/// Pins the service-name resolution chain — the
+/// Pins the last step of the service-name resolution chain - the
 /// <see cref="D2TelemetryConstants.OTEL_SERVICE_NAME_CONFIG_KEY"/>
 /// config value, then <c>IHostEnvironment.ApplicationName</c>, then the
-/// configure callback override. Service name is the most-queried OTel
-/// resource attribute (operators key dashboards by it) so coverage here
-/// pins the contract.
+/// configure callback override. The only test in this class covers the
+/// configure callback. Operators key dashboards by the service name, an OTel
+/// resource attribute.
 /// </summary>
 [Collection("LogLoggerStaticState")]
 public sealed class ServiceNameResolutionTests

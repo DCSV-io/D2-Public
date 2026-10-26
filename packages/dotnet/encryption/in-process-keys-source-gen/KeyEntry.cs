@@ -12,7 +12,7 @@ using System.Collections.Immutable;
 /// One in-process slot-key entry parsed from
 /// <c>contracts/in-process-keys/keys.spec.json</c>.
 /// </summary>
-/// <param name="ConstName">Public C# constant identifier — UPPER_SNAKE_CASE.</param>
+/// <param name="ConstName">Public C# constant identifier in UPPER_SNAKE_CASE.</param>
 /// <param name="Value">
 /// Wire value of the slot key. Identical across every binding listed in
 /// <paramref name="Bindings"/>.

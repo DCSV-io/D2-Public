@@ -167,6 +167,97 @@ public static partial class TK
         }
 
         /// <summary>
+        /// Pagination translation keys.
+        /// </summary>
+        public static partial class Pagination
+        {
+            /// <summary>
+            /// Translation key <c>common_pagination_CURSOR_INVALID</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage CURSOR_INVALID = new("common_pagination_CURSOR_INVALID");
+            /// <summary>
+            /// Translation key <c>common_pagination_CURSOR_KEY_UNDECODABLE</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage CURSOR_KEY_UNDECODABLE = new("common_pagination_CURSOR_KEY_UNDECODABLE");
+            /// <summary>
+            /// Translation key <c>common_pagination_CURSOR_NOT_ENCODABLE</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage CURSOR_NOT_ENCODABLE = new("common_pagination_CURSOR_NOT_ENCODABLE");
+            /// <summary>
+            /// Translation key <c>common_pagination_CURSOR_ORDER_INVALID</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage CURSOR_ORDER_INVALID = new("common_pagination_CURSOR_ORDER_INVALID");
+            /// <summary>
+            /// Translation key <c>common_pagination_CURSOR_ORDER_MISMATCH</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage CURSOR_ORDER_MISMATCH = new("common_pagination_CURSOR_ORDER_MISMATCH");
+            /// <summary>
+            /// Translation key <c>common_pagination_CURSOR_QUERY_MISMATCH</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage CURSOR_QUERY_MISMATCH = new("common_pagination_CURSOR_QUERY_MISMATCH");
+            /// <summary>
+            /// Translation key <c>common_pagination_CURSOR_SORT_MISMATCH</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage CURSOR_SORT_MISMATCH = new("common_pagination_CURSOR_SORT_MISMATCH");
+            /// <summary>
+            /// Translation key <c>common_pagination_CURSOR_SORT_NOT_ALLOWED</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage CURSOR_SORT_NOT_ALLOWED = new("common_pagination_CURSOR_SORT_NOT_ALLOWED");
+            /// <summary>
+            /// Translation key <c>common_pagination_CURSOR_VERSION_UNSUPPORTED</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage CURSOR_VERSION_UNSUPPORTED = new("common_pagination_CURSOR_VERSION_UNSUPPORTED");
+            /// <summary>
+            /// Translation key <c>common_pagination_LIMIT_INVALID</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage LIMIT_INVALID = new("common_pagination_LIMIT_INVALID");
+            /// <summary>
+            /// Translation key <c>common_pagination_ORDER_INVALID</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage ORDER_INVALID = new("common_pagination_ORDER_INVALID");
+            /// <summary>
+            /// Translation key <c>common_pagination_PAGE_POLICY_INVALID</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage PAGE_POLICY_INVALID = new("common_pagination_PAGE_POLICY_INVALID");
+            /// <summary>
+            /// Translation key <c>common_pagination_RELEVANCE_REQUIRES_QUERY</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage RELEVANCE_REQUIRES_QUERY = new("common_pagination_RELEVANCE_REQUIRES_QUERY");
+            /// <summary>
+            /// Translation key <c>common_pagination_REQUEST_REQUIRED</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage REQUEST_REQUIRED = new("common_pagination_REQUEST_REQUIRED");
+            /// <summary>
+            /// Translation key <c>common_pagination_SEARCH_NOT_SUPPORTED</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage SEARCH_NOT_SUPPORTED = new("common_pagination_SEARCH_NOT_SUPPORTED");
+            /// <summary>
+            /// Translation key <c>common_pagination_SEARCH_QUERY_TOO_LONG</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage SEARCH_QUERY_TOO_LONG = new("common_pagination_SEARCH_QUERY_TOO_LONG");
+            /// <summary>
+            /// Translation key <c>common_pagination_SEARCH_QUERY_TOO_SHORT</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage SEARCH_QUERY_TOO_SHORT = new("common_pagination_SEARCH_QUERY_TOO_SHORT");
+            /// <summary>
+            /// Translation key <c>common_pagination_SORT_CATALOG_EMPTY</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage SORT_CATALOG_EMPTY = new("common_pagination_SORT_CATALOG_EMPTY");
+            /// <summary>
+            /// Translation key <c>common_pagination_SORT_DIRECTION_NOT_ALLOWED</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage SORT_DIRECTION_NOT_ALLOWED = new("common_pagination_SORT_DIRECTION_NOT_ALLOWED");
+            /// <summary>
+            /// Translation key <c>common_pagination_SORT_FIELD_NOT_ALLOWED</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage SORT_FIELD_NOT_ALLOWED = new("common_pagination_SORT_FIELD_NOT_ALLOWED");
+            /// <summary>
+            /// Translation key <c>common_pagination_SORT_FIELD_NOT_REGISTERED</c>.
+            /// </summary>
+            public static readonly global::DcsvIo.D2.I18n.TKMessage SORT_FIELD_NOT_REGISTERED = new("common_pagination_SORT_FIELD_NOT_REGISTERED");
+        }
+
+        /// <summary>
         /// Time translation keys.
         /// </summary>
         public static partial class Time

@@ -10,10 +10,10 @@ using Microsoft.CodeAnalysis;
 
 /// <summary>
 /// Roslyn <see cref="DiagnosticDescriptor"/> instances for the IDs declared in
-/// <see cref="DiagnosticIds"/>. Only loaded inside the Roslyn host (the
-/// generator's <see cref="TKGenerator.Initialize"/> call site); pure-logic
-/// callers should use <see cref="DiagnosticIds"/> string constants directly to
-/// avoid pulling <c>Microsoft.CodeAnalysis</c> at runtime.
+/// <see cref="DiagnosticIds"/>. This class loads only inside the Roslyn host,
+/// where <see cref="TKGenerator.Initialize"/> runs. Code that needs only the
+/// ID strings uses the <see cref="DiagnosticIds"/> constants, which do not
+/// load <c>Microsoft.CodeAnalysis</c> at runtime.
 /// </summary>
 internal static class DiagnosticDescriptors
 {
@@ -74,6 +74,39 @@ internal static class DiagnosticDescriptors
         messageFormat: "Translation catalog '{0}' could not be parsed: {1}",
         category: _CATEGORY,
         defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    /// <inheritdoc cref="DiagnosticIds.InvalidExtensionNamespace"/>
+    public static readonly DiagnosticDescriptor SR_InvalidExtensionNamespace = new(
+        id: DiagnosticIds.InvalidExtensionNamespace,
+        title: "Extension namespace property is not a valid namespace",
+        messageFormat:
+            "MSBuild property '{0}' is '{1}', which is not a dot-separated sequence of C# "
+            + "identifiers; no extension output is generated",
+        category: _CATEGORY,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    /// <inheritdoc cref="DiagnosticIds.InvalidExtensionClassPrefix"/>
+    public static readonly DiagnosticDescriptor SR_InvalidExtensionClassPrefix = new(
+        id: DiagnosticIds.InvalidExtensionClassPrefix,
+        title: "Extension class prefix property is missing or invalid",
+        messageFormat:
+            "MSBuild property '{0}' is '{1}', which is not a C# identifier; it must be one "
+            + "when '{2}' is set, and no extension output is generated",
+        category: _CATEGORY,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    /// <inheritdoc cref="DiagnosticIds.ExtensionClassPrefixWithoutNamespace"/>
+    public static readonly DiagnosticDescriptor SR_ExtensionClassPrefixWithoutNamespace = new(
+        id: DiagnosticIds.ExtensionClassPrefixWithoutNamespace,
+        title: "Extension class prefix property is set without a namespace",
+        messageFormat:
+            "MSBuild property '{0}' is '{1}' but '{2}' is not set; no extension output is "
+            + "generated",
+        category: _CATEGORY,
+        defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
     private const string _CATEGORY = "DcsvIo.D2.I18n.SourceGen";

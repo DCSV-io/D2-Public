@@ -43,9 +43,9 @@ export class RateLimitRejectedError extends Error {
 
 /**
  * Outcome of a permit-acquisition attempt:
- * - `granted` — a permit was acquired (the caller MUST release it);
- * - `rejected` — the acquisition window elapsed with no free permit;
- * - `aborted` — the caller's signal fired while waiting (no permit consumed).
+ * - `granted` - a permit was acquired (the caller MUST release it);
+ * - `rejected` - the acquisition window elapsed with no free permit;
+ * - `aborted` - the caller's signal fired while waiting (no permit consumed).
  */
 type AcquireOutcome = "granted" | "rejected" | "aborted";
 
@@ -67,15 +67,15 @@ interface Waiter {
  * {@link RateLimitRejectedError} rather than queued indefinitely. Mirrors
  * .NET `RateLimiterLayer<TKey, TValue>`.
  *
- * **Client-side, in-process only.** This is admission control for outbound
- * calls — it limits concurrent pressure from this process on an upstream. It
+ * Client-side, in-process only. This is admission control for outbound
+ * calls: it limits concurrent pressure from this process on an upstream. It
  * is NOT the server-side distributed rate-limit middleware.
  *
  * The concurrency gate is hand-rolled (counter + FIFO waiter queue) because
  * TS/Node has no `SemaphoreSlim` equivalent in the standard library.
  *
- * Permits are released in a `finally` block — released on BOTH success and
- * throw, so no permits leak on inner-op failures.
+ * Permits are released in a `finally` block, on BOTH success and throw, so no
+ * permits leak on inner-op failures.
  */
 export class RateLimiterLayer implements IResilientLayer {
   private readonly maxConcurrency: number;
@@ -113,9 +113,9 @@ export class RateLimiterLayer implements IResilientLayer {
 
   /**
    * Attempts to acquire a concurrency permit.
-   * - If a slot is free → increments active and resolves `granted` immediately.
-   * - If `acquisitionTimeoutMs <= 0` → resolves `rejected` immediately (reject-fast).
-   * - Otherwise → enqueues a waiter and races a permit grant against an
+   * - If a slot is free -> increments active and resolves `granted` immediately.
+   * - If `acquisitionTimeoutMs <= 0` -> resolves `rejected` immediately (reject-fast).
+   * - Otherwise -> enqueues a waiter and races a permit grant against an
    *   acquisition-timeout timer AND (when supplied) the caller's abort signal.
    *   Resolves `granted` if a permit arrives first, `rejected` on timeout, or
    *   `aborted` if the caller's signal fires first. The waiter is always spliced
@@ -130,44 +130,23 @@ export class RateLimiterLayer implements IResilientLayer {
     if (this.acquisitionTimeoutMs <= 0) return Promise.resolve("rejected");
 
     return new Promise<AcquireOutcome>((resolve) => {
-      const waiter: Waiter = { resolve };
+      const waiter: Waiter = {
+        resolve: (outcome) => {
+          // A grant has already removed the waiter from the queue.
+          const idx = this.waiters.indexOf(waiter);
+          if (idx !== -1) this.waiters.splice(idx, 1);
+          clearTimeout(timer);
+          signal?.removeEventListener("abort", onAbort);
+          resolve(outcome);
+        },
+      };
+      const onAbort = (): void => waiter.resolve("aborted");
+      const timer = setTimeout(
+        () => waiter.resolve("rejected"),
+        this.acquisitionTimeoutMs,
+      );
       this.waiters.push(waiter);
-
-      const dropWaiter = (): void => {
-        // Remove the waiter from the queue (it may already have been dequeued
-        // if release() ran first, in which case splice is a no-op).
-        const idx = this.waiters.indexOf(waiter);
-        if (idx !== -1) this.waiters.splice(idx, 1);
-      };
-
-      // Forward-declared so the timer + abort callbacks can detach each other;
-      // assigned once `timer` exists (the callbacks only run asynchronously).
-      let cleanup = (): void => {};
-
-      const onAbort = (): void => {
-        dropWaiter();
-        cleanup();
-        resolve("aborted");
-      };
-
-      const timer = setTimeout(() => {
-        dropWaiter();
-        cleanup();
-        resolve("rejected");
-      }, this.acquisitionTimeoutMs);
-
       signal?.addEventListener("abort", onAbort, { once: true });
-
-      cleanup = (): void => {
-        clearTimeout(timer);
-        signal?.removeEventListener("abort", onAbort);
-      };
-
-      // Wrap resolve so a permit grant cancels the timer + abort listener.
-      waiter.resolve = (outcome: AcquireOutcome) => {
-        cleanup();
-        resolve(outcome);
-      };
     });
   }
 
@@ -182,8 +161,8 @@ export class RateLimiterLayer implements IResilientLayer {
   }
 
   /**
-   * Exposed for testing — the number of currently active (in-flight) operations.
-   * Not part of the public API contract.
+   * The number of currently active (in-flight) operations. Not part of the
+   * public API contract.
    */
   get activeCount(): number {
     return this.active;

@@ -12,17 +12,16 @@ using DcsvIo.D2.Auth.Abstractions;
 using Xunit;
 
 /// <summary>
-/// Reflection-based name + count pins for <see cref="ScopeMatch"/>.
+/// Reflection-based name and count pins for <see cref="ScopeMatch"/>.
 /// Mirrors the <c>HandlerScopeMatch</c> pins in
-/// <c>DcsvIo.D2.Tests.Unit.Handler.ScopeRequirementTests</c>. Member names
-/// and the count are load-bearing: the auth middleware, fluent-extension
-/// callers, and generated analyzer output branch on them. A rename must
-/// trip an obvious test failure.
+/// <c>DcsvIo.D2.Tests.Unit.Handler.ScopeRequirementTests</c>. Code that
+/// branches on <see cref="ScopeMatch"/> depends on the member names and the
+/// count, so a rename must fail a test visibly.
 /// </summary>
 /// <remarks>
-/// We deliberately do NOT use <c>nameof()</c> in the expected-value
-/// arguments: <c>nameof</c> is compile-time–resolved and would silently
-/// follow any rename, defeating the pin. The literal strings here are the
+/// These tests deliberately do not use <c>nameof()</c> in the expected-value
+/// arguments: <c>nameof</c> is resolved at compile time and would follow any
+/// rename, which defeats the pin. The literal strings here are the
 /// contract.
 /// </remarks>
 public sealed class ScopeMatchTests
@@ -48,10 +47,9 @@ public sealed class ScopeMatchTests
     [Fact]
     public void ScopeMatch_EnumHasExactlyTwoMembers()
     {
-        // Adversarial: any future member addition to ScopeMatch requires
-        // updating the auth middleware branch logic + all call sites that
-        // switch on ScopeMatch. Pin the count so an addition trips this
-        // test and forces a conscious review.
+        // Adversarial: a member added to ScopeMatch requires changes wherever
+        // code switches on ScopeMatch. Pin the count so that an addition fails
+        // this test and forces a deliberate review.
         var members = typeof(ScopeMatch).GetFields(BindingFlags.Public | BindingFlags.Static);
 
         members.Should().HaveCount(2);

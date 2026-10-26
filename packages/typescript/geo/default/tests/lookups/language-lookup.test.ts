@@ -26,7 +26,7 @@ describe("LanguageLookup", () => {
     );
   });
 
-  // §1.2 category: Domain-specific — per-VALUE pins.
+  // Category: Domain-specific - per-VALUE pins.
   it("en (English) fields pinned", () => {
     const en = Languages.en;
     expect(en.iso6391Code).toBe(LanguageCode.en);
@@ -61,7 +61,7 @@ describe("LanguageLookup", () => {
     expect(Languages.he.writingDirection).toBe(WritingDirection.RTL);
   });
 
-  // §1.2 category: Cross-field — reverse-FK nav populated.
+  // Category: Cross-field - reverse-FK nav populated.
   it("en SpokenInCountries contains GB + US + AU", () => {
     const en = Languages.en;
     expect(

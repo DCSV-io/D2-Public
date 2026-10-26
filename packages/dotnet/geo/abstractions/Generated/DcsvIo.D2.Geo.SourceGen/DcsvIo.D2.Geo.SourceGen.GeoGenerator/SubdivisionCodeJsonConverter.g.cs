@@ -5108,7 +5108,7 @@ public sealed class SubdivisionCodeJsonConverter : JsonConverter<SubdivisionCode
         if (!sr_validSubdivisionCodes.Contains(value!))
         {
             throw new JsonException(
-                $"Unknown ISO 3166-2 subdivision code '{value}' — not present in the closed catalog set.");
+                $"Unknown ISO 3166-2 subdivision code '{value}' - not present in the closed catalog set.");
         }
 
         return SubdivisionCode.FromString(value!);

@@ -7,14 +7,14 @@
 namespace DcsvIo.D2.Resilience.CircuitBreaker;
 
 /// <summary>
-/// Lightweight three-state circuit breaker (Closed / Open / Half-Open) for
+/// Lightweight circuit breaker with the states Closed, Open and Half-Open, for
 /// protecting async operations against sustained downstream failures. Tracks
-/// consecutive failures and fast-fails when a threshold is reached, avoiding
+/// consecutive failures and fails fast when a threshold is reached, avoiding
 /// wasted timeout waits.
 /// </summary>
 /// <typeparam name="T">The return type of the protected operation.</typeparam>
 /// <remarks>
-/// Thread-safe via <see cref="Interlocked"/> operations — no locks required.
+/// Thread-safe via <see cref="Interlocked"/> operations - no locks required.
 /// The probe-in-flight flag ensures only one Half-Open probe runs at a time;
 /// concurrent callers during a probe receive the fallback (or
 /// <see cref="CircuitOpenException"/> when no fallback is supplied).
@@ -38,7 +38,7 @@ public sealed class CircuitBreaker<T>
     ///
     /// <param name="isFailure">
     /// Predicate that inspects a returned value to decide whether it counts
-    /// as a failure. Thrown exceptions ALWAYS count as failures; this
+    /// as a failure. Thrown exceptions always count as failures; this
     /// predicate adds value-based failures (e.g. <c>r => !r.Success</c>).
     /// </param>
     /// <param name="options">Optional configuration. Defaults applied if null.</param>
@@ -46,13 +46,13 @@ public sealed class CircuitBreaker<T>
     /// Optional callback fired on state transitions. Invoked synchronously on
     /// the thread that triggered the transition.
     /// <para>
-    /// <b>Footgun:</b> a throwing callback REPLACES the upstream exception that
-    /// caused the transition. A buggy logger or metric emitter inside this
-    /// callback can swap a meaningful "TimeoutException from upstream X"
-    /// with its own "InvalidOperationException from logger" — making outage
-    /// diagnosis painful. Wrap the callback body in your own try/catch (or
-    /// keep it to plain log/metric calls that don't throw) to preserve the
-    /// upstream exception for callers.
+    /// A callback that throws replaces the upstream exception that caused the
+    /// transition. An exception thrown by a logger or metric emitter inside
+    /// this callback can replace a "TimeoutException from upstream X" with its
+    /// own "InvalidOperationException from logger", which hides the cause of
+    /// the outage. Wrap the callback body in a try/catch, or keep it to plain
+    /// log and metric calls that do not throw, to preserve the upstream
+    /// exception for callers.
     /// </para>
     /// </param>
     public CircuitBreaker(
@@ -61,7 +61,7 @@ public sealed class CircuitBreaker<T>
         Action<CircuitState, CircuitState>? onStateChange = null)
     {
         // CircuitBreakerOptions is the single source of truth for defaults
-        // — falling back to a parameterless ctor here delegates that work.
+        // - falling back to a parameterless ctor here delegates that work.
         options ??= new CircuitBreakerOptions();
 
         r_isFailure = isFailure;
@@ -103,7 +103,7 @@ public sealed class CircuitBreaker<T>
         Func<ValueTask<T>>? fallback = null,
         CancellationToken ct = default)
     {
-        // Open → Half-Open transition once the cooldown has elapsed.
+        // Open -> Half-Open transition once the cooldown has elapsed.
         if (State == CircuitState.Open)
         {
             var elapsed = r_now() - Interlocked.Read(ref _openedAt);
@@ -119,14 +119,14 @@ public sealed class CircuitBreaker<T>
 
         switch (State)
         {
-            // Open: fast-fail.
+            // Open: fail fast.
             case CircuitState.Open when fallback is not null:
                 return await fallback();
 
             case CircuitState.Open:
                 throw new CircuitOpenException();
 
-            // Half-Open: only one probe at a time; everyone else gets the fallback.
+            // Half-Open: only one probe at a time; all other callers get the fallback.
             case CircuitState.HalfOpen
                 when Interlocked.CompareExchange(ref _probeInFlight, 1, 0) != 0:
             {
@@ -136,7 +136,7 @@ public sealed class CircuitBreaker<T>
                 throw new CircuitOpenException();
             }
 
-            // Closed, or the Half-Open probe winner: actually run the operation.
+            // Closed, or the Half-Open probe winner: run the operation.
             case CircuitState.Closed:
             default:
             {
@@ -197,7 +197,7 @@ public sealed class CircuitBreaker<T>
         var count = Interlocked.Increment(ref _failureCount);
         Interlocked.Exchange(ref _probeInFlight, 0);
 
-        // Half-Open probe failed → straight back to Open.
+        // Half-Open probe failed -> straight back to Open.
         if (State == CircuitState.HalfOpen)
         {
             Interlocked.Exchange(ref _openedAt, r_now());
@@ -212,7 +212,7 @@ public sealed class CircuitBreaker<T>
             return;
         }
 
-        // Closed → Open once the threshold is hit.
+        // Closed -> Open once the threshold is hit.
         if (count >= r_failureThreshold)
         {
             Interlocked.Exchange(ref _openedAt, r_now());

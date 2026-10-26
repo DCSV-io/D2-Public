@@ -21,7 +21,7 @@ using Microsoft.CodeAnalysis.Text;
 using Xunit;
 
 /// <summary>
-/// CI-enforced byte-parity gate for committed public
+/// CI-enforced parity gate for committed public
 /// <c>EncryptionDomains.g.cs</c> under <c>DcsvIo.D2.Encryption</c>:
 /// regenerates from the public-only encryption-domains spec via the same
 /// generator path and asserts LF-normalized equality with the committed file.

@@ -9,7 +9,7 @@ import {
   type ErrorCategory,
 } from "../src/index.js";
 
-// The nine closed wire strings — the cross-runtime source of truth. Mirrors
+// The closed wire strings - the cross-runtime source of truth. Mirrors
 // the .NET DcsvIo.D2.ErrorCodes.Category.ErrorCategory enum's wire set.
 const EXPECTED_WIRES: readonly ErrorCategory[] = [
   "conflict",

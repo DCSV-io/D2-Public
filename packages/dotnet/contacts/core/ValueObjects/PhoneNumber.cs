@@ -25,7 +25,7 @@ using DcsvIo.D2.Validation.Abstractions;
 /// </summary>
 /// <remarks>
 /// <b>Self-redacting PII.</b> <see cref="Value"/> is marked
-/// <c>[RedactData(PersonalInformation)]</c> — a phone number is directly
+/// <c>[RedactData(PersonalInformation)]</c> - a phone number is directly
 /// identifying and is masked automatically by the Serilog destructuring policy.
 /// </remarks>
 public sealed record PhoneNumber
@@ -43,7 +43,7 @@ public sealed record PhoneNumber
     /// normalized output is trusted and no additional length cap is applied) and
     /// <paramref name="region"/> is forwarded to it; otherwise the structural
     /// floor strips non-digits, enforces the digit envelope, and caps the raw
-    /// input length (<paramref name="region"/> is ignored in floor mode — there
+    /// input length (<paramref name="region"/> is ignored in floor mode - there
     /// is no national-format interpretation without a validator).
     /// </summary>
     /// <param name="value">The raw phone number (may be null or whitespace).</param>
@@ -59,7 +59,7 @@ public sealed record PhoneNumber
     /// <returns>
     /// <c>Ok</c> wrapping the normalized number on success; the validator's
     /// failure (validator mode) or
-    /// <see cref="D2Result{TData}.ValidationFailed"/> carrying the common
+    /// <see cref="D2Result{TData}.ValidationFailed"/> with the common
     /// invalid-phone key / the contacts too-long key (floor mode) otherwise.
     /// </returns>
     public static D2Result<PhoneNumber> Create(
@@ -79,7 +79,7 @@ public sealed record PhoneNumber
         }
         else
         {
-            // Raw-input guard — the 32-char ceiling is on the raw string,
+            // Raw-input guard - the 32-char ceiling is on the raw string,
             // independent of the digit count enforced by the helper below.
             var trimmed = value.ToNullIfEmpty();
             if (trimmed is not null && trimmed.Length > FieldConstraints.PHONE_E164_MAX)
@@ -88,8 +88,8 @@ public sealed record PhoneNumber
                     messages: [TK.Contacts.Validation.PHONE_TOO_LONG]);
             }
 
-            // Floor — reuse the shared TryParsePhoneNumber helper (strip non-digits,
-            // 7-15 envelope; bubbles common_validation_PHONE_INVALID).
+            // Floor - reuse the shared TryParsePhoneNumber helper (strip non-digits,
+            // 7-15 envelope; propagates common_validation_PHONE_INVALID).
             // Use trimmed (same string the length guard ran against) so guard + parse
             // operate on one value, not two.
             var parse = (trimmed ?? value).TryParsePhoneNumber();
@@ -105,8 +105,8 @@ public sealed record PhoneNumber
 
     /// <summary>
     /// Reconstructs a <see cref="PhoneNumber"/> from a trusted, previously-validated
-    /// store value WITHOUT re-running validation. For the EF Core value-converter read
-    /// side only — use <see cref="Create"/> for all user-supplied input.
+    /// store value without re-running validation. For the EF Core value-converter read
+    /// side only - use <see cref="Create"/> for all user-supplied input.
     /// </summary>
     /// <param name="value">
     /// The stored phone string retrieved from the database.

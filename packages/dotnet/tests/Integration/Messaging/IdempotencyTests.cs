@@ -10,8 +10,8 @@ using AwesomeAssertions;
 using DcsvIo.D2.Messaging;
 using DcsvIo.D2.Messaging.RabbitMq.Topology;
 using DcsvIo.D2.Result;
+using DcsvIo.D2.Tests.Integration.Messaging.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
 using Xunit;
 
@@ -23,17 +23,13 @@ using Xunit;
 [Collection("RabbitMq")]
 public sealed class IdempotencyTests
 {
-    // Genuine-stuck guard for the async-delivery waits below: a poll-ATTEMPT
-    // budget, never a wall-clock deadline. A DateTime.UtcNow deadline in the success
-    // path flakes because xUnit runs the RabbitMq collection in parallel with the
-    // Unit-test collections — under that thread-pool saturation the wall clock
-    // elapses while the starved pool defers the handler-dispatch continuation and the
-    // broker's async dead-lettering, tripping the deadline mid-progress. An attempt
-    // budget caps the number of polls, not elapsed time: each iteration awaits
-    // pollInterval, so under load the effective wait GROWS with the slowdown instead
-    // of expiring. At 50 ms/attempt this floor is ~2 min — far above any healthy
-    // delivery (<20 attempts), so never load-reachable, yet a permanently-stuck test
-    // still terminates (this project ships no xunit.runner.json / test timeout).
+    // Stuck-guard for the async-delivery waits below: a poll-ATTEMPT budget, not
+    // a wall-clock deadline. Each iteration awaits pollInterval, so a slow machine
+    // lengthens the wait instead of expiring it mid-progress. A healthy delivery
+    // resolves in well under a second; exhausting this budget means the message is
+    // not arriving at all, so raise the budget only after establishing that the
+    // delivery is slow rather than absent. The budget is also what terminates a
+    // permanently stuck test - this project ships no framework test timeout.
     private const int _POLL_ATTEMPT_BUDGET = 2400;
 
     private readonly RabbitMqFixture r_fixture;
@@ -51,7 +47,7 @@ public sealed class IdempotencyTests
         var queue = "idem.dup." + Guid.NewGuid().ToString("N")[..8];
         var fakeStore = new FakeIdempotencyStore();
 
-        using var host = await StartHostAsync(services =>
+        await using var host = await StartHostAsync(services =>
         {
             services.AddSingleton<IMessageIdempotencyStore>(fakeStore);
             services.AddTransient<AuditCapturingHandler>();
@@ -60,10 +56,8 @@ public sealed class IdempotencyTests
                     queue, prefetch: 5, idempotency: true));
         });
 
-        // Publish the same logical message twice. We piggyback on the bus's
-        // own message-id generation but pre-seed the fake store as if the
-        // first delivery had already been recorded — second delivery should
-        // be skipped.
+        // Publish one message through the bus, which generates its own
+        // message-id, and wait for the handler to run once.
         await using (var scope = host.Services.CreateAsyncScope())
         {
             var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
@@ -105,7 +99,7 @@ public sealed class IdempotencyTests
         var queue = "idem.markfail." + Guid.NewGuid().ToString("N")[..8];
         var failingStore = new FailingMarkStore();
 
-        using var host = await StartHostAsync(services =>
+        await using var host = await StartHostAsync(services =>
         {
             services.AddSingleton<IMessageIdempotencyStore>(failingStore);
             services.AddTransient<AuditCapturingHandler>();
@@ -120,12 +114,12 @@ public sealed class IdempotencyTests
             await bus.PublishAsync(new IntegrationAuditEvent { Marker = "mark-fail" });
         }
 
-        // Handler runs once (HasSeen returned false → handler invoked).
+        // Handler runs once (HasSeen returned false -> handler invoked).
         await WaitFor(
             () => TestCollector.Count<AuditCapturingHandler>() > 0);
         TestCollector.Count<AuditCapturingHandler>().Should().Be(1);
 
-        // MarkSeen fails → consumer NACKs no-requeue → broker DLX routes
+        // MarkSeen fails -> consumer NACKs no-requeue -> broker DLX routes
         // the message to the DLQ. Verify it landed there.
         var dlqName = DlqNaming.DlqFor(queue);
         await WaitForQueueCount(dlqName, expected: 1);
@@ -138,7 +132,7 @@ public sealed class IdempotencyTests
             1, "handler must not run twice on a MarkSeen-failure NACK path");
     }
 
-    // Attempt-budgeted stuck-guard — see _POLL_ATTEMPT_BUDGET; no wall-clock deadline.
+    // Attempt-budgeted stuck-guard - see _POLL_ATTEMPT_BUDGET; no wall-clock deadline.
     private static async Task WaitFor(
         Func<bool> predicate, TimeSpan? pollInterval = null)
     {
@@ -153,7 +147,7 @@ public sealed class IdempotencyTests
             $"Predicate did not become true within {_POLL_ATTEMPT_BUDGET} poll attempts.");
     }
 
-    private async Task<IHost> StartHostAsync(Action<IServiceCollection> configure)
+    private async Task<MessagingTestHost> StartHostAsync(Action<IServiceCollection> configure)
         => await MessagingHostBuilder.BuildAndStartAsync(r_fixture, configure);
 
     private async Task WaitForQueueCount(string queueName, int expected)
@@ -166,7 +160,7 @@ public sealed class IdempotencyTests
         await using var conn = await factory.CreateConnectionAsync();
         await using var channel = await conn.CreateChannelAsync();
 
-        // Attempt-budgeted stuck-guard (see _POLL_ATTEMPT_BUDGET) — dead-lettering
+        // Attempt-budgeted stuck-guard (see _POLL_ATTEMPT_BUDGET) - dead-lettering
         // is async broker-side, so poll a bounded number of times rather than
         // against a wall-clock deadline a loaded broker can outrun.
         for (var attempt = 0; attempt < _POLL_ATTEMPT_BUDGET; attempt++)
@@ -185,7 +179,7 @@ public sealed class IdempotencyTests
     private async Task PublishRawAsync(string queueName, string messageId)
     {
         // Direct publish via the broker so we can stamp the message-id
-        // header to match a pre-seeded idempotency entry. Bypasses the bus —
+        // header to match a pre-seeded idempotency entry. Bypasses the bus -
         // tests the consumer's idempotency path in isolation.
         var factory = new ConnectionFactory
         {
@@ -202,7 +196,7 @@ public sealed class IdempotencyTests
             DeliveryMode = DeliveryModes.Persistent,
         };
 
-        // Empty body is enough — consumer's idempotency check fires before
+        // Empty body is enough - consumer's idempotency check fires before
         // body decoding, so we never need to construct a valid encrypted
         // frame for this scenario.
         await channel.BasicPublishAsync(
@@ -215,7 +209,7 @@ public sealed class IdempotencyTests
 
     /// <summary>Store whose <c>HasSeenAsync</c> always returns false (so the
     /// handler runs) but whose <c>MarkSeenAsync</c> always fails with
-    /// ServiceUnavailable — proves the MarkSeenAsync failure path routes to
+    /// ServiceUnavailable - proves the MarkSeenAsync failure path routes to
     /// DLQ instead of silently acking without a written mark.</summary>
     private sealed class FailingMarkStore : IMessageIdempotencyStore
     {
@@ -230,7 +224,7 @@ public sealed class IdempotencyTests
 
     /// <summary>
     /// In-memory store with explicit pre-seeding for the test scenarios.
-    /// Implements only the methods the consumer calls — null defaults
+    /// Implements only the methods the consumer calls - null defaults
     /// elsewhere.
     /// </summary>
     private sealed class FakeIdempotencyStore : IMessageIdempotencyStore

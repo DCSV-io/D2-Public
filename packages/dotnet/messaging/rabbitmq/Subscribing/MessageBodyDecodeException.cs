@@ -8,10 +8,10 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Subscribing;
 
 /// <summary>
 /// Thrown by <see cref="IHandlerDispatcher.DispatchAsync"/> when the AMQP
-/// body cannot be decoded — bad encryption frame, missing kid, AEAD tag
-/// mismatch, malformed JSON. Caller (consumer) catches and routes the
-/// message to its DLQ with cause <c>DECRYPT_FAILURE</c> /
-/// <c>DESERIALIZE_FAILURE</c> based on the inner exception type.
+/// body cannot be decoded: bad encryption frame, missing kid, AEAD tag
+/// mismatch or malformed JSON. The inner exception type distinguishes a JSON
+/// parse failure (DLQ cause <c>DESERIALIZE_FAILURE</c>) from any other decode
+/// failure (DLQ cause <c>DECRYPT_FAILURE</c>).
 /// </summary>
 internal sealed class MessageBodyDecodeException : Exception
 {

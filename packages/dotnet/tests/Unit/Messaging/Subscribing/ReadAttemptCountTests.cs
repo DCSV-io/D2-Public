@@ -12,21 +12,21 @@ using global::RabbitMQ.Client.Events;
 using Xunit;
 
 /// <summary>
-/// Coverage for <see cref="SubscriberChannel.ReadAttemptCount"/> — the
-/// x-death header parser that drives the RETRIES_EXHAUSTED branch. The
-/// reason filter must accept ONLY <c>expired</c> + <c>rejected</c> entries
-/// (not <c>maxlen</c> / <c>delivery_limit</c>) and must fail-open with
-/// zero on malformed inputs so a poisoned message can't strand a queue.
+/// Tests of <see cref="SubscriberChannel.ReadAttemptCount"/>, the x-death
+/// header parser that decides the RETRIES_EXHAUSTED branch. The reason filter
+/// must accept only <c>expired</c> and <c>rejected</c> entries (not
+/// <c>maxlen</c> or <c>delivery_limit</c>). On malformed input it must fail
+/// open and return zero, so that a poisoned message cannot strand a queue.
 /// </summary>
 public sealed class ReadAttemptCountTests
 {
     [Fact]
     public void OnlyCountsExpiredAndRejected()
     {
-        // Three x-death entries: expired (count=2), rejected (count=1),
-        // maxlen (count=99). The maxlen entry is broker-side flow control,
-        // not a consumer-side retry — counting it would trigger
-        // RETRIES_EXHAUSTED prematurely on a busy queue.
+        // The x-death entries are expired (count=2), rejected (count=1) and
+        // maxlen (count=99). The maxlen entry is broker-side flow control and
+        // not a consumer-side retry, so counting it would trigger
+        // RETRIES_EXHAUSTED too early on a busy queue.
         var ea = BuildXDeathDelivery(
             (Reason: "expired", Count: 2L),
             (Reason: "rejected", Count: 1L),
@@ -51,7 +51,8 @@ public sealed class ReadAttemptCountTests
     public void ReasonAsByteArray_HandledCorrectly()
     {
         // RabbitMQ.Client deserializes table values as byte[] for short-string
-        // fields — the filter must handle both string and byte[] reason types.
+        // fields, so the filter must handle reason values of both string and
+        // byte[] type.
         var ea = BuildXDeathDelivery(("expired", 4L, AsBytes: true));
         SubscriberChannel.ReadAttemptCount(ea).Should().Be(4);
     }
@@ -94,9 +95,10 @@ public sealed class ReadAttemptCountTests
     [Fact]
     public void CountAsString_FallsThroughToZero()
     {
-        // Defensive — a broker / proxy that ever serializes count as a
-        // string MUST NOT NRE the consumer; fail-open with zero so retries
-        // continue rather than the message being stranded.
+        // Defensive: a broker or proxy that serializes count as a string must
+        // not cause a NullReferenceException in the consumer. The method fails
+        // open and returns zero, so retries continue and the message is not
+        // stranded.
         var ea = BuildXDeathDelivery(("expired", Count: "3"));
         SubscriberChannel.ReadAttemptCount(ea).Should().Be(0);
     }

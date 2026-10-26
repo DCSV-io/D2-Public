@@ -1,0 +1,49 @@
+<!--
+Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>DcsvIo.D2.Pagination.EntityFrameworkCore</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    Multi-mode list-page EF fluent API: SortCatalog&lt;TRow&gt; and ListPageEf.ToListPageAsync.
+    The pure Pagination types contain no EF types; Instant sort modes live in the NodaTime
+    companion package. This package references no authentication or authorization type.
+    It is a portable building block for list APIs.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\DcsvIo.D2.Pagination.csproj" />
+    <ProjectReference Include="..\..\result\core\DcsvIo.D2.Result.csproj" />
+    <ProjectReference Include="..\..\utilities\DcsvIo.D2.Utilities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DcsvIo.D2.Tests" />
+    <InternalsVisibleTo Include="DcsvIo.D2.Pagination.EntityFrameworkCore.NodaTime" />
+    <!--
+      The Postgres provider package composes rank-field expressions onto one
+      shared parameter with ParameterRebaser. Making ParameterRebaser public
+      would put an expression-tree utility on the public surface of a
+      page-paging package.
+    -->
+    <InternalsVisibleTo Include="DcsvIo.D2.Pagination.EntityFrameworkCore.Postgres" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <Version>0.6.8</Version>
+    <PackageId>DcsvIo.D2.Pagination.EntityFrameworkCore</PackageId>
+    <Description>EF Core multi-mode list-page helpers for D2 - SortCatalog and ToListPageAsync.</Description>
+    <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>

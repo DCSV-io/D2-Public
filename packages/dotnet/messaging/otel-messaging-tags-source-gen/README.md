@@ -8,32 +8,34 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 **Input contract:** [`contracts/otel-messaging-tags/`](../../../../contracts/otel-messaging-tags/README.md)
 
-Roslyn incremental source generator that emits `MessagingActivityTags` — the closed catalog of OTel semantic-convention messaging activity-tag attribute names — from `contracts/otel-messaging-tags/otel-messaging-tags.spec.json`.
+Roslyn incremental source generator that emits `MessagingActivityTags` - the closed catalog of OTel semantic-convention
+messaging activity-tag attribute names - from `contracts/otel-messaging-tags/otel-messaging-tags.spec.json`.
 
-> **Placement** — lives under `messaging/` for consumer-locality; observability
-> concern by ownership. Its only consumer is
-> [`DcsvIo.D2.Messaging.RabbitMq`](../rabbitmq/README.md), which references
-> `MessagingActivityTags.*` on every publisher / consumer span — so it is
-> co-located with its consumer rather than under `telemetry/`. The telemetry
-> cluster cross-refs back here: see [`telemetry/`](../../telemetry/README.md).
-> The same spec also drives the TS-side telemetry tags — see
-> [`telemetry/core/README.md`](../../telemetry/core/README.md).
+> Placement: this generator is in `messaging/`, next to its consumer, and not under `telemetry/`, although the catalog is
+> an observability concern. Its only consumer is
+> [`DcsvIo.D2.Messaging.RabbitMq`](../rabbitmq/README.md), which references `MessagingActivityTags.*` on every
+> publisher / consumer span. The README of [`telemetry/`](../../telemetry/README.md) links back here. The same spec also
+> drives the TS-side telemetry tags - see [`telemetry/core/README.md`](../../telemetry/core/README.md).
 
-**Convention**: spec-driven Roslyn `IIncrementalGenerator` (netstandard2.0 analyzer; spec via `<AdditionalFiles>`).
+Convention: spec-driven Roslyn `IIncrementalGenerator` (netstandard2.0 analyzer; spec via `<AdditionalFiles>`).
 
 ## Why spec-drive this catalog
 
-Before this catalog landed, the messaging publisher (`RabbitMqMessageBus`) set `messaging.operation.type=publish` while the consumer (`SubscriberChannel`) set `messaging.operation=receive` — two different attribute names for the same semantic concept. The OTel spec specifies `messaging.operation.type` as the canonical name; the consumer's `messaging.operation` was non-standard. Every downstream Grafana dashboard, OTel collector filter, and alert that segmented by consumer-side operation was silently failing.
-
-Spec-driving the catalog forces both sides to reference `MessagingActivityTags.MESSAGING_OPERATION_TYPE` — the drift becomes structurally impossible.
+The publisher (`RabbitMqMessageBus`) and the consumer (`SubscriberChannel`) both set the operation attribute through
+`MessagingActivityTags.MESSAGING_OPERATION_TYPE`, which holds `messaging.operation.type`, the name the OTel messaging
+conventions define. Both sides name the attribute through one constant, so a dashboard, collector filter or alert that
+segments by operation reads the same attribute name on either side.
 
 ## What this emits
 
-When the consuming assembly is `DcsvIo.D2.Messaging.RabbitMq`, the generator emits `MessagingActivityTags.g.cs` containing constants for every entry in the spec.
+When the consuming assembly is `DcsvIo.D2.Messaging.RabbitMq`, the generator emits `MessagingActivityTags.g.cs`
+containing constants for every entry in the spec.
 
 ## Cross-language parity
 
-The SAME spec drives `@dcsv-io/d2-telemetry` → `otel-messaging-tags.g.ts` (sources committed), emitting an identical `MessagingActivityTags` catalog on the TS side — the same constants, the same canonical OTel sem-conv attribute names, structurally synchronized from one spec.
+The same spec drives `@dcsv-io/d2-telemetry` -> `otel-messaging-tags.g.ts` (sources committed). It emits a
+`MessagingActivityTags` catalog on the TS side with the same constants and the same OTel semantic-convention attribute
+names, because both catalogs are generated from this one spec.
 
 ## Diagnostics
 

@@ -104,21 +104,22 @@ export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
 
 // @public
 export const ErrorCodes: {
-    readonly NOT_FOUND: "NOT_FOUND";
-    readonly FORBIDDEN: "FORBIDDEN";
-    readonly UNAUTHORIZED: "UNAUTHORIZED";
-    readonly VALIDATION_FAILED: "VALIDATION_FAILED";
-    readonly CONFLICT: "CONFLICT";
-    readonly UNHANDLED_EXCEPTION: "UNHANDLED_EXCEPTION";
-    readonly COULD_NOT_BE_SERIALIZED: "COULD_NOT_BE_SERIALIZED";
-    readonly COULD_NOT_BE_DESERIALIZED: "COULD_NOT_BE_DESERIALIZED";
-    readonly SERVICE_UNAVAILABLE: "SERVICE_UNAVAILABLE";
-    readonly SOME_FOUND: "SOME_FOUND";
-    readonly PARTIAL_SUCCESS: "PARTIAL_SUCCESS";
-    readonly RATE_LIMITED: "RATE_LIMITED";
-    readonly IDEMPOTENCY_IN_FLIGHT: "IDEMPOTENCY_IN_FLIGHT";
-    readonly PAYLOAD_TOO_LARGE: "PAYLOAD_TOO_LARGE";
-    readonly CANCELED: "CANCELED";
+    readonly GEN_NOT_FOUND: "GEN_NOT_FOUND";
+    readonly GEN_FORBIDDEN: "GEN_FORBIDDEN";
+    readonly GEN_UNAUTHORIZED: "GEN_UNAUTHORIZED";
+    readonly GEN_VALIDATION_FAILED: "GEN_VALIDATION_FAILED";
+    readonly GEN_CONFLICT: "GEN_CONFLICT";
+    readonly GEN_UNHANDLED_EXCEPTION: "GEN_UNHANDLED_EXCEPTION";
+    readonly GEN_COULD_NOT_BE_SERIALIZED: "GEN_COULD_NOT_BE_SERIALIZED";
+    readonly GEN_COULD_NOT_BE_DESERIALIZED: "GEN_COULD_NOT_BE_DESERIALIZED";
+    readonly GEN_SERVICE_UNAVAILABLE: "GEN_SERVICE_UNAVAILABLE";
+    readonly GEN_SOME_FOUND: "GEN_SOME_FOUND";
+    readonly GEN_PARTIAL_SUCCESS: "GEN_PARTIAL_SUCCESS";
+    readonly GEN_RATE_LIMITED: "GEN_RATE_LIMITED";
+    readonly GEN_IDEMPOTENCY_IN_FLIGHT: "GEN_IDEMPOTENCY_IN_FLIGHT";
+    readonly GEN_PAYLOAD_TOO_LARGE: "GEN_PAYLOAD_TOO_LARGE";
+    readonly GEN_CANCELED: "GEN_CANCELED";
+    readonly GEN_FORGERY_REFUSED: "GEN_FORGERY_REFUSED";
 };
 
 // Warning: (ae-forgotten-export) The symbol "FailOpts" needs to be exported by the entry point index.d.ts
@@ -130,12 +131,16 @@ export function fail<T = void>(opts?: FailOpts): D2Result<T>;
 export function forbidden<T = void>(opts?: ErrorOpts): D2Result<T>;
 
 // @public
+export function forgeryRefused<T = void>(opts?: ErrorOpts): D2Result<T>;
+
+// @public
 export function getErrorHttpStatus(code: string): number;
 
 // @public
 export const HttpStatusCode: {
     readonly OK: 200;
     readonly Created: 201;
+    readonly NoContent: 204;
     readonly PartialContent: 206;
     readonly BadRequest: 400;
     readonly Unauthorized: 401;
@@ -167,6 +172,9 @@ export const InputErrorWireShape: {
     readonly FIELD: "field";
     readonly ERRORS: "errors";
 };
+
+// @public
+export function noContent(traceId?: string): D2Result<void>;
 
 // @public
 export function notFound<T = void>(opts?: ErrorOpts): D2Result<T>;

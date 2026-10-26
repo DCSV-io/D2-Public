@@ -40,7 +40,7 @@ public static class PgErrorCodes
     public const string QUERY_CANCELED = "57014";
 
     /// <summary>
-    /// SQLSTATE for "cannot connect now" — server is in a state that
+    /// SQLSTATE for "cannot connect now" - server is in a state that
     /// rejects connections (e.g. starting up, in recovery).
     /// </summary>
     public const string CANNOT_CONNECT_NOW = "57P03";
@@ -57,7 +57,7 @@ public static class PgErrorCodes
     /// Walks the inner-exception chain (up to <see cref="_MAX_INNER_DEPTH"/>
     /// levels deep) and returns the first <see cref="PostgresException"/>
     /// found, or <c>null</c> if none. Handles the EF-wrapped path
-    /// (<see cref="DbUpdateException"/> → <c>InnerException</c>) plus deeper
+    /// (<see cref="DbUpdateException"/> -> <c>InnerException</c>) plus deeper
     /// wrappers like <see cref="AggregateException"/> (every branch of
     /// <see cref="AggregateException.InnerExceptions"/> is searched, not just
     /// <c>InnerException</c>) and <see cref="System.Reflection.TargetInvocationException"/>.

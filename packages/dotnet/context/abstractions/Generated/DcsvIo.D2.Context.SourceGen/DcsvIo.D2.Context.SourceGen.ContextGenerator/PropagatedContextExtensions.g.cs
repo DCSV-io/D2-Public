@@ -33,6 +33,7 @@ public static class PropagatedContextExtensions
             SessionFingerprint = context.SessionFingerprint,
             CurrentFingerprint = context.CurrentFingerprint,
             RiskScore = context.RiskScore,
+            DeviceKey = context.DeviceKey,
             EdgeNodeId = context.EdgeNodeId,
             LocaleIetfBcp47Tag = context.LocaleIetfBcp47Tag,
             TimezoneIanaName = context.TimezoneIanaName,
@@ -45,7 +46,7 @@ public static class PropagatedContextExtensions
     }
 
     /// <summary>Applies <paramref name="propagated"/> onto a
-    /// <see cref="MutableRequestContext"/> — copies every
+    /// <see cref="MutableRequestContext"/> - copies every
     /// non-null propagation field. No-op when arg is null.</summary>
     /// <param name="context">Mutable context to populate.</param>
     /// <param name="propagated">Decoded propagation record.</param>
@@ -76,6 +77,9 @@ public static class PropagatedContextExtensions
 
         if (propagated.RiskScore is not null)
             context.RiskScore = propagated.RiskScore;
+
+        if (propagated.DeviceKey is not null)
+            context.DeviceKey = propagated.DeviceKey;
 
         if (propagated.EdgeNodeId is not null)
             context.EdgeNodeId = propagated.EdgeNodeId;

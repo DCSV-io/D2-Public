@@ -13,9 +13,9 @@ using DcsvIo.D2.SourceGen;
 
 /// <summary>
 /// Pure logic for parsing <c>protocol-audiences.spec.json</c> into a
-/// <see cref="ProtocolAudiencesSpec"/> record. Responsible only for JSON-shape
-/// validation; semantic validation (name shape, empty/duplicate value) lives in
-/// <see cref="ProtocolAudiencesEmitter"/>.
+/// <see cref="ProtocolAudiencesSpec"/> record. It validates only the JSON shape;
+/// <see cref="ProtocolAudiencesEmitter"/> validates the content (name shape, empty
+/// value, duplicate value).
 /// </summary>
 internal static class ProtocolAudienceSpecLoader
 {
@@ -29,7 +29,7 @@ internal static class ProtocolAudienceSpecLoader
     /// Returns either a populated spec or a single diagnostic explaining the parse
     /// failure.
     /// </summary>
-    /// <param name="path">Spec file path (used for diagnostic message context).</param>
+    /// <param name="path">Spec file path. Diagnostics report its file name.</param>
     /// <param name="json">Raw JSON content of the spec file.</param>
     /// <returns>A <see cref="LoadResult{TSpec}"/> wrapping <see cref="ProtocolAudiencesSpec"/>.</returns>
     public static LoadResult<ProtocolAudiencesSpec> Load(string path, string json)

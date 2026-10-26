@@ -80,7 +80,7 @@ public sealed class DemographicsTests
     }
 
     // -----------------------------------------------------------------------
-    // DOB — future boundary
+    // DOB - future boundary
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -104,7 +104,7 @@ public sealed class DemographicsTests
     }
 
     // -----------------------------------------------------------------------
-    // DOB — too-old boundary (150 years)
+    // DOB - too-old boundary (150 years)
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -140,7 +140,7 @@ public sealed class DemographicsTests
     }
 
     // -----------------------------------------------------------------------
-    // DOB — leap-day adversarial
+    // DOB - leap-day adversarial
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -168,14 +168,14 @@ public sealed class DemographicsTests
     }
 
     // -----------------------------------------------------------------------
-    // DOB — leap-day at 150y PlusYears boundary
+    // DOB - leap-day at 150y PlusYears boundary
     // -----------------------------------------------------------------------
 
     [Fact]
     public void Create_LeapDayDob_JustUnder150Years_ReturnsOk()
     {
-        // Clock: 2030-02-28 → floor = PlusYears(-150) = 1880-02-28.
-        // DOB 1880-02-29 is NOT < floor 1880-02-28 → within the 150y window → Ok.
+        // Clock: 2030-02-28 -> floor = PlusYears(-150) = 1880-02-28.
+        // DOB 1880-02-29 is NOT < floor 1880-02-28 -> within the 150y window -> Ok.
         // (1880 is a leap year, so 1880-02-29 is a valid calendar date.)
         var clock = MakeClockAt(2030, 2, 28);
         var dob = new LocalDate(1880, 2, 29);
@@ -189,8 +189,8 @@ public sealed class DemographicsTests
     [Fact]
     public void Create_LeapDayDob_AtOrPast150Years_ReturnsDobTooOld()
     {
-        // Clock: 2030-03-01 → floor = PlusYears(-150) = 1880-03-01.
-        // DOB 1880-02-29 IS < floor 1880-03-01 → beyond the 150y window → DOB_TOO_OLD.
+        // Clock: 2030-03-01 -> floor = PlusYears(-150) = 1880-03-01.
+        // DOB 1880-02-29 IS < floor 1880-03-01 -> beyond the 150y window -> DOB_TOO_OLD.
         var clock = MakeClockAt(2030, 3, 1);
         var dob = new LocalDate(1880, 2, 29);
 
@@ -202,7 +202,7 @@ public sealed class DemographicsTests
     }
 
     // -----------------------------------------------------------------------
-    // DOB — year-boundary adversarial
+    // DOB - year-boundary adversarial
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -239,7 +239,7 @@ public sealed class DemographicsTests
     }
 
     // -----------------------------------------------------------------------
-    // Default clock — no clock supplied (wall-clock path executes cleanly)
+    // Default clock - no clock supplied (wall-clock path executes cleanly)
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -251,7 +251,7 @@ public sealed class DemographicsTests
     }
 
     // -----------------------------------------------------------------------
-    // Helpers — a deterministic fixed clock so every DOB boundary is reproducible
+    // Helpers - a deterministic fixed clock so every DOB boundary is reproducible
     // -----------------------------------------------------------------------
 
     private static TestClock FixedClock()

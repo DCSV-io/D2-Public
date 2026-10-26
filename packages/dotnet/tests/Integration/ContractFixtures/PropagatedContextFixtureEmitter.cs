@@ -15,9 +15,9 @@ using Xunit;
 /// Emits PropagatedContext envelope fixtures for cross-language parity
 /// assertion. The fixture's <c>data</c> field is the JSON shape the
 /// <see cref="PropagatedContextSerializer.Encode"/> path would produce
-/// (camelCase property names, omit-null) — what the TS-side
-/// <c>PropagatedContextSerializer.serialize</c> must round-trip
-/// byte-equal.
+/// (camelCase property names, omit-null). The TypeScript
+/// <c>PropagatedContextSerializer.serialize</c> must round-trip the same
+/// shape byte-equal.
 /// </summary>
 public sealed class PropagatedContextFixtureEmitter
 {
@@ -76,8 +76,8 @@ public sealed class PropagatedContextFixtureEmitter
     public void Emit_AtCapBoundaries()
     {
         // Each string field exactly at its spec maxLength. Confirms the
-        // cap is "<=" rather than "<" — these values must decode cleanly
-        // on the TS side.
+        // cap is "<=" rather than "<" - values at the cap must decode
+        // cleanly.
         var ctx = new PropagatedContext
         {
             RequestId = new string('r', 256),
@@ -112,8 +112,8 @@ public sealed class PropagatedContextFixtureEmitter
             CallPath =
             [
                 new CallPathEntry("edge", CallPathKind.Edge, t0),
-                new CallPathEntry("key-custodian", CallPathKind.WorkloadHop, t0.AddSeconds(1)),
-                new CallPathEntry("audit", CallPathKind.ModuleHop, t0.AddSeconds(2)),
+                new CallPathEntry("inventory", CallPathKind.WorkloadHop, t0.AddSeconds(1)),
+                new CallPathEntry("orders", CallPathKind.ModuleHop, t0.AddSeconds(2)),
             ],
         };
         var data = SerializedShape(ctx);
@@ -122,12 +122,12 @@ public sealed class PropagatedContextFixtureEmitter
 
     /// <summary>
     /// Materialize the wire-shape JSON object that the .NET serializer
-    /// would emit (camelCase property names, omit-null). We construct it
-    /// by hand here rather than re-serializing through
-    /// <see cref="PropagatedContextSerializer.Encode"/> because the
+    /// would emit (camelCase property names, omit-null). The method builds it
+    /// by hand instead of re-serializing through
+    /// <see cref="PropagatedContextSerializer.Encode"/>, because the
     /// parity comparison is over the JSON SHAPE (not the base64url
-    /// wrapping); the wrapping is identical on both sides and need not
-    /// be parity-tested separately.
+    /// wrapping); the wrapping is identical on both sides, so these fixtures
+    /// do not test it separately.
     /// </summary>
     private static Dictionary<string, object?> SerializedShape(PropagatedContext ctx)
     {

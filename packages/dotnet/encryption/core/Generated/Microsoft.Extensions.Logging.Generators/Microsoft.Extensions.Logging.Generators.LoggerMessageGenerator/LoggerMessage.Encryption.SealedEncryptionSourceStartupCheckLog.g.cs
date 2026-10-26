@@ -7,7 +7,7 @@ namespace DcsvIo.D2.Encryption
     {
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Exception?> __NoRecipientsRegisteredCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(1, nameof(NoRecipientsRegistered)), "SealedEncryptionSourceStartupCheck registered but no sealed recipients were registered — nothing to verify.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(1, nameof(NoRecipientsRegistered)), "SealedEncryptionSourceStartupCheck registered but no sealed recipients were registered - nothing to verify.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void NoRecipientsRegistered(global::Microsoft.Extensions.Logging.ILogger logger)
@@ -19,7 +19,7 @@ namespace DcsvIo.D2.Encryption
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.Exception?> __SourceCheckPassedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Debug, new global::Microsoft.Extensions.Logging.EventId(2, nameof(SourceCheckPassed)), "Sealed encryption recipient {RecipientServiceId} is KeyCustodian-sourced — provenance check passed.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Debug, new global::Microsoft.Extensions.Logging.EventId(2, nameof(SourceCheckPassed)), "Sealed encryption recipient {RecipientServiceId} is managed-sourced - provenance check passed.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void SourceCheckPassed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String recipientServiceId)
@@ -31,7 +31,7 @@ namespace DcsvIo.D2.Encryption
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.Exception?> __StaticSourceInDevelopmentCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(3, nameof(StaticSourceInDevelopment)), "Sealed encryption recipient {RecipientServiceId} is backed by a static / unmarked source rather than a KeyCustodian-sourced, rotation-aware keyring. Permitted only in a Development host; a non-Development host crashes. Register it through a KeyCustodian sealed source (or mark it via MarkD2EncryptionSource).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(3, nameof(StaticSourceInDevelopment)), "Sealed encryption recipient {RecipientServiceId} is backed by a static / unmarked source rather than a managed, rotation-aware keyring. Permitted only in a Development host; a non-Development host crashes. Back its sealer with a managed keyring and mark it Managed via MarkD2EncryptionSource.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void StaticSourceInDevelopment(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String recipientServiceId)

@@ -13,35 +13,24 @@ using Microsoft.AspNetCore.Http;
 /// Public helper that decides whether a given <see cref="PathString"/>
 /// matches any of a configured set of infrastructure-path prefixes
 /// (<c>/health</c>, <c>/alive</c>, <c>/metrics</c>, <c>/.well-known</c> by
-/// default — see
+/// default - see
 /// <see cref="D2AspNetCoreConstants.DEFAULT_INFRASTRUCTURE_PATHS"/>).
 /// </summary>
 /// <remarks>
 /// <para>
-/// Single source of truth for infrastructure-path matching across the D²
-/// shared-lib stack. Consumed by:
+/// Single source of truth for infrastructure-path matching across the D2
+/// shared-lib stack: it decides whether a request path is an infrastructure
+/// path, and returns <c>true</c> or <c>false</c>.
 /// </para>
-/// <list type="bullet">
-///   <item><c>DcsvIo.D2.Logging.WebApplicationLoggingExtensions.UseD2RequestLogging</c>
-///     to down-rank request-completion log lines for infrastructure
-///     endpoints to <c>Verbose</c> level so the default minimum-level gate
-///     filters them out.</item>
-///   <item><c>DcsvIo.D2.Telemetry.TelemetryServiceCollectionExtensions.AddD2Telemetry</c>
-///     in the AspNetCore-instrumentation <c>Filter</c> callback to suppress
-///     auto-spans for infrastructure endpoints.</item>
-///   <item><see cref="InfrastructureBypassApplicationBuilderExtensions.UseD2InfrastructureBypass"/>
-///     to tag (and optionally short-circuit the pipeline for) infrastructure
-///     requests so downstream business middleware can no-op early.</item>
-/// </list>
 /// <para>
 /// Uses the AspNetCore-canonical
 /// <see cref="PathString.StartsWithSegments(PathString)"/> overload, which is
-/// case-insensitive by default and matches on full segment boundaries — so
+/// case-insensitive by default and matches on full segment boundaries - so
 /// <c>/healthz</c> does NOT match prefix <c>/health</c>; <c>/health/db</c>
 /// does. Empty <see cref="PathString"/>, null configured list, and per-entry
 /// null / empty / whitespace prefixes are all defensive no-ops (matcher
-/// returns <c>false</c> rather than throwing) so the helper is safe in any
-/// caller that passes hand-built lists.
+/// returns <c>false</c> rather than throwing) so the helper is safe with
+/// hand-built lists.
 /// </para>
 /// </remarks>
 public static class InfrastructurePathMatcher
@@ -53,10 +42,9 @@ public static class InfrastructurePathMatcher
     /// <param name="path">The request path to test.</param>
     /// <param name="infrastructurePaths">
     /// Configured prefix list. <c>null</c> / empty list / per-entry
-    /// null / empty / whitespace are skipped defensively (callers SHOULD
-    /// reject invalid lists at host build via options validation, but the
-    /// runtime guard keeps this helper safe in any caller that passes
-    /// hand-built lists).
+    /// null / empty / whitespace are skipped defensively (invalid lists SHOULD
+    /// be rejected at host build via options validation, but the
+    /// runtime guard keeps this helper safe with hand-built lists).
     /// </param>
     /// <returns>
     /// <c>true</c> when <paramref name="path"/> matches any prefix; otherwise

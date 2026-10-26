@@ -18,9 +18,9 @@ using DcsvIo.D2.I18n;
 /// <remarks>
 /// The <see cref="Data"/> property carries the wire-shape's payload field,
 /// bound to <see cref="D2ResultEnvelopeFieldNames.DATA"/> via
-/// <see cref="JsonPropertyNameAttribute"/>. Per the deliberate
-/// <c>JsonSerializerOptions.IgnoreReadOnlyProperties=false</c> contract
-/// (the default), the read-only auto-property still serializes; the
+/// <see cref="JsonPropertyNameAttribute"/>. With
+/// <c>JsonSerializerOptions.IgnoreReadOnlyProperties=false</c> (the default),
+/// the read-only auto-property still serializes; the
 /// <c>System.Text.Json</c> serializer treats parameterless-constructor-set
 /// auto-properties symmetrically.
 /// </remarks>
@@ -67,7 +67,7 @@ public sealed partial class D2Result<TData> : D2Result
     /// <summary>
     /// Returns <see cref="D2Result.Success"/> while exposing <see cref="Data"/> via the
     /// out parameter. Convenience for inline destructuring at the call site:
-    /// <c>if (result.CheckSuccess(out var data)) { … }</c>.
+    /// <c>if (result.CheckSuccess(out var data)) { ... }</c>.
     /// </summary>
     /// <param name="data">Receives <see cref="Data"/> regardless of success.</param>
     /// <returns><see langword="true"/> if the result is successful.</returns>
@@ -79,7 +79,7 @@ public sealed partial class D2Result<TData> : D2Result
 
     /// <summary>
     /// Returns <see cref="D2Result.Failed"/> while exposing <see cref="Data"/> via the
-    /// out parameter. Useful for partial-success flows (<see cref="ErrorCodes.SOME_FOUND"/>)
+    /// out parameter. Useful for partial-success flows (<see cref="ErrorCodes.GEN_SOME_FOUND"/>)
     /// where data is still present despite <see cref="D2Result.Success"/> being <c>false</c>.
     /// </summary>
     /// <param name="data">Receives <see cref="Data"/> regardless of failure.</param>
@@ -93,8 +93,7 @@ public sealed partial class D2Result<TData> : D2Result
     /// <summary>
     /// Returns a new <see cref="D2Result{TData}"/> with the same shape and
     /// <see cref="Data"/> payload but with the supplied <paramref name="traceId"/>
-    /// in place of the original. Used by <c>BaseHandler.RunCorePipelineAsync</c>
-    /// to auto-inject the request trace id on every typed result.
+    /// in place of the original.
     /// </summary>
     /// <param name="traceId">The trace id to attach.</param>
     /// <returns>

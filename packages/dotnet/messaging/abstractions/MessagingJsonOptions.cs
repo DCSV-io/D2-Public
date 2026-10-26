@@ -10,7 +10,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 /// <summary>
-/// Shared <see cref="JsonSerializerOptions"/> for the messaging stack —
+/// Shared <see cref="JsonSerializerOptions"/> for the messaging stack -
 /// used to (de)serialize the wire body (the typed message itself) and the
 /// <c>x-d2-failure-reason</c> DLQ header payload. Single instance so the
 /// internal reflection cache is reused process-wide.

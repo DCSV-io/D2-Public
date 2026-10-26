@@ -12,7 +12,7 @@ using System.Text;
 /// <summary>
 /// Immutable JWKS-style keyring holding the active key plus any retiring
 /// keys for a single encryption purpose (one domain, the root key, etc.).
-/// Holds raw key bytes — never log, serialize, or otherwise expose a
+/// Holds raw key bytes - never log, serialize, or otherwise expose a
 /// keyring instance through any I/O path.
 /// </summary>
 /// <remarks>
@@ -33,7 +33,7 @@ public sealed class PayloadCryptoKeyring : IDisposable
 
     /// <summary>
     /// Maximum kid length in UTF-8 bytes. Mirrors
-    /// <see cref="EncryptionFrameLayout.CONSTRAINT_MAX_KID_LENGTH"/> — the spec
+    /// <see cref="EncryptionFrameLayout.CONSTRAINT_MAX_KID_LENGTH"/> - the spec
     /// is the source of truth; this constant delegates to keep them in sync.
     /// </summary>
     public const int MAX_KID_LENGTH = EncryptionFrameLayout.CONSTRAINT_MAX_KID_LENGTH;
@@ -53,8 +53,8 @@ public sealed class PayloadCryptoKeyring : IDisposable
     /// </param>
     /// <param name="aadContext">
     /// AEAD additional-authenticated-data bound to every (en|de)crypt operation.
-    /// Must be non-empty so the binding is meaningful — the caller (KeyCustodian,
-    /// Messaging bus, etc.) decides what bytes carry domain semantics.
+    /// Must be non-empty so the binding is meaningful. The code that builds the
+    /// keyring decides what the bytes mean for the domain.
     /// </param>
     /// <exception cref="ArgumentException">
     /// A constructor argument violates a stated invariant.
@@ -107,7 +107,7 @@ public sealed class PayloadCryptoKeyring : IDisposable
                     nameof(keys));
             }
 
-            // Defensive copy — caller may dispose / mutate their original.
+            // Defensive copy - caller may dispose / mutate their original.
             var copy = new byte[KEY_SIZE_BYTES];
             key.CopyTo(copy, 0);
             r_keys[kid] = copy;
@@ -124,8 +124,8 @@ public sealed class PayloadCryptoKeyring : IDisposable
 
     /// <summary>
     /// Gets the AEAD additional-authenticated-data bound to every operation.
-    /// Caller decides what bytes carry domain semantics; this lib treats the
-    /// value as opaque.
+    /// The code that builds the keyring decides what the bytes mean for the
+    /// domain; this lib treats the value as opaque.
     /// </summary>
     public ReadOnlyMemory<byte> AadContext
     {
@@ -137,7 +137,7 @@ public sealed class PayloadCryptoKeyring : IDisposable
     }
 
     /// <summary>
-    /// Gets every kid in the keyring (active + retiring). Diagnostic only —
+    /// Gets every kid in the keyring (active + retiring). Diagnostic only -
     /// never log alongside data that could correlate with key material.
     /// </summary>
     public IReadOnlyCollection<string> AllKids
@@ -154,7 +154,7 @@ public sealed class PayloadCryptoKeyring : IDisposable
     /// </summary>
     /// <param name="kid">
     /// The kid to look up. Null returns false
-    /// (defensive — callers may pass externally-sourced strings).
+    /// (defensive: the string may come from an external source).
     /// </param>
     /// <param name="key">The key bytes when found; default otherwise.</param>
     /// <returns>True when the kid is present; false otherwise.</returns>
@@ -183,7 +183,7 @@ public sealed class PayloadCryptoKeyring : IDisposable
     }
 
     /// <summary>
-    /// Returns a redacted string — never includes key bytes or AAD bytes.
+    /// Returns a redacted string - never includes key bytes or AAD bytes.
     /// </summary>
     public override string ToString()
         => _disposed

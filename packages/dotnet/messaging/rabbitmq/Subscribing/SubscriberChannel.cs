@@ -23,93 +23,96 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Owns one dedicated <see cref="IChannel"/> + one
-/// <see cref="AsyncEventingBasicConsumer"/> for a single subscriber. The
-/// hosted service constructs one of these per registered subscriber. Each
-/// channel has its own prefetch + ack window; channels are NOT shared
-/// across subscribers (a slow handler must not stall another subscriber's
-/// ack window).
+/// Owns one dedicated <see cref="IChannel"/> and one
+/// <see cref="AsyncEventingBasicConsumer"/> for a single subscriber. Each
+/// channel has its own prefetch and ack window, and channels are not shared
+/// across subscribers, so a slow handler cannot stall another subscriber's
+/// ack window.
 /// </summary>
 [MustDisposeResource(false)]
 internal sealed class SubscriberChannel : IAsyncDisposable
 {
-    /// <summary>Hard cap on accepted message-id length. Our publisher emits
-    /// a 36-char UUIDv7 string; an attacker controlling a queue we subscribe
-    /// to could send a 64KB id and bloat the idempotency-store key. Reject
-    /// anything longer than this — the consumer falls through to "no id"
-    /// behavior (skips idempotency, still acks).</summary>
+    /// <summary>Hard cap on accepted message-id length. The publisher in this
+    /// package emits a 36-char UUIDv7 string, while an attacker who controls a
+    /// subscribed queue could send a 64KB id and bloat the idempotency-store
+    /// key. A longer id is rejected, and the consumer then treats the message
+    /// as having no id: it skips idempotency and still acks.</summary>
     private const int _MAX_MESSAGE_ID_LENGTH = 128;
 
     /// <summary>Bounded wait for in-flight callbacks to complete during
-    /// disposal. After this timeout we close the channel anyway and
-    /// accept that any handler still running may see a
-    /// <see cref="ObjectDisposedException"/> on its next ack/nack.</summary>
+    /// disposal. After this timeout the channel is closed anyway, and a
+    /// handler that is still running may see an
+    /// <see cref="ObjectDisposedException"/> on its next ack or nack.</summary>
     private const int _DISPOSE_DRAIN_TIMEOUT_MS = 30_000;
 
     private readonly ID2Connection r_connection;
     private readonly IServiceScopeFactory r_scopeFactory;
     private readonly HandlerDispatcherFactory r_dispatcherFactory;
+    private readonly MessagingCatalog r_catalog;
     private readonly ISubscriberRegistration r_registration;
     private readonly ILogger<SubscriberChannel> r_logger;
+    private readonly DlqRepublisher r_dlqRepublisher;
+    private readonly CancellationTokenSource r_shutdown = new();
+    private readonly CancellationToken r_shutdownToken;
 
-    // Dedicated republish channel — must NOT share state with _channel,
-    // because (a) consume + publish use different channel state machines
-    // and (b) a republish failure shouldn't poison the consume channel's
-    // delivery queue. Opened lazily on first DLQ republish; the
-    // r_republishLock protects against concurrent failures racing to
-    // create/replace the channel (without it, two simultaneous failures
-    // would both observe the channel as null, both create one, and the
-    // second assignment would silently leak the first).
-    private readonly SemaphoreSlim r_republishLock = new(1, 1);
     private IChannel? _channel;
-    private IChannel? _republishChannel;
     private AsyncEventingBasicConsumer? _consumer;
     private string? _consumerTag;
     private bool _disposed;
 
-    // In-flight delivery callback counter — protects against the
-    // disposal-races-with-delivery scenario where DisposeAsync would
-    // close the channel mid-handler, surfacing as a confusing
-    // ObjectDisposedException on the BasicAck/BasicNack call. Disposal
-    // unsubscribes + cancels first, then bounded-spin-waits for this
-    // to drain to zero.
+    // Count of in-flight delivery callbacks. It prevents DisposeAsync from
+    // closing the channel while a handler runs, which would surface as an
+    // ObjectDisposedException on the BasicAck or BasicNack call. Disposal
+    // unsubscribes and cancels first, then waits, bounded by a timeout, for
+    // this count to reach zero.
     private int _inflightCallbacks;
 
     /// <summary>Initializes a subscriber channel.</summary>
     /// <param name="connection">Connection wrapper.</param>
     /// <param name="scopeFactory">Per-message DI scope factory.</param>
     /// <param name="dispatcherFactory">Closed-generic dispatchers per subscriber.</param>
+    /// <param name="catalog">The message descriptors this host consumes against.</param>
     /// <param name="registration">The subscriber to host.</param>
     /// <param name="logger">Logger.</param>
+    /// <param name="connectionOptions">Configuration copied for dedicated DLQ transport.</param>
+    /// <param name="subscriberOptions">Independent DLQ operation and cleanup bounds.</param>
     [MustDisposeResource(false)]
     public SubscriberChannel(
         ID2Connection connection,
         IServiceScopeFactory scopeFactory,
         HandlerDispatcherFactory dispatcherFactory,
+        MessagingCatalog catalog,
         ISubscriberRegistration registration,
-        ILogger<SubscriberChannel> logger)
+        ILogger<SubscriberChannel> logger,
+        RabbitMqConnectionOptions connectionOptions,
+        RabbitMqSubscriberOptions subscriberOptions)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(scopeFactory);
         ArgumentNullException.ThrowIfNull(dispatcherFactory);
+        ArgumentNullException.ThrowIfNull(catalog);
         ArgumentNullException.ThrowIfNull(registration);
         ArgumentNullException.ThrowIfNull(logger);
         r_connection = connection;
         r_scopeFactory = scopeFactory;
         r_dispatcherFactory = dispatcherFactory;
+        r_catalog = catalog;
         r_registration = registration;
         r_logger = logger;
+        r_dlqRepublisher = new DlqRepublisher(
+            connectionOptions, subscriberOptions, registration.Descriptor.Prefetch, logger);
+        r_shutdownToken = r_shutdown.Token;
     }
 
-    /// <summary>Gets or sets the test-only seam that, when non-null,
+    /// <summary>Gets or sets a test-only seam. When it is not null, it
     /// replaces the real <c>BasicAckAsync</c> call with the supplied
-    /// delegate so the M2 narrow-catch test can deterministically inject
-    /// an ack failure. Production code MUST NOT set this.</summary>
+    /// delegate, so a test can inject an ack failure deterministically.
+    /// Production code must not set it.</summary>
     internal static Func<IChannel, ulong, Task>? AckHookForTesting { get; set; }
 
-    /// <summary>Gets the in-flight delivery callback count via volatile
-    /// read of <c>_inflightCallbacks</c> — exposed for in-flight-drain count
-    /// assertions in integration tests.</summary>
+    /// <summary>Gets the in-flight delivery callback count, read with a
+    /// volatile read of <c>_inflightCallbacks</c>, so tests can assert the
+    /// in-flight drain count.</summary>
     internal int InflightCallbackCountForTesting =>
         Volatile.Read(ref _inflightCallbacks);
 
@@ -124,6 +127,23 @@ internal sealed class SubscriberChannel : IAsyncDisposable
 
         _channel = await r_connection.CreateChannelAsync(options: null, ct);
 
+        // A broker-closed consumer channel is otherwise silent: the only symptom is that
+        // deliveries stop. Automatic recovery re-attaches the consumer, so the shutdown is
+        // recoverable, but it must be visible when it happens.
+        _channel.ChannelShutdownAsync += (_, e) =>
+        {
+            // An Application initiator is this host closing the channel on shutdown.
+            // Peer and Library initiators are the silent ones - the consumer stops
+            // receiving and nothing else says why.
+            if (e.Initiator != ShutdownInitiator.Application)
+            {
+                SubscriberLog.ConsumerChannelShutdown(
+                    r_logger, queueName, e.Initiator.ToString(), e.ReplyCode, e.ReplyText);
+            }
+
+            return Task.CompletedTask;
+        };
+
         try
         {
             await _channel.BasicQosAsync(
@@ -132,13 +152,14 @@ internal sealed class SubscriberChannel : IAsyncDisposable
                 global: false,
                 cancellationToken: ct);
 
-            // FanoutExclusiveAutoDelete: ensure queue+bind on the long-lived consumer channel
-            // before BasicConsume. Topology declare uses a short-lived channel; under load a
-            // NOT_FOUND window can still appear between declare and consume. Args must match
-            // DefaultTopologyDeclarer (via QueueFlagsFor + DLX args). Exclusive queues are
-            // deleted when their declaring connection closes — not merely when a declare
-            // channel is disposed — so this re-declare is about consume-channel readiness
-            // and arg parity, not "channel dispose deleted the queue."
+            // FanoutExclusiveAutoDelete: ensure the queue and its binding exist on the
+            // long-lived consumer channel before BasicConsume. Topology declare uses a
+            // short-lived channel; under load a NOT_FOUND window can still appear between
+            // declare and consume. Args must match DefaultTopologyDeclarer (via QueueFlagsFor
+            // and the DLX args). Exclusive queues are deleted when their declaring connection
+            // closes, not merely when a declare channel is disposed, so this re-declare
+            // exists for consume-channel readiness and arg parity, and not because disposing
+            // a channel deleted the queue.
             if (descriptor.Pattern == QueuePattern.FanoutExclusiveAutoDelete)
                 await EnsureExclusiveQueueOnConsumerChannelAsync(_channel, queueName, ct);
 
@@ -157,9 +178,9 @@ internal sealed class SubscriberChannel : IAsyncDisposable
         }
         catch
         {
-            // Hosted service only tracks successfully started channels. If QoS /
-            // exclusive re-declare / BasicConsume throws after assignment, dispose the
-            // orphan channel so we do not leak a broker channel with no owner.
+            // If QoS, the exclusive re-declare or BasicConsume throws after the channel
+            // is assigned, dispose the orphan channel: a channel whose start failed has
+            // no owner, and leaving it open would leak a broker channel.
             var orphan = _channel;
             _channel = null;
             _consumer = null;
@@ -173,7 +194,7 @@ internal sealed class SubscriberChannel : IAsyncDisposable
                 }
                 catch
                 {
-                    // Best-effort — we are already failing StartAsync.
+                    // Best-effort; StartAsync is already failing.
                 }
             }
 
@@ -194,6 +215,8 @@ internal sealed class SubscriberChannel : IAsyncDisposable
         if (_disposed) return;
 
         _disposed = true;
+        await r_shutdown.CancelAsync();
+        await r_dlqRepublisher.DisposeAsync();
 
         SubscriberLog.ConsumerStopping(r_logger, r_registration.ResolvedQueueName);
 
@@ -214,13 +237,13 @@ internal sealed class SubscriberChannel : IAsyncDisposable
             }
             catch
             {
-                // Best-effort during shutdown — broker may already be gone.
+                // Best-effort during shutdown - broker may already be gone.
             }
 
-            // Drain in-flight callbacks before closing the channel. Bounded
-            // by _DISPOSE_DRAIN_TIMEOUT_MS — slow handlers don't get to
-            // hold the host shutdown indefinitely, but well-behaved ones
-            // get a chance to ack their message cleanly.
+            // Drain in-flight callbacks before closing the channel. The wait is
+            // bounded by _DISPOSE_DRAIN_TIMEOUT_MS: a slow handler cannot hold
+            // the host shutdown indefinitely, and a handler that finishes in
+            // time can ack its message cleanly.
             await DrainInflightCallbacksAsync();
 
             try
@@ -235,37 +258,24 @@ internal sealed class SubscriberChannel : IAsyncDisposable
             await _channel.DisposeAsync();
         }
 
-        if (_republishChannel is not null)
-        {
-            try
-            {
-                if (_republishChannel.IsOpen) await _republishChannel.CloseAsync();
-            }
-            catch
-            {
-                // Best-effort.
-            }
-
-            await _republishChannel.DisposeAsync();
-        }
-
-        r_republishLock.Dispose();
+        r_shutdown.Dispose();
     }
 
     /// <summary>Counts redelivery attempts via the broker's <c>x-death</c>
-    /// header. RabbitMQ pushes one entry per (queue, reason) pair the message
+    /// header.</summary>
+    /// <remarks>RabbitMQ pushes one entry per (queue, reason) pair the message
     /// has cycled through; the <c>count</c> field on an entry increments each
-    /// additional cycle. We sum <c>count</c> across entries whose
+    /// additional cycle. This method sums <c>count</c> across entries whose
     /// <c>reason</c> reflects a retry-cycle event:
     /// <list type="bullet">
-    ///   <item><c>expired</c> — retry-tier TTL expiry (our retry path).</item>
-    ///   <item><c>rejected</c> — consumer NACK without requeue.</item>
+    ///   <item><c>expired</c> - retry-tier TTL expiry (our retry path).</item>
+    ///   <item><c>rejected</c> - consumer NACK without requeue.</item>
     /// </list>
     /// Other reasons (<c>maxlen</c>, <c>delivery_limit</c>) are broker-side
-    /// flow control, not consumer-side retries — counting them would
+    /// flow control, not consumer-side retries - counting them would
     /// trigger <c>RETRIES_EXHAUSTED</c> prematurely. Returns zero on first
-    /// delivery / malformed header / missing field — fail-open so a broker
-    /// quirk doesn't strand a message in retry forever.</summary>
+    /// delivery / malformed header / missing field. It fails open, so a broker
+    /// quirk cannot keep a message in retry forever.</remarks>
     /// <param name="ea">The delivery event args carrying broker headers.</param>
     internal static int ReadAttemptCount(BasicDeliverEventArgs ea)
     {
@@ -278,7 +288,7 @@ internal sealed class SubscriberChannel : IAsyncDisposable
         {
             if (entry is not IDictionary<string, object?> dict) continue;
 
-            // Filter on reason — only retry-cycle events count.
+            // Filter on reason - only retry-cycle events count.
             if (!dict.TryGetValue("reason", out var reasonObj)) continue;
             var reason = reasonObj switch
             {
@@ -303,46 +313,44 @@ internal sealed class SubscriberChannel : IAsyncDisposable
         return total;
     }
 
-    /// <summary>Internal access for republish-channel race-coverage tests.
-    /// Production code MUST go through the failure path which calls this lazily.</summary>
-    [MustDisposeResource(false)]
-    internal async ValueTask<IChannel> EnsureRepublishChannelAsync()
+    /// <summary>Settles only the original delivery channel after the dead-letter outcome.</summary>
+    /// <param name="channel">The original consumer channel.</param>
+    /// <param name="confirmed">Whether the DLQ publication was confirmed.</param>
+    /// <param name="deliveryTag">The original channel's delivery tag.</param>
+    /// <param name="queue">The queue name for diagnostics.</param>
+    /// <param name="messageId">The validated processing identity.</param>
+    /// <param name="logger">Sanitized settlement diagnostics.</param>
+    internal static async ValueTask SettleDlqDeliveryAsync(
+        IChannel channel,
+        bool confirmed,
+        ulong deliveryTag,
+        string queue,
+        string? messageId,
+        ILogger logger)
     {
-        // Fast path: open channel exists, no contention.
-        if (_republishChannel is { IsOpen: true } existing)
-            return existing;
-
-        // Slow path: serialize the create-or-replace work so two concurrent
-        // failure callers don't both create channels and silently leak one.
-        await r_republishLock.WaitAsync();
         try
         {
-            // Re-check inside the lock (another caller may have just created it).
-            if (_republishChannel is { IsOpen: true } now)
-                return now;
+            if (!channel.IsOpen) return;
 
-            // Discard any closed channel so we don't leak file descriptors on
-            // a broker restart.
-            if (_republishChannel is { IsOpen: false } stale)
-            {
-                try
-                {
-                    await stale.DisposeAsync();
-                }
-                catch
-                {
-                    // Best-effort — channel was already closed.
-                }
-
-                _republishChannel = null;
-            }
-
-            _republishChannel = await r_connection.CreateChannelAsync(options: null);
-            return _republishChannel;
+            if (confirmed) await channel.BasicAckAsync(deliveryTag, multiple: false);
+            else await channel.BasicNackAsync(deliveryTag, multiple: false, requeue: false);
         }
-        finally
+        catch (Exception ex)
         {
-            r_republishLock.Release();
+            try
+            {
+                SubscriberLog.DlqSettlementFailed(
+                    logger,
+                    queue,
+                    deliveryTag,
+                    messageId,
+                    SanitizedExceptionRender.TypeName(ex),
+                    SanitizedExceptionRender.FirstFrame(ex));
+            }
+            catch (Exception)
+            {
+                // Diagnostic failures must not restart dead-letter publication after settlement.
+            }
         }
     }
 
@@ -352,9 +360,9 @@ internal sealed class SubscriberChannel : IAsyncDisposable
         var raw = ReadFromPropertiesOrHeader(props);
         if (raw is null) return null;
 
-        // Reject pathological lengths (key-injection / Redis-memory DoS
-        // protection) and any control characters that could split the
-        // idempotency store's namespace via ":" or whitespace.
+        // Reject lengths above the cap (protection against key injection and
+        // Redis memory exhaustion) and any control character, ":" or space,
+        // which could split the idempotency store's key namespace.
         if (raw.Length > _MAX_MESSAGE_ID_LENGTH) return null;
         foreach (var ch in raw)
         {
@@ -392,8 +400,8 @@ internal sealed class SubscriberChannel : IAsyncDisposable
                 headers[kvp.Key] = kvp.Value;
         }
 
-        // Overwrite (or set) the failure-reason header — this is the whole
-        // point of the republish path.
+        // Overwrite (or set) the failure-reason header, which is the purpose
+        // of the republish path.
         headers[AmqpHeaders.FAILURE_REASON] = failureHeader;
         return headers;
     }
@@ -432,9 +440,9 @@ internal sealed class SubscriberChannel : IAsyncDisposable
         if (traceparent is null) return default;
 
         // ActivityContext.TryParse handles full traceparent string format
-        // (00-{traceId}-{spanId}-{flags}). Failure (malformed header) →
-        // we silently drop the parent context — the consume span starts a
-        // new trace rather than crashing on a forged header.
+        // (00-{traceId}-{spanId}-{flags}). On failure (a malformed header)
+        // the parent context is dropped silently, and the consume span starts
+        // a new trace instead of crashing on a forged header.
         return ActivityContext.TryParse(traceparent, tracestate, out var ctx)
             ? ctx
             : default;
@@ -442,13 +450,22 @@ internal sealed class SubscriberChannel : IAsyncDisposable
 
     private async Task OnReceivedAsync(object sender, BasicDeliverEventArgs ea)
     {
-        // Track in-flight callback count so DisposeAsync can drain in-flight
-        // handlers before closing the channel. Increment BEFORE the work,
-        // decrement in finally so any throw still releases the slot.
+        // Track the in-flight callback count so DisposeAsync can drain
+        // in-flight handlers before closing the channel. Increment before the
+        // work, and decrement in finally so any throw still releases the slot.
         Interlocked.Increment(ref _inflightCallbacks);
         try
         {
-            await OnReceivedCoreAsync(ea);
+            var consumerChannel = ((AsyncEventingBasicConsumer)sender).Channel;
+            var original = new DlqRepublishRequest(
+                DlqNaming.DlxFor(r_registration.ResolvedQueueName),
+                ea.Body.ToArray(),
+                BuildRepublishHeaders(ea.BasicProperties, []),
+                ea.BasicProperties.MessageId,
+                ea.BasicProperties.ContentType,
+                ea.BasicProperties.ContentEncoding,
+                ea.BasicProperties.CorrelationId);
+            await OnReceivedCoreAsync(ea, consumerChannel, original);
         }
         finally
         {
@@ -456,7 +473,8 @@ internal sealed class SubscriberChannel : IAsyncDisposable
         }
     }
 
-    private async Task OnReceivedCoreAsync(BasicDeliverEventArgs ea)
+    private async Task OnReceivedCoreAsync(
+        BasicDeliverEventArgs ea, IChannel consumerChannel, DlqRepublishRequest original)
     {
         var queue = r_registration.ResolvedQueueName;
         var deliveryTag = ea.DeliveryTag;
@@ -465,8 +483,8 @@ internal sealed class SubscriberChannel : IAsyncDisposable
 
         // Start a Consumer-kind span linked to the producer's publish span
         // via traceparent. Activity.Current is set inside the using block,
-        // so SubscriberLog + handler dispatch + DLQ failure-header all see
-        // the consume span as their ambient activity.
+        // so SubscriberLog, handler dispatch and the DLQ failure header all
+        // see the consume span as their ambient activity.
         var parentContext = ReadTraceContext(ea);
         var activityName = $"receive {queue}";
         using var activity = MessagingTelemetry.SR_ActivitySource.StartActivity(
@@ -479,9 +497,9 @@ internal sealed class SubscriberChannel : IAsyncDisposable
             activity.SetTag(MessagingActivityTags.MESSAGING_SYSTEM, "rabbitmq");
             activity.SetTag(MessagingActivityTags.MESSAGING_DESTINATION_NAME, queue);
 
-            // OTel sem-conv canonical attribute is "messaging.operation.type"
-            // (NOT "messaging.operation"). Spec-driving structurally prevents
-            // drift from the standard.
+            // The OpenTelemetry semantic-convention attribute is
+            // "messaging.operation.type", not "messaging.operation". Driving
+            // the tag names from the spec prevents drift from the standard.
             activity.SetTag(MessagingActivityTags.MESSAGING_OPERATION_TYPE, "receive");
             activity.SetTag(MessagingActivityTags.MESSAGING_MESSAGE_ID, messageId);
             activity.SetTag(MessagingActivityTags.MESSAGING_RABBITMQ_DELIVERY_TAG, deliveryTag);
@@ -497,11 +515,11 @@ internal sealed class SubscriberChannel : IAsyncDisposable
 
             // Apply the producer-side propagated context (RequestId,
             // RequestPath, fingerprints, WhoIs hash) onto the per-message
-            // scope's MutableRequestContext BEFORE the handler resolves its
+            // scope's MutableRequestContext before the handler resolves its
             // IRequestContext through HandlerContext. Identity (UserId /
-            // OrgId / Scopes) is NOT in this header — it would rebuild from
-            // a JWT in a sync hop; for async events the consumer-side handler
-            // doesn't have one and shouldn't claim caller identity.
+            // OrgId / Scopes) is not in this header. In a synchronous hop it
+            // is rebuilt from a JWT, but an async event has no JWT, so the
+            // consumer-side handler must not claim caller identity.
             var propagated = ReadPropagatedContext(ea);
             if (propagated is not null)
             {
@@ -509,7 +527,7 @@ internal sealed class SubscriberChannel : IAsyncDisposable
                 mutableCtx?.ApplyPropagatedContext(propagated);
             }
 
-            // Optional idempotency pre-check — opt-in per subscriber.
+            // Optional idempotency pre-check - opt-in per subscriber.
             if (r_registration.Descriptor.Idempotency && messageId.Truthy())
             {
                 var store = scope.ServiceProvider
@@ -519,32 +537,33 @@ internal sealed class SubscriberChannel : IAsyncDisposable
                     var seen = await store.HasSeenAsync(messageId!);
                     if (seen is { Failed: false, Data: true })
                     {
-                        // Already processed — ack without re-doing the work.
-                        await _channel!.BasicAckAsync(deliveryTag, multiple: false);
+                        // Already processed - ack without re-doing the work.
+                        await consumerChannel.BasicAckAsync(deliveryTag, multiple: false);
                         SubscriberLog.DeliverySkipped(
                             r_logger, queue, deliveryTag, messageId);
                         return;
                     }
 
-                    // ServiceUnavailable on the store: fail-open (process the
-                    // message; better a duplicate than reject during a Redis
-                    // blip — handlers are required to be at-least-once-safe
-                    // anyway).
+                    // When the store returns ServiceUnavailable, fail open and
+                    // process the message: a duplicate is better than a
+                    // rejection during a Redis outage, and handlers must be
+                    // safe under at-least-once delivery anyway.
                 }
             }
 
-            // Tiered-retry attempt-count enforcement (M1). When the
-            // subscription declares a TieredRetry block and the broker's
-            // x-death history says we've already burned the budget, route
-            // straight to DLQ with cause=RETRIES_EXHAUSTED so we don't
-            // pile up another tier-bounce cycle for a permanently broken
-            // payload.
+            // Tiered-retry attempt-count enforcement. When the subscription
+            // declares a TieredRetry block and the broker's x-death history
+            // shows that the attempt budget is used up, route the message
+            // straight to the DLQ with cause=RETRIES_EXHAUSTED, so a
+            // permanently broken payload does not start another tier-bounce
+            // cycle.
             if (r_registration.Descriptor.TieredRetry is { } retry)
             {
                 var attemptCount = ReadAttemptCount(ea);
                 if (attemptCount >= retry.MaxAttempts)
                 {
-                    await NackRetriesExhaustedAsync(ea, attemptCount, messageId);
+                    await NackRetriesExhaustedAsync(
+                        ea, attemptCount, messageId, consumerChannel, original);
                     SubscriberLog.RetriesExhausted(
                         r_logger, queue, messageId, attemptCount, retry.MaxAttempts);
                     return;
@@ -563,7 +582,7 @@ internal sealed class SubscriberChannel : IAsyncDisposable
                     ? DlqFailureCauses.DESERIALIZE_FAILURE
                     : DlqFailureCauses.DECRYPT_FAILURE;
                 var rootEx = dex.InnerException ?? dex;
-                await NackToDlqAsync(ea, cause, rootEx, messageId);
+                await NackToDlqAsync(ea, cause, rootEx, messageId, consumerChannel, original);
                 SubscriberLog.BoundaryFailure(
                     r_logger,
                     queue,
@@ -575,7 +594,7 @@ internal sealed class SubscriberChannel : IAsyncDisposable
             }
             catch (Exception ex)
             {
-                await NackHandlerExceptionAsync(ea, ex, messageId);
+                await NackHandlerExceptionAsync(ea, ex, messageId, consumerChannel, original);
                 SubscriberLog.HandlerThrew(
                     r_logger,
                     queue,
@@ -587,14 +606,16 @@ internal sealed class SubscriberChannel : IAsyncDisposable
 
             if (result.Failed)
             {
-                await NackHandlerResultAsync(ea, result, messageId);
+                await NackHandlerResultAsync(ea, result, messageId, consumerChannel, original);
                 SubscriberLog.HandlerResultFailure(r_logger, queue, result.ErrorCode);
                 return;
             }
 
-            // Success — record idempotency mark first so a crash AFTER ack
-            // before mark causes a (safe) redelivery rather than a duplicate
-            // that the handler must defend against itself.
+            // On success, record the idempotency mark before the ack. A crash
+            // between the mark and the ack causes a safe redelivery that the
+            // idempotency check skips. Acking first would leave a window where
+            // a crash before the mark causes a duplicate that the handler must
+            // defend against itself.
             if (r_registration.Descriptor.Idempotency && messageId.Truthy())
             {
                 var store = scope.ServiceProvider
@@ -604,11 +625,11 @@ internal sealed class SubscriberChannel : IAsyncDisposable
                     var markResult = await store.MarkSeenAsync(messageId!);
                     if (markResult.Failed)
                     {
-                        // Mark failed (Redis blip / store outage). Acking now
-                        // would silently leave the dedup window unguarded for
-                        // this message — a redelivery would re-run the
-                        // handler. NACK-no-requeue routes to DLQ via
-                        // x-dead-letter-exchange so an operator sees the
+                        // The mark failed (a Redis or store outage). Acking now
+                        // would leave the dedup window unguarded for this
+                        // message, and a redelivery would re-run the handler.
+                        // NACK without requeue routes the message to the DLQ
+                        // via x-dead-letter-exchange, so an operator sees the
                         // store-degradation impact instead of duplicates
                         // being processed silently.
                         MessagingTelemetry.SR_AckFailuresCounter.Add(1);
@@ -618,27 +639,27 @@ internal sealed class SubscriberChannel : IAsyncDisposable
                             deliveryTag,
                             messageId,
                             markResult.ErrorCode);
-                        await _channel!.BasicNackAsync(
+                        await consumerChannel.BasicNackAsync(
                             deliveryTag, multiple: false, requeue: false);
                         return;
                     }
                 }
             }
 
-            // M2: ack failure is NOT a handler failure — narrow the catch
-            // to the BasicAckAsync call so a broker-side ack rejection
-            // (channel closed mid-flight, etc.) doesn't get reported as
-            // HANDLER_EXCEPTION and falsely route the (already-processed)
-            // message to DLQ. Without requeue: broker's at-least-once
-            // semantics will redeliver on reconnect; the idempotency mark
-            // (already written above) keeps the duplicate from re-running
-            // the handler.
+            // An ack failure is not a handler failure. The catch is narrowed
+            // to the BasicAckAsync call so that a broker-side ack rejection
+            // (channel closed mid-flight, etc.) is not reported as
+            // HANDLER_EXCEPTION and does not route the already-processed
+            // message to the DLQ. The code does not requeue: the broker's
+            // at-least-once semantics redeliver the message on reconnect, and
+            // the idempotency mark written above keeps the duplicate from
+            // re-running the handler.
             try
             {
                 if (AckHookForTesting is { } hook)
-                    await hook(_channel!, deliveryTag);
+                    await hook(consumerChannel, deliveryTag);
                 else
-                    await _channel!.BasicAckAsync(deliveryTag, multiple: false);
+                    await consumerChannel.BasicAckAsync(deliveryTag, multiple: false);
             }
             catch (Exception ackEx)
             {
@@ -659,10 +680,11 @@ internal sealed class SubscriberChannel : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            // Defensive — anything else surfaces as a NACK; the message
-            // either redelivers (broker's job) or hits its DLQ if requeue
-            // limit reached.
-            await NackHandlerExceptionAsync(ea, ex, messageId);
+            // Defensive: any other exception is handled as a handler
+            // exception. The message is republished to the DLX with a failure
+            // header and acked, or, when that republish fails, nacked without
+            // requeue so the broker routes it to the DLQ.
+            await NackHandlerExceptionAsync(ea, ex, messageId, consumerChannel, original);
             SubscriberLog.BoundaryFailure(
                 r_logger,
                 queue,
@@ -674,98 +696,117 @@ internal sealed class SubscriberChannel : IAsyncDisposable
     }
 
     private async Task NackToDlqAsync(
-        BasicDeliverEventArgs ea, string cause, Exception ex, string? messageId)
+        BasicDeliverEventArgs ea,
+        string cause,
+        Exception ex,
+        string? messageId,
+        IChannel consumerChannel,
+        DlqRepublishRequest original)
     {
         var traceId = Activity.Current?.TraceId.ToString();
         var headerBytes = DlqFailureHeaderBuilder.FromBoundary(cause, ex, traceId);
-        await PublishFailureHeaderAsync(ea, headerBytes, messageId);
+        await PublishFailureHeaderAsync(ea, headerBytes, messageId, consumerChannel, original);
     }
 
     private async Task NackHandlerExceptionAsync(
-        BasicDeliverEventArgs ea, Exception ex, string? messageId)
+        BasicDeliverEventArgs ea,
+        Exception ex,
+        string? messageId,
+        IChannel consumerChannel,
+        DlqRepublishRequest original)
     {
         var traceId = Activity.Current?.TraceId.ToString();
         var headerBytes = DlqFailureHeaderBuilder.FromException(ex, traceId: traceId);
-        await PublishFailureHeaderAsync(ea, headerBytes, messageId);
+        await PublishFailureHeaderAsync(ea, headerBytes, messageId, consumerChannel, original);
     }
 
     private async Task NackHandlerResultAsync(
-        BasicDeliverEventArgs ea, D2Result result, string? messageId)
+        BasicDeliverEventArgs ea,
+        D2Result result,
+        string? messageId,
+        IChannel consumerChannel,
+        DlqRepublishRequest original)
     {
         var traceId = Activity.Current?.TraceId.ToString();
         var headerBytes = DlqFailureHeaderBuilder.FromResult(result, traceId: traceId);
-        await PublishFailureHeaderAsync(ea, headerBytes, messageId);
+        await PublishFailureHeaderAsync(ea, headerBytes, messageId, consumerChannel, original);
     }
 
     private async Task NackRetriesExhaustedAsync(
-        BasicDeliverEventArgs ea, int attemptCount, string? messageId)
+        BasicDeliverEventArgs ea,
+        int attemptCount,
+        string? messageId,
+        IChannel consumerChannel,
+        DlqRepublishRequest original)
     {
         var traceId = Activity.Current?.TraceId.ToString();
         var headerBytes = DlqFailureHeaderBuilder.FromRetriesExhausted(
             attemptCount, traceId: traceId);
-        await PublishFailureHeaderAsync(ea, headerBytes, messageId);
+        await PublishFailureHeaderAsync(ea, headerBytes, messageId, consumerChannel, original);
     }
 
     private async Task PublishFailureHeaderAsync(
-        BasicDeliverEventArgs ea, byte[] failureHeader, string? messageId)
+        BasicDeliverEventArgs ea,
+        byte[] failureHeader,
+        string? messageId,
+        IChannel consumerChannel,
+        DlqRepublishRequest original)
     {
-        // RabbitMQ's BasicNack doesn't let you attach headers to the
-        // dead-lettered message directly. We republish the same body to the
-        // queue's DLX with the failure header attached, then BasicAck the
-        // original delivery — that way the broker's
-        // x-dead-letter-exchange routing isn't ALSO triggered (which
-        // would land a header-less duplicate alongside).
+        // RabbitMQ's BasicNack cannot attach headers to the dead-lettered
+        // message directly. This method republishes the same body to the
+        // queue's DLX with the failure header attached, then calls BasicAck
+        // on the original delivery, so the broker's x-dead-letter-exchange
+        // routing does not also fire (which would put a header-less
+        // duplicate in the DLQ).
         var queue = r_registration.ResolvedQueueName;
         var dlxName = DlqNaming.DlxFor(queue);
         var deliveryTag = ea.DeliveryTag;
 
-        try
+        var headers = new Dictionary<string, object?>(original.Headers)
         {
-            var republishChannel = await EnsureRepublishChannelAsync();
-            var headers = BuildRepublishHeaders(ea.BasicProperties, failureHeader);
-            var props = new BasicProperties
-            {
-                ContentType = ea.BasicProperties.ContentType,
-                ContentEncoding = ea.BasicProperties.ContentEncoding,
-                MessageId = ea.BasicProperties.MessageId,
-                CorrelationId = ea.BasicProperties.CorrelationId,
-                DeliveryMode = DeliveryModes.Persistent,
-                Headers = headers,
-            };
-
-            await republishChannel.BasicPublishAsync(
-                exchange: dlxName,
-                routingKey: string.Empty,
-                mandatory: false,
-                basicProperties: props,
-                body: ea.Body);
-
-            await _channel!.BasicAckAsync(deliveryTag, multiple: false);
+            [AmqpHeaders.FAILURE_REASON] = failureHeader,
+        };
+        var outcome = await r_dlqRepublisher.RepublishAsync(
+            original with { Headers = headers }, r_shutdownToken);
+        if (outcome == DlqRepublishOutcome.Confirmed)
+        {
+            await SettleDlqDeliveryAsync(
+                consumerChannel, true, deliveryTag, queue, messageId, r_logger);
         }
-        catch (Exception ex)
+        else
         {
-            // Republish path failed — fall back to BasicNack-no-requeue so
-            // the broker's x-dead-letter-exchange routes the message
-            // (header-less, but still in the DLQ — better than losing it).
-            MessagingTelemetry.SR_DlqRepublishFailuresCounter.Add(1);
+            // The republish failed, so fall back to BasicNack without requeue:
+            // the broker's x-dead-letter-exchange then routes the message to
+            // the DLQ without the failure header, which is better than losing
+            // it. The fallback cannot save a returned republish, because the
+            // broker's own dead-lettering targets the same exchange. The outcome
+            // tag distinguishes that case from a transport failure.
+            var unroutable = outcome == DlqRepublishOutcome.Unroutable;
+            MessagingTelemetry.SR_DlqRepublishFailuresCounter.Add(
+                1,
+                new KeyValuePair<string, object?>(
+                    MessagingMetricTags.OUTCOME,
+                    unroutable
+                        ? MessagingMetricTags.REPUBLISH_FAIL_UNROUTABLE
+                        : MessagingMetricTags.REPUBLISH_FAIL_TRANSPORT));
             SubscriberLog.DlqRepublishFailed(
                 r_logger,
                 queue,
                 dlxName,
                 deliveryTag,
                 messageId,
-                SanitizedExceptionRender.TypeName(ex),
-                SanitizedExceptionRender.FirstFrame(ex));
-            await _channel!.BasicNackAsync(deliveryTag, multiple: false, requeue: false);
+                outcome.ToString());
+            await SettleDlqDeliveryAsync(
+                consumerChannel, false, deliveryTag, queue, messageId, r_logger);
         }
     }
 
     private async Task DrainInflightCallbacksAsync()
     {
-        // Spin-wait with bounded timeout. Channel + consumer pumps are
-        // cooperative — once BasicCancel returns, the broker stops
-        // pushing new deliveries; we just need to wait for already-pushed
-        // ones to finish their handler dispatch.
+        // Poll with a bounded timeout. Channel and consumer pumps are
+        // cooperative: once BasicCancel returns, the broker stops pushing
+        // new deliveries, so the loop only waits for already-pushed ones to
+        // finish their handler dispatch.
         var deadline = Environment.TickCount64 + _DISPOSE_DRAIN_TIMEOUT_MS;
         while (Volatile.Read(ref _inflightCallbacks) > 0)
         {
@@ -784,7 +825,7 @@ internal sealed class SubscriberChannel : IAsyncDisposable
     }
 
     /// <summary>
-    /// Idempotent exclusive-queue declare+bind on the consumer channel. Declare order and
+    /// Idempotent exclusive-queue declare and bind on the consumer channel. Declare order and
     /// flags match <see cref="DefaultTopologyDeclarer"/> for
     /// <see cref="QueuePattern.FanoutExclusiveAutoDelete"/> (DLX before main queue; flags via
     /// <see cref="DefaultTopologyDeclarer.QueueFlagsFor"/>).
@@ -793,7 +834,7 @@ internal sealed class SubscriberChannel : IAsyncDisposable
         IChannel channel, string queueName, CancellationToken ct)
     {
         var descriptor = r_registration.Descriptor;
-        var wire = MessageWireResolver.Resolve(r_registration.MessageType);
+        var wire = MessageWireResolver.Resolve(r_catalog, r_registration.MessageType);
         var dlxName = DlqNaming.DlxFor(queueName);
         var dlqName = DlqNaming.DlqFor(queueName);
 

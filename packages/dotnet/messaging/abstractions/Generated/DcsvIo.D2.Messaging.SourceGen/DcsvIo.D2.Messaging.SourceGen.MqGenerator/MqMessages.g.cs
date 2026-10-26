@@ -19,30 +19,19 @@ namespace DcsvIo.D2.Messaging;
 /// </summary>
 public static class MqMessages
 {
-    /// <summary>Publisher contract for DcsvIo.D2.Auth.Events.KeyRotatedEvent.</summary>
-    public const string AuthKeyRotated = "AuthKeyRotated";
-
 }
 
 /// <summary>
 /// Runtime registry mapping every <see cref="MqMessages"/> constant to its
 /// fully-resolved <see cref="MqMessageDescriptor"/> (exchange, encryption,
 /// default routing key, message type FQN). Looked up by
-/// <c>MessageWireResolver</c> via the constant on a type's
-/// <c>[MqPub]</c> attribute.
+/// <c>MessagingCatalog.RequireDescriptor</c> via the constant on a
+/// type's <c>[MqPub]</c> attribute.
 /// </summary>
 public static class MqMessagesRegistry
 {
-    /// <summary>Lookup table: constant → descriptor.</summary>
+    /// <summary>Lookup table: constant -> descriptor.</summary>
     public static readonly IReadOnlyDictionary<string, MqMessageDescriptor> ByConstant = new Dictionary<string, MqMessageDescriptor>(System.StringComparer.Ordinal)
     {
-        ["AuthKeyRotated"] = new MqMessageDescriptor(
-            Constant: "AuthKeyRotated",
-            MessageTypeName: "DcsvIo.D2.Auth.Events.KeyRotatedEvent",
-            Exchange: "d2.security.key-rotated",
-            ExchangeType: "fanout",
-            Encryption: "plaintext",
-            EncryptionReason: "Rotation events deliver the (domain, kid) tuple consumers need to refresh their keyrings — encrypting them with keys we are rotating creates an unrecoverable chicken-and-egg.",
-            DefaultRoutingKey: ""),
     };
 }

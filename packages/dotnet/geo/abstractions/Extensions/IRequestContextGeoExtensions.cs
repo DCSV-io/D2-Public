@@ -23,12 +23,12 @@ using DcsvIo.D2.Utilities.Extensions;
 /// string via the matching typed <c>TryParse</c> (which consults the
 /// closed-set validation table); returns <c>null</c> when the underlying
 /// string is null / empty / whitespace OR when the value is not in the
-/// catalog (defensive: a value could carry an out-of-date code from a
-/// session minted before a catalog change). Handlers MUST treat <c>null</c>
-/// as "geo signal absent" rather than re-deriving the raw alpha-2.
+/// catalog (defensive: a value could hold an out-of-date code from a
+/// session minted before a catalog change). A <c>null</c> result means
+/// "geo signal absent"; do not re-derive the raw alpha-2.
 /// </para>
 /// <para>
-/// <b>What we expose.</b> The two WhoIs geo fields on
+/// <b>Exposed fields.</b> The WhoIs geo fields on
 /// <see cref="IRequestContext"/>: <c>CountryIso31661Alpha2Code</c> +
 /// <c>SubdivisionIso31662Code</c>.
 /// </para>
@@ -67,7 +67,7 @@ public static class IRequestContextGeoExtensions
         /// value is not present in the catalog. The raw string is
         /// uppercased before parsing so lowercase / mixed-case values
         /// (e.g. <c>"us-ny"</c>, <c>"Us-Ny"</c>) resolve to the canonical
-        /// record — matching the cross-language lenient parser contract.
+        /// record - matching the cross-language lenient parser contract.
         /// </summary>
         /// <returns>The typed subdivision code, or <c>null</c>.</returns>
         public SubdivisionCode? Subdivision()

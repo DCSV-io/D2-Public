@@ -1152,7 +1152,7 @@ public sealed class LocaleCodeJsonConverter : JsonConverter<LocaleCode>
         if (!sr_validLocaleCodes.Contains(value!))
         {
             throw new JsonException(
-                $"Unknown IETF BCP 47 locale tag '{value}' — not present in the closed catalog set.");
+                $"Unknown IETF BCP 47 locale tag '{value}' - not present in the closed catalog set.");
         }
 
         return LocaleCode.FromString(value!);

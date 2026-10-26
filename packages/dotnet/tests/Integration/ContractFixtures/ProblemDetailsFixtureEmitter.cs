@@ -15,11 +15,11 @@ using Xunit;
 
 /// <summary>
 /// Emits one fixture per ProblemDetails sub-catalog reflected off the .NET
-/// codegen-emitted static class <see cref="D2ProblemDetailsKeys"/>. Four
-/// fixtures: the singular <c>typeUriPrefix</c>, the singular
+/// codegen-emitted static class <see cref="D2ProblemDetailsKeys"/>. The
+/// fixtures are the singular <c>typeUriPrefix</c>, the singular
 /// <c>contentType</c>, the <c>EXTENSION_*</c> wire-value map, and the
-/// <c>TITLE_*</c> wire-value map. The TS-side parity test asserts
-/// byte-equality against the codegen-emitted TS catalog.
+/// <c>TITLE_*</c> wire-value map. The codegen-emitted TypeScript catalog
+/// holds the same values.
 /// </summary>
 public sealed class ProblemDetailsFixtureEmitter
 {
@@ -72,9 +72,9 @@ public sealed class ProblemDetailsFixtureEmitter
     /// <summary>
     /// Reflect every <c>public const string</c> on the catalog type whose
     /// name starts with <paramref name="prefix"/>; produce a sorted map
-    /// keyed by the post-prefix name (e.g. <c>EXTENSION_ERROR_CODE</c> →
-    /// <c>ERROR_CODE</c>) so the fixture mirrors the TS-side const-map
-    /// shape one-to-one.
+    /// keyed by the post-prefix name (e.g. <c>EXTENSION_ERROR_CODE</c> ->
+    /// <c>ERROR_CODE</c>) so the fixture has the shape of the TypeScript
+    /// const map.
     /// </summary>
     private static SortedDictionary<string, object?> EnumerateConstants(
         Type type, string prefix)

@@ -13,7 +13,7 @@ using DcsvIo.D2.Geo.Abstractions;
 namespace DcsvIo.D2.Geo.Default;
 
 /// <summary>
-/// Strongly-typed nested-class hierarchy over the timezone catalog —
+/// Strongly-typed nested-class hierarchy over the timezone catalog -
 /// <c>Timezones.America.New_York</c> returns a <see cref="TimezoneCode"/>.
 /// </summary>
 public static class Timezones
@@ -271,6 +271,8 @@ public static class Timezones
         public static readonly TimezoneCode Paramaribo = TimezoneCode.FromString("America/Paramaribo");
         /// <summary>Timezone <c>America/Phoenix</c>.</summary>
         public static readonly TimezoneCode Phoenix = TimezoneCode.FromString("America/Phoenix");
+        /// <summary>Timezone <c>America/Port-au-Prince</c>.</summary>
+        public static readonly TimezoneCode Port_au_Prince = TimezoneCode.FromString("America/Port-au-Prince");
         /// <summary>Timezone <c>America/Porto_Velho</c>.</summary>
         public static readonly TimezoneCode Porto_Velho = TimezoneCode.FromString("America/Porto_Velho");
         /// <summary>Timezone <c>America/Puerto_Rico</c>.</summary>
@@ -479,6 +481,8 @@ public static class Timezones
         public static readonly TimezoneCode Ulaanbaatar = TimezoneCode.FromString("Asia/Ulaanbaatar");
         /// <summary>Timezone <c>Asia/Urumqi</c>.</summary>
         public static readonly TimezoneCode Urumqi = TimezoneCode.FromString("Asia/Urumqi");
+        /// <summary>Timezone <c>Asia/Ust-Nera</c>.</summary>
+        public static readonly TimezoneCode Ust_Nera = TimezoneCode.FromString("Asia/Ust-Nera");
         /// <summary>Timezone <c>Asia/Vladivostok</c>.</summary>
         public static readonly TimezoneCode Vladivostok = TimezoneCode.FromString("Asia/Vladivostok");
         /// <summary>Timezone <c>Asia/Yakutsk</c>.</summary>

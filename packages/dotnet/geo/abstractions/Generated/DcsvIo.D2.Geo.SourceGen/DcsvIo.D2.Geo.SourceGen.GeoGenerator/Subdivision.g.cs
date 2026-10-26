@@ -11,8 +11,8 @@
 namespace DcsvIo.D2.Geo.Abstractions;
 
 /// <summary>
-/// Subdivision record — ISO 3166-2 administrative subdivision. The
-/// vocabulary discipline is enforced — every field name says
+/// Subdivision record - ISO 3166-2 administrative subdivision. The
+/// vocabulary discipline is enforced - every field name says
 /// <c>subdivision</c> (never <c>region</c> / <c>state</c> /
 /// <c>province</c>); display labels like <c>"State"</c> live on the
 /// <c>Type</c> field. Endonym fields drive the name-resolver's
@@ -50,7 +50,7 @@ public sealed record Subdivision
     /// <summary>Parent subdivision record; null at the top administrative level. Wired in the second pass.</summary>
     public Subdivision? ParentSubdivision { get; internal set; }
 
-    /// <summary>Display label ("State", "Province", "Parish", ...) — display data only.</summary>
+    /// <summary>Display label ("State", "Province", "Parish", ...) - display data only.</summary>
     public required string Type { get; init; }
 
     /// <summary>Append-only deprecation marker.</summary>

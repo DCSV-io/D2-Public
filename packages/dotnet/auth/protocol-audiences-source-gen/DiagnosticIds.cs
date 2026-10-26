@@ -8,18 +8,16 @@ namespace DcsvIo.D2.Auth.ProtocolAudiences.SourceGen;
 
 /// <summary>
 /// String identifiers for the diagnostics emitted by
-/// <see cref="ProtocolAudiencesGenerator"/>. Mirror the TypeScript
-/// <c>tools/ts-codegen</c> <c>D2PAUD*</c> IDs byte-for-byte — the same spec source
-/// on both sides means the same predicate-violation surface. Kept in a separate
-/// class from <see cref="DiagnosticDescriptors"/> so non-Roslyn-host consumers
-/// (e.g. unit tests of the pure-logic <see cref="ProtocolAudiencesEmitter"/> /
-/// <see cref="ProtocolAudienceSpecLoader"/>) can reference the IDs without
-/// dragging in <c>Microsoft.CodeAnalysis</c> (which the SrcGen csproj marks
-/// <c>PrivateAssets="all"</c>).
+/// <see cref="ProtocolAudiencesGenerator"/>. The values equal the TypeScript
+/// emitter's <c>D2PAUD*</c> IDs byte for byte, because both sides
+/// read the same spec and so check the same predicates. The IDs are in a separate
+/// class from <see cref="DiagnosticDescriptors"/> so that pure-logic code can
+/// use them without referencing <c>Microsoft.CodeAnalysis</c>, which the SrcGen csproj marks
+/// <c>PrivateAssets="all"</c>.
 /// </summary>
 internal static class DiagnosticIds
 {
-    /// <summary>Two protocol-audience entries share the exact same name (duplicate).</summary>
+    /// <summary>Two protocol-audience entries have the same name.</summary>
     public const string DuplicateName = "D2PAUD001";
 
     /// <summary>
@@ -28,7 +26,7 @@ internal static class DiagnosticIds
     /// </summary>
     public const string InvalidName = "D2PAUD002";
 
-    /// <summary>Two protocol-audience entries share the exact same value (duplicate).</summary>
+    /// <summary>Two protocol-audience entries have the same value.</summary>
     public const string DuplicateValue = "D2PAUD003";
 
     /// <summary>Protocol-audience value is empty (would never match a real aud claim).</summary>

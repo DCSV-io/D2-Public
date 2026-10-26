@@ -21,7 +21,7 @@ public enum QueuePattern
 
     /// <summary>
     /// Non-durable, exclusive, auto-delete queue per replica. Every replica
-    /// receives every message — fanout. Suitable for cache invalidation /
+    /// receives every message - fanout. Suitable for cache invalidation /
     /// multi-replica broadcast scenarios. Consumers MUST be idempotent
     /// because at-least-once delivery applies.
     /// </summary>

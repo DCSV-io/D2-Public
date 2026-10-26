@@ -15,10 +15,10 @@ using System.Text.Json;
 /// <summary>
 /// Value-equatable wrapper over the top-level key set of
 /// <c>contracts/messages/en-US.json</c>, used as an IIncrementalGenerator
-/// pipeline boundary. Reducing en-US.json to JUST its sorted key set (not its
-/// content) at the earliest <c>Select</c> means a translation-VALUE edit
-/// (keys unchanged) does not invalidate the error-codes generator's cache —
-/// only a key ADD/REMOVE re-runs the TK-existence cross-check.
+/// pipeline boundary. Reducing en-US.json to only its sorted key set (not its
+/// content) at the earliest <c>Select</c> means a translation value edit
+/// (keys unchanged) does not invalidate the error-codes generator's cache -
+/// only adding or removing a key re-runs the TK-existence cross-check.
 /// </summary>
 internal sealed class MessageKeySet : IEquatable<MessageKeySet>
 {
@@ -36,7 +36,7 @@ internal sealed class MessageKeySet : IEquatable<MessageKeySet>
     /// Parses the top-level object keys of en-US.json into a sorted,
     /// value-equatable set. Returns <see cref="Empty"/> on any parse failure
     /// (the generator then skips the TK cross-check rather than fire a false
-    /// diagnostic on malformed message JSON — that is the i18n generator's
+    /// diagnostic on malformed message JSON - that is the i18n generator's
     /// concern, not this one's).
     /// </summary>
     /// <param name="json">Raw en-US.json content.</param>
@@ -63,7 +63,7 @@ internal sealed class MessageKeySet : IEquatable<MessageKeySet>
     }
 
     /// <summary>
-    /// Unions multiple key sets (public∪private en-US AdditionalFiles).
+    /// Unions multiple key sets (one per en-US.json entry in AdditionalFiles).
     /// </summary>
     /// <param name="sets">Key sets to merge.</param>
     /// <returns>The union set (empty when none provided).</returns>

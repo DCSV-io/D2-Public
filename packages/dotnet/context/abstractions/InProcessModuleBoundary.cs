@@ -12,14 +12,14 @@ using DcsvIo.D2.Time;
 using DcsvIo.D2.Utilities.Extensions;
 
 /// <summary>
-/// The in-host establishment boundary: positively establishes the
-/// in-process-module plane on the current scoped request-context before an in-host
-/// leaf call (the generated <c>I&lt;Module&gt;Api</c> seam). Sets
+/// The in-host establishment boundary. It establishes the in-process-module plane
+/// on the current scoped request-context before an in-host leaf call (the
+/// generated <c>I&lt;Module&gt;Api</c> seam). It sets
 /// <see cref="RequestOrigin.InProcessModule"/>, records the calling module id as the
 /// telemetry-grade <see cref="IRequestContext.ImmediateCaller"/>, and appends a
 /// <see cref="CallPathKind.ModuleHop"/> entry. The validated request-context is
-/// passed directly — no serialization, no wire — so there is no spoofing surface;
-/// the whole process is trusted.
+/// passed directly, with no serialization and no wire, so there is no spoofing
+/// surface; the whole process is trusted.
 /// </summary>
 public static class InProcessModuleBoundary
 {
@@ -31,8 +31,8 @@ public static class InProcessModuleBoundary
         /// delegating to an in-host leaf: <see cref="RequestOrigin.InProcessModule"/>,
         /// <see cref="IRequestContext.ImmediateCaller"/> = the calling module id
         /// (telemetry-grade), and a <see cref="CallPathKind.ModuleHop"/> appended for
-        /// <paramref name="targetModuleId"/>. A no-op-safe guard: only a mutable context
-        /// is mutated, so a read-only test double is left untouched.
+        /// <paramref name="targetModuleId"/>. Only a mutable context is changed, so a
+        /// read-only test double is left untouched.
         /// </summary>
         /// <param name="callingModuleId">The id of the module/host making the
         /// in-process call.</param>
@@ -47,16 +47,16 @@ public static class InProcessModuleBoundary
         /// is null, empty, or whitespace.
         /// </exception>
         /// <remarks>
-        /// <strong>No establishment log (intentional asymmetry)</strong>: unlike the
-        /// sibling Edge / System / cross-process establishment boundaries, this
-        /// extension's ONLY receiver is <see cref="IRequestContext"/> — there is no
-        /// <see cref="IServiceProvider"/> or other DI handle flowing through it to
-        /// resolve a logger from. Adding one would require a breaking signature change
-        /// to this shipped <see langword="public"/> API (new required parameter breaks
-        /// every existing call site; an unused optional one never fires). A caller that
-        /// needs to observe an in-process-module hop can inspect the appended
-        /// <see cref="CallPathKind.ModuleHop"/> entry on <see cref="IRequestContext.CallPath"/>
-        /// instead.
+        /// <strong>The hop is recorded on the call path, not in a log (intentional
+        /// difference)</strong>: unlike the
+        /// HTTP inbound, System and cross-process establishment boundaries, this extension's
+        /// only receiver is <see cref="IRequestContext"/>, so no
+        /// <see cref="IServiceProvider"/> or other DI handle is available to resolve a
+        /// logger from. Adding one would break the signature of this shipped
+        /// <see langword="public"/> API: a new required parameter breaks every existing
+        /// call site, and an optional parameter that existing call sites do not pass
+        /// would never log. The appended <see cref="CallPathKind.ModuleHop"/> entry on
+        /// <see cref="IRequestContext.CallPath"/> records the hop instead.
         /// </remarks>
         public void EstablishInProcessModule(
             string callingModuleId, string targetModuleId, IClock clock)

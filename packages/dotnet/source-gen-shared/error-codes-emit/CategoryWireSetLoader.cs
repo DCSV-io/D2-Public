@@ -19,7 +19,7 @@ using System.Text.Json;
 /// thereby spec-derived (exactly the categories declared in
 /// <c>error-category.spec.json</c>) rather than a hand-maintained subset. If the
 /// spec is absent or malformed the set is empty and the membership check
-/// degrades to a no-op — the same degradation the en-US.json TK cross-check
+/// degrades to a no-op - the same degradation the en-US.json TK cross-check
 /// uses, so a missing AdditionalFile never produces a false positive.
 /// </summary>
 internal static class CategoryWireSetLoader

@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 // <copyright file="D2ResultJsonShapeTests.cs" company="DCSV">
 // Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -22,9 +22,9 @@ using Xunit;
 /// <list type="bullet">
 ///   <item>Every emitted property uses the camelCase wire name (success /
 ///     data / messages / inputErrors / errorCode / traceId / statusCode).</item>
-///   <item>NONE of the <c>Is*</c> derived boolean helpers leak onto the
-///     wire â€” they're <c>[JsonIgnore]</c>'d.</item>
-///   <item>The <c>Failed</c> derived helper is also <c>[JsonIgnore]</c>'d.</item>
+///   <item>NONE of the <c>Is*</c> derived boolean helpers appear on the
+///     wire, because each has <c>[JsonIgnore]</c>.</item>
+///   <item>The <c>Failed</c> derived helper also has <c>[JsonIgnore]</c>.</item>
 /// </list>
 /// </summary>
 public sealed class D2ResultJsonShapeTests
@@ -53,9 +53,9 @@ public sealed class D2ResultJsonShapeTests
     [Fact]
     public void Serialize_DoesNotLeakIsBooleanHelpers()
     {
-        // [JsonIgnore] on every Is* helper prevents the wire from
-        // carrying IsOk / IsNotFound / IsCanceled / etc. â€” they're
-        // in-process discriminators, not envelope fields.
+        // [JsonIgnore] on every Is* helper keeps IsOk / IsNotFound / IsCanceled
+        // and the others off the wire. They are in-process discriminators, not
+        // envelope fields.
         var result = D2Result.NotFound();
 
         var json = JsonSerializer.Serialize<object>(result);
@@ -106,7 +106,7 @@ public sealed class D2ResultJsonShapeTests
         obj[D2ResultEnvelopeFieldNames.SUCCESS]!.GetValue<bool>().Should().BeFalse();
         obj[D2ResultEnvelopeFieldNames.STATUS_CODE]!.GetValue<int>().Should().Be(404);
         obj[D2ResultEnvelopeFieldNames.ERROR_CODE]!.GetValue<string>()
-            .Should().Be("NOT_FOUND");
+            .Should().Be("GEN_NOT_FOUND");
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public sealed class D2ResultJsonShapeTests
 
         obj[D2ResultEnvelopeFieldNames.SUCCESS]!.GetValue<bool>().Should().BeFalse();
         obj[D2ResultEnvelopeFieldNames.ERROR_CODE]!.GetValue<string>()
-            .Should().Be("VALIDATION_FAILED");
+            .Should().Be("GEN_VALIDATION_FAILED");
         var inputErrors = obj[D2ResultEnvelopeFieldNames.INPUT_ERRORS]!.AsArray();
         inputErrors.Should().HaveCount(1);
         inputErrors[0]!.AsObject()["field"]!.GetValue<string>().Should().Be("email");
@@ -176,10 +176,9 @@ public sealed class D2ResultJsonShapeTests
     {
         // Default JsonSerializerOptions has NO PropertyNamingPolicy set, so
         // a typical record would round-trip as PascalCase. The
-        // [JsonPropertyName] attributes pin camelCase even under default
-        // options â€” confirms the envelope wire shape is per-property
-        // explicit and does not depend on the caller setting
-        // JsonNamingPolicy.CamelCase.
+        // [JsonPropertyName] attributes fix camelCase even under default
+        // options. Each wire name is set on its property and does not depend on
+        // the serializer being configured with JsonNamingPolicy.CamelCase.
         var result = D2Result.Ok();
 
         var json = JsonSerializer.Serialize<object>(result);
@@ -207,7 +206,7 @@ public sealed class D2ResultJsonShapeTests
     [Fact]
     public void Serialize_Ok_OmitsCategoryWhenNull()
     {
-        // [JsonIgnore(WhenWritingNull)] on Category â†’ the key is ABSENT (not
+        // [JsonIgnore(WhenWritingNull)] on Category -> the key is ABSENT (not
         // null / not "") for a result with no category.
         var result = D2Result.Ok();
 
@@ -222,7 +221,7 @@ public sealed class D2ResultJsonShapeTests
     [Fact]
     public void Serialize_Fail_WithoutCategory_OmitsCategory()
     {
-        // A hand-rolled Fail() with no category supplied â†’ omitted, no crash.
+        // A hand-rolled Fail() with no category supplied -> omitted, no crash.
         var result = D2Result.Fail();
 
         var json = JsonSerializer.Serialize<object>(result);
@@ -235,10 +234,10 @@ public sealed class D2ResultJsonShapeTests
     public void Category_WireString_RehydratesViaConverter()
     {
         // The .NET D2Result envelope is serialize-only (the TS @dcsv-io/d2-result parser
-        // owns deserialization â€” see the cross-runtime fixtures). The wireâ†’typed
-        // direction for the category field itself is the ErrorCategoryJsonConverter
-        // round-trip: the snake string parses back to the typed ErrorCategory,
-        // which is what the consumer-side reconstruction relies on.
+        // does the deserialization - see the cross-runtime fixtures). For the
+        // category field itself, the ErrorCategoryJsonConverter round-trip covers the
+        // wire->typed direction: the snake_case string parses back to the typed
+        // ErrorCategory.
         ErrorCategoryWire.TryFromWire("validation_failure", out var category)
             .Should().BeTrue();
         category.Should().Be(ErrorCategory.ValidationFailure);
@@ -253,9 +252,9 @@ public sealed class D2ResultJsonShapeTests
     public void Serialize_WireKeysSubsetOfCatalog()
     {
         // Every wire key emitted by a fully-populated D2Result MUST be in
-        // the D2ResultEnvelopeFieldNames catalog â€” pins against accidental
-        // future leakage (e.g. new public auto-property added without
-        // [JsonIgnore]).
+        // the D2ResultEnvelopeFieldNames catalog. A public auto-property
+        // added later without [JsonIgnore] would add a key to the wire
+        // and fail this test.
         var result = D2Result<string>.Ok(
             data: "payload",
             messages: [new TKMessage("k")])

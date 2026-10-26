@@ -20,10 +20,14 @@ export {
   type RedisCacheOptions,
 } from "./redis-cache-options.js";
 export { connectRedis } from "./connect-redis.js";
-// Public twin-pin surface for dual-runtime ContractFixtures parity.
-// Not an executor surface — constants only, byte-equivalent to .NET RedisLuaScripts.
+// Public surface that pins the Lua script constants for dual-runtime
+// ContractFixtures parity. It executes nothing: it exports constants only,
+// byte-equivalent to .NET RedisLuaScripts.
 export {
+  CONSUME_TOKEN,
   INCREMENT_WITH_OPTIONAL_TTL,
   RELEASE_LOCK_IF_OWNER,
+  REMOVE_IF_EQUAL,
   SET_ADD_WITH_OPTIONAL_TTL,
+  SET_IF_EQUAL,
 } from "./redis-lua-scripts.js";

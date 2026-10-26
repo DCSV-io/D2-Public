@@ -7,6 +7,7 @@
 namespace DcsvIo.D2.Messaging;
 
 using System;
+using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
@@ -18,13 +19,12 @@ using Microsoft.Extensions.DependencyInjection;
 internal static class SubscriberRegistrar
 {
     /// <summary>Constant used as the per-process suffix delimiter on
-    /// auto-suffixed fanout-exclusive queue names. Choosing a delimiter
-    /// the broker permits in queue names AND that ops tooling can spot
-    /// at a glance.</summary>
+    /// auto-suffixed fanout-exclusive queue names. The broker permits this
+    /// delimiter in queue names AND ops tooling can spot it at a glance.</summary>
     private const string _SUFFIX_DELIMITER = ".";
 
     /// <summary>Per-process suffix appended to fanout-exclusive queue names.
-    /// Generated once per process — every <c>FanoutExclusiveAutoDelete</c>
+    /// Generated once per process - every <c>FanoutExclusiveAutoDelete</c>
     /// subscription in the same process shares the same suffix, which is
     /// fine because each subscription has a different prefix
     /// (<see cref="MqSubscriptionDescriptor.QueueName"/>).</summary>
@@ -38,17 +38,23 @@ internal static class SubscriberRegistrar
     /// <param name="handlerType">Concrete handler class.</param>
     /// <param name="constant">Subscription constant from the
     /// <c>[MqSub]</c> attribute.</param>
+    /// <param name="subscriptions">The registered catalog's subscription
+    /// descriptors, keyed by constant.</param>
     public static void Register(
-        IServiceCollection services, Type handlerType, string constant)
+        IServiceCollection services,
+        Type handlerType,
+        string constant,
+        IReadOnlyDictionary<string, MqSubscriptionDescriptor> subscriptions)
     {
-        if (!MqSubscriptionsRegistry.ByConstant.TryGetValue(constant, out var descriptor))
+        if (!subscriptions.TryGetValue(constant, out var descriptor))
         {
             throw new InvalidOperationException(
                 $"Handler '{handlerType.FullName}' carries [MqSub(\"{constant}\")] but "
-                + $"'{constant}' is not in MqSubscriptionsRegistry. Likely a stale "
-                + $"build after a spec edit, or the constant was renamed without "
-                + $"updating the attribute. Rebuild; if it persists, verify the "
-                + $"name in contracts/mq-subscriptions/mq-subscriptions.spec.json.");
+                + $"'{constant}' is not in the supplied MessagingCatalog. Likely the "
+                + $"host registered no catalog of its own, a stale build after a spec "
+                + $"edit, or the constant was renamed without updating the attribute. "
+                + $"Rebuild; if it persists, verify the name in the "
+                + $"mq-subscriptions spec the host's catalog is generated from.");
         }
 
         var messageType = ResolveHandlerMessageType(handlerType);
@@ -62,7 +68,7 @@ internal static class SubscriberRegistrar
                 $"Handler '{handlerType.FullName}' carries [MqSub(\"{constant}\")] "
                 + $"but its message type generic parameter is '{messageType.FullName}', "
                 + $"while the spec entry's messageType is '{descriptor.MessageTypeName}'. "
-                + $"They must match — either change the handler's BaseHandler<...,X,Unit> "
+                + $"They must match - either change the handler's BaseHandler<...,X,Unit> "
                 + $"generic argument or update the spec.");
         }
 
@@ -102,7 +108,7 @@ internal static class SubscriberRegistrar
             {
                 var args = t.GetGenericArguments();
 
-                // BaseHandler<TSelf, TInput, TOutput> — TInput is index 1.
+                // BaseHandler<TSelf, TInput, TOutput> - TInput is index 1.
                 return args[1];
             }
 

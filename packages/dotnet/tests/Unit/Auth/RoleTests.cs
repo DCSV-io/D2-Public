@@ -17,8 +17,8 @@ public sealed class RoleTests
     [Fact]
     public void Enum_HasExactlyFourMembers()
     {
-        // Adversarial: roles are intentionally a closed set of capability
-        // bundles, NOT a hierarchy. Adding one requires Scopes.g.cs re-emission.
+        // Adversarial: the role set is closed. A new role requires the
+        // generator to re-emit Scopes.g.cs and a rank in RoleAuthority.
         const int expected_count = 4;
 
         Enum.GetNames<Role>().Should().HaveCount(expected_count);
@@ -64,27 +64,17 @@ public sealed class RoleTests
     }
 
     [Fact]
-    public void Roles_AreNotAHierarchy_IntValuesDoNotImplyOrdering()
+    public void Roles_UnderlyingValuesAreDeclarationOrder_NotTheAuthorityOrder()
     {
-        // Adversarial: explicitly assert there is NO hierarchy. Per Role.cs
-        // remarks and the spec, capability assignment is per (role, org_type)
-        // tuple in scopes.spec.json — NOT inferred from int values. This test
-        // documents the contract and protects against any code that might
-        // accidentally treat `(int)role` as a privilege rank.
-        //
-        // Auditor(0) has the LOWEST int value but Auditor reads more data than
-        // Agent(1) per the spec's remarks. Owner(3) is high-int but the
-        // ordering is just declaration order, not a privilege rank.
+        // The underlying integers are declaration order and nothing else.
+        // Capability, what a role may do, is defined per (role, org type) in
+        // scopes.spec.json. Authority over another member is the total order
+        // declared in RoleAuthority. Neither is derived from arithmetic on
+        // these values, so code that reads (int)role as a privilege rank
+        // misreads them.
         var roleInts = Enum.GetValues<Role>().Select(r => (int)r).ToArray();
 
-        // Assert int ordering (as a sanity check on declaration order) but the
-        // critical claim is that capability lookup goes through the spec, not
-        // through arithmetic on these ints.
         roleInts.Should().BeEquivalentTo([0, 1, 2, 3]);
-
-        // Sanity: there's no implicit ordering implied by sums / comparisons.
-        // The fact that 'Auditor < Agent' is a declaration artifact, not a
-        // privilege statement.
         ((int)Role.Auditor).Should().BeLessThan((int)Role.Agent);
     }
 }

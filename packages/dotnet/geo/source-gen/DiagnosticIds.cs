@@ -8,9 +8,9 @@ namespace DcsvIo.D2.Geo.SourceGen;
 
 /// <summary>
 /// String identifiers for the diagnostics emitted by <see cref="GeoGenerator"/>.
-/// Kept in a separate class from <see cref="DiagnosticDescriptors"/> so
-/// non-Roslyn-host consumers (unit tests of the pure-logic loader / emitters)
-/// can reference the IDs without dragging in <c>Microsoft.CodeAnalysis</c>.
+/// This class is separate from <see cref="DiagnosticDescriptors"/> so that code
+/// running outside the Roslyn host, such as the spec loader and the emitters,
+/// can reference the IDs without referencing <c>Microsoft.CodeAnalysis</c>.
 /// </summary>
 internal static class DiagnosticIds
 {
@@ -25,23 +25,11 @@ internal static class DiagnosticIds
     public const string UnknownFk = "D2GEO002";
 
     /// <summary>
-    /// Field name doesn't match the FK / M:M naming convention AND no
-    /// <c>fkTo</c> annotation supplied to disambiguate.
-    /// </summary>
-    public const string FkAmbiguity = "D2GEO003";
-
-    /// <summary>
-    /// Subdivision / Locale / Timezone code cannot form a valid C# identifier
-    /// even after sanitization. (Reserved for nested-class shell emission.)
+    /// A currency code, geopolitical-entity short code or time zone
+    /// identifier segment cannot form a valid C# identifier even after
+    /// sanitization, so the Default-target emitters skip it.
     /// </summary>
     public const string InvalidIdentifier = "D2GEO004";
-
-    /// <summary>
-    /// Vocabulary discipline violation — field name uses
-    /// <c>region</c> / <c>state</c> / <c>province</c> at identifier position
-    /// for the ISO 3166-2 concept; use <c>subdivision</c>.
-    /// </summary>
-    public const string VocabularyViolation = "D2GEO005";
 
     /// <summary>
     /// Missing or invalid <c>catalogVersion</c> / <c>generatedAt</c> in a
@@ -50,31 +38,22 @@ internal static class DiagnosticIds
     public const string MissingCatalogMetadata = "D2GEO006";
 
     /// <summary>
-    /// A required spec file is missing from <c>AdditionalFiles</c>. Nine
-    /// spec files are required at the Abstractions / Default emission
-    /// boundaries (seven pipeline-derived plus two scaffold-authored).
+    /// A required spec file is missing from <c>AdditionalFiles</c>. The spec
+    /// files in <c>contracts/geo/</c> are <c>countries</c>,
+    /// <c>subdivisions</c>, <c>currencies</c>, <c>languages</c>,
+    /// <c>locales</c>, <c>timezones</c> and <c>geopolitical-entities</c>, each
+    /// with the <c>.spec.json</c> suffix.
     /// </summary>
     public const string MissingSpec = "D2GEO007";
 
     /// <summary>
-    /// Build-time consistency mismatch — <c>selectable-locales.spec.json</c>
-    /// lists an IETF tag with no corresponding
-    /// <c>contracts/messages/{tag}.json</c> file (or vice versa).
-    /// </summary>
-    public const string LocaleMessageMismatch = "D2GEO008";
-
-    /// <summary>
-    /// Structural-parity mismatch — spec field exists but the emitter did
-    /// not produce a matching record property.
-    /// </summary>
-    public const string StructuralParityMismatch = "D2GEO009";
-
-    /// <summary>
-    /// Catalog-uniqueness violation — two entities in the same catalog share
+    /// Catalog-uniqueness violation - two entities in the same catalog share
     /// the same normalized name across any matchable name field (DisplayName,
     /// OfficialName, EndonymDisplayName, EndonymOfficialName, ShortCode,
-    /// alias, ISO code). Eliminates the "first match wins" determinism risk
-    /// in <c>IGeoNameResolver</c> at the source — fail-closed by design.
+    /// alias, ISO code). When enabled (it is disabled by default), the check
+    /// reports each collision and fails the build; the runtime name resolver is
+    /// what fails closed (NotFound) on a collision instead of letting the first
+    /// match win in <c>IGeoNameResolver</c>.
     /// </summary>
     public const string DuplicateNormalizedName = "D2GEO010";
 
@@ -87,8 +66,9 @@ internal static class DiagnosticIds
     /// patterns that mask drift between catalogs.
     /// </summary>
     /// <remarks>
+    /// D2GEO003, D2GEO005, D2GEO008 and D2GEO009 are not allocated here.
     /// D2GEO011 is reserved on the TS-side for the geo-data-pipeline's
-    /// <c>GEO_CLDR_ZOMBIE_DROPPED</c> (no .NET equivalent — the pipeline is
+    /// <c>GEO_CLDR_ZOMBIE_DROPPED</c> (no .NET equivalent - the pipeline is
     /// TS-only). D2GEO012 is the first slot shared across both languages
     /// after that carve-out.
     /// </remarks>

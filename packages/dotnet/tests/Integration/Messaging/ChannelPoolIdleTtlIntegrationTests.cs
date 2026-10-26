@@ -84,13 +84,12 @@ public sealed class ChannelPoolIdleTtlIntegrationTests
 
         counting.CreateChannelCallCount.Should().Be(
             1,
-            "channel idle WITHIN IdleTtl must be reused — eviction is for "
+            "channel idle WITHIN IdleTtl must be reused - eviction is for "
             + "stale-pool channels only, not every-second-publish churn");
     }
 
     private async Task<ID2Connection> BuildRealConnectionAsync()
     {
-        IntegrationMessageFixtures.EnsureRegistered();
         var optsBuilder = new ServiceCollection()
             .AddOptions<RabbitMqConnectionOptions>()
             .Configure(o =>
@@ -102,7 +101,7 @@ public sealed class ChannelPoolIdleTtlIntegrationTests
         var opts = sp.GetRequiredService<IOptions<RabbitMqConnectionOptions>>();
         var conn = new RabbitMqConnection(opts, NullLogger<RabbitMqConnection>.Instance);
         conn.StartReconnectLoop();
-        await conn.ReadyTask.WaitAsync(TimeSpan.FromSeconds(15));
+        await conn.ReadyTask.WaitAsync(TestContext.Current.CancellationToken);
         return conn;
     }
 

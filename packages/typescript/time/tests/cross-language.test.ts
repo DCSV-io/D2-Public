@@ -150,11 +150,11 @@ describe("CrossLanguageTemporalParity", () => {
   });
 
   /**
-   * §1.20 anti-pattern test — deliberate-drift DD-T1: proves the
+   * Anti-pattern test - deliberate-drift DD-T1: shows that the
    * `Temporal.Instant.compare` call used by all parity assertions is
-   * non-tautological. If the TS and .NET engines ever diverge on epoch
-   * interpretation by even one second, the fixture comparison will catch it —
-   * this test verifies that catch IS possible.
+   * not tautological. If the TS and .NET engines diverge on epoch
+   * interpretation by even one second, the fixture comparison catches it;
+   * this test verifies that the catch is possible.
    *
    * Constructs two `Temporal.Instant` values differing by exactly one second
    * and asserts `compare` returns non-zero. A broken comparator that always
@@ -164,7 +164,7 @@ describe("CrossLanguageTemporalParity", () => {
     const fx = findFixture("unambiguous-utc-noon");
     const realInstant = Temporal.Instant.from(fx.expectedUtc);
 
-    // Simulate a .NET engine resolving to a different epoch — one second later.
+    // Simulate a .NET engine resolving to a different epoch - one second later.
     // Temporal.Instant.add takes a Duration-like object.
     const divergedInstant = realInstant.add({ seconds: 1 });
 
@@ -172,15 +172,15 @@ describe("CrossLanguageTemporalParity", () => {
   });
 
   /**
-   * §1.20 anti-pattern test — deliberate-drift DD-T2: proves the DST
-   * resolution comparison is non-tautological. If `disambiguation:'compatible'`
-   * (TS) and `Resolvers.LenientResolver` (.NET) ever diverge on which side of
-   * a DST gap to pick, the fixture comparison catches it — this test verifies
-   * that catch IS possible.
+   * Anti-pattern test - deliberate-drift DD-T2: shows that the DST
+   * resolution comparison is not tautological. If `disambiguation:'compatible'`
+   * (TS) and `Resolvers.LenientResolver` (.NET) diverge on which side of
+   * a DST gap to pick, the fixture comparison catches it; this test verifies
+   * that the catch is possible.
    *
    * Uses the US spring-forward fixture (2026-03-08 02:30 America/New_York, a
    * skipped local time). The correct resolved UTC is 07:30Z (forward past the
-   * gap). Constructs a deliberately-wrong UTC (one hour earlier — the pre-gap
+   * gap). Constructs a deliberately-wrong UTC (one hour earlier - the pre-gap
    * instant) and asserts `compare` returns non-zero. A tautological comparator
    * that always returned 0 would fail here.
    */
@@ -189,19 +189,19 @@ describe("CrossLanguageTemporalParity", () => {
     const correctUtc = Temporal.Instant.from(fx.expectedUtc); // 2026-03-08T07:30:00Z
 
     // Simulate an engine that incorrectly picks the pre-gap instant (one hour
-    // earlier — the "behind the gap" interpretation):
+    // earlier - the "behind the gap" interpretation):
     const divergedPreGapUtc = correctUtc.subtract({ hours: 1 });
 
     expect(Temporal.Instant.compare(correctUtc, divergedPreGapUtc)).not.toBe(0);
   });
 
   /**
-   * §1.20 anti-pattern test — deliberate-drift DD-T3: proves the IANA alias
-   * canonicalization comparison is non-tautological. If the TS
+   * Anti-pattern test - deliberate-drift DD-T3: shows that the IANA alias
+   * canonicalization comparison is not tautological. If the TS
    * `Intl.DateTimeFormat.resolvedOptions().timeZone` + alias-override map and
-   * the .NET NodaTime `CanonicalIdMap` path ever diverge on producing a
-   * canonical IANA name, the parity assertion catches it — this test verifies
-   * that catch IS possible.
+   * the .NET NodaTime `CanonicalIdMap` path diverge on producing a
+   * canonical IANA name, the parity assertion catches it; this test verifies
+   * that the catch is possible.
    *
    * Uses the US/Pacific alias fixture, where the correct canonical output is
    * "America/Los_Angeles". Constructs a fake "diverged" un-canonicalized

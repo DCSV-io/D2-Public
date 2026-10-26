@@ -4,20 +4,22 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <RootNamespace>DcsvIo.D2.Messaging.RabbitMq</RootNamespace>
+    <!-- The nested generator shell is a separate netstandard2.0 csproj; never compile it in. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);error-codes-source-gen/**</DefaultItemExcludes>
 
     <!-- Emit codegen output (MessagingActivityTags.g.cs + DlqFailureCauses.g.cs)
-         to <project-dir>/Generated/. The directory is tracked in git so PR
-         reviewers see codegen diffs without a local build. -->
+         to <project-dir>/Generated/. Git tracks this directory, so pull
+         request reviewers see codegen diffs without a local build. -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
     <!--
-      The SourceGen pipeline feeds the in-memory compiler with the same content
-      that lands on disk under Generated/. Without this Remove, the SDK-default
-      <Compile Include="**/*.cs" /> glob picks up the on-disk copy and the build
-      fails with duplicate-definition errors (CS0101 / CS0111). See:
+      The SourceGen pipeline gives the in-memory compiler the same content that
+      it writes to disk under Generated/. Without this Remove, the SDK-default
+      <Compile Include="**/*.cs" /> glob also picks up the on-disk copy, and the
+      build fails with duplicate-definition errors (CS0101 / CS0111). See:
       https://learn.microsoft.com/dotnet/core/project-sdk/msbuild-props#compilergeneratedfilesoutputpath
     -->
     <Compile Remove="$(CompilerGeneratedFilesOutputPath)\**\*.cs" />
@@ -29,6 +31,7 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="NodaTime" />
     <PackageReference Include="RabbitMQ.Client" />
   </ItemGroup>
 
@@ -40,9 +43,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <!--
       context\abstractions provides MutableRequestContext, IRequestContext,
       PropagatedContext (record), PropagatedContextExtensions (projections),
-      PropagatedContextSerializer (codec) — every spec-driven primitive the
+      PropagatedContextSerializer (codec) - every spec-driven primitive the
       consumer-side scope registration + producer-side propagation header
-      need. The wire body itself carries no envelope; these are scoped
+      need. The wire body itself has no envelope; these are scoped
       per-message defaults.
     -->
     <ProjectReference Include="..\..\context\abstractions\DcsvIo.D2.Context.Abstractions.csproj" />
@@ -52,23 +55,23 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <ProjectReference Include="..\..\i18n\abstractions\DcsvIo.D2.I18n.Abstractions.csproj" />
     <ProjectReference Include="..\..\i18n\keys\DcsvIo.D2.I18n.Keys.csproj" />
     <!--
-      headers\amqp — codegen-emitted AMQP wire-protocol header constants
+      headers\amqp - codegen-emitted AMQP wire-protocol header constants
       (AmqpHeaders.MESSAGE_ID, .ENCRYPTION_KID, .TRACEPARENT, .PROPAGATED_CONTEXT, ...)
-      — a typo on a header name surfaces as a compile error rather than silently
+      - a typo on a header name surfaces as a compile error rather than silently
       routing to a wrong header.
     -->
     <ProjectReference Include="..\..\headers\amqp\DcsvIo.D2.Headers.Amqp.csproj" />
     <!--
-      OtelMessagingTags SourceGen — emits MessagingActivityTags.g.cs from
+      OtelMessagingTags SourceGen - emits MessagingActivityTags.g.cs from
       contracts/otel-messaging-tags/otel-messaging-tags.spec.json. Spec-drives
       the OTel sem-conv attribute names emitted on publisher + consumer spans
-      so the two sides STRUCTURALLY cannot drift from the standard.
+      so publisher and consumer spans STRUCTURALLY cannot drift from the standard.
     -->
     <ProjectReference Include="..\otel-messaging-tags-source-gen\DcsvIo.D2.OtelMessagingTags.SourceGen.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
     <!--
-      DlqFailureMetadata SourceGen — multi-target dispatch. The Causes-half
+      DlqFailureMetadata SourceGen - multi-target dispatch. The Causes-half
       emits into this csproj (DlqFailureCauses.g.cs) since DlqFailureHeaderBuilder
       lives here; the Fields-half emits into abstractions
       (DlqFailureMetadataFields.g.cs).
@@ -76,30 +79,54 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
     <ProjectReference Include="..\dlq-failure-metadata-source-gen\DcsvIo.D2.Messaging.DlqMetadata.SourceGen.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
+    <!--
+      The messaging error-code catalog's generator shell. It emits
+      MessagingErrorCodes + MessagingTransportFailures into this assembly, which is
+      the TargetAssemblyName its CatalogConfig gates on.
+    -->
+    <ProjectReference Include="error-codes-source-gen\DcsvIo.D2.Messaging.RabbitMq.ErrorCodes.SourceGen.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <!--
+      error-codes\category - the ErrorCategory enum that the emitted
+      MessagingTransportFailures set on each failure. Transitive through Result;
+      referenced directly because this assembly's own generated code uses it.
+    -->
+    <ProjectReference Include="..\..\error-codes\category\DcsvIo.D2.ErrorCodes.Category.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <AdditionalFiles Include="$(D2PublicContractsRoot)otel-messaging-tags\otel-messaging-tags.spec.json" />
     <AdditionalFiles Include="$(D2PublicContractsRoot)dlq-failure-metadata\dlq-failure-metadata.spec.json" />
+    <AdditionalFiles Include="$(D2PublicContractsRoot)messaging-error-codes\messaging-error-codes.spec.json" />
+    <!--
+      error-category.spec.json - the closed ErrorCategory wire set, so the
+      closed-set category check (D2MEC002) validates against the spec-derived
+      set rather than a hand-maintained subset. Absent or malformed degrades the
+      check to a no-op rather than a false positive.
+    -->
+    <AdditionalFiles Include="$(D2PublicContractsRoot)error-category\error-category.spec.json" />
+    <!--
+      en-US.json - the translation-key source of truth, so every userMessageKey
+      is cross-checked against a real key (D2ERC002). The engine reduces it to
+      its key set at the pipeline boundary, so a translation-value edit does not
+      re-run codegen.
+    -->
+    <AdditionalFiles Include="$(D2PublicContractsRoot)messages\en-US.json" />
   </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="DcsvIo.D2.Tests" />
-    <InternalsVisibleTo Include="DcsvIo.D2.Private.Packages.Tests" />
     <!--
-      The Edge test tree hosts the sealed-messaging headline integration proof, whose
-      fixture message types register their descriptors through the internal
-      MessageWireResolver.RegisterForTesting seam (the production registry carries only
-      real spec messages).
+      One assembly granted below hosts the sealed-messaging integration tests.
     -->
-    <InternalsVisibleTo Include="DcsvIo.D2.Private.Edge.Tests" />
   </ItemGroup>
 
   <!-- Publish metadata (per-package semver + NuGet identity). -->
   <PropertyGroup>
-    <Version>0.1.2</Version>
+    <Version>0.5.7</Version>
     <PackageId>DcsvIo.D2.Messaging.RabbitMq</PackageId>
-    <Description>Default RabbitMQ implementation of the D2 messaging abstractions — publishing, subscribing, encryption frames, and dead-letter handling.</Description>
+    <Description>Default RabbitMQ implementation of the D2 messaging abstractions - publishing, subscribing, encryption frames, and dead-letter handling.</Description>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

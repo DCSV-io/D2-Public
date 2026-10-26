@@ -1,0 +1,123 @@
+#nullable enable
+DcsvIo.D2.Outbox.AbandonedOutboxMessage
+DcsvIo.D2.Outbox.AbandonedOutboxMessage.AbandonedAt.get -> NodaTime.Instant
+DcsvIo.D2.Outbox.AbandonedOutboxMessage.AbandonedAt.init -> void
+DcsvIo.D2.Outbox.AbandonedOutboxMessage.AbandonedOutboxMessage() -> void
+DcsvIo.D2.Outbox.AbandonedOutboxMessage.Equals(DcsvIo.D2.Outbox.AbandonedOutboxMessage? other) -> bool
+DcsvIo.D2.Outbox.AbandonedOutboxMessage.LastFailureCode.get -> string!
+DcsvIo.D2.Outbox.AbandonedOutboxMessage.LastFailureCode.init -> void
+DcsvIo.D2.Outbox.IMessageOutbox<TDb>
+DcsvIo.D2.Outbox.IMessageOutbox<TDb>.StageAsync<TKind, TPayload>(TKind kind, DcsvIo.D2.Outbox.OutboxMessageId id, TPayload! payload, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result!>
+DcsvIo.D2.Outbox.IMessageOutbox<TDb>.StageAsync<TKind, TPayload>(TKind kind, TPayload! payload, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result!>
+DcsvIo.D2.Outbox.IOutboxDispatcher
+DcsvIo.D2.Outbox.IOutboxDispatcher.DispatchAsync(DcsvIo.D2.Outbox.OutboxMessage! message, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DcsvIo.D2.Result.D2Result!>
+DcsvIo.D2.Outbox.IOutboxDispatcher.Kind.get -> string!
+DcsvIo.D2.Outbox.IOutboxDispatcherBinding<TDb>
+DcsvIo.D2.Outbox.IOutboxDispatcherBinding<TDb>.Dispatcher.get -> DcsvIo.D2.Outbox.IOutboxDispatcher!
+DcsvIo.D2.Outbox.OutboxMessage
+DcsvIo.D2.Outbox.OutboxMessage.Attempts.get -> int
+DcsvIo.D2.Outbox.OutboxMessage.Attempts.init -> void
+DcsvIo.D2.Outbox.OutboxMessage.Id.get -> DcsvIo.D2.Outbox.OutboxMessageId
+DcsvIo.D2.Outbox.OutboxMessage.Id.init -> void
+DcsvIo.D2.Outbox.OutboxMessage.Kind.get -> string!
+DcsvIo.D2.Outbox.OutboxMessage.Kind.init -> void
+DcsvIo.D2.Outbox.OutboxMessage.OutboxMessage() -> void
+DcsvIo.D2.Outbox.OutboxMessage.OutboxMessage(DcsvIo.D2.Outbox.OutboxMessage! original) -> void
+DcsvIo.D2.Outbox.OutboxMessage.Payload.get -> string!
+DcsvIo.D2.Outbox.OutboxMessage.Payload.init -> void
+DcsvIo.D2.Outbox.OutboxMessage.StagedAt.get -> NodaTime.Instant
+DcsvIo.D2.Outbox.OutboxMessage.StagedAt.init -> void
+DcsvIo.D2.Outbox.OutboxMessageId
+DcsvIo.D2.Outbox.OutboxMessageId.Deconstruct(out System.Guid Value) -> void
+DcsvIo.D2.Outbox.OutboxMessageId.Equals(DcsvIo.D2.Outbox.OutboxMessageId other) -> bool
+DcsvIo.D2.Outbox.OutboxMessageId.OutboxMessageId() -> void
+DcsvIo.D2.Outbox.OutboxMessageId.OutboxMessageId(System.Guid Value) -> void
+DcsvIo.D2.Outbox.OutboxMessageId.Value.get -> System.Guid
+DcsvIo.D2.Outbox.OutboxMessageId.Value.init -> void
+DcsvIo.D2.Outbox.OutboxMessageStatus
+DcsvIo.D2.Outbox.OutboxMessageStatus.Abandoned = 2 -> DcsvIo.D2.Outbox.OutboxMessageStatus
+DcsvIo.D2.Outbox.OutboxMessageStatus.Published = 1 -> DcsvIo.D2.Outbox.OutboxMessageStatus
+DcsvIo.D2.Outbox.OutboxMessageStatus.Staged = 0 -> DcsvIo.D2.Outbox.OutboxMessageStatus
+DcsvIo.D2.Outbox.OutboxOptions
+DcsvIo.D2.Outbox.OutboxOptions.AbandonedRetention.get -> System.TimeSpan
+DcsvIo.D2.Outbox.OutboxOptions.AbandonedRetention.set -> void
+DcsvIo.D2.Outbox.OutboxOptions.BatchSize.get -> int
+DcsvIo.D2.Outbox.OutboxOptions.BatchSize.set -> void
+DcsvIo.D2.Outbox.OutboxOptions.OutboxOptions() -> void
+DcsvIo.D2.Outbox.OutboxOptions.PublishedRetention.get -> System.TimeSpan
+DcsvIo.D2.Outbox.OutboxOptions.PublishedRetention.set -> void
+DcsvIo.D2.Outbox.OutboxOptions.RelayAdvisoryLockKey.get -> long
+DcsvIo.D2.Outbox.OutboxOptions.RelayAdvisoryLockKey.set -> void
+DcsvIo.D2.Outbox.OutboxOptions.RelayConnectionString.get -> string!
+DcsvIo.D2.Outbox.OutboxOptions.RelayConnectionString.set -> void
+DcsvIo.D2.Outbox.OutboxOptions.RelayTick.get -> System.TimeSpan
+DcsvIo.D2.Outbox.OutboxOptions.RelayTick.set -> void
+DcsvIo.D2.Outbox.OutboxOptions.RetryBackoffBase.get -> System.TimeSpan
+DcsvIo.D2.Outbox.OutboxOptions.RetryBackoffBase.set -> void
+DcsvIo.D2.Outbox.OutboxOptions.RetryBackoffCeiling.get -> System.TimeSpan
+DcsvIo.D2.Outbox.OutboxOptions.RetryBackoffCeiling.set -> void
+DcsvIo.D2.Outbox.OutboxOptions.RetryLimit.get -> int
+DcsvIo.D2.Outbox.OutboxOptions.RetryLimit.set -> void
+DcsvIo.D2.Outbox.OutboxOptionsFor<TDb>
+DcsvIo.D2.Outbox.OutboxOptionsFor<TDb>.OutboxOptionsFor() -> void
+DcsvIo.D2.Outbox.OutboxServiceCollectionExtensions
+DcsvIo.D2.Outbox.OutboxServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+DcsvIo.D2.Outbox.OutboxServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddD2Outbox<TDb>(System.Action<DcsvIo.D2.Outbox.OutboxOptions!>! configure) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+DcsvIo.D2.Outbox.OutboxServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddD2OutboxDispatcher<TDb, TDispatcher>() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+DcsvIo.D2.Outbox.PublishedOutboxMessage
+DcsvIo.D2.Outbox.PublishedOutboxMessage.Equals(DcsvIo.D2.Outbox.PublishedOutboxMessage? other) -> bool
+DcsvIo.D2.Outbox.PublishedOutboxMessage.PublishedAt.get -> NodaTime.Instant
+DcsvIo.D2.Outbox.PublishedOutboxMessage.PublishedAt.init -> void
+DcsvIo.D2.Outbox.PublishedOutboxMessage.PublishedOutboxMessage() -> void
+DcsvIo.D2.Outbox.StagedOutboxMessage
+DcsvIo.D2.Outbox.StagedOutboxMessage.Equals(DcsvIo.D2.Outbox.StagedOutboxMessage? other) -> bool
+DcsvIo.D2.Outbox.StagedOutboxMessage.Fail(NodaTime.Instant at, string! failureCode, int limit, NodaTime.Duration backoff) -> DcsvIo.D2.Outbox.OutboxMessage!
+DcsvIo.D2.Outbox.StagedOutboxMessage.LastFailureCode.get -> string?
+DcsvIo.D2.Outbox.StagedOutboxMessage.LastFailureCode.init -> void
+DcsvIo.D2.Outbox.StagedOutboxMessage.NextAttemptAt.get -> NodaTime.Instant?
+DcsvIo.D2.Outbox.StagedOutboxMessage.NextAttemptAt.init -> void
+DcsvIo.D2.Outbox.StagedOutboxMessage.Publish(NodaTime.Instant at) -> DcsvIo.D2.Outbox.PublishedOutboxMessage!
+DcsvIo.D2.Outbox.StagedOutboxMessage.StagedOutboxMessage() -> void
+abstract DcsvIo.D2.Outbox.OutboxMessage.<Clone>$() -> DcsvIo.D2.Outbox.OutboxMessage!
+abstract DcsvIo.D2.Outbox.OutboxMessage.Status.get -> DcsvIo.D2.Outbox.OutboxMessageStatus
+const DcsvIo.D2.Outbox.OutboxOptions.SECTION = "LIB_OUTBOX" -> string!
+override DcsvIo.D2.Outbox.AbandonedOutboxMessage.<Clone>$() -> DcsvIo.D2.Outbox.AbandonedOutboxMessage!
+override DcsvIo.D2.Outbox.AbandonedOutboxMessage.Equals(object? obj) -> bool
+override DcsvIo.D2.Outbox.AbandonedOutboxMessage.GetHashCode() -> int
+override DcsvIo.D2.Outbox.AbandonedOutboxMessage.Status.get -> DcsvIo.D2.Outbox.OutboxMessageStatus
+override DcsvIo.D2.Outbox.AbandonedOutboxMessage.ToString() -> string!
+override DcsvIo.D2.Outbox.OutboxMessage.Equals(object? obj) -> bool
+override DcsvIo.D2.Outbox.OutboxMessage.GetHashCode() -> int
+override DcsvIo.D2.Outbox.OutboxMessage.ToString() -> string!
+override DcsvIo.D2.Outbox.OutboxMessageId.GetHashCode() -> int
+override DcsvIo.D2.Outbox.OutboxMessageId.ToString() -> string!
+override DcsvIo.D2.Outbox.PublishedOutboxMessage.<Clone>$() -> DcsvIo.D2.Outbox.PublishedOutboxMessage!
+override DcsvIo.D2.Outbox.PublishedOutboxMessage.Equals(object? obj) -> bool
+override DcsvIo.D2.Outbox.PublishedOutboxMessage.GetHashCode() -> int
+override DcsvIo.D2.Outbox.PublishedOutboxMessage.Status.get -> DcsvIo.D2.Outbox.OutboxMessageStatus
+override DcsvIo.D2.Outbox.PublishedOutboxMessage.ToString() -> string!
+override DcsvIo.D2.Outbox.StagedOutboxMessage.<Clone>$() -> DcsvIo.D2.Outbox.StagedOutboxMessage!
+override DcsvIo.D2.Outbox.StagedOutboxMessage.Equals(object? obj) -> bool
+override DcsvIo.D2.Outbox.StagedOutboxMessage.GetHashCode() -> int
+override DcsvIo.D2.Outbox.StagedOutboxMessage.Status.get -> DcsvIo.D2.Outbox.OutboxMessageStatus
+override DcsvIo.D2.Outbox.StagedOutboxMessage.ToString() -> string!
+override sealed DcsvIo.D2.Outbox.AbandonedOutboxMessage.Equals(DcsvIo.D2.Outbox.OutboxMessage? other) -> bool
+override sealed DcsvIo.D2.Outbox.PublishedOutboxMessage.Equals(DcsvIo.D2.Outbox.OutboxMessage? other) -> bool
+override sealed DcsvIo.D2.Outbox.StagedOutboxMessage.Equals(DcsvIo.D2.Outbox.OutboxMessage? other) -> bool
+static DcsvIo.D2.Outbox.AbandonedOutboxMessage.operator !=(DcsvIo.D2.Outbox.AbandonedOutboxMessage? left, DcsvIo.D2.Outbox.AbandonedOutboxMessage? right) -> bool
+static DcsvIo.D2.Outbox.AbandonedOutboxMessage.operator ==(DcsvIo.D2.Outbox.AbandonedOutboxMessage? left, DcsvIo.D2.Outbox.AbandonedOutboxMessage? right) -> bool
+static DcsvIo.D2.Outbox.OutboxMessage.operator !=(DcsvIo.D2.Outbox.OutboxMessage? left, DcsvIo.D2.Outbox.OutboxMessage? right) -> bool
+static DcsvIo.D2.Outbox.OutboxMessage.operator ==(DcsvIo.D2.Outbox.OutboxMessage? left, DcsvIo.D2.Outbox.OutboxMessage? right) -> bool
+static DcsvIo.D2.Outbox.OutboxMessageId.New() -> DcsvIo.D2.Outbox.OutboxMessageId
+static DcsvIo.D2.Outbox.OutboxMessageId.operator !=(DcsvIo.D2.Outbox.OutboxMessageId left, DcsvIo.D2.Outbox.OutboxMessageId right) -> bool
+static DcsvIo.D2.Outbox.OutboxMessageId.operator ==(DcsvIo.D2.Outbox.OutboxMessageId left, DcsvIo.D2.Outbox.OutboxMessageId right) -> bool
+static DcsvIo.D2.Outbox.OutboxServiceCollectionExtensions.AddD2Outbox<TDb>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<DcsvIo.D2.Outbox.OutboxOptions!>! configure) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static DcsvIo.D2.Outbox.OutboxServiceCollectionExtensions.AddD2OutboxDispatcher<TDb, TDispatcher>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static DcsvIo.D2.Outbox.PublishedOutboxMessage.operator !=(DcsvIo.D2.Outbox.PublishedOutboxMessage? left, DcsvIo.D2.Outbox.PublishedOutboxMessage? right) -> bool
+static DcsvIo.D2.Outbox.PublishedOutboxMessage.operator ==(DcsvIo.D2.Outbox.PublishedOutboxMessage? left, DcsvIo.D2.Outbox.PublishedOutboxMessage? right) -> bool
+static DcsvIo.D2.Outbox.StagedOutboxMessage.operator !=(DcsvIo.D2.Outbox.StagedOutboxMessage? left, DcsvIo.D2.Outbox.StagedOutboxMessage? right) -> bool
+static DcsvIo.D2.Outbox.StagedOutboxMessage.operator ==(DcsvIo.D2.Outbox.StagedOutboxMessage? left, DcsvIo.D2.Outbox.StagedOutboxMessage? right) -> bool
+virtual DcsvIo.D2.Outbox.OutboxMessage.EqualityContract.get -> System.Type!
+virtual DcsvIo.D2.Outbox.OutboxMessage.Equals(DcsvIo.D2.Outbox.OutboxMessage? other) -> bool
+virtual DcsvIo.D2.Outbox.OutboxMessage.PrintMembers(System.Text.StringBuilder! builder) -> bool
+~override DcsvIo.D2.Outbox.OutboxMessageId.Equals(object obj) -> bool

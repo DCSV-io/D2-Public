@@ -10,7 +10,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
-/// Default <see cref="ISystemWorkScope"/> — thin wrapper over
+/// Default <see cref="ISystemWorkScope"/> - thin wrapper over
 /// <see cref="AsyncServiceScope"/> so System workers dispose the same way as
 /// any other async DI scope.
 /// </summary>

@@ -7,7 +7,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Connection
     {
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.Int32, global::System.Int32, global::System.Exception?> __ConnectionOpenedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.Int32, global::System.Int32>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(1, nameof(ConnectionOpened)), "RabbitMQ connection opened to {Host}:{Port} (attempt {Attempt}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.Int32, global::System.Int32>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(1, nameof(ConnectionOpened)), "RabbitMQ connection opened to {Host}:{Port} (attempt {Attempt}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void ConnectionOpened(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String host, global::System.Int32 port, global::System.Int32 attempt)
@@ -86,7 +86,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Connection
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.Exception?> __ConnectionCloseFailedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(3, nameof(ConnectionCloseFailed)), "RabbitMQ connection close raised an error (exType={ExType}); ignoring on shutdown.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(3, nameof(ConnectionCloseFailed)), "RabbitMQ connection close raised an error (exType={ExType}); ignoring on shutdown.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void ConnectionCloseFailed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String exType)
@@ -98,7 +98,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Connection
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Exception?> __StartupOpeningCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(4, nameof(StartupOpening)), "RabbitMQ ConnectionStartupHostedService starting background reconnect loop (host stays up while connection establishes).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(4, nameof(StartupOpening)), "RabbitMQ ConnectionStartupHostedService starting background reconnect loop (host stays up while connection establishes).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void StartupOpening(global::Microsoft.Extensions.Logging.ILogger logger)
@@ -110,7 +110,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Connection
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.TimeSpan, global::System.Exception?> __ConnectionDegradedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.TimeSpan>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(5, nameof(ConnectionDegraded)), "RabbitMQ connection has been degraded for {Down}. RabbitMQ.Client automatic recovery should restore it; if it stays down, restart this replica to force reconnection. Publishers return ServiceUnavailable; consumers idle.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.TimeSpan>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(5, nameof(ConnectionDegraded)), "RabbitMQ connection has been degraded for {Down}. RabbitMQ.Client automatic recovery should restore it; if it stays down, restart this replica to force reconnection. Publishers return ServiceUnavailable; consumers idle.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void ConnectionDegraded(global::Microsoft.Extensions.Logging.ILogger logger, global::System.TimeSpan down)
@@ -122,7 +122,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Connection
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.TimeSpan, global::System.Exception?> __ConnectionRecoveredCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.TimeSpan>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(6, nameof(ConnectionRecovered)), "RabbitMQ connection recovered after {Down} of degradation.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.TimeSpan>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(6, nameof(ConnectionRecovered)), "RabbitMQ connection recovered after {Down} of degradation.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void ConnectionRecovered(global::Microsoft.Extensions.Logging.ILogger logger, global::System.TimeSpan down)
@@ -130,6 +130,102 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Connection
             if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
             {
                 __ConnectionRecoveredCallback(logger, down, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.UInt16, global::System.String, global::System.Exception?> __ConnectionShutdownCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.UInt16, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(7, nameof(ConnectionShutdown)), "RabbitMQ connection shut down (initiator={Initiator}, replyCode={ReplyCode}, replyText={ReplyText}). Automatic recovery will re-open the connection and re-declare topology; publishes issued before the queue bindings are back can reach no queue.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void ConnectionShutdown(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String initiator, global::System.UInt16 replyCode, global::System.String replyText)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
+            {
+                __ConnectionShutdownCallback(logger, initiator, replyCode, replyText, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Exception?> __RecoverySucceededCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(8, nameof(RecoverySucceeded)), "RabbitMQ automatic recovery succeeded; the client re-opened the connection and re-declared the topology it owns.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void RecoverySucceeded(global::Microsoft.Extensions.Logging.ILogger logger)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
+            {
+                __RecoverySucceededCallback(logger, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.Exception?> __RecoveryFailedCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(9, nameof(RecoveryFailed)), "RabbitMQ automatic recovery failed (exType={ExType}); the client will retry. Consumers stay detached until it succeeds.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void RecoveryFailed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String exType)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Error))
+            {
+                __RecoveryFailedCallback(logger, exType, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String, global::System.Exception?> __ConnectionCallbackFailedCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(10, nameof(ConnectionCallbackFailed)), "RabbitMQ connection callback raised (exType={ExType}, context={Context}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void ConnectionCallbackFailed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String exType, global::System.String context)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Error))
+            {
+                __ConnectionCallbackFailedCallback(logger, exType, context, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.Exception?> __RecoveringConsumerCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(11, nameof(RecoveringConsumer)), "RabbitMQ is re-attaching consumer {ConsumerTag} after recovery.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void RecoveringConsumer(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String consumerTag)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
+            {
+                __RecoveringConsumerCallback(logger, consumerTag, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String, global::System.Exception?> __QueueNameChangedAfterRecoveryCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(12, nameof(QueueNameChangedAfterRecovery)), "RabbitMQ renamed queue {OldName} to {NewName} during recovery.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void QueueNameChangedAfterRecovery(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String oldName, global::System.String newName)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
+            {
+                __QueueNameChangedAfterRecoveryCallback(logger, oldName, newName, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.Exception?> __ConnectionBlockedCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Warning, new global::Microsoft.Extensions.Logging.EventId(13, nameof(ConnectionBlocked)), "RabbitMQ blocked the connection (reason={Reason}); publishes stall until the broker unblocks it.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void ConnectionBlocked(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String reason)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Warning))
+            {
+                __ConnectionBlockedCallback(logger, reason, null);
+            }
+        }
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Exception?> __ConnectionUnblockedCallback =
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(14, nameof(ConnectionUnblocked)), "RabbitMQ unblocked the connection.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
+
+        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
+        public static partial void ConnectionUnblocked(global::Microsoft.Extensions.Logging.ILogger logger)
+        {
+            if (logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Information))
+            {
+                __ConnectionUnblockedCallback(logger, null);
             }
         }
     }

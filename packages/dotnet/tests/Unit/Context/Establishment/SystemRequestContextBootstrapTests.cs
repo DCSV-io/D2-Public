@@ -18,7 +18,7 @@ using Xunit;
 /// <summary>
 /// Unit matrix for the System worker establishment bootstrap: it establishes
 /// <see cref="RequestOrigin.System"/> + the host identity + a single System call-path
-/// entry on the scope's <see cref="MutableRequestContext"/>, fails loudly when the scope
+/// entry on the scope's <see cref="MutableRequestContext"/>, throws when the scope
 /// has not registered one, and guards its required args.
 /// </summary>
 [Trait("Category", "Unit")]
@@ -32,13 +32,13 @@ public sealed class SystemRequestContextBootstrapTests
         using var provider = BuildScope();
         var clock = new TestClock(sr_now);
 
-        provider.EstablishSystemContext("key-custodian", clock);
+        provider.EstablishSystemContext("inventory", clock);
 
         var ctx = provider.GetRequiredService<MutableRequestContext>();
         ctx.Origin.Should().Be(RequestOrigin.System);
-        ctx.ImmediateCaller.Should().Be("key-custodian");
+        ctx.ImmediateCaller.Should().Be("inventory");
         ctx.CallPath.Should().ContainSingle();
-        ctx.CallPath[0].Id.Should().Be("key-custodian");
+        ctx.CallPath[0].Id.Should().Be("inventory");
         ctx.CallPath[0].Kind.Should().Be(CallPathKind.System);
         ctx.CallPath[0].Timestamp.Should().Be(sr_now.ToDateTimeOffset());
     }
@@ -50,7 +50,7 @@ public sealed class SystemRequestContextBootstrapTests
         // plane the signing authority would grant against (CrossProcessHop / InProcessModule).
         using var provider = BuildScope();
 
-        provider.EstablishSystemContext("key-custodian", new TestClock(sr_now));
+        provider.EstablishSystemContext("inventory", new TestClock(sr_now));
 
         var ctx = provider.GetRequiredService<MutableRequestContext>();
         ctx.Origin.Should().NotBe(RequestOrigin.CrossProcessHop);
@@ -63,7 +63,7 @@ public sealed class SystemRequestContextBootstrapTests
         var act = () =>
         {
             using var provider = new ServiceCollection().BuildServiceProvider();
-            provider.EstablishSystemContext("key-custodian", new TestClock(sr_now));
+            provider.EstablishSystemContext("inventory", new TestClock(sr_now));
         };
 
         act.Should().Throw<InvalidOperationException>(
@@ -76,7 +76,7 @@ public sealed class SystemRequestContextBootstrapTests
         var act = () =>
         {
             using var provider = BuildScope();
-            provider.EstablishSystemContext("key-custodian", null!);
+            provider.EstablishSystemContext("inventory", null!);
         };
 
         act.Should().Throw<ArgumentNullException>();

@@ -16,7 +16,7 @@ using Xunit;
 /// <summary>
 /// Pins every <see cref="DiagnosticIds"/> constant in the ProblemDetails
 /// SrcGen to its documented identifier shape and confirms there are no
-/// duplicates. Diagnostic IDs ship as part of the lib's contract.
+/// duplicates. Diagnostic IDs ship as part of the library's contract.
 /// </summary>
 public sealed class ProblemDetailsDiagnosticIdsTests
 {

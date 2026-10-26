@@ -1,20 +1,110 @@
-# Changelog — @dcsv-io/d2-auth-abstractions
+<!--
+Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
+-->
+
+# Changelog - @dcsv-io/d2-auth-abstractions
 
 All notable changes to this package are documented here. The format follows
 Keep a Changelog, and this package adheres to Semantic Versioning.
 
-## [Unreleased]
+## 0.4.1 - 2026-10-25
+### Changed
 
-### Wire-breaking
-
+- `package.json` has a `repository` field with the URL https://github.com/DCSV-io/D2-Public and this package's folder in it.
+- Dependency update: `@dcsv-io/d2-error-category` bumped to 0.1.11. This package's own surface is unchanged.
+- Dependency update: `@dcsv-io/d2-i18n-abstractions` bumped to 0.1.9. This package's own surface is unchanged.
+- Dependency update: `@dcsv-io/d2-i18n-keys` bumped to 0.3.5. This package's own surface is unchanged.
+- Dependency update: `@dcsv-io/d2-result` bumped to 0.5.8. This package's own surface is unchanged.
+## 0.4.0 - 2026-10-21
 ### API-breaking
+
+- The type of the generated `JwtPayload.amr` property changed from `string` to `readonly string[]`, because the `amr`
+  claim is a JSON array of strings (RFC 8176). Code that reads `amr` as a string no longer compiles.
+## 0.3.8 - 2026-10-20
+### Changed
+
+- The TSDoc comment on the self-audience constant in `ProtocolAudiences` no longer names a specific host service. No
+  value or type changed.
+## 0.3.7 - 2026-10-19
+### Changed
+
+- Code comments rewritten to the repository writing standard; no code, message or public API changed.
+- Dependency update: `@dcsv-io/d2-error-category` bumped to 0.1.10. This package's own surface is unchanged.
+- Dependency update: `@dcsv-io/d2-i18n-abstractions` bumped to 0.1.8. This package's own surface is unchanged.
+- Dependency update: `@dcsv-io/d2-i18n-keys` bumped to 0.3.4. This package's own surface is unchanged.
+- Dependency update: `@dcsv-io/d2-result` bumped to 0.5.6. This package's own surface is unchanged.
+## 0.3.6 - 2026-10-18
+### Changed
+
+- README prose rewritten to the repository writing standard; no code, message or public API changed.
+- Dependency update: `@dcsv-io/d2-error-category` bumped to 0.1.9. This package's own surface is unchanged.
+- Dependency update: `@dcsv-io/d2-i18n-abstractions` bumped to 0.1.7. This package's own surface is unchanged.
+- Dependency update: `@dcsv-io/d2-i18n-keys` bumped to 0.3.3. This package's own surface is unchanged.
+- Dependency update: `@dcsv-io/d2-result` bumped to 0.5.5. This package's own surface is unchanged.
+## 0.3.5 - 2026-10-17
+### Changed
+
+- Punctuation in comments and documentation only.
+- Dependency update: `@dcsv-io/d2-error-category` bumped to 0.1.8. This package's own surface is unchanged.
+- Dependency update: `@dcsv-io/d2-i18n-abstractions` bumped to 0.1.6. This package's own surface is unchanged.
+- Dependency update: `@dcsv-io/d2-i18n-keys` bumped to 0.3.2. This package's own surface is unchanged.
+- Dependency update: `@dcsv-io/d2-result` bumped to 0.5.4. This package's own surface is unchanged.
+## 0.3.4 - 2026-09-11
+### Changed
+
+- Dependency update: `@dcsv-io/d2-error-category` bumped to 0.1.7. This package's own surface is unchanged.
+- Dependency update: `@dcsv-io/d2-result` bumped to 0.5.3. This package's own surface is unchanged.
+## 0.3.3 - 2026-09-10
+### Changed
+
+- Keyboard-ASCII punctuation normalization in README prose and test names (em dash and arrow glyphs replaced by `-` and `->`). No exported symbol, value or wire format changed.
+- Dependency update: `@dcsv-io/d2-error-category` bumped to 0.1.6. This package's own surface is unchanged.
+- Dependency update: `@dcsv-io/d2-i18n-abstractions` bumped to 0.1.5. This package's own surface is unchanged.
+- Dependency update: `@dcsv-io/d2-i18n-keys` bumped to 0.3.1. This package's own surface is unchanged.
+- Dependency update: `@dcsv-io/d2-result` bumped to 0.5.2. This package's own surface is unchanged.
+## 0.3.2 - 2026-09-09
+### Changed
+
+- Dependency update: `@dcsv-io/d2-i18n-keys` bumped to 0.3.0. This package's own surface is unchanged.
+- Dependency update: `@dcsv-io/d2-result` bumped to 0.5.1. This package's own surface is unchanged.
+## 0.3.1 - 2026-09-06
+### Changed
+
+- Dependency update: `@dcsv-io/d2-result` bumped to 0.5.0. This package's own surface is unchanged.
+## 0.3.0 - 2026-08-05
 
 ### Added
 
+- `JwtClaimTypes.ROOT_ORG_ID` (`d2_root_org_id`) and `JwtClaimTypes.ACCESSIBLE_ORG_IDS`
+  (`d2_accessible_org_ids`), plus the matching `JwtPayload` fields.
+  `d2_accessible_org_ids` is typed `readonly string[]` rather than the string default
+  every other `d2-*` claim takes, because its wire shape is a JSON array.
+
+## 0.2.3 - 2026-08-04
 ### Changed
 
+- Dependency update: @dcsv-io/d2-i18n-keys bumped.
+- Dependency update: @dcsv-io/d2-result bumped.
+## 0.2.2 - 2026-08-03
+### Changed
+
+- Dependency update: @dcsv-io/d2-error-category bumped.
+- Dependency update: @dcsv-io/d2-i18n-abstractions bumped.
+- Dependency update: @dcsv-io/d2-i18n-keys bumped.
+- Dependency update: @dcsv-io/d2-result bumped.
 ### Fixed
 
+- Release fingerprint recomputed: `vitest.config.ts` is no longer hashed as shipped package content. It is test-runner configuration and is not published, so a coverage-threshold change was bumping this package's version and every package depending on it. No shipped file changed.
+## 0.2.1 - 2026-07-26
+### Changed
+
+- Keyboard-ASCII punctuation normalization in generated JSDoc comments (em dash, section sign and arrow glyphs replaced by `-`, `section` and `->`). Comment text only: no exported symbol, value or wire format changed.
+- Dependency update: @dcsv-io/d2-error-category bumped.
+- Dependency update: @dcsv-io/d2-result bumped.
+## 0.2.0 - 2026-07-22
+### Changed
+
+- Dependency update: @dcsv-io/d2-result bumped.
 ## 0.1.2 - 2026-07-17
 ### Changed
 

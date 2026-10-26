@@ -14,42 +14,41 @@ using DcsvIo.D2.SourceGen;
 /// <summary>
 /// Emits a single denormalized record per geo catalog: Country,
 /// Subdivision, Currency, Language, Locale, Timezone, GeopoliticalEntity.
-/// Identifier types carry the <c>*Code</c> suffix (CountryCode,
-/// SubdivisionCode, …); the bare singular name is the record. Nav
-/// properties reference the same single record type recursively — the
-/// natural shape for SSR + BFF one-level navigation. Universal dual
-/// representation: every relationship carries BOTH a typed code field
-/// (O(1) <c>Contains</c> via <c>FrozenSet</c> / <c>ReadonlySet</c>) AND
-/// a nav-record field (ordered iteration). PK field names describe what
-/// the value IS (<c>Iso31661Alpha2Code</c>, <c>IetfBcp47Tag</c>,
-/// <c>IanaName</c>); FK fields prefix with the relationship semantics
+/// Identifier types have the <c>*Code</c> suffix (CountryCode,
+/// SubdivisionCode, ...), and the bare singular name is the record. Nav
+/// properties reference the same record type recursively, which suits
+/// one-level navigation in server-side rendering and backend-for-frontend
+/// code. Every relationship has both a typed code field (O(1)
+/// <c>Contains</c> through <c>FrozenSet</c> / <c>ReadonlySet</c>) and a
+/// nav-record field (ordered iteration). Primary-key field names state what the value is
+/// (<c>Iso31661Alpha2Code</c>, <c>IetfBcp47Tag</c>, <c>IanaName</c>), and
+/// foreign-key fields start with the relationship
 /// (<c>Primary</c>, <c>Sovereign</c>, <c>Territory</c>, <c>Member</c>,
 /// <c>SpokenIn</c>, <c>AcceptedIn</c>, <c>CoApplicable</c>).
 /// </summary>
 /// <remarks>
 /// Nav properties on every record use <c>get; internal set;</c> with
-/// sensible defaults (<c>null</c> for nullable single primaries; empty
-/// frozen sets / empty arrays for collections) — the friend assembly
-/// <c>DcsvIo.D2.Geo.Default</c> mutates them in the wire-nav step of the
+/// defaults (<c>null</c> for nullable single primaries; empty frozen sets or
+/// empty arrays for collections). The friend assembly
+/// <c>DcsvIo.D2.Geo.Default</c> sets them in the wire-nav step of the
 /// two-pass populate pattern. Scalar required fields stay
-/// <c>required init</c>. From any assembly other than
-/// <c>DcsvIo.D2.Geo.Default</c>, nav properties are compile-time
-/// unwritable so record immutability holds.
+/// <c>required init</c>. Any assembly other than
+/// <c>DcsvIo.D2.Geo.Default</c> cannot compile a write to a nav property, so
+/// the records stay immutable to it.
 /// </remarks>
 internal static class RecordShapeEmitter
 {
     private const string _NAMESPACE = EmitterHelpers.AbstractionsNamespace;
 
     /// <summary>
-    /// Emits the eight record-shape files (one per catalog plus the
-    /// supporting <c>CountryCurrencyAcceptance</c> record) plus the two
-    /// catalog-shared fixed enums (<c>GeoDayOfWeek</c>,
-    /// <c>MeasurementSystem</c>).
+    /// Emits the record-shape files (one per catalog, plus the supporting
+    /// <c>CountryCurrencyAcceptance</c> record) and the catalog-shared fixed
+    /// enums <c>GeoDayOfWeek</c> and <c>MeasurementSystem</c>.
     /// </summary>
-    /// <param name="context">The aggregate spec context (unused — the
-    /// record SHAPES are spec-shape-only, independent of per-entry data;
-    /// the per-instance data emission lives in the data emitters under
-    /// <c>DcsvIo.D2.Geo.Default</c>).</param>
+    /// <param name="context">The aggregate spec context (unused: the record
+    /// shapes depend only on the spec shape and not on per-entry data. The
+    /// data emitters under <c>DcsvIo.D2.Geo.Default</c> emit the per-instance
+    /// data).</param>
     /// <returns>The per-record emit results.</returns>
     public static ImmutableArray<EmitResult> EmitAll(GeoSpecContext context)
     {
@@ -80,7 +79,7 @@ internal static class RecordShapeEmitter
         sb.AppendLine();
         sb.AppendLine("/// <summary>");
         sb.AppendLine(
-            "/// Per-country currency acceptance binding — pairs a typed");
+            "/// Per-country currency acceptance binding - pairs a typed");
         sb.AppendLine(
             "/// <see cref=\"CurrencyCode\"/> identifier with the acceptance");
         sb.AppendLine(
@@ -96,7 +95,7 @@ internal static class RecordShapeEmitter
         sb.AppendLine("    public required CurrencyCode Iso4217AlphaCode { get; init; }");
         sb.AppendLine();
         sb.AppendLine(
-            "    /// <summary>Acceptance classification — legal tender / widely / "
+            "    /// <summary>Acceptance classification - legal tender / widely / "
             + "tourist.</summary>");
         sb.AppendLine("    public required CurrencyAcceptanceLevel Level { get; init; }");
         sb.AppendLine();
@@ -205,7 +204,7 @@ internal static class RecordShapeEmitter
         sb.AppendLine();
         sb.AppendLine("/// <summary>");
         sb.AppendLine(
-            "/// Country record — single shape per entity. Universal dual-rep");
+            "/// Country record - single shape per entity. Universal dual-rep");
         sb.AppendLine(
             "/// for every relationship: typed code field (<c>FrozenSet</c>-backed");
         sb.AppendLine(
@@ -320,7 +319,7 @@ internal static class RecordShapeEmitter
 
         // ---- Set FK code reps (FrozenSet<TCode>) + nav reps (IReadOnlyList<TRecord>) ----
         sb.AppendLine(
-            "    /// <summary>Owned dependent-territory country codes — O(1) "
+            "    /// <summary>Owned dependent-territory country codes - O(1) "
             + "<c>Contains</c> over the set. Code rep paired with "
             + "<see cref=\"Territories\"/>.</summary>");
         sb.AppendLine(
@@ -405,9 +404,9 @@ internal static class RecordShapeEmitter
         sb.AppendLine();
         sb.AppendLine("/// <summary>");
         sb.AppendLine(
-            "/// Subdivision record — ISO 3166-2 administrative subdivision. The");
+            "/// Subdivision record - ISO 3166-2 administrative subdivision. The");
         sb.AppendLine(
-            "/// vocabulary discipline is enforced — every field name says");
+            "/// vocabulary discipline is enforced - every field name says");
         sb.AppendLine(
             "/// <c>subdivision</c> (never <c>region</c> / <c>state</c> /");
         sb.AppendLine(
@@ -465,7 +464,7 @@ internal static class RecordShapeEmitter
         sb.AppendLine();
         sb.AppendLine(
             "    /// <summary>Display label (\"State\", \"Province\", \"Parish\", "
-            + "...) — display data only.</summary>");
+            + "...) - display data only.</summary>");
         sb.AppendLine("    public required string Type { get; init; }");
         sb.AppendLine();
         sb.AppendLine("    /// <summary>Append-only deprecation marker.</summary>");
@@ -486,7 +485,7 @@ internal static class RecordShapeEmitter
         sb.AppendLine($"namespace {_NAMESPACE};");
         sb.AppendLine();
         sb.AppendLine(
-            "/// <summary>Currency record — formatting metadata + supported flag + "
+            "/// <summary>Currency record - formatting metadata + supported flag + "
             + "reverse-nav to accepting countries.</summary>");
         sb.AppendLine("public sealed record Currency");
         sb.AppendLine("{");
@@ -519,7 +518,7 @@ internal static class RecordShapeEmitter
         sb.AppendLine();
         sb.AppendLine(
             "    /// <summary>Country codes accepting this currency (any acceptance "
-            + "level — LegalTender + WidelyAccepted + Tourist). Code rep paired "
+            + "level - LegalTender + WidelyAccepted + Tourist). Code rep paired "
             + "with <see cref=\"AcceptedInCountries\"/>.</summary>");
         sb.AppendLine(
             "    public IReadOnlySet<CountryCode> "
@@ -550,7 +549,7 @@ internal static class RecordShapeEmitter
         sb.AppendLine($"namespace {_NAMESPACE};");
         sb.AppendLine();
         sb.AppendLine(
-            "/// <summary>Language record — endonym + writing direction + supported "
+            "/// <summary>Language record - endonym + writing direction + supported "
             + "flag + reverse navs to countries / locales.</summary>");
         sb.AppendLine("public sealed record Language");
         sb.AppendLine("{");
@@ -567,7 +566,7 @@ internal static class RecordShapeEmitter
             + "ja).</summary>");
         sb.AppendLine("    public required string Endonym { get; init; }");
         sb.AppendLine();
-        sb.AppendLine("    /// <summary>LTR vs RTL — drives UI container flips.</summary>");
+        sb.AppendLine("    /// <summary>LTR vs RTL - drives UI container flips.</summary>");
         sb.AppendLine("    public required WritingDirection WritingDirection { get; init; }");
         sb.AppendLine();
         sb.AppendLine(
@@ -618,7 +617,7 @@ internal static class RecordShapeEmitter
         sb.AppendLine($"namespace {_NAMESPACE};");
         sb.AppendLine();
         sb.AppendLine(
-            "/// <summary>Locale record — formatting metadata + recursive "
+            "/// <summary>Locale record - formatting metadata + recursive "
             + "language/country nav.</summary>");
         sb.AppendLine("public sealed record Locale");
         sb.AppendLine("{");
@@ -670,7 +669,7 @@ internal static class RecordShapeEmitter
         sb.AppendLine("    public required string DecimalSeparator { get; init; }");
         sb.AppendLine();
         sb.AppendLine(
-            "    /// <summary>Thousands separator (zero or one char — some locales "
+            "    /// <summary>Thousands separator (zero or one char - some locales "
             + "lack one).</summary>");
         sb.AppendLine("    public required string ThousandsSeparator { get; init; }");
         sb.AppendLine();
@@ -697,7 +696,7 @@ internal static class RecordShapeEmitter
         sb.AppendLine($"namespace {_NAMESPACE};");
         sb.AppendLine();
         sb.AppendLine(
-            "/// <summary>Timezone record — offsets + abbreviations + localized "
+            "/// <summary>Timezone record - offsets + abbreviations + localized "
             + "names + aliases + country navs.</summary>");
         sb.AppendLine("public sealed record Timezone");
         sb.AppendLine("{");
@@ -783,7 +782,7 @@ internal static class RecordShapeEmitter
         sb.AppendLine($"namespace {_NAMESPACE};");
         sb.AppendLine();
         sb.AppendLine(
-            "/// <summary>GeopoliticalEntity record — member countries with O(1) "
+            "/// <summary>GeopoliticalEntity record - member countries with O(1) "
             + "<c>Contains</c> over the typed code set.</summary>");
         sb.AppendLine("public sealed record GeopoliticalEntity");
         sb.AppendLine("{");
@@ -795,11 +794,11 @@ internal static class RecordShapeEmitter
         sb.AppendLine("    /// <summary>English display name.</summary>");
         sb.AppendLine("    public required string DisplayName { get; init; }");
         sb.AppendLine();
-        sb.AppendLine("    /// <summary>Type classification — drives filtering UI.</summary>");
+        sb.AppendLine("    /// <summary>Type classification - drives filtering UI.</summary>");
         sb.AppendLine("    public required GeopoliticalEntityType Type { get; init; }");
         sb.AppendLine();
         sb.AppendLine(
-            "    /// <summary>Member country codes — O(1) <c>Contains</c> over the "
+            "    /// <summary>Member country codes - O(1) <c>Contains</c> over the "
             + "set. Code rep paired with "
             + "<see cref=\"MemberCountries\"/>.</summary>");
         sb.AppendLine(

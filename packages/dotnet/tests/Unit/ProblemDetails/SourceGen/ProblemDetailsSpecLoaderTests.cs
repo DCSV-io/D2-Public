@@ -35,7 +35,7 @@ public sealed class ProblemDetailsSpecLoaderTests
           ],
           "titles": [
             {
-              "constName": "UNAUTHORIZED",
+              "constName": "GEN_UNAUTHORIZED",
               "httpStatus": 401,
               "value": "Unauthorized",
               "doc": "401 title."
@@ -61,7 +61,7 @@ public sealed class ProblemDetailsSpecLoaderTests
         result.Spec.ExtensionKeys[0].Value.Should().Be("d2_error_code");
         result.Spec.ExtensionKeys[0].Doc.Should().Be("Error code.");
         result.Spec.Titles.Should().HaveCount(2);
-        result.Spec.Titles[0].ConstName.Should().Be("UNAUTHORIZED");
+        result.Spec.Titles[0].ConstName.Should().Be("GEN_UNAUTHORIZED");
         result.Spec.Titles[0].HttpStatus.Should().Be(401);
         result.Spec.Titles[0].Value.Should().Be("Unauthorized");
         result.Spec.Titles[1].ConstName.Should().Be("REQUEST_FAILED");
@@ -321,7 +321,7 @@ public sealed class ProblemDetailsSpecLoaderTests
     [Fact]
     public void Load_EmptyArrays_AreAccepted()
     {
-        // Loader does not enforce minItems — that's a higher-level concern.
+        // The loader does not enforce minItems; a higher level does.
         var result = ProblemDetailsSpecLoader.Load(
             _PATH,
             """

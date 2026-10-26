@@ -11,9 +11,10 @@ using Microsoft.CodeAnalysis;
 /// <summary>
 /// Roslyn <see cref="DiagnosticDescriptor"/> instances for the cross-catalog
 /// registry diagnostics declared in <see cref="RegistryDiagnosticIds"/>.
-/// Only loaded inside the Roslyn host (the generator's <c>Initialize</c>
-/// call site); pure-logic callers use <see cref="RegistryDiagnosticIds"/>
-/// string constants directly to avoid pulling <c>Microsoft.CodeAnalysis</c>.
+/// This class references <c>Microsoft.CodeAnalysis</c>. The IDs are also
+/// string constants in
+/// <see cref="RegistryDiagnosticIds"/>, which does not reference
+/// <c>Microsoft.CodeAnalysis</c>.
 /// </summary>
 internal static class RegistryDiagnosticDescriptors
 {
@@ -57,6 +58,17 @@ internal static class RegistryDiagnosticDescriptors
             "Error code '{0}' in catalog '{1}' declares category '{2}', which is not "
             + "a member of the closed ErrorCategory set in error-category.spec.json. "
             + "Add the category to the spec or correct the code's category.",
+        category: _CATEGORY,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    /// <inheritdoc cref="RegistryDiagnosticIds.UnregisteredCatalog"/>
+    public static readonly DiagnosticDescriptor UnregisteredCatalog = new(
+        id: RegistryDiagnosticIds.UnregisteredCatalog,
+        title: "Unregistered error-code catalog",
+        messageFormat:
+            "Error-code catalog '{0}' has no entry in the catalog identity map - add its "
+            + "filename with the Owner, DomainToken and DomainPrefix its catalog shell declares",
         category: _CATEGORY,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

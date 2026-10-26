@@ -96,14 +96,14 @@ public sealed class ActorEntryTests
     [Fact]
     public void RecordEquality_ServiceKindCarriesImpersonationFields_StillRecordsThem()
     {
-        // Adversarial: the XML doc says "ImpersonationKind, SessionId, Org*
-        // fields are only meaningful when Kind is Impersonation" — but record
-        // equality will still consider them. Test that two Service entries
-        // differing ONLY in those nominally-meaningless fields are NOT equal,
-        // i.e. the fields ARE carried by the record (no contract-level
-        // normalization). Documents the actual behavior: callers must not
-        // populate impersonation fields on Service entries unless they want
-        // those fields to participate in equality.
+        // Adversarial: the XML doc of ActorEntry says the ImpersonationKind,
+        // SessionId and Org* fields are only meaningful when Kind is
+        // Impersonation, but record
+        // equality still compares them. Two Service entries that differ only
+        // in those fields are not equal: the record carries the fields, and
+        // the contract does not normalize them. This documents the actual
+        // behavior: callers must not populate impersonation fields on Service
+        // entries unless they want those fields to take part in equality.
         var withSession = new ActorEntry(
             ActorKind.Service,
             Subject: "svc",
@@ -129,8 +129,9 @@ public sealed class ActorEntryTests
     [Fact]
     public void NestedAct_ThreeHopChain_TraversableViaActProperty()
     {
-        // Adversarial: build a 3-hop nested actor chain (RFC 8693 §2.1
-        // recursion) and verify each hop is reachable + carries its own data.
+        // Adversarial: build a 3-hop nested actor chain (RFC 8693 section 2.1
+        // recursion) and verify that each hop is reachable and holds its own
+        // data.
         var earliest = new ActorEntry(ActorKind.Service, Subject: "originating-svc");
         var middle = new ActorEntry(
             ActorKind.Service,
@@ -146,7 +147,7 @@ public sealed class ActorEntryTests
         outermost.Act!.Act.Should().Be(earliest);
         outermost.Act.Act!.Act.Should().BeNull("earliest entry has no further nesting");
 
-        // Walk the chain explicitly to prove traversal works.
+        // Walk the chain in a loop and count its entries.
         var current = outermost;
         var depth = 0;
         while (current is not null)
@@ -162,8 +163,8 @@ public sealed class ActorEntryTests
     public void RecordEquality_NestedActDifferent_NotEqual()
     {
         // Adversarial: two outermost entries with identical surface fields but
-        // DIFFERENT nested Act subtrees must NOT be equal — the chain shape is
-        // load-bearing for OriginatingClientId derivation per RFC 8693.
+        // different nested Act subtrees must not be equal, because
+        // OriginatingClientId is derived from the chain shape, per RFC 8693.
         var nestedA = new ActorEntry(ActorKind.Service, Subject: "deep-a");
         var nestedB = new ActorEntry(ActorKind.Service, Subject: "deep-b");
 
@@ -183,7 +184,8 @@ public sealed class ActorEntryTests
     [Fact]
     public void RecordEquality_BothNestedNullVsBothNestedSame_AreEqual()
     {
-        // Sanity baseline for the "different Act → different record" test.
+        // Baseline for the "different Act -> different record" test: entries
+        // with the same Act are equal.
         var noActA = new ActorEntry(ActorKind.Service, Subject: "svc");
         var noActB = new ActorEntry(ActorKind.Service, Subject: "svc");
 
@@ -207,4 +209,79 @@ public sealed class ActorEntryTests
         modified.Should().NotBe(original);
         modified.Act.Should().Be(nested);
     }
+
+    /// <summary>
+    /// A plain <c>{x}</c> log capture, an interpolation and a printed
+    /// <c>IAuthContext.ActorChain</c> element each call <c>ToString</c>. The
+    /// destructuring policy never sees those calls, so the record's own
+    /// <c>ToString</c> must print the impersonation session id masked.
+    /// </summary>
+    [Fact]
+    public void ToString_ImpersonationEntry_MasksTheSessionId()
+    {
+        var sessionId = Guid.Parse("5c2b8d16-7e40-4a93-b6f2-0d3a9c81e75b");
+        var entry = new ActorEntry(
+            ActorKind.Impersonation,
+            "agent-1",
+            ImpersonationKind: ImpersonationKind.Consent,
+            SessionId: sessionId);
+
+        var printed = entry.ToString();
+
+        printed.Should().NotContain(sessionId.ToString());
+        printed.Should().Contain("SessionId = [REDACTED: SecretInformation]");
+    }
+
+    [Fact]
+    public void ToString_NestedActor_MasksItsSessionIdToo()
+    {
+        var nestedSession = Guid.Parse("0d3a9c81-e75b-4a93-b6f2-5c2b8d167e40");
+        var entry = new ActorEntry(
+            ActorKind.Service,
+            "edge",
+            Act: new ActorEntry(ActorKind.Impersonation, "agent-1", SessionId: nestedSession));
+
+        entry.ToString().Should().NotContain(nestedSession.ToString());
+    }
+
+    /// <summary>
+    /// Masking replaces one value and keeps the rest of the chain readable:
+    /// every member is printed by name, so this test fails when a member added
+    /// later is left out of the printing.
+    /// </summary>
+    [Fact]
+    public void ToString_PrintsEveryMemberByName()
+    {
+        var entry = new ActorEntry(
+            ActorKind.Impersonation,
+            "agent-1",
+            ClientId: "client-1",
+            ImpersonationKind: ImpersonationKind.Force,
+            SessionId: Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            OrgId: Guid.Parse("22222222-2222-2222-2222-222222222222"),
+            OrgName: "Customer Support",
+            OrgType: OrgType.Support,
+            OrgRole: Role.Agent,
+            Act: new ActorEntry(ActorKind.Service, "edge"));
+
+        var printed = entry.ToString();
+
+        foreach (var property in typeof(ActorEntry).GetProperties())
+            printed.Should().Contain(property.Name + " = ");
+
+        printed.Should().StartWith("ActorEntry { Kind = Impersonation, Subject = agent-1, ClientId = client-1");
+        printed.Should().Contain("OrgName = Customer Support");
+        printed.Should().Contain("OrgId = 22222222-2222-2222-2222-222222222222");
+        printed.Should().Contain("Act = ActorEntry { Kind = Service, Subject = edge");
+    }
+
+    /// <summary>
+    /// An entry with no impersonation session prints the member empty, as a
+    /// compiler-generated record <c>ToString</c> prints a null member, and not
+    /// as a mask that suggests a value.
+    /// </summary>
+    [Fact]
+    public void ToString_NoSessionId_PrintsTheMemberEmpty()
+        => new ActorEntry(ActorKind.Service, "edge").ToString()
+            .Should().Contain("SessionId = ,");
 }

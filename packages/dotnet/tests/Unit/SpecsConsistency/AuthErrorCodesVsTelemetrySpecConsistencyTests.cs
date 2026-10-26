@@ -15,11 +15,11 @@ using DcsvIo.D2.Tests.Unit.Auth;
 using Xunit;
 
 /// <summary>
-/// Test-time gate complementing the build-time SrcGen <c>D2TEL006</c> check —
+/// Test-time gate complementing the build-time SrcGen <c>D2TEL006</c> check -
 /// loads both the AuthErrorCodes spec and the Telemetry spec from the
 /// repository and asserts the <c>d2.auth.problem.emitted</c> tag's resolved
-/// value set equals the AuthErrorCodes spec's code list. Defense in depth:
-/// catches drift even if a hand-edit slipped past the build-time gate.
+/// value set equals the AuthErrorCodes spec's code list. The test catches
+/// drift even if a hand edit bypasses the build-time check.
 /// </summary>
 public sealed class AuthErrorCodesVsTelemetrySpecConsistencyTests
 {

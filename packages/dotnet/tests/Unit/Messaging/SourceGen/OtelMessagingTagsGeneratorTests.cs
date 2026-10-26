@@ -17,9 +17,10 @@ using Microsoft.CodeAnalysis.Text;
 using Xunit;
 
 /// <summary>
-/// IIncrementalGenerator integration tests for the OtelMessagingTags SrcGen
-/// — drives <see cref="OtelMessagingTagsGenerator"/> via a synthetic
-/// <see cref="CSharpGeneratorDriver"/> rather than the build pipeline.
+/// IIncrementalGenerator integration tests for the OtelMessagingTags source
+/// generator. The tests run <see cref="OtelMessagingTagsGenerator"/> through a
+/// synthetic <see cref="CSharpGeneratorDriver"/> and not through the build
+/// pipeline.
 /// </summary>
 public sealed class OtelMessagingTagsGeneratorTests
 {

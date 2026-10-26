@@ -26,12 +26,12 @@ using Xunit;
 /// Live-DB integration tests for Invoice partial anonymization and
 /// unique-template per-row resolution. Uses the shared Postgres container.
 /// <para>
-/// Invoice: maps <c>AdminLocation</c> twice (billing + shipping) — proves independent
+/// Invoice: maps <c>AdminLocation</c> twice (billing + shipping) - proves independent
 /// tombstoning, no cross-column leak, and financial-scalar retention (Tier A).
 /// </para>
 /// <para>
 /// UniqueContactRow: with a <c>{UserId}</c> unique-template on the email
-/// column — proves that erasing two rows with DISTINCT owners produces two DISTINCT
+/// column - proves that erasing two rows with DISTINCT owners produces two DISTINCT
 /// tombstone values, so no unique-constraint violation fires.
 /// </para>
 /// </summary>
@@ -57,7 +57,7 @@ public sealed class InvoiceAnonymizationIntegrationTests : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         // Same GovDbContext-first ordering as ContactHostIntegrationTests and
-        // AnonymizationEngineGapTests — ensures the shared database + gov tables exist
+        // AnonymizationEngineGapTests - ensures the shared database + gov tables exist
         // before the Contacts schema is layered on top via IF NOT EXISTS DDL.
         r_schemaCtx = ContactsHostDbContext.Build(r_fixture.ConnectionString);
         await using var govCtx = GovDbContext.Build(r_fixture.ConnectionString);
@@ -119,9 +119,9 @@ public sealed class InvoiceAnonymizationIntegrationTests : IAsyncLifetime
         var pre = await preCtx.Invoices.FirstAsync(i => i.UserId == userId);
 
         pre.BillingAddress.City.Should().Be("Alpha", "billing city pre-erasure");
-        pre.ShippingAddress.City.Should().Be("Beta", "shipping city pre-erasure — distinct");
+        pre.ShippingAddress.City.Should().Be("Beta", "shipping city pre-erasure - distinct");
 
-        // Erasure (Tier A — no Template columns → ExecuteUpdateAsync path)
+        // Erasure (Tier A - no Template columns -> ExecuteUpdateAsync path)
         var engine = BuildEngine();
         var result = await engine.AnonymizeUserAsync(userId);
 
@@ -131,13 +131,13 @@ public sealed class InvoiceAnonymizationIntegrationTests : IAsyncLifetime
         await using var readCtx = ContactsHostDbContext.Build(r_fixture.ConnectionString);
         var row = await readCtx.Invoices.FirstAsync(i => i.UserId == userId);
 
-        // PII tombstoned independently — no cross-leak
+        // PII tombstoned independently - no cross-leak
         row.BillingAddress.City.Should().BeNull("billing city tombstoned");
         row.BillingAddress.PostalCode.Should().BeNull("billing postal tombstoned");
         row.BillingAddress.SubdivisionIso31662Code.Should().BeNull();
         row.BillingAddress.CountryIso31661Alpha2Code.Should().Be(
             CountryCode.US,
-            "billing country kept — coarse-grained");
+            "billing country kept - coarse-grained");
         row.BillingAddress.HashId.Should().Be(LocationVoDecorator.HashIdCleared);
 
         row.ShippingAddress.City.Should().BeNull("shipping city tombstoned");
@@ -145,7 +145,7 @@ public sealed class InvoiceAnonymizationIntegrationTests : IAsyncLifetime
         row.ShippingAddress.SubdivisionIso31662Code.Should().BeNull();
         row.ShippingAddress.CountryIso31661Alpha2Code.Should().Be(
             CountryCode.GB,
-            "shipping country kept — coarse-grained");
+            "shipping country kept - coarse-grained");
         row.ShippingAddress.HashId.Should().Be(LocationVoDecorator.HashIdCleared);
 
         // CustomerName tombstoned
@@ -200,7 +200,7 @@ public sealed class InvoiceAnonymizationIntegrationTests : IAsyncLifetime
     // UniqueContactRow: .Unique(template) per-row resolution
     // =========================================================================
 
-    // long identifier — cannot wrap
+    // long identifier - cannot wrap
     [Fact]
     public async Task AnonymizeUserAsync_UniqueContactRow_distinct_owners_no_unique_constraint_violation()
     {
@@ -250,10 +250,10 @@ public sealed class InvoiceAnonymizationIntegrationTests : IAsyncLifetime
         var engine = BuildEngine();
         var result = await engine.AnonymizeUserAsync(sharedUser);
 
-        // The engine returns a failure (not a silent half-erase) — boundary pinned.
+        // The engine returns a failure (not a silent half-erase) - boundary pinned.
         result.Success.Should().BeFalse(
             "same-owner UserId-only template collides on the unique constraint; "
-            + "engine must not silently succeed — caller-responsibility boundary: "
+            + "engine must not silently succeed - caller-responsibility boundary: "
             + "the template must include a per-row token if multiple rows share an owner");
     }
 

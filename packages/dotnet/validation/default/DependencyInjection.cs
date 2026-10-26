@@ -27,10 +27,10 @@ public static class DependencyInjection
         /// <c>DcsvIo.D2.Validation.Abstractions</c>).
         /// </summary>
         /// <remarks>
-        /// All three validators are stateless (regex patterns and phone-number
-        /// metadata are <c>static readonly</c> with JIT pre-warm); singleton
-        /// lifetime is safe. Consumers requiring a custom implementation register
-        /// an override via <c>services.Replace(...)</c> after calling this method.
+        /// The validators are stateless (regex patterns and phone-number
+        /// metadata are <c>static readonly</c> with JIT pre-warm), so singleton
+        /// lifetime is safe. To use a custom implementation, register
+        /// an override with <c>services.Replace(...)</c> after calling this method.
         /// </remarks>
         /// <returns>The same <c>services</c> instance for call chaining.</returns>
         public IServiceCollection AddValidation()

@@ -15,10 +15,11 @@ using System.Collections.Generic;
 /// <param name="Name">English display name.</param>
 /// <param name="Endonym">Native-script name; null when unknown.</param>
 /// <param name="WritingDirection">
-/// Either <c>"LTR"</c> or <c>"RTL"</c>; emitters map to the matching enum.
+/// Either <c>"LTR"</c> or <c>"RTL"</c>, the wire forms of the
+/// <c>WritingDirection</c> enum.
 /// </param>
 /// <param name="IsSupported">
-/// Derived flag — true when this language backs a selectable locale.
+/// Derived flag - true when this language backs a selectable locale.
 /// </param>
 /// <param name="SpokenInCountryIso31661Alpha2Codes">
 /// ISO 3166-1 alpha-2 country codes where the language is spoken.

@@ -43,21 +43,22 @@ using JetBrains.Annotations;
 /// </list>
 /// <para>
 /// A bare empty string constant (<c>[Anonymizable("")]</c>) is accepted and stored as
-/// <c>Kind = Constant, ConstantValue = ""</c>. It is NOT silently rewritten to
-/// <c>SetEmpty</c> — author intent is preserved. The engine treats <c>SetEmpty</c> and
+/// <c>Kind = Constant, ConstantValue = ""</c>. It is not silently rewritten to
+/// <c>SetEmpty</c>, so the author's intent is preserved. The engine treats <c>SetEmpty</c> and
 /// <c>Constant("")</c> identically at apply-time, but they remain distinct rules so the
 /// divergence guard can detect unintentional double-declarations.
 /// </para>
 /// <para>
-/// Constructing the attribute in a contradictory state — e.g. passing
-/// <c>AnonymizeKind.Constant</c> without a constant value — throws
-/// <see cref="ArgumentException"/> at model-build time (not at runtime per request).
-/// This is intentional fail-fast: attributes carry only developer-authored compile-time
-/// literals, never user data, so a construction failure is a configuration bug.
+/// Constructing the attribute in a contradictory state, for example passing
+/// <c>AnonymizeKind.Constant</c> without a constant value, throws
+/// <see cref="ArgumentException"/> at model-build time and not at runtime per request.
+/// The attribute fails fast on purpose: attributes carry only developer-authored
+/// compile-time literals and never user data, so a construction failure is a
+/// configuration bug.
 /// </para>
 /// <para>
-/// This attribute is strictly separate from <c>[RedactData]</c> which governs log-masking
-/// only. Do not conflate the two concerns.
+/// This attribute is strictly separate from <c>[RedactData]</c>, which governs log
+/// masking only.
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
@@ -73,7 +74,7 @@ public sealed class AnonymizableAttribute : Attribute
     /// The overwrite strategy. Must be <see cref="AnonymizeKind.SetNull"/> or
     /// <see cref="AnonymizeKind.SetEmpty"/>. Passing <see cref="AnonymizeKind.Constant"/> or
     /// <see cref="AnonymizeKind.Template"/> throws <see cref="ArgumentException"/> because those
-    /// kinds require a payload — use <c>[Anonymizable("constant")]</c> or
+    /// kinds require a payload - use <c>[Anonymizable("constant")]</c> or
     /// <c>[Anonymizable(template: "...")]</c> instead.
     /// </param>
     /// <exception cref="ArgumentException">
@@ -94,7 +95,7 @@ public sealed class AnonymizableAttribute : Attribute
     /// <param name="constantValue">
     /// The fixed tombstone string written to the field on erasure (e.g. <c>"[deleted]"</c>,
     /// <c>"deleted@deleted.invalid"</c>). A bare positional string argument is unambiguously
-    /// a <em>constant</em> — use <c>[Anonymizable(template: "...")]</c> for the template path.
+    /// a <em>constant</em> - use <c>[Anonymizable(template: "...")]</c> for the template path.
     /// An empty string (<c>""</c>) is accepted as a valid constant (author intent is preserved;
     /// the engine treats <c>Constant("")</c> and <c>SetEmpty</c> identically at apply-time).
     /// </param>
@@ -113,7 +114,7 @@ public sealed class AnonymizableAttribute : Attribute
     {
     }
 
-    // ---- Public ctor 3: template (Template) — named-arg path ------------------
+    // ---- Public ctor 3: template (Template) - named-arg path ------------------
 
     /// <summary>
     /// Initializes an <see cref="AnonymizableAttribute"/> for a
@@ -126,19 +127,18 @@ public sealed class AnonymizableAttribute : Attribute
     /// Must be non-null and non-whitespace.
     /// </param>
     /// <param name="marker">
-    /// Overload-discriminator sentinel — see <see cref="AnonymizeTemplateMarker"/>. Defaults to
+    /// Overload-discriminator sentinel; see <see cref="AnonymizeTemplateMarker"/>. Defaults to
     /// <see cref="AnonymizeTemplateMarker.Template"/> and carries no runtime information.
-    /// Never pass this explicitly — use the <c>template:</c> named-argument form instead
-    /// (e.g. <c>[Anonymizable(template: "...")]</c>) and let the compiler infer it.
+    /// Never pass this explicitly. Use the <c>template:</c> named-argument form instead
+    /// (for example <c>[Anonymizable(template: "...")]</c>) and let the compiler infer it.
     /// </param>
     /// <remarks>
-    /// Preferred call-site form using the named-argument syntax that matches the locked
-    /// Form A design:
+    /// Preferred call-site form, which uses the named-argument syntax:
     /// <code>
     /// [Anonymizable(template: "deletedUser{UserId}@deleted.user.dcsv.io")]
     /// </code>
-    /// The <c>template:</c> named-argument makes the intent unambiguous; the
-    /// <paramref name="marker"/> discriminator defaults and is inferred by the compiler.
+    /// The <c>template:</c> named argument makes the intent unambiguous, and the compiler
+    /// supplies the default for the <paramref name="marker"/> discriminator.
     /// </remarks>
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="template"/> is <see langword="null"/>, empty, or
@@ -149,17 +149,17 @@ public sealed class AnonymizableAttribute : Attribute
         AnonymizeTemplateMarker marker = AnonymizeTemplateMarker.Template)
         : this(AnonymizeKind.Template, constantValue: null, template: template)
     {
-        // 'marker' is an overload discriminator — it exists solely to distinguish this ctor
+        // 'marker' is an overload discriminator - it exists solely to distinguish this ctor
         // from the constant (string) ctor so callers can use the 'template:' named-arg form.
         // It carries no runtime information and is intentionally unused here.
         _ = marker;
     }
 
-    // ---- Private funnel ctor (enforces the Kind ↔ payload invariant) ----------
+    // ---- Private funnel ctor (enforces the Kind <-> payload invariant) ----------
     private AnonymizableAttribute(AnonymizeKind kind, string? constantValue, string? template)
     {
         // Plain BCL ArgumentException matches the "developer error at model-build time"
-        // intent. DcsvIo.D2.Utilities is referenced for Falsey() (§5.1).
+        // intent. DcsvIo.D2.Utilities is referenced for Falsey().
         switch (kind)
         {
             case AnonymizeKind.SetNull:
@@ -233,7 +233,7 @@ public sealed class AnonymizableAttribute : Attribute
         Template = template;
     }
 
-    // ---- Surfaced properties (read-only — no public setter/init) ---------------
+    // ---- Surfaced properties (read-only - no public setter/init) ---------------
 
     /// <summary>
     /// Gets the overwrite strategy declared on this attribute.

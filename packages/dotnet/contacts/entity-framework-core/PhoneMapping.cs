@@ -66,20 +66,20 @@ public readonly struct PhoneMapping
     }
 
     /// <summary>
-    /// The ONLY path to a unique index. Writes a <see cref="AnonymizeKind.Template"/>
-    /// rule AND declares a unique index on the column.
-    /// <paramref name="uniqueTemplate"/> MUST contain at least one <c>{Token}</c> so
+    /// The only path to a unique index. Writes a <see cref="AnonymizeKind.Template"/>
+    /// rule and declares a unique index on the column.
+    /// <paramref name="uniqueTemplate"/> must contain at least one <c>{Token}</c> so
     /// erased rows produce distinct values.
     /// </summary>
     /// <param name="uniqueTemplate">
-    /// The per-row anonymize template. Must contain at least one <c>{…}</c> token.
+    /// The per-row anonymize template. Must contain at least one <c>{...}</c> token.
     /// </param>
     /// <returns>This coupling object for additional chaining.</returns>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="uniqueTemplate"/> is <see langword="null"/>.
     /// </exception>
     /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="uniqueTemplate"/> contains no <c>{…}</c> token.
+    /// Thrown when <paramref name="uniqueTemplate"/> contains no <c>{...}</c> token.
     /// </exception>
     public PhoneMapping Unique(string uniqueTemplate)
     {

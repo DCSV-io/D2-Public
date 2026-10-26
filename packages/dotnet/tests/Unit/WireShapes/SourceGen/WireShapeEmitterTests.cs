@@ -14,7 +14,7 @@ using Xunit;
 /// <summary>
 /// Pure-logic tests for the wire-shape emitter. Drives the emitter
 /// directly with synthetic specs and asserts both the generated source
-/// shape (per-VALUE pin) and the diagnostics surfaced for invalid spec
+/// shape (per-value pin) and the diagnostics surfaced for invalid spec
 /// inputs.
 /// </summary>
 public sealed class WireShapeEmitterTests
@@ -100,7 +100,7 @@ public sealed class WireShapeEmitterTests
     [Fact]
     public void Emit_PreservesSpecOrderOfProperties()
     {
-        // Spec ordering drives emitted ordering — predictable diff on
+        // Spec ordering drives emitted ordering - predictable diff on
         // spec edits. Mirrors the problem-details emitter's preserve-order
         // discipline.
         var spec = MakeSpec(
@@ -135,7 +135,7 @@ public sealed class WireShapeEmitterTests
     public void Emit_EscapesXmlDocSpecialCharacters()
     {
         // Doc text with <, >, & should be XML-encoded in the emitted summary
-        // — otherwise the generated source won't compile.
+        // - otherwise the generated source won't compile.
         var spec = MakeSpec(
             new WireShapeProperty(
                 "KEY",

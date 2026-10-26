@@ -19,7 +19,7 @@ namespace DcsvIo.D2.Messaging.SourceGen;
 /// <param name="QueueName">Queue name (lowercase, dot- or hyphen-separated).
 /// For <c>FanoutExclusiveAutoDelete</c> patterns, treated as a prefix; a
 /// per-replica suffix is auto-appended at startup.</param>
-/// <param name="Pattern">Queue topology — <c>CompetingConsumer</c>,
+/// <param name="Pattern">Queue topology - <c>CompetingConsumer</c>,
 /// <c>FanoutExclusiveAutoDelete</c>, or <c>DurableShared</c>.</param>
 /// <param name="RoutingKeyBinding">Binding pattern (with AMQP wildcards
 /// <c>*</c> and <c>#</c>). Empty for fanout. Null = empty.</param>

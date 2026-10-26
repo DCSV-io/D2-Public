@@ -33,17 +33,17 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
     #region Token + Trust
 
     /// <summary>
-    /// Whether the request is authenticated. Trinary semantics: null = pre-auth (middleware hasn't determined yet), false = explicitly unauthenticated, true = authenticated. Never treat null as false.
+    /// Whether the request is authenticated. Trinary semantics: null = pre-auth (middleware has not determined yet), false = explicitly unauthenticated, true = authenticated. Never treat null as false.
     /// </summary>
     public bool? IsAuthenticated { get; set; } = null;
 
     /// <summary>
-    /// Standard JWT audience claim — the service identifier(s) this token was minted for. Per RFC 7519 §4.1.3, aud may be a single string OR a JSON array; both wire shapes are accepted and surfaced as an IReadOnlyList&lt;string&gt; here. Audience validation is a transport-layer concern (auth middleware), not a per-handler check; this property is exposed for handler-level audit / introspection only.
+    /// Standard JWT audience claim - the service identifier(s) this token was minted for. Per RFC 7519 section 4.1.3, aud may be a single string OR a JSON array; both wire shapes are accepted and surfaced as an IReadOnlyList&lt;string&gt; here. Audience validation is a transport-layer concern (auth middleware), not a per-handler check; this property is exposed for handler-level audit / introspection only.
     /// </summary>
     public IReadOnlyList<string> Audience { get; set; } = [];
 
     /// <summary>
-    /// User's own session record identifier in d2-auth. NOT the impersonation session id — see ImpersonationSessionId for that. Links the runtime context back to a specific session for forced-sign-out / session-revocation flows.
+    /// The user's own session record identifier. NOT the impersonation session id - see ImpersonationSessionId for that. Links the runtime context back to a specific session for forced-sign-out / session-revocation flows.
     /// </summary>
     public Guid? SessionId { get; set; } = null;
 
@@ -53,22 +53,22 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
     public DateTimeOffset? TokenIssuedAt { get; set; } = null;
 
     /// <summary>
-    /// When the token expires (standard JWT exp claim, Unix seconds). Cache decisions can min(handler-cache-ttl, token-remaining-ttl) to avoid serving stale auth-derived data.
+    /// When the token expires (standard JWT exp claim, Unix seconds). A cache decision can use min(handler-cache-ttl, token-remaining-ttl) to avoid serving stale auth-derived data.
     /// </summary>
     public DateTimeOffset? TokenExpiresAt { get; set; } = null;
 
     /// <summary>
-    /// RFC 8693 §4.1 actor chain, flattened. Wire format is recursive (act.act.act); we flatten to a list ordered outermost-first. Per RFC 8693 §4.1: the OUTERMOST entry (index 0) is the CURRENT actor (immediate caller); the MOST DEEPLY NESTED (last index) is the EARLIEST actor (originator) — 'the least recent actor is the most deeply nested.' Empty for end-user-direct tokens. Service entries indicate token-exchange delegation; Impersonation entries indicate user-on-behalf-of-user with sub-flavor on the entry's ImpersonationKind field. The auth lib's exchange endpoint MUST preserve nested act on re-exchange so OriginatingClientId remains recoverable through multi-hop chains.
+    /// RFC 8693 section 4.1 actor chain, flattened. The wire format is recursive (act.act.act); the context flattens it to a list ordered outermost-first. Per RFC 8693 section 4.1: the OUTERMOST entry (index 0) is the CURRENT actor (immediate caller); the MOST DEEPLY NESTED (last index) is the EARLIEST actor (originator) - 'the least recent actor is the most deeply nested.' Empty for end-user-direct tokens. Service entries indicate token-exchange delegation; Impersonation entries indicate user-on-behalf-of-user with sub-flavor on the entry's ImpersonationKind field. The auth lib's exchange endpoint MUST preserve nested act on re-exchange so OriginatingClientId remains recoverable through multi-hop chains.
     /// </summary>
     public IReadOnlyList<ActorEntry> ActorChain { get; set; } = [];
 
     /// <summary>
-    /// Authentication Methods Reference (RFC 8176 standard claim). Space-separated or JSON-array string of authentication method identifiers used to authenticate the subject (e.g. 'pwd', 'otp', 'mfa', 'webauthn'). Input to risk-scoring and audit — 'password-only vs MFA vs OAuth2-with-WebAuthn' matters for sensitive-action gating. Null when the token was minted without AMR (e.g. service-identity client_credentials flows).
+    /// Authentication Methods Reference (RFC 8176 standard claim). The claim is a JSON array of the authentication method identifiers used to authenticate the subject (e.g. 'pwd', 'otp', 'mfa', 'webauthn'), and this value is its elements joined with one space. Input to risk-scoring and audit - 'password-only vs MFA vs OAuth2-with-WebAuthn' matters for sensitive-action gating. Null when the token was minted without AMR (e.g. service-identity client_credentials flows).
     /// </summary>
     public string? AuthMethod { get; set; } = null;
 
     /// <summary>
-    /// Unix-seconds timestamp of the last step-up authentication completion (Category 2 — past UTC instant). Handlers gating sensitive actions (e.g. billing.payment.charge) enforce 'step-up within last N minutes' by comparing this value against the current instant. Edge auth populates from the session record at JWT mint. Domain consumers MUST convert to NodaTime.Instant at the consumption boundary before any temporal arithmetic: dto.Value.ToInstant(). Wire form is DateTimeOffset? for JSON-serialization interop with the cross-language source-gen pipeline.
+    /// Unix-seconds timestamp of the last step-up authentication completion (Category 1 - past UTC instant). Handlers gating sensitive actions (e.g. billing.payment.charge) enforce 'step-up within last N minutes' by comparing this value against the current instant. The JWT minter of the entry service populates it from the session record at mint. Domain consumers MUST convert to NodaTime.Instant at the consumption boundary before any temporal arithmetic: dto.Value.ToInstant(). Wire form is DateTimeOffset? for JSON-serialization interop with the cross-language source-gen pipeline.
     /// </summary>
     public DateTimeOffset? LastStepUpAt { get; set; } = null;
 
@@ -77,27 +77,27 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
     #region Identity
 
     /// <summary>
-    /// Raw JWT sub claim. The principal whose authority is being exercised. For user tokens: a Guid string (parsed into UserId). For pure service-identity tokens (RFC 6749 §4.4 client_credentials): the OAuth client_id of the calling service (UserId stays null in that case). For impersonation tokens: the impersonated user's id.
+    /// Raw JWT sub claim. The principal whose authority is being exercised. For user tokens: a Guid string (parsed into UserId). For pure service-identity tokens (RFC 6749 section 4.4 client_credentials): the OAuth client_id of the calling service (UserId stays null in that case). For impersonation tokens: the impersonated user's id.
     /// </summary>
     public string? Subject { get; set; } = null;
 
     /// <summary>
-    /// User identifier — JWT sub claim parsed as Guid. Null when sub is non-Guid (pure service-identity tokens — see Subject + IsServiceIdentity). During impersonation this is the impersonated user's id (the impersonator's id is recorded inside the act chain — see ImpersonatedBy).
+    /// User identifier - JWT sub claim parsed as Guid. Null when sub is non-Guid (pure service-identity tokens - see Subject + IsServiceIdentity). During impersonation this is the impersonated user's id (the impersonator's id is recorded inside the act chain - see ImpersonatedBy).
     /// </summary>
     public Guid? UserId { get; set; } = null;
 
     /// <summary>
-    /// Login handle — unique, lowercase username.
+    /// Login handle - unique, lowercase username.
     /// </summary>
     public string? Username { get; set; } = null;
 
     /// <summary>
-    /// Per RFC 8693 §4.3 / RFC 9068 §2.2 — the OAuth client_id of the client that requested THIS specific token from the authorization server. Updates on every token exchange (so for a multi-hop chain, this is the client that triggered the most recent exchange, NOT the originating client). Useful for audit ('this token was minted at the request of X').
+    /// Per RFC 8693 section 4.3 / RFC 9068 section 2.2 - the OAuth client_id of the client that requested THIS specific token from the authorization server. Updates on every token exchange (so for a multi-hop chain, this is the client that triggered the most recent exchange, NOT the originating client). Useful for audit ('this token was minted at the request of X').
     /// </summary>
     public string? RequestedByClientId { get; set; } = null;
 
     /// <summary>
-    /// The service that immediately called this handler — the OUTERMOST Service entry in the act chain (per RFC 8693 §4.1: 'the outermost act claim represents the current actor'). Null when the user is calling directly with no service intermediary, AND when the chain contains only Impersonation entries with no Service hops yet.
+    /// The service that immediately called this handler - the OUTERMOST Service entry in the act chain (per RFC 8693 section 4.1: 'the outermost act claim represents the current actor'). Null when the user is calling directly with no service intermediary, AND when the chain contains only Impersonation entries with no Service hops yet.
     /// </summary>
     public string? ImmediateCallerClientId
     {
@@ -109,7 +109,7 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
     }
 
     /// <summary>
-    /// The service that started the entire call chain — the MOST DEEPLY NESTED Service entry in the act chain (per RFC 8693 §4.1: 'the least recent actor is the most deeply nested'). For pure service-identity tokens with no act chain, falls back to Subject. THIS IS THE PRIMARY AUDIT IDENTIFIER for end-to-end traceability across multi-hop sync + async chains.
+    /// The service that started the entire call chain - the MOST DEEPLY NESTED Service entry in the act chain (per RFC 8693 section 4.1: 'the least recent actor is the most deeply nested'). For pure service-identity tokens with no act chain, falls back to Subject. THIS IS THE PRIMARY AUDIT IDENTIFIER for end-to-end traceability across multi-hop sync + async chains.
     /// </summary>
     public string? OriginatingClientId
     {
@@ -127,7 +127,7 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
     }
 
     /// <summary>
-    /// True when the token represents a service identity acting for itself (RFC 6749 §4.4 client_credentials): UserId is null AND no impersonation in chain. False when there's a user (with or without service delegation in the chain). Null pre-auth. Use this to fork on 'is the caller a service or a human-acting party'.
+    /// True when the token represents a service identity acting for itself (RFC 6749 section 4.4 client_credentials): UserId is null AND no impersonation in chain. False when there's a user (with or without service delegation in the chain). Null pre-auth. Use this to fork on 'is the caller a service or a human-acting party'.
     /// </summary>
     public bool? IsServiceIdentity
     {
@@ -148,7 +148,7 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
     #region Organization
 
     /// <summary>
-    /// Operating organization identifier. The JWT carries one org context — during impersonation it's the impersonated user's org (the agent's own org is recorded inside the act chain for audit and for authz rules keyed on the agent's home org).
+    /// Operating organization identifier. The JWT carries one org context - during impersonation it's the impersonated user's org (the agent's own org is recorded inside the act chain for audit and for authz rules keyed on the agent's home org).
     /// </summary>
     public Guid? OrgId { get; set; } = null;
 
@@ -166,6 +166,16 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
     /// User's role in the operating organization.
     /// </summary>
     public Role? OrgRole { get; set; } = null;
+
+    /// <summary>
+    /// Root organization of the tree the operating organization belongs to. Minted onto the session rather than derived per request, so no consumer walks the tree to find it. Null when the caller has selected no operating organization.
+    /// </summary>
+    public Guid? RootOrgId { get; set; } = null;
+
+    /// <summary>
+    /// The organizations the caller may reach: the seat's organization and every organization beneath it. Downward only - never a sibling, never an ancestor. The values are strings because a claim is JSON. The authorization stage converts the set once into the reach type that enforces the invariant, and every downstream reader uses that converted value and does not re-read these strings. Every element of the claim arrives here unchanged, including one that is not a well-formed identifier, so the conversion rejects the whole set and never yields a silently smaller one. An absent or unconvertible set yields a reach that admits nothing, not a partial set.
+    /// </summary>
+    public IReadOnlySet<string> AccessibleOrgIds { get; set; } = new HashSet<string>(StringComparer.Ordinal);
 
     #endregion
 
@@ -240,7 +250,7 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
     #region Scopes
 
     /// <summary>
-    /// OAuth scope set granted to this token. Per RFC 6749 §3.3 the wire format is space-separated string; the parser also accepts JSON arrays defensively. Use HasScope / HasAnyScope / HasAllScopes extension methods on IAuthContext for checks. During impersonation, Edge mints with impersonation-blocked scopes stripped at mint time (defense-in-depth — RequiredScopes check fails naturally for blocked actions).
+    /// OAuth scope set granted to this token. Per RFC 6749 section 3.3 the wire format is space-separated string; the parser also accepts JSON arrays defensively. Use HasScope / HasAnyScope / HasAllScopes extension methods on IAuthContext for checks. During impersonation, the entry service mints the token with impersonation-blocked scopes stripped at mint time (defense-in-depth - RequiredScopes check fails naturally for blocked actions).
     /// </summary>
     public IReadOnlySet<string> Scopes { get; set; } = new HashSet<string>(StringComparer.Ordinal);
 
@@ -259,22 +269,22 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
     public string? RequestId { get; set; } = null;
 
     /// <summary>
-    /// Request path (HTTP) or routing key (AMQP) — descriptive context for logs.
+    /// Request path (HTTP) or routing key (AMQP) - descriptive context for logs.
     /// </summary>
     public string? RequestPath { get; set; } = null;
 
     /// <summary>
-    /// HTTP verb captured by Edge middleware (e.g. 'GET', 'POST', 'PUT'). Only meaningful at the HTTP edge — downstream gRPC and AMQP consumers do not carry the originating HTTP verb, so this field does NOT propagate. Null on non-HTTP transports.
+    /// HTTP verb captured by the entry service's middleware (e.g. 'GET', 'POST', 'PUT'). Only meaningful at the HTTP edge - downstream gRPC and AMQP consumers do not carry the originating HTTP verb, so this field does NOT propagate. Null on non-HTTP transports.
     /// </summary>
     public string? HttpMethod { get; set; } = null;
 
     /// <summary>
-    /// Timestamp when Edge began processing the originating request (Category 2 — past UTC instant). Propagates so async consumers (Audit, Courier) can report end-to-end SLA latency. Domain consumers MUST convert to NodaTime.Instant at the consumption boundary before any temporal arithmetic: dto.Value.ToInstant(). Wire form is DateTimeOffset? for JSON-serialization interop.
+    /// Timestamp when the entry service began processing the originating request (Category 1 - past UTC instant). Propagates so async consumers, such as audit recording, can report end-to-end SLA latency. Domain consumers MUST convert to NodaTime.Instant at the consumption boundary before any temporal arithmetic: dto.Value.ToInstant(). Wire form is DateTimeOffset? for JSON-serialization interop.
     /// </summary>
     public DateTimeOffset? RequestStartedAt { get; set; } = null;
 
     /// <summary>
-    /// Parsed value of the Idempotency-Key request header. Propagates so downstream consumers correlate idempotent retries across the call chain. Max 255 chars; values exceeding cap are rejected by Edge middleware with 400 Bad Request. Treat as opaque — do NOT log the raw value; structured logs may emit a SHA-256 prefix for correlation but never the literal value.
+    /// Parsed value of the Idempotency-Key request header. Propagates so downstream consumers correlate idempotent retries across the call chain. Max 255 chars; values exceeding cap are rejected by the entry service's middleware with 400 Bad Request. Treat as opaque - do NOT log the raw value; structured logs may emit a SHA-256 prefix for correlation but never the literal value.
     /// </summary>
     [RedactData(Reason = RedactReason.PersonalInformation)]
     public string? IdempotencyKey { get; set; } = null;
@@ -284,7 +294,7 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
     #region Network
 
     /// <summary>
-    /// Resolved client IP — precedence CF-Connecting-IP &gt; X-Real-IP &gt; X-Forwarded-For (last entry) &gt; Connection.RemoteIpAddress. Null for non-HTTP transports.
+    /// Resolved client IP - precedence CF-Connecting-IP &gt; X-Real-IP &gt; X-Forwarded-For (last entry) &gt; Connection.RemoteIpAddress. Null for non-HTTP transports.
     /// </summary>
     [RedactData(Reason = RedactReason.PersonalInformation)]
     public string? ClientIp { get; set; } = null;
@@ -294,26 +304,37 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
     #region Fingerprints
 
     /// <summary>
-    /// The fingerprint that was bound to this session at JWT mint time (the d2_fp claim). Format: 'v{N}.c1.c2.c3.c4.c5.s1.s2.s3.s4.s5' — leading version token then 10 component hashes (5 client-side: FingerprintJS-OSS, WebGL renderer, speech voices, media devices, extended fonts; 5 server-side: HTTP/2 SETTINGS frame, header order, Sec-CH-UA, Accept-Encoding, Accept-Language). Each component hash is the first 16 hex chars of SHA-256. Stable across all requests in a session. Propagated to async consumers (Audit, Courier) via the cross-hop x-d2-context header — never as plaintext caller identity (broker stays blind to identity).
+    /// The fingerprint that was bound to this session at JWT mint time (the d2_fp claim). Format: 'v{N}.c1.c2.c3.c4.c5.s1.s2.s3.s4.s5' - leading version token then 10 component hashes (5 client-side: FingerprintJS-OSS, WebGL renderer, speech voices, media devices, extended fonts; 5 server-side: HTTP/2 SETTINGS frame, header order, Sec-CH-UA, Accept-Encoding, Accept-Language). Each component hash is the 16-hex-character prefix of a SHA-256 digest. Stable across all requests in a session. Propagated to async consumers, such as audit recording, via the cross-hop x-d2-context header - never as plaintext caller identity (broker stays blind to identity).
     /// </summary>
     public string? SessionFingerprint { get; set; } = null;
 
     /// <summary>
-    /// The fingerprint recomputed for THIS request by Edge fingerprint middleware, in the same dot-separated format as SessionFingerprint. Captures the actual device fingerprint of the originating request (vs the session-bound one). Propagated via x-d2-context so audit rows for async-triggered actions record the originating request's actual fingerprint — not just what the session was bound to.
+    /// The fingerprint recomputed for THIS request by the entry service's fingerprint middleware, in the same dot-separated format as SessionFingerprint. Captures the actual device fingerprint of the originating request (vs the session-bound one). Propagated via x-d2-context so audit rows for async-triggered actions record the originating request's actual fingerprint - not just what the session was bound to.
     /// </summary>
     public string? CurrentFingerprint { get; set; } = null;
 
     /// <summary>
-    /// Composite request-risk score (0-100; higher = more risky) computed by Edge's risk engine for THIS request. Inputs include geo-velocity drift from the sign-in baseline, ASN reputation, Tor / proxy / hosting flags, per-org and per-user policy contributions, and fingerprint-mismatch components (SessionFingerprint vs CurrentFingerprint). 0 = no risk; ≥ user/org step-up threshold = OTP step-up; ≥ user/org block threshold = block + invalidate session. Null on internal services and pre-risk-engine paths. Propagated via x-d2-context so audit rows record Edge's verdict at the moment of the originating request. Edge owns the contribution math + thresholds; consumer-side libs (DcsvIo.D2.Auth) only read this field, never compute it.
+    /// Composite request-risk score (0-100; higher = more risky) computed by the entry service's risk engine for THIS request. Inputs include geo-velocity drift from the sign-in baseline, ASN reputation, Tor / proxy / hosting flags, per-org and per-user policy contributions, and fingerprint-mismatch components (SessionFingerprint vs CurrentFingerprint). 0 = no risk; &gt;= user/org step-up threshold = OTP step-up; &gt;= user/org block threshold = block + invalidate session. Null on internal services and pre-risk-engine paths. Propagated via x-d2-context so audit rows record the risk engine's verdict at the moment of the originating request. The entry service defines the contribution math + thresholds; consumer-side libraries only read this field, never compute it.
     /// </summary>
     public int? RiskScore { get; set; } = null;
+
+    /// <summary>
+    /// Opaque portable device identifier bound at session establish when known (sticky device continuity). Max 128 chars. Mandatory redact (PersonalInformation) - treat as correlating device id, never log the raw value. Propagates so async audit can correlate the same device across hops without carrying fingerprint component material.
+    /// </summary>
+    [RedactData(Reason = RedactReason.PersonalInformation)]
+    public string? DeviceKey { get; set; } = null;
+
+    /// <summary>
+    /// Portable device-confidence class as a closed string wire vocabulary: High | Common | LowHostile (string equality only; no invented synonyms). Not propagated - evaluated at the request-establishment boundary for this hop. Null when confidence is unknown or unset.
+    /// </summary>
+    public string? DeviceConfidence { get; set; } = null;
 
     #endregion
 
     #region Infrastructure
 
     /// <summary>
-    /// Edge process identifier (e.g. Kubernetes pod name, EC2 instance id, or region+node tuple). Captured once at Edge process boot by startup middleware. Propagates via x-d2-context so downstream audit and telemetry know which edge node originated the request — important for hot-spot diagnosis and capacity attribution.
+    /// Process identifier of the entry service (e.g. Kubernetes pod name, EC2 instance id, or region+node tuple). Captured once at that process's boot by startup middleware. Propagates via x-d2-context so downstream audit and telemetry know which entry node originated the request - important for hot-spot diagnosis and capacity attribution.
     /// </summary>
     public string? EdgeNodeId { get; set; } = null;
 
@@ -322,17 +343,17 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
     #region User Preferences
 
     /// <summary>
-    /// Resolved user locale as an IETF BCP 47 tag (e.g. 'en-US', 'zh-Hans-SG'). Populated by Edge auth middleware via the locale cascade: user profile preference &gt; org default preference &gt; X-D2-Locale header &gt; Accept-Language header &gt; fallback 'en-US'. Propagates so async consumers (Courier, Notifications) render locale-aware content. Validation of the BCP 47 tag is performed by the LocaleCode typed wrapper at the consumption site.
+    /// Resolved user locale as an IETF BCP 47 tag (e.g. 'en-US', 'zh-Hans-SG'). Populated by the entry service's auth middleware via the locale cascade: user profile preference &gt; org default preference &gt; X-D2-Locale header &gt; Accept-Language header &gt; fallback 'en-US'. Propagates so async consumers, such as email and notification delivery, render locale-aware content. Validation of the BCP 47 tag is performed by the LocaleCode typed wrapper at the consumption site.
     /// </summary>
     public string? LocaleIetfBcp47Tag { get; set; } = null;
 
     /// <summary>
-    /// Resolved user timezone as an IANA timezone database name (e.g. 'America/New_York', 'Europe/Berlin'). Populated by Edge auth middleware via the timezone cascade: user profile preference &gt; org default preference &gt; X-D2-Timezone header &gt; WhoIs-derived (CountryIso31661Alpha2Code + SubdivisionIso31662Code mapped via DcsvIo.D2.Geo.Default) &gt; fallback 'UTC'. Propagates so async consumers render timezone-aware timestamps.
+    /// Resolved user timezone as an IANA timezone database name (e.g. 'America/New_York', 'Europe/Berlin'). Populated by the entry service's auth middleware via the timezone cascade: user profile preference &gt; org default preference &gt; X-D2-Timezone header &gt; WhoIs-derived (CountryIso31661Alpha2Code + SubdivisionIso31662Code mapped via DcsvIo.D2.Geo.Default) &gt; fallback 'UTC'. Propagates so async consumers render timezone-aware timestamps.
     /// </summary>
     public string? TimezoneIanaName { get; set; } = null;
 
     /// <summary>
-    /// Resolved user currency as an ISO 4217 code (e.g. 'USD', 'EUR', 'GBP'). Populated by Edge auth middleware via the currency cascade: user profile preference &gt; org default preference &gt; X-D2-Currency header &gt; CountryIso31661Alpha2Code-derived (ISO 3166 to ISO 4217 primary legal-tender mapping via DcsvIo.D2.Geo.Default) &gt; fallback NULL (no sensible universal default; consumers surface a validation error when null and a currency is required).
+    /// Resolved user currency as an ISO 4217 code (e.g. 'USD', 'EUR', 'GBP'). Populated by the entry service's auth middleware via the currency cascade: user profile preference &gt; org default preference &gt; X-D2-Currency header &gt; CountryIso31661Alpha2Code-derived (ISO 3166 to ISO 4217 primary legal-tender mapping via DcsvIo.D2.Geo.Default) &gt; fallback NULL (no sensible universal default; consumers surface a validation error when null and a currency is required).
     /// </summary>
     public string? CurrencyIso4217Code { get; set; } = null;
 
@@ -341,18 +362,18 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
     #region Entitlements
 
     /// <summary>
-    /// Operating organization plan tier label (e.g. 'Free', 'Starter', 'Pro', 'Enterprise'). Used by handlers gating premium operations. Stored as a free-form string (not an enum) to allow tier names to evolve without a source-gen rebuild cycle — validate at the consumption site. Propagates so async consumers can apply plan-gated logic.
+    /// Operating organization plan tier label (e.g. 'Free', 'Starter', 'Pro', 'Enterprise'). Used by handlers gating premium operations. Stored as a free-form string (not an enum) to allow tier names to evolve without a source-gen rebuild cycle - validate at the consumption site. Propagates so async consumers can apply plan-gated logic.
     /// </summary>
     public string? OrgPlanTier { get; set; } = null;
 
     /// <summary>
-    /// Comma-separated list of active feature flag names for the operating org (e.g. 'new-billing,risk-v2'). Callers split on comma to enumerate active flags. Flag names MUST NOT contain commas — enforced at flag-creation time. CSV form chosen because source-gen does not currently support IReadOnlySet&lt;string&gt; for propagated context fields. Propagates so async consumers can apply flag-gated logic.
+    /// Comma-separated list of active feature flag names for the operating org (e.g. 'new-billing,risk-v2'). Callers split on comma to enumerate active flags. Flag names MUST NOT contain commas - enforced at flag-creation time. CSV form chosen because source-gen does not currently support IReadOnlySet&lt;string&gt; for propagated context fields. Propagates so async consumers can apply flag-gated logic.
     /// </summary>
     public string? FeatureFlagsCsv { get; set; } = null;
 
     #endregion
 
-    #region WhoIs — Admin Location
+    #region WhoIs - Admin Location
 
     /// <summary>
     /// Content-addressable hash identifier of the full WhoIs record (admin-location + coordinates). Stable across calls for the same client signal.
@@ -371,13 +392,13 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
     public string? City { get; set; } = null;
 
     /// <summary>
-    /// ISO 3166-2 subdivision code from WhoIs lookup (e.g. 'US-CA', 'DE-BY'). Standards-explicit name per the §7.Z naming convention: the name describes exactly what data IS. Consumers wanting the typed SubdivisionCode wrapper use IRequestContextGeoExtensions.Subdivision().
+    /// ISO 3166-2 subdivision code from WhoIs lookup (e.g. 'US-CA', 'DE-BY'). The property name states the standard that defines the value. Consumers wanting the typed SubdivisionCode wrapper use IRequestContextGeoExtensions.Subdivision().
     /// </summary>
     [RedactData(Reason = RedactReason.PersonalInformation)]
     public string? SubdivisionIso31662Code { get; set; } = null;
 
     /// <summary>
-    /// ISO 3166-1 alpha-2 country code from WhoIs lookup (e.g. 'US', 'DE'). Standards-explicit name per the §7.Z naming convention: the name describes exactly what data IS. Consumers wanting the typed CountryCode enum use IRequestContextGeoExtensions.Country().
+    /// ISO 3166-1 alpha-2 country code from WhoIs lookup (e.g. 'US', 'DE'). The property name states the standard that defines the value. Consumers wanting the typed CountryCode enum use IRequestContextGeoExtensions.Country().
     /// </summary>
     public string? CountryIso31661Alpha2Code { get; set; } = null;
 
@@ -389,7 +410,7 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
 
     #endregion
 
-    #region WhoIs — Coordinates
+    #region WhoIs - Coordinates
 
     /// <summary>
     /// Latitude in decimal degrees from WhoIs lookup. Component of the Coordinates value object per DcsvIo.D2.Location.
@@ -404,14 +425,14 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
     public double? Longitude { get; set; } = null;
 
     /// <summary>
-    /// Geohash form of the (Latitude, Longitude) pair. Content-addressable — also serves as Coordinates.HashId. Useful for proximity queries and cache keying.
+    /// Geohash form of the (Latitude, Longitude) pair. Content-addressable - it is also Coordinates.HashId. Useful for proximity queries and cache keying.
     /// </summary>
     [RedactData(Reason = RedactReason.PersonalInformation)]
     public string? Geohash { get; set; } = null;
 
     #endregion
 
-    #region WhoIs — Network Privacy
+    #region WhoIs - Network Privacy
 
     /// <summary>
     /// True when the IP is from a VPN.
@@ -435,10 +456,10 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
 
     #endregion
 
-    #region WhoIs — ASN
+    #region WhoIs - ASN
 
     /// <summary>
-    /// Autonomous System Number. Risk-scoring input — e.g. '&gt;5 different ASNs in last 2min → +15 risk'.
+    /// Autonomous System Number. Risk-scoring input - e.g. '&gt;5 different ASNs in last 2min -&gt; +15 risk'.
     /// </summary>
     public int? Asn { get; set; } = null;
 
@@ -448,7 +469,7 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
     public string? AsnName { get; set; } = null;
 
     /// <summary>
-    /// ASN type — typically one of: business / isp / hosting / mobile / education / government. Datacenter/Tor policies key on this. Free-form string for now (no enum) — promote to enum if a real handler benefits from typed dispatch.
+    /// ASN type - typically one of: business / isp / hosting / mobile / education / government. Datacenter/Tor policies key on this. Free-form string, not an enum.
     /// </summary>
     public string? AsnType { get; set; } = null;
 
@@ -457,17 +478,17 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
     #region Establishment
 
     /// <summary>
-    /// What KIND of trust boundary produced THIS hop's context, recomputed LOCALLY by the receiving boundary from its own unforgeable transport facts (HTTP edge inbound / cross-process mTLS gRPC / in-process module call / in-host system worker). NEVER propagated: a wire-supplied Origin is ignored — every boundary derives it fresh. The default RequestOrigin.Unestablished is fail-closed: a capability authority that has not had its Origin positively established by a boundary DENIES, never assumes a plane. Authority-grade BECAUSE it is local and unforgeable.
+    /// What KIND of trust boundary produced THIS hop's context, recomputed LOCALLY by the receiving boundary from its own unforgeable transport facts (HTTP edge inbound / cross-process mTLS gRPC / in-process module call / in-host system worker). NEVER propagated: a wire-supplied Origin is ignored - every boundary derives it fresh. The default RequestOrigin.Unestablished is fail-closed: a capability authority that has not had its Origin positively established by a boundary DENIES, never assumes a plane. Authority-grade BECAUSE it is local and unforgeable.
     /// </summary>
     public RequestOrigin Origin { get; set; } = RequestOrigin.Unestablished;
 
     /// <summary>
-    /// The id of the workload or module that called THIS hop. Cross-process: the authenticated mutual-TLS peer workload service id from the validated client certificate SPIFFE SAN (unforgeable, fail-closed null on no cert). In-process: the calling module/host id (trusted because the whole process is trusted — telemetry-grade, not a spoofing surface). Edge inbound / System: null (no upstream internal workload). NEVER propagated and NEVER request-controlled.
+    /// The id of the workload or module that called THIS hop. Cross-process: the authenticated mutual-TLS peer workload service id from the validated client certificate SPIFFE SAN (unforgeable, fail-closed null on no cert). In-process: the calling module/host id (trusted because the whole process is trusted - telemetry-grade, not a spoofing surface). EdgeInbound / System origin: null (no upstream internal workload). NEVER propagated and NEVER request-controlled.
     /// </summary>
     public string? ImmediateCaller { get; set; } = null;
 
     /// <summary>
-    /// Ordered sequence of the workloads/modules that have handled this request, oldest-first. Each boundary appends its OWN identity + a timestamp on receipt and logs the field; the chain reconstructs 'entered at Edge, went through A, then B, reached me' even when a trace span is dropped. Operational TELEMETRY ONLY — authority NEVER reads it. Propagated on x-d2-context alongside the other operational subset (it is the first propagated list-of-records field); depth-bounded (maxLength = max entry count) so a request cannot grow it without limit. Distinct from the impersonation act chain (which records on-whose-behalf and is signed identity).
+    /// Ordered sequence of the workloads/modules that have handled this request, oldest-first. Each boundary appends its OWN identity + a timestamp on receipt and logs the field; the chain reconstructs 'entered at the entry service, went through A, then B, reached me' even when a trace span is dropped. Operational TELEMETRY ONLY - authority NEVER reads it. Propagated on x-d2-context alongside the other operational subset (it is the first propagated list-of-records field); depth-bounded (maxLength = max entry count) so a request cannot grow it without limit. Distinct from the impersonation act chain (which records on-whose-behalf and is signed identity).
     /// </summary>
     public IReadOnlyList<CallPathEntry> CallPath { get; set; } = [];
 
@@ -476,7 +497,7 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
     /// <summary>
     /// **DOES NOT VALIDATE THE JWT.** Reads claims from <paramref name="payload"/>
     /// and populates the mutable context. Sets <c>IsAuthenticated = false</c>
-    /// deliberately — the caller MUST set <c>IsAuthenticated = true</c> after
+    /// deliberately - the caller MUST set <c>IsAuthenticated = true</c> after
     /// confirming JWT signature, expiry, audience, and issuer via the auth
     /// middleware (typically DcsvIo.D2.Auth's JwtValidator).
     /// </summary>
@@ -577,6 +598,16 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
             {
                 ctx.AuthMethod = el_AuthMethod.GetString().ToNullIfEmpty();
             }
+            else if (el_AuthMethod.ValueKind == JsonValueKind.Array)
+            {
+                ctx.AuthMethod = string.Join(
+                    " ",
+                    el_AuthMethod.EnumerateArray()
+                        .Where(e => e.ValueKind == JsonValueKind.String)
+                        .Select(e => e.GetString().ToNullIfEmpty())
+                        .Where(v => v is not null))
+                    .ToNullIfEmpty();
+            }
         }
         if (payload.TryGetProperty("d2_step_up_at", out var el_LastStepUpAt))
         {
@@ -651,6 +682,40 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
                 ctx.OrgRole = v_OrgRole;
             }
         }
+        if (payload.TryGetProperty("d2_root_org_id", out var el_RootOrgId))
+        {
+            if (el_RootOrgId.ValueKind == JsonValueKind.String &&
+                el_RootOrgId.GetString().TryParseTruthyNull(out Guid? v_RootOrgId))
+            {
+                ctx.RootOrgId = v_RootOrgId;
+            }
+        }
+        if (payload.TryGetProperty("d2_accessible_org_ids", out var el_AccessibleOrgIds))
+        {
+            var set_AccessibleOrgIds = new HashSet<string>(StringComparer.Ordinal);
+            if (el_AccessibleOrgIds.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item_AccessibleOrgIds in el_AccessibleOrgIds.EnumerateArray())
+                {
+                    set_AccessibleOrgIds.Add(item_AccessibleOrgIds.ValueKind == JsonValueKind.String
+                        ? item_AccessibleOrgIds.GetString()!
+                        : item_AccessibleOrgIds.GetRawText());
+                }
+            }
+            else if (el_AccessibleOrgIds.ValueKind == JsonValueKind.String)
+            {
+                set_AccessibleOrgIds.Add(el_AccessibleOrgIds.GetString()!);
+            }
+            else
+            {
+                set_AccessibleOrgIds.Add(el_AccessibleOrgIds.GetRawText());
+            }
+
+            if (set_AccessibleOrgIds.Count > 0)
+            {
+                ctx.AccessibleOrgIds = set_AccessibleOrgIds;
+            }
+        }
         if (payload.TryGetProperty("scope", out var el_Scopes))
         {
             ctx.Scopes = ScopeClaimParser.Parse(el_Scopes);
@@ -673,7 +738,7 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
     /// </summary>
     /// <remarks>
     /// Trusts that the auth middleware has already validated signature, expiry,
-    /// audience, and issuer before constructing the ClaimsPrincipal — that's the
+    /// audience, and issuer before constructing the ClaimsPrincipal - that's the
     /// AspNetCore authentication middleware's contract.
     /// </remarks>
     /// <param name="principal">The authenticated principal.</param>
@@ -728,10 +793,12 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
         {
             ctx.ActorChain = ActorChainParser.ParseFromJsonString(claim_ActorChain);
         }
-        var claim_AuthMethod = principal.FindFirst("amr")?.Value;
-        if (claim_AuthMethod is not null)
+        var joined_AuthMethod = string.Join(" ", principal.FindAll("amr")
+            .Select(c => c.Value.ToNullIfEmpty())
+            .Where(v => v is not null)).ToNullIfEmpty();
+        if (joined_AuthMethod is not null)
         {
-            ctx.AuthMethod = claim_AuthMethod.ToNullIfEmpty();
+            ctx.AuthMethod = joined_AuthMethod;
         }
         var claim_LastStepUpAt = principal.FindFirst("d2_step_up_at")?.Value;
         if (claim_LastStepUpAt is not null)
@@ -796,6 +863,21 @@ public sealed class MutableRequestContext : global::DcsvIo.D2.Context.Abstractio
             {
                 ctx.OrgRole = v_OrgRole;
             }
+        }
+        var claim_RootOrgId = principal.FindFirst("d2_root_org_id")?.Value;
+        if (claim_RootOrgId is not null)
+        {
+            if (claim_RootOrgId.TryParseTruthyNull(out Guid? v_RootOrgId))
+            {
+                ctx.RootOrgId = v_RootOrgId;
+            }
+        }
+        var claims_AccessibleOrgIds = principal.FindAll("d2_accessible_org_ids")
+            .Select(c => c.Value)
+            .ToList();
+        if (claims_AccessibleOrgIds.Count > 0)
+        {
+            ctx.AccessibleOrgIds = new HashSet<string>(claims_AccessibleOrgIds, StringComparer.Ordinal);
         }
         var claim_Scopes = principal.FindFirst("scope")?.Value;
         if (claim_Scopes is not null)

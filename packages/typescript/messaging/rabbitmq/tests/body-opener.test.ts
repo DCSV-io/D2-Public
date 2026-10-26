@@ -17,10 +17,10 @@ describe("PlaintextBodyOpener", () => {
 
   it("parses a valid UTF-8 JSON body", () => {
     const body = Buffer.from(
-      JSON.stringify({ domain: "audit", kid: "k1" }),
+      JSON.stringify({ domain: "orders", kid: "k1" }),
       "utf8",
     );
-    expect(opener.open(body)).toEqual({ domain: "audit", kid: "k1" });
+    expect(opener.open(body)).toEqual({ domain: "orders", kid: "k1" });
   });
 
   it("FAIL-LOUDS a symmetric encryption frame (version 1) as DECRYPT_FAILURE", () => {

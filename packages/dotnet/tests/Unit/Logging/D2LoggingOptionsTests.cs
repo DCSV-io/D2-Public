@@ -54,9 +54,9 @@ public sealed class D2LoggingOptionsTests
         var a = new D2LoggingOptions("svc", "Production", LogEventLevel.Debug, ["/x"]);
         var b = new D2LoggingOptions("svc", "Production", LogEventLevel.Debug, ["/x"]);
 
-        // Records compare by-value on init properties (set properties also when
-        // both sides hold the same reference); InfrastructurePaths is a separate
-        // list so reference-distinct collections don't auto-equal — use field-wise.
+        // Records compare init properties by value. InfrastructurePaths is a
+        // list, and two lists that are different references are not equal, so
+        // the test compares the other properties one by one.
         a.ServiceName.Should().Be(b.ServiceName);
         a.Environment.Should().Be(b.Environment);
         a.MinimumLevel.Should().Be(b.MinimumLevel);

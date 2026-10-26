@@ -6,9 +6,12 @@ import type { ILogger, LogBindings } from "@dcsv-io/d2-logging";
 import type Redis from "ioredis";
 
 import {
+  CONSUME_TOKEN,
   INCREMENT_WITH_OPTIONAL_TTL,
   RELEASE_LOCK_IF_OWNER,
+  REMOVE_IF_EQUAL,
   SET_ADD_WITH_OPTIONAL_TTL,
+  SET_IF_EQUAL,
 } from "../src/redis-lua-scripts.js";
 
 /** No-op logger for unit tests (required ctor seam). */
@@ -33,7 +36,7 @@ export function createNoOpTestLogger(): NoOpTestLogger {
 interface TestStoreEntry {
   value: string;
   expiresAt?: number;
-  kind: "string" | "set";
+  kind: "string" | "set" | "bucket";
   members?: Set<string>;
 }
 
@@ -47,8 +50,8 @@ interface TestPubSubBus {
 
 /**
  * Faithful in-memory Redis command double covering the cache/backplane
- * command surface. Replace-trigger: prefer integration coverage when a
- * branch is exercised against real Redis.
+ * command surface. Prefer integration coverage over this double when a
+ * branch can be exercised against real Redis.
  */
 export class RedisTestDouble {
   readonly store = new Map<string, TestStoreEntry>();
@@ -64,12 +67,17 @@ export class RedisTestDouble {
   /**
    * When set, the next `get` throws this error once (then clears). Used to
    * force the increment pre-check skip so the post-INCRBY reverse path runs.
-   * Does not set sticky `throwOnNext` — eval/decrby still run.
+   * Does not set sticky `throwOnNext` - eval/decrby still run.
    */
   throwOnNextGet?: Error;
+  /**
+   * When true, `pipeline().exec()` resolves with an empty array, which is the
+   * shape the store treats as a pipeline that ran nothing.
+   */
+  emptyPipelineExec = false;
   /** Count of `get` invocations (pre-INCRBY safe-int check coverage). */
   getCallCount = 0;
-  /** Count of `eval` invocations (assert pre-check refuses without Lua). */
+  /** Count of `eval` invocations (assert pre-check rejects without Lua). */
   evalCallCount = 0;
   /**
    * When set on the command double, every `duplicate()` child awaits this
@@ -313,7 +321,7 @@ export class RedisTestDouble {
     script: string,
     numKeys: number,
     ...args: Array<string | number>
-  ): Promise<number> {
+  ): Promise<number | [number, number]> {
     this.maybeThrow();
     this.evalCallCount++;
     void numKeys;
@@ -325,12 +333,34 @@ export class RedisTestDouble {
       return this.evalIncrement(key, argv1, argv2);
     }
 
-    if (script === RELEASE_LOCK_IF_OWNER) {
-      return this.evalReleaseLock(key, argv1);
+    // RELEASE_LOCK_IF_OWNER and REMOVE_IF_EQUAL have the same body under two
+    // contracts - a lock holder's raw identifier and a serialized payload - so
+    // one branch handles both and neither is unreachable behind the other.
+    if (script === RELEASE_LOCK_IF_OWNER || script === REMOVE_IF_EQUAL) {
+      return this.evalCompareAndDelete(key, argv1);
     }
 
     if (script === SET_ADD_WITH_OPTIONAL_TTL) {
       return this.evalSetAdd(key, argv1, argv2);
+    }
+
+    if (script === CONSUME_TOKEN) {
+      return this.evalConsumeToken(
+        key,
+        Number(argv1),
+        Number(argv2),
+        Number(args[3]),
+        Number(args[4]),
+      );
+    }
+
+    if (script === SET_IF_EQUAL) {
+      return this.evalSetIfEqual(
+        key,
+        argv1,
+        argv2,
+        args[3] !== undefined ? String(args[3]) : "0",
+      );
     }
 
     throw new Error(
@@ -426,16 +456,84 @@ export class RedisTestDouble {
     return next;
   }
 
-  private evalReleaseLock(key: string, lockId: string): number {
+  /**
+   * The twin of RELEASE_LOCK_IF_OWNER and REMOVE_IF_EQUAL: compare the STORED
+   * string against `expected` and delete it only on a match. An absent key
+   * never matches, which is what the Lua `GET` returning false does.
+   */
+  private evalCompareAndDelete(key: string, expected: string): number {
     const entry = this.liveString(key);
 
-    if (entry === undefined || entry.value !== lockId) {
+    if (entry === undefined || entry.value !== expected) {
       return 0;
     }
 
     this.store.delete(key);
 
     return 1;
+  }
+
+  /**
+   * The twin of CONSUME_TOKEN: refill by elapsed time, keep the accrual that
+   * did not amount to a whole thousandth, clamp to the capacity, then consume.
+   * Tokens are held as thousandths in the stored value, the same scale the
+   * script uses, so the double and the script return the same results. The
+   * bucket is a hash on a real server, so a key holding anything else raises
+   * WRONGTYPE.
+   */
+  private evalConsumeToken(
+    key: string,
+    refillTokens: number,
+    intervalMs: number,
+    burst: number,
+    cost: number,
+  ): [number, number] {
+    const capacity = burst * 1000;
+    const charge = cost * 1000;
+    let at = this.clock();
+    const entry = this.live(key);
+    let tokens = capacity;
+    let rem = 0;
+
+    if (entry !== undefined) {
+      if (entry.kind !== "bucket") {
+        throw wrongType();
+      }
+
+      const [held, heldAt, heldRem] = entry.value.split("|").map(Number);
+      at = Math.max(at, heldAt ?? at);
+      const elapsed = at - (heldAt ?? at);
+      const accrued = elapsed * refillTokens * 1000 + (heldRem ?? 0);
+
+      tokens = (held ?? capacity) + Math.floor(accrued / intervalMs);
+      rem = accrued % intervalMs;
+
+      if (tokens >= capacity) {
+        tokens = capacity;
+        rem = 0;
+      }
+    }
+
+    let admitted = 0;
+    let wait = 0;
+
+    if (tokens >= charge) {
+      admitted = 1;
+      tokens -= charge;
+    } else {
+      wait = Math.ceil(
+        ((charge - tokens) * intervalMs - rem) / (refillTokens * 1000),
+      );
+    }
+
+    this.store.set(key, {
+      value: `${tokens}|${at}|${rem}`,
+      kind: "bucket",
+      expiresAt:
+        at + Math.ceil((burst * intervalMs) / refillTokens) + intervalMs,
+    });
+
+    return [admitted, wait];
   }
 
   private evalSetAdd(key: string, member: string, ttlMs: string): number {
@@ -458,6 +556,29 @@ export class RedisTestDouble {
     }
 
     return added;
+  }
+
+  /**
+   * The twin of SET_IF_EQUAL: compare the STORED string against `expected` and
+   * replace it only on a match. An absent key never matches, which is what the
+   * Lua `GET` returning false does.
+   */
+  private evalSetIfEqual(
+    key: string,
+    expected: string,
+    value: string,
+    ttlMs: string,
+  ): number {
+    const entry = this.liveString(key);
+
+    if (entry === undefined || entry.value !== expected) {
+      return 0;
+    }
+
+    entry.value = value;
+    entry.expiresAt = ttlMs === "0" ? undefined : this.clock() + Number(ttlMs);
+
+    return 1;
   }
 
   private live(key: string): TestStoreEntry | undefined {
@@ -492,7 +613,7 @@ export class RedisTestDouble {
 
   private maybeThrow(): void {
     if (this.throwOnNext !== undefined) {
-      // Sticky: do not clear — models connection-down for multi-command ops.
+      // Sticky: do not clear - models connection-down for multi-command ops.
       throw this.throwOnNext;
     }
   }
@@ -516,6 +637,10 @@ export class RedisTestPipeline {
    */
   async exec(): Promise<Array<[Error | null, unknown]>> {
     const results: Array<[Error | null, unknown]> = [];
+
+    if (this.redis.emptyPipelineExec) {
+      return results;
+    }
 
     for (const op of this.ops) {
       try {

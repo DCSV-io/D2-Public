@@ -6,7 +6,7 @@ import { falsey } from "@dcsv-io/d2-utilities";
 
 /**
  * Hand-written types register their PII paths via this helper at module
- * load time; the `setupLogger()` consumer flattens all registered paths
+ * load time; `setupLogger()` flattens all registered paths
  * (plus codegen-emitted `<TypeName>RedactPaths` constants) into Pino's
  * `redact: { paths }` configuration.
  *
@@ -41,9 +41,9 @@ export function markRedactedFields(
 
 /**
  * Returns the redacted paths registered for a single type identifier.
- * Returns an empty array if no registration exists (no throwing on
- * "unknown" — operators may legitimately query identifiers before
- * registration in tests).
+ * Returns an empty array if no registration exists. It does not throw on an
+ * unknown identifier, because an operator may legitimately query an
+ * identifier before registration in a test.
  */
 export function getRedactedFieldsFor(
   typeIdentifier: symbol,
@@ -52,7 +52,7 @@ export function getRedactedFieldsFor(
 }
 
 /**
- * Returns ALL registered paths flattened across every registered type.
+ * Returns all registered paths flattened across every registered type.
  * Used by `setupLogger()` to feed Pino's `redact: { paths }` config.
  */
 export function collectAllRedactedFields(): readonly string[] {
@@ -62,8 +62,8 @@ export function collectAllRedactedFields(): readonly string[] {
 }
 
 /**
- * Test-only escape hatch — clears the registry. Production code should
- * NEVER call this; only test fixtures isolating per-test state.
+ * Test-only escape hatch that clears the registry. Production code must
+ * never call this; only test fixtures that isolate per-test state use it.
  */
 export function clearRedactedFieldsRegistry(): void {
   sr_registry.clear();

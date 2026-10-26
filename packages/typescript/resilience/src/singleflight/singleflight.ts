@@ -4,7 +4,7 @@
 
 /**
  * Coalesces concurrent in-flight async ops by key. Mirrors .NET
- * `Singleflight<TKey, TValue>` — the second concurrent caller for the
+ * `Singleflight<TKey, TValue>`: the second concurrent caller for the
  * same key gets the same Promise as the first. After the Promise settles
  * the entry is removed; the next call re-executes the factory.
  */
@@ -29,7 +29,7 @@ export class Singleflight<TKey, TValue> {
     return p;
   }
 
-  /** Number of in-flight ops — for tests + observability. */
+  /** Number of in-flight ops. */
   get inflightCount(): number {
     return this.inflight.size;
   }

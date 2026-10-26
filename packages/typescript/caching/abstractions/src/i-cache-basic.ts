@@ -5,7 +5,7 @@
 import type { D2Result } from "@dcsv-io/d2-result";
 
 /**
- * Core read + write surface common to every cache flavor (local,
+ * Core read and write surface common to every cache flavor (local,
  * distributed, tiered). Every method returns `D2Result` / `D2Result<T>`.
  * Cache misses surface as `notFound`; partial bulk hits as `someFound`
  * (callers discriminate via `success` / `isPartialSuccess` / `errorCode`).
@@ -14,21 +14,21 @@ import type { D2Result } from "@dcsv-io/d2-result";
  * `unhandledException`.
  *
  * Falsey inputs (missing key, missing keys collection, missing entries
- * map) return `validationFailed` with an `InputError` naming the
+ * map) return `validationFailed` with an `InputError` that identifies the
  * offending parameter (built via `InputFailures.required(...)`).
- * Implementations never throw for **per-call** caller mistakes —
+ * Implementations never throw for **per-call** caller mistakes -
  * every per-call failure shape is observable on the result.
  *
  * **Behavior per marker:**
- * - {@link ILocalCache}: in-process reads/writes. Sub-microsecond per op.
+ * - {@link ILocalCache}: in-process reads and writes. Sub-microsecond per op.
  * - {@link IDistributedCache}: every read and write hits the remote store.
  *   No L1 buffer. Predictable freshness, network-bound latency.
- * - {@link ITieredCache}: reads check L1 first / fall through to L2 /
- *   populate L1. Writes go L2-first — L1 only writes if L2 succeeded —
- *   so partial-write states are impossible and the result is binary
- *   (success or the L2 failure bubbled up).
+ * - {@link ITieredCache}: reads check L1 first, fall through to L2 and
+ *   populate L1. Writes go to L2 first and L1 is written only if L2
+ *   succeeded, so partial-write states are impossible and the result is
+ *   binary: success, or the L2 failure returned as is.
  *
- * **PII:** keep PII out of cache **keys** — keys leak into logs, traces,
+ * **PII:** keep PII out of cache **keys** - keys leak into logs, traces,
  * and store inspection tooling. Hash user-supplied identifiers first.
  */
 export interface ICacheBasic {
@@ -100,7 +100,7 @@ export interface ICacheBasic {
   ): Promise<D2Result>;
 
   /**
-   * Removes a key. **Idempotent** — succeeds whether the key existed
+   * Removes a key. **Idempotent** - succeeds whether the key existed
    * or not.
    *
    * @returns `ok`; failure on backing-store error.

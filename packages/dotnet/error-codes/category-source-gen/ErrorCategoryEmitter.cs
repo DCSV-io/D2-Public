@@ -16,11 +16,11 @@ using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
 /// Pure logic for emitting the <c>ErrorCategory</c> enum, the
-/// <c>ErrorCategoryWire</c> ↔ wire-string mapping, and the
+/// <c>ErrorCategoryWire</c> &lt;-&gt; wire-string mapping, and the
 /// <c>ErrorCategoryJsonConverter</c> from a parsed
 /// <see cref="ErrorCategorySpec"/>. The emitted artifacts are byte-stable
-/// with the shape the registry source-gen generates — the enum members
-/// are sorted by wire string (ordinal) so the closed set is deterministic
+/// with the shape the registry source generator generates. The enum members
+/// are sorted by wire string (ordinal), so the closed set is deterministic
 /// across builds.
 /// </summary>
 internal static class ErrorCategoryEmitter
@@ -29,16 +29,16 @@ internal static class ErrorCategoryEmitter
     public const string ROOT_NAMESPACE = "DcsvIo.D2.ErrorCodes.Category";
 
     /// <summary>
-    /// snake_case wire-string validator. Bucket 1 (no backtracking) — anchored
-    /// character-class match; no timeout needed.
+    /// snake_case wire-string validator. No backtracking: an anchored
+    /// character-class match, so no timeout is needed.
     /// </summary>
     private static readonly Regex sr_wireRegex = new(
         "^[a-z][a-z0-9_]*$",
         RegexOptions.Compiled);
 
-    /// <summary>Emits the ErrorCategory enum + wire mapping + converter source.</summary>
+    /// <summary>Emits the ErrorCategory enum, the wire mapping and the converter source.</summary>
     /// <param name="spec">Parsed error-category spec.</param>
-    /// <returns>Generated source + diagnostics.</returns>
+    /// <returns>The generated source and the diagnostics.</returns>
     public static EmitResult Emit(ErrorCategorySpec spec)
     {
         var diagnostics = ImmutableArray.CreateBuilder<EmitDiagnostic>();
@@ -75,8 +75,8 @@ internal static class ErrorCategoryEmitter
 
     /// <summary>
     /// Maps a spec category wire string (snake_case) to a C# PascalCase
-    /// enum member name. The mapping must be stable and reversible so the
-    /// parity test can compare wire strings against enum values.
+    /// enum member name. The mapping must be stable and reversible so that
+    /// wire strings can be compared against enum values.
     /// </summary>
     /// <param name="wire">Wire category string (e.g. <c>validation_failure</c>).</param>
     /// <returns>PascalCase enum member name (e.g. <c>ValidationFailure</c>).</returns>
@@ -98,7 +98,7 @@ internal static class ErrorCategoryEmitter
 
     private static string EmitSource(List<ErrorCategoryEntry> entries)
     {
-        // Sort by wire string (ordinal) so the emitted enum + mappings are
+        // Sort by wire string (ordinal) so the emitted enum and mappings are
         // deterministic across builds and byte-stable with the closed set.
         var sorted = new List<ErrorCategoryEntry>(entries);
         sorted.Sort(static (a, b) => string.CompareOrdinal(a.Wire, b.Wire));
@@ -166,15 +166,16 @@ internal static class ErrorCategoryEmitter
     private static void EmitWireMapping(StringBuilder sb, List<ErrorCategoryEntry> entries)
     {
         sb.AppendLine("/// <summary>");
-        sb.AppendLine("/// Canonical <see cref=\"ErrorCategory\"/> ↔ snake_case wire-string mapping.");
-        sb.AppendLine("/// All consumers — JSON serialization, gRPC trailers, fixture emission —");
-        sb.AppendLine("/// delegate to these two methods so the mapping has a single source of");
+        sb.AppendLine(
+            "/// Canonical <see cref=\"ErrorCategory\"/> &lt;-&gt; snake_case wire-string mapping.");
+        sb.AppendLine("/// All consumers - JSON serialization, gRPC trailers, fixture emission -");
+        sb.AppendLine("/// delegate to the methods below so the mapping has a single source of");
         sb.AppendLine("/// truth inside this assembly.");
         sb.AppendLine("/// </summary>");
         sb.AppendLine("public static class ErrorCategoryWire");
         sb.AppendLine("{");
 
-        // sr_toWire — FrozenDictionary<ErrorCategory, string>
+        // sr_toWire - FrozenDictionary<ErrorCategory, string>
         sb.AppendLine("    private static readonly FrozenDictionary<ErrorCategory, string> sr_toWire =");
         sb.AppendLine("        new Dictionary<ErrorCategory, string>()");
         sb.AppendLine("        {");
@@ -188,7 +189,7 @@ internal static class ErrorCategoryEmitter
         sb.AppendLine("        }.ToFrozenDictionary();");
         sb.AppendLine();
 
-        // sr_fromWire — FrozenDictionary<string, ErrorCategory>
+        // sr_fromWire - FrozenDictionary<string, ErrorCategory>
         sb.AppendLine("    private static readonly FrozenDictionary<string, ErrorCategory> sr_fromWire =");
         sb.AppendLine("        new Dictionary<string, ErrorCategory>(StringComparer.Ordinal)");
         sb.AppendLine("        {");
@@ -206,7 +207,7 @@ internal static class ErrorCategoryEmitter
         sb.AppendLine("    /// <summary>");
         sb.AppendLine("    /// Returns the snake_case wire string for the given");
         sb.AppendLine("    /// <see cref=\"ErrorCategory\"/> value");
-        sb.AppendLine("    /// (e.g. <see cref=\"ErrorCategory.ValidationFailure\"/> →");
+        sb.AppendLine("    /// (e.g. <see cref=\"ErrorCategory.ValidationFailure\"/> ->");
         sb.AppendLine("    /// <c>\"validation_failure\"</c>).");
         sb.AppendLine("    /// </summary>");
         sb.AppendLine("    /// <param name=\"category\">The enum value to convert.</param>");

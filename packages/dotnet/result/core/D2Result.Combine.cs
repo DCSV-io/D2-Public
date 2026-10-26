@@ -12,19 +12,19 @@ using DcsvIo.D2.I18n;
 
 /// <summary>
 /// Aggregator for combining multiple typed <see cref="D2Result{T}"/> instances
-/// into one — handy for fan-out scenarios (parallel sub-handlers, multi-field
+/// into one, for fan-out scenarios (parallel sub-handlers, multi-field
 /// smart-constructor validation). All-success returns the combined payload;
 /// any-failure aggregates messages + input errors into a
 /// <see cref="D2Result{T}.ValidationFailed"/>.
 /// </summary>
 /// <remarks>
 /// <b>Designed for smart-constructor multi-field validation aggregation</b>
-/// — every input is expected to be either <c>Ok</c> or
+/// - every input is expected to be either <c>Ok</c> or
 /// <c>ValidationFailed</c>-equivalent. Combining heterogeneous failure
 /// types (e.g. <c>UniqueViolation</c> + <c>NotFound</c> + raw
 /// <c>Forbidden</c>) <b>collapses every failure into a single
 /// <c>ValidationFailed</c></b>; the per-input typed error code (<c>IsUniqueViolation</c>,
-/// <c>IsNotFound</c>, <c>IsForbidden</c>, etc.) is NOT preserved on the
+/// <c>IsNotFound</c>, <c>IsForbidden</c>, etc.) is not preserved on the
 /// aggregated output. If a caller needs to propagate a single typed
 /// failure unchanged, use <c>BubbleFail</c> on that one result instead of
 /// running it through <c>Combine</c>.
@@ -32,7 +32,7 @@ using DcsvIo.D2.I18n;
 public partial class D2Result
 {
     /// <summary>
-    /// Combines two typed results. All-success → tuple payload; any-failure →
+    /// Combines two typed results. All-success -> tuple payload; any-failure ->
     /// aggregated <see cref="D2Result{T}.ValidationFailed"/>.
     /// </summary>
     /// <typeparam name="T1">Type of <paramref name="r1"/>'s payload.</typeparam>
@@ -140,9 +140,9 @@ public partial class D2Result
     /// <typeparam name="T">Type of the payloads.</typeparam>
     /// <param name="results">Results to combine.</param>
     /// <returns>
-    /// All-success → <c>D2Result&lt;T&gt;.Ok</c> with the unwrapped payload list.
-    /// Any-failure → aggregated <see cref="D2Result{T}.ValidationFailed"/>.
-    /// Empty input → <c>D2Result&lt;T&gt;.Ok</c> with an empty list.
+    /// All-success -> <c>D2Result&lt;T&gt;.Ok</c> with the unwrapped payload list.
+    /// Any-failure -> aggregated <see cref="D2Result{T}.ValidationFailed"/>.
+    /// Empty input -> <c>D2Result&lt;T&gt;.Ok</c> with an empty list.
     /// </returns>
     public static D2Result<IReadOnlyList<T>> Combine<T>(IEnumerable<D2Result<T>> results)
     {

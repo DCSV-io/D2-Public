@@ -15,8 +15,8 @@ using Xunit;
 /// values (literal strings <c>"DcsvIo.D2.Auth"</c> etc.) are the
 /// long-lived contract operators query Tempo / Loki / Prometheus by
 /// (e.g. <c>service="DcsvIo.D2.Auth"</c>); a value drift would silently
-/// break those dashboards. Pinning here forces an explicit ack of any
-/// rename.
+/// break those dashboards. A rename therefore requires an explicit change to
+/// this test.
 /// </summary>
 public sealed class AggregatedTelemetrySourcesTests
 {
@@ -73,12 +73,12 @@ public sealed class AggregatedTelemetrySourcesTests
     [Fact]
     public void EveryActivitySourceName_AlsoAppearsInMeterNames()
     {
-        // Current shape: every lib that publishes an ActivitySource also
-        // publishes a Meter under the same name (the source-of-truth lib
-        // class declares a single SOURCE_NAME constant used for both).
-        // Cache libs add Meter-only entries on top — pinning the
-        // ActivitySource ⊂ Meter relationship keeps the aggregation table
-        // honest.
+        // Every lib that publishes an ActivitySource also publishes a Meter
+        // under the same name (the source-of-truth lib class declares a
+        // single SOURCE_NAME constant used for both). Cache libs add
+        // Meter-only entries on top. This test pins the
+        // ActivitySource ⊂ Meter relationship, so the aggregation table stays
+        // consistent.
         var meters = new HashSet<string>(
             AggregatedTelemetrySources.SR_MeterNames,
             StringComparer.Ordinal);

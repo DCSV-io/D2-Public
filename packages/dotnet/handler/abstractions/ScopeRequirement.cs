@@ -13,25 +13,25 @@ using System.Collections.Generic;
 /// <c>BaseHandler.RunCorePipelineAsync</c> before <c>ExecuteAsync</c> runs.
 /// Combines the scope set with an explicit <see cref="HandlerScopeMatch"/> mode
 /// so the any-of vs all-of semantic is always stated at declaration time,
-/// mirroring the transport-layer <c>EndpointScopeMetadata</c> /
-/// <c>MethodScopeMetadata</c> shape.
+/// mirroring the shape of the scope metadata that HTTP endpoints and gRPC
+/// methods declare.
 /// </summary>
 /// <remarks>
 /// <para>
 /// A <see langword="null"/> <see cref="HandlerOptions.ScopeRequirement"/> disables
-/// the per-handler scope pre-check entirely — any authenticated caller (that passed
+/// the per-handler scope pre-check entirely - any authenticated caller (that passed
 /// the transport-layer auth middleware / interceptor) may invoke the handler. This
 /// is the correct choice when the handler performs its own internal authorization
 /// or when scope enforcement is fully delegated to the transport layer.
 /// </para>
 /// <para>
 /// An empty <see cref="Scopes"/> set is illegal at construction time
-/// (<see cref="ArgumentException"/> thrown) — use a <see langword="null"/>
+/// (<see cref="ArgumentException"/> thrown) - use a <see langword="null"/>
 /// <see cref="HandlerOptions.ScopeRequirement"/> instead to disable the check.
 /// The <c>BaseHandler</c> pipeline guard (<c>is { Scopes.Count: &gt; 0 }</c>)
-/// remains as defense-in-depth, but the constructor guard surfaces the
-/// misconfiguration at the earliest possible moment (DI composition /
-/// option-record creation) rather than silently at call time.
+/// remains as defense-in-depth, but the constructor guard reports the
+/// misconfiguration at the earliest possible moment (DI composition or
+/// option-record creation) and not silently at call time.
 /// </para>
 /// </remarks>
 public sealed record ScopeRequirement
@@ -58,8 +58,8 @@ public sealed record ScopeRequirement
     {
         ArgumentNullException.ThrowIfNull(scopes);
 
-        // DcsvIo.D2.Utilities is not referenced by handler/abstractions; BCL
-        // check is the correct approach here.
+        // handler/abstractions does not reference DcsvIo.D2.Utilities, so
+        // this check uses the BCL.
         if (scopes.Count == 0)
         {
             throw new ArgumentException(

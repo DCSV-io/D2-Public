@@ -14,12 +14,12 @@
     {
       "constName": "MESSAGES",
       "value": "messages",
-      "doc": "JSON property carrying the translation messages associated with the operation. Always an array of TKMessage objects ({key, params?}) per contracts/tk-message — empty array when no messages, not omitted. Both the .NET serializer and the TS parser treat the wire shape as TKMessage[] (a translatable-message envelope), not a plain string[]."
+      "doc": "JSON property carrying the translation messages associated with the operation. Always an array of TKMessage objects ({key, params?}) per contracts/tk-message - empty array when no messages, not omitted. Both the .NET serializer and the TS parser treat the wire shape as TKMessage[] (a translatable-message envelope), not a plain string[]."
     },
     {
       "constName": "INPUT_ERRORS",
       "value": "inputErrors",
-      "doc": "JSON property carrying per-field validation errors. Always an array of InputError objects ({field, errors: TKMessage[]}) per contracts/input-error — empty array when no input errors, not omitted. Carries the structured validation surface for forms / inputs."
+      "doc": "JSON property carrying per-field validation errors. Always an array of InputError objects ({field, errors: TKMessage[]}) per contracts/input-error - empty array when no input errors, not omitted. Carries the structured validation surface for forms / inputs."
     },
     {
       "constName": "ERROR_CODE",
@@ -34,7 +34,7 @@
     {
       "constName": "STATUS_CODE",
       "value": "statusCode",
-      "doc": "JSON property carrying the HTTP status code as an integer (e.g. 200, 404, 206). Always emitted by the .NET serializer; the TS-side parser TREATS THIS AS INFORMATIONAL ONLY — the authoritative status comes from the HTTP response.status header. Carrying it in the body preserves diagnostic value when wire bytes are inspected (test fixtures, dev tools, DLQ entries with cached responses)."
+      "doc": "JSON property carrying the HTTP status code as an integer (e.g. 200, 404, 206). Always emitted by the .NET serializer; the TS-side parser TREATS THIS AS INFORMATIONAL ONLY - the authoritative status comes from the HTTP response.status header. Carrying it in the body preserves diagnostic value when wire bytes are inspected (test fixtures, dev tools, DLQ entries with cached responses)."
     },
     {
       "constName": "CATEGORY",

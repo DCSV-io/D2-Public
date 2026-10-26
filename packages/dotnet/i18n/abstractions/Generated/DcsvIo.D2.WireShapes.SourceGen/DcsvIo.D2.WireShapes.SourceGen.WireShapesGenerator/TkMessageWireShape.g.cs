@@ -10,8 +10,8 @@
 
 namespace DcsvIo.D2.I18n;
 
-/// <summary>Spec-derived JSON property-name catalog for the TKMessage wire shape. Every JSON serializer / deserializer in .NET references these constants for property names instead of inline string literals — drift between the wire and the code is structurally impossible.</summary>
-/// <remarks>Cross-language parity: the SAME spec drives the TS-side <c>@dcsv-io/d2-result</c> catalog via <c>tools/ts-codegen</c>. Both sides emit the same property names byte-for-byte; cross-language wire drift is impossible.</remarks>
+/// <summary>Spec-derived JSON property-name catalog for the TKMessage wire shape. Every JSON serializer / deserializer in .NET references these constants for property names instead of inline string literals - drift between the wire and the code is structurally impossible.</summary>
+/// <remarks>Cross-language parity: the SAME spec drives the TS-side <c>@dcsv-io/d2-result</c> catalog through the TypeScript emitter. Both sides emit the same property names byte-for-byte; cross-language wire drift is impossible.</remarks>
 public static class TkMessageWireShape
 {
     /// <summary>JSON property name carrying the translation key (e.g. 'common_errors_NOT_FOUND'). REQUIRED on every TKMessage; absent payloads are rejected by both the .NET TKMessageJsonConverter and the TS-side parser.</summary>

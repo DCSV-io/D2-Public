@@ -8,9 +8,9 @@ namespace DcsvIo.D2.InProcessKeys.SourceGen;
 
 /// <summary>
 /// String identifiers for the diagnostics emitted by
-/// <see cref="InProcessKeysGenerator"/>. Kept in a separate class from
-/// <see cref="DiagnosticDescriptors"/> so non-Roslyn-host consumers can
-/// reference the IDs without dragging in <c>Microsoft.CodeAnalysis</c>.
+/// <see cref="InProcessKeysGenerator"/>. The IDs are in a separate class from
+/// <see cref="DiagnosticDescriptors"/> so that the IDs can be used without
+/// referencing <c>Microsoft.CodeAnalysis</c>.
 /// </summary>
 internal static class DiagnosticIds
 {
@@ -28,7 +28,7 @@ internal static class DiagnosticIds
 
     /// <summary>
     /// <c>keys.spec.json</c> not present in <c>&lt;AdditionalFiles&gt;</c>
-    /// for the consuming csproj.
+    /// for the project being compiled.
     /// </summary>
     public const string MissingSpec = "D2IPK004";
 }

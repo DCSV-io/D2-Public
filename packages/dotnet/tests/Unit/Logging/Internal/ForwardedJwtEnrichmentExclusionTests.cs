@@ -18,19 +18,20 @@ using Serilog;
 using Xunit;
 
 /// <summary>
-/// Pins the structural-isolation invariant for the forwarded JWT: the live
-/// bearer credential is held in a dedicated request-scoped holder
-/// (<see cref="IForwardedJwtAccessor"/>), NEVER as a field of the request
-/// context — so the broadly-projected request-context log/telemetry enricher
-/// (<see cref="D2RequestContextEnricher"/>) can never reach it. Two complementary
-/// proofs: a contract-level reflection assertion (no credential field on the
-/// context interfaces) and a projection-behavior assertion (the enricher emits
-/// nothing credential-shaped even with a populated holder in the same scope).
+/// Pins the structural isolation of the forwarded JWT. The live bearer
+/// credential is held in a dedicated request-scoped holder
+/// (<see cref="IForwardedJwtAccessor"/>) and is never a field of the request
+/// context, so the request-context log and telemetry enricher
+/// (<see cref="D2RequestContextEnricher"/>), which projects broadly, cannot
+/// reach it. Two checks cover this: a reflection assertion that the context
+/// interfaces have no credential field, and a projection assertion that the
+/// enricher emits nothing credential-shaped even when a populated holder is in
+/// the same scope.
 /// </summary>
 public sealed class ForwardedJwtEnrichmentExclusionTests
 {
-    // Name fragments that would betray a forwarded-credential field sneaking
-    // onto the context. Case-insensitive substring match.
+    // Name fragments that mark a forwarded-credential field added to the
+    // context. The match is a case-insensitive substring match.
     private static readonly string[] sr_credentialNameFragments =
     [
         "ForwardedJwt",
@@ -70,9 +71,9 @@ public sealed class ForwardedJwtEnrichmentExclusionTests
     [Fact]
     public void ContextInterfaces_HaveNoCredentialNamedProperty()
     {
-        // Defends the complementary axis: even a string-typed property named
-        // like a credential (e.g. "RawToken") would be a regression. Pins both
-        // the context interface and its base.
+        // A string-typed property named like a credential (for example
+        // "RawToken") would also be a regression. The test checks both
+        // IRequestContext and IAuthContext.
         var offending = typeof(IRequestContext)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Concat(typeof(IAuthContext).GetProperties(BindingFlags.Public | BindingFlags.Instance))
@@ -84,16 +85,16 @@ public sealed class ForwardedJwtEnrichmentExclusionTests
 
         offending.Should().BeEmpty(
             "no IRequestContext / IAuthContext property may be named like a "
-            + "forwarded credential — the moment one is added, this fails.");
+            + "forwarded credential - the moment one is added, this fails.");
     }
 
     [Fact]
     public void Enrich_WithPopulatedHolderInScope_RecordsNoCredentialFieldOrBytes()
     {
-        // Projection-behavior proof (defense-in-depth): even with a fully
-        // populated IForwardedJwtAccessor registered in the SAME request scope
-        // the enricher reaches via httpContext.RequestServices, the enricher
-        // emits nothing credential-shaped — it has no path to the holder.
+        // Projection check: the IForwardedJwtAccessor is fully populated and
+        // registered in the same request scope that the enricher reads through
+        // httpContext.RequestServices. The enricher still emits nothing
+        // credential-shaped, because it has no path to the holder.
         const string known_jwt = "eyJhbGciOiJSUzI1NiJ9.PAYLOAD_SENTINEL.SIG_SENTINEL";
 
         var holder = new MutableForwardedJwtAccessor();
@@ -113,7 +114,7 @@ public sealed class ForwardedJwtEnrichmentExclusionTests
             sr_credentialNameFragments.Any(frag =>
                 k.Contains(frag, StringComparison.OrdinalIgnoreCase)));
 
-        // And the raw bytes appear in no recorded VALUE.
+        // The raw bytes appear in no recorded value.
         var renderedValues = string.Join(
             "\n", diag.Recorded.Values.Select(v => v?.ToString() ?? string.Empty));
         renderedValues.Should().NotContain("PAYLOAD_SENTINEL");
@@ -128,8 +129,8 @@ public sealed class ForwardedJwtEnrichmentExclusionTests
     }
 
     /// <summary>
-    /// Recording <see cref="IDiagnosticContext"/> — captures every <c>Set</c>
-    /// call so the test can introspect the projected field set + values.
+    /// Recording <see cref="IDiagnosticContext"/> that captures every <c>Set</c>
+    /// call, so that the test can inspect the projected fields and values.
     /// </summary>
     private sealed class RecordingDiagnosticContext : IDiagnosticContext
     {
@@ -145,9 +146,11 @@ public sealed class ForwardedJwtEnrichmentExclusionTests
     }
 
     /// <summary>
-    /// Minimal <see cref="IRequestContext"/> stub — only the two fields these
-    /// tests touch are set; everything else defaults to null. Mirrors the
-    /// existing enricher-test stub shape.
+    /// Minimal <see cref="IRequestContext"/> stub. These tests set only
+    /// IsAuthenticated and Subject; every other property keeps its declared
+    /// default (null, an empty collection, or <c>RequestOrigin.Unestablished</c>
+    /// for Origin).
+    /// It has the same shape as the stub in D2RequestContextEnricherTests.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "ReSharper",
@@ -187,6 +190,10 @@ public sealed class ForwardedJwtEnrichmentExclusionTests
         public string? CurrentFingerprint { get; init; }
 
         public int? RiskScore { get; init; }
+
+        public string? DeviceKey { get; init; }
+
+        public string? DeviceConfidence { get; init; }
 
         public string? WhoIsHashId { get; init; }
 
@@ -257,6 +264,11 @@ public sealed class ForwardedJwtEnrichmentExclusionTests
         public OrgType? OrgType { get; init; }
 
         public Role? OrgRole { get; init; }
+
+        public Guid? RootOrgId { get; init; }
+
+        public IReadOnlySet<string> AccessibleOrgIds { get; init; } =
+            new HashSet<string>(StringComparer.Ordinal);
 
         public bool? IsImpersonating { get; init; }
 

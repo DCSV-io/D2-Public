@@ -29,7 +29,7 @@ export function asSubdivisionCode(value: string): SubdivisionCode;
 export function asTimezoneCode(value: string): TimezoneCode;
 
 // @public
-export const CATALOG_PUBLISHED_AT: "2026-05-26T13:25:26.656Z";
+export const CATALOG_PUBLISHED_AT: "2026-10-21T06:05:33.378Z";
 
 // @public
 export const CATALOG_VERSION: "0.1.0";

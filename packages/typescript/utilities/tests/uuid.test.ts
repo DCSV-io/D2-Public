@@ -30,7 +30,7 @@ describe("uuidv7", () => {
   });
 
   it("encodes the injected clock as the 48-bit big-endian timestamp prefix", () => {
-    // A fixed 48-bit epoch-ms value → deterministic first 12 hex digits.
+    // A fixed 48-bit epoch-ms value -> deterministic first 12 hex digits.
     const fixedMs = 0x0123456789ab;
     const expectedPrefix = fixedMs.toString(16).padStart(12, "0"); // "0123456789ab"
 

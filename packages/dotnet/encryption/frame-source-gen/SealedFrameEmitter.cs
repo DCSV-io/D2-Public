@@ -13,14 +13,14 @@ using DcsvIo.D2.SourceGen;
 
 /// <summary>
 /// Pure logic for emitting the <c>SealedFrameLayout</c> static class source
-/// from a parsed <see cref="SealedFrameSpec"/>. Sibling of
-/// <see cref="EncryptionFrameEmitter"/> for the version-2 SEALED frame —
-/// same constants-only shape, plus the <c>variable_binary_u16be</c> field
+/// from a parsed <see cref="SealedFrameSpec"/>. It is the counterpart of
+/// <see cref="EncryptionFrameEmitter"/> for the version-2 sealed frame, with the
+/// same constants-only shape. It also handles the <c>variable_binary_u16be</c> field
 /// kind (raw binary bytes behind a 2-byte big-endian length prefix, used by
-/// the ephemeral public key) that the symmetric catalog does not need.
-/// Mirrors the TS-side sealed catalog in <c>@dcsv-io/d2-encryption-abstractions</c>
-/// — both sides reference the same spec so the binary layout cannot drift
-/// across the .NET codec and the TS reader.
+/// the ephemeral public key), which the symmetric catalog does not use.
+/// The TypeScript sealed catalog in <c>@dcsv-io/d2-encryption-abstractions</c>
+/// mirrors it. Both sides read the same spec, so the binary layout cannot drift
+/// between the .NET constants and the TypeScript catalog.
 /// </summary>
 internal static class SealedFrameEmitter
 {
@@ -40,15 +40,16 @@ internal static class SealedFrameEmitter
     private const string _BINARY_U16BE_KIND = "variable_binary_u16be";
     private const string _BYTE_FIXED_KIND = "byte_fixed";
 
-    // The closed set of field kinds the sealed decoder knows how to read.
-    // An unknown kind means the codec has no arm for the field — fail loud
-    // at build time rather than emitting constants nothing can interpret.
+    // The closed set of field kinds that the sealed frame format defines a read
+    // for. An unknown kind has no read defined for the field, so the emitter
+    // reports a diagnostic at build time instead of emitting constants that nothing
+    // can interpret.
     private static readonly ImmutableHashSet<string> sr_knownKinds =
         ["byte_fixed", "variable_utf8", "variable_binary_u16be", "variable_remainder", "byte_fixed_trailing"];
 
-    /// <summary>Emits the layout-class source + diagnostics.</summary>
+    /// <summary>Emits the layout-class source and its diagnostics.</summary>
     /// <param name="spec">Parsed sealed-frame spec.</param>
-    /// <returns>Generated source + diagnostics.</returns>
+    /// <returns>The generated source and the diagnostics.</returns>
     public static EmitResult Emit(SealedFrameSpec spec)
     {
         var diagnostics = ImmutableArray.CreateBuilder<EmitDiagnostic>();
@@ -94,11 +95,11 @@ internal static class SealedFrameEmitter
                 continue;
             }
 
-            // The new-kind structural rule: a variable_binary_u16be field is
-            // readable ONLY behind an immediately preceding fixed length
-            // prefix of exactly the declared prefix width. Enforced at build
-            // time so the codec's read arm can never meet a spec it cannot
-            // parse.
+            // Structural rule for the variable_binary_u16be kind: the field is
+            // readable only behind an immediately preceding fixed length
+            // prefix of exactly the declared prefix width. The emitter enforces
+            // it at build time, so the codec's read arm never receives a spec
+            // it cannot parse.
             if (entry.Kind == _BINARY_U16BE_KIND)
             {
                 var precededByPrefix = i > 0
@@ -116,7 +117,7 @@ internal static class SealedFrameEmitter
             valid.Add(entry);
         }
 
-        // Overlap check for fixed-offset fixed-length entries (offset >= 0 AND length > 0).
+        // Overlap check for fixed-offset fixed-length entries (offset >= 0 and length > 0).
         for (var i = 0; i < valid.Count; i++)
         {
             for (var j = i + 1; j < valid.Count; j++)
@@ -160,7 +161,7 @@ internal static class SealedFrameEmitter
         sb.AppendLine(
             "/// Spec-derived binary-layout constants for the D2 on-wire SEALED");
         sb.AppendLine(
-            "/// encryption frame (version 2 — the asymmetric ECDH-ES hybrid).");
+            "/// encryption frame (version 2 - the asymmetric ECDH-ES hybrid).");
         sb.AppendLine(
             "/// Mirrors the offsets and lengths consumed by");
         sb.AppendLine(
@@ -210,7 +211,7 @@ internal static class SealedFrameEmitter
                 + $"{c.EphPubLengthPrefixSize};");
         sb.AppendLine(
             "    /// <summary>Upper cap on the declared ephemeral-public-key length "
-                + "(allocation guard — a P-256 SubjectPublicKeyInfo is ~91 bytes).</summary>");
+                + "(allocation guard - a P-256 SubjectPublicKeyInfo is ~91 bytes).</summary>");
         sb.AppendLine($"    public const int CONSTRAINT_MAX_EPH_PUB_LENGTH = {c.MaxEphPubLength};");
         sb.AppendLine(
             "    /// <summary>AES-GCM nonce length in bytes (= NONCE_LENGTH; the prefix "

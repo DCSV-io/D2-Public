@@ -19,11 +19,11 @@ using DcsvIo.D2.Tests.Unit.Auth;
 using Xunit;
 
 /// <summary>
-/// Reflection smoke proving the codegen-emitted <see cref="IAuthContext"/>
+/// Reflection smoke test that the codegen-emitted <see cref="IAuthContext"/>
 /// interface carries every property declared in the spec, with the right
-/// CLR type. Drift gate — adding a property to the spec without rebuilding,
-/// or changing a property's type without re-running the generator, breaks
-/// here loudly.
+/// CLR type. This is a drift gate: adding a property to the spec without
+/// rebuilding, or changing a property's type without re-running the
+/// generator, fails here.
 /// </summary>
 public sealed class IAuthContextGeneratedTests
 {
@@ -96,9 +96,9 @@ public sealed class IAuthContextGeneratedTests
     [Fact]
     public void Properties_AreReadOnly_GettersOnly()
     {
-        // Adversarial: IAuthContext is the read-only contract surface. Adding
-        // a setter on the interface would let any handler mutate the live
-        // request context — a critical encapsulation breach.
+        // Adversarial: IAuthContext is the read-only contract surface. A setter
+        // on the interface would let any handler change the live request
+        // context, a critical encapsulation breach.
         foreach (var property in typeof(IAuthContext)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {

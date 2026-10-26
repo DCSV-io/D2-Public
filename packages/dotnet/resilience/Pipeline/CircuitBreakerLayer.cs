@@ -9,9 +9,9 @@ namespace DcsvIo.D2.Resilience.Pipeline;
 using DcsvIo.D2.Resilience.CircuitBreaker;
 
 /// <summary>
-/// Pipeline layer that fast-fails through a wrapped
+/// Pipeline layer that fails fast through a wrapped
 /// <see cref="CircuitBreaker{T}"/> when the breaker is open. The per-call
-/// key is ignored — circuit breakers operate at the operation level, not
+/// key is ignored - circuit breakers operate at the operation level, not
 /// the key level.
 /// </summary>
 /// <typeparam name="TKey">Per-call key type (ignored by this layer).</typeparam>

@@ -14,10 +14,10 @@ namespace DcsvIo.D2.Geo.Abstractions;
 
 /// <summary>
 /// ISO 639-1 alpha-2 language identifier. Members named with the
-/// PascalCase form of the alpha-2 code (<c>En</c>, <c>Fr</c>, etc. —
+/// PascalCase form of the alpha-2 code (<c>En</c>, <c>Fr</c>, etc. -
 /// alpha-2 codes are two lowercase ASCII letters, capitalized here to
 /// match C# member-name conventions). Backing field assigned sequentially
-/// — no canonical numeric assignment exists in ISO 639-1. Unknown wire
+/// - no canonical numeric assignment exists in ISO 639-1. Unknown wire
 /// codes throw <see cref="System.Text.Json.JsonException"/>.
 /// </summary>
 /// <remarks>
@@ -26,9 +26,9 @@ namespace DcsvIo.D2.Geo.Abstractions;
 /// (e.g. <c>"en"</c>) rather than the PascalCased C# member name
 /// (<c>"En"</c>). <c>JsonStringEnumConverter</c> honors
 /// <c>[JsonStringEnumMemberName]</c> (the .NET 9+ attribute) on both
-/// serialize and deserialize — keeps wire-form parity with the TS-side
+/// serialize and deserialize - keeps wire-form parity with the TS-side
 /// <c>LanguageCode</c> const-object (which uses lowercase string values).
-/// LanguageCode is the ONLY geo enum needing this attribute — CountryCode /
+/// LanguageCode is the ONLY geo enum needing this attribute - CountryCode /
 /// CurrencyCode / GeopoliticalEntityCode / GeopoliticalEntityType / etc. all use
 /// member names whose canonical wire form already matches the C# casing.
 /// </remarks>

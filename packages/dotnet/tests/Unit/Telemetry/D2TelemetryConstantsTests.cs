@@ -11,7 +11,7 @@ using DcsvIo.D2.Telemetry;
 using Xunit;
 
 /// <summary>
-/// Per-VALUE pinning for every public constant — the value IS the wire /
+/// Per-VALUE pinning for every public constant - the value IS the wire /
 /// route / env-var contract operators consume from outside the codebase
 /// (Loki / Tempo / Prometheus / Grafana dashboards / docker compose env
 /// files). A rename of the symbol without an explicit value swap surfaces

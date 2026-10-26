@@ -10,7 +10,7 @@ using System.Collections.Immutable;
 
 /// <summary>
 /// Parsed shape of <c>contracts/telemetry/telemetry.spec.json</c>. The
-/// <c>$schema</c> field is intentionally absent — JSON-Schema validation
+/// <c>$schema</c> field is intentionally absent - JSON-Schema validation
 /// happens at edit time in editors / IDEs; the loader just deserializes the
 /// data fields and validates them in <see cref="TelemetryTagsEmitter"/>.
 /// </summary>

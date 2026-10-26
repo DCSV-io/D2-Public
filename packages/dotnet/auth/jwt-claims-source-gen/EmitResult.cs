@@ -13,7 +13,7 @@ using DcsvIo.D2.SourceGen;
 /// Result of <see cref="JwtClaimsEmitter.Emit"/>. Pure data.
 /// </summary>
 /// <param name="GeneratedSource">The generated C# source.</param>
-/// <param name="Diagnostics">Diagnostics emitted during validation + emission.</param>
+/// <param name="Diagnostics">Diagnostics emitted during validation and emission.</param>
 internal sealed record EmitResult(
     string GeneratedSource,
     ImmutableArray<EmitDiagnostic> Diagnostics);

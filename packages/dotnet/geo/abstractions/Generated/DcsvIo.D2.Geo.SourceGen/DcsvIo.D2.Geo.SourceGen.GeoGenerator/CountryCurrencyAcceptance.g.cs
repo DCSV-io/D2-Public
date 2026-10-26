@@ -11,7 +11,7 @@
 namespace DcsvIo.D2.Geo.Abstractions;
 
 /// <summary>
-/// Per-country currency acceptance binding — pairs a typed
+/// Per-country currency acceptance binding - pairs a typed
 /// <see cref="CurrencyCode"/> identifier with the acceptance
 /// level (LegalTender / WidelyAccepted / Tourist) AND the resolved
 /// <see cref="Currency"/> nav record (wired in the wire-nav step
@@ -22,7 +22,7 @@ public sealed record CountryCurrencyAcceptance
     /// <summary>ISO 4217 alpha identifier (e.g. <c>CurrencyCode.USD</c>).</summary>
     public required CurrencyCode Iso4217AlphaCode { get; init; }
 
-    /// <summary>Acceptance classification — legal tender / widely / tourist.</summary>
+    /// <summary>Acceptance classification - legal tender / widely / tourist.</summary>
     public required CurrencyAcceptanceLevel Level { get; init; }
 
     /// <summary>Resolved currency nav record. Wired by the friend assembly's wire-nav step.</summary>

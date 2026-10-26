@@ -23,8 +23,8 @@ using Xunit;
 /// (see <c>PostgresCollectionDefinition</c>).
 /// <para>
 /// These tests prove the full production-relevant chain:
-/// typed member expression → <c>DeriveColumnName</c> →
-/// <c>CreateIndexOperation</c> → Npgsql <c>IMigrationsSqlGenerator</c> → real Postgres →
+/// typed member expression -> <c>DeriveColumnName</c> ->
+/// <c>CreateIndexOperation</c> -> Npgsql <c>IMigrationsSqlGenerator</c> -> real Postgres ->
 /// <c>pg_indexes</c> catalog metadata. They close the gap that the unit suite
 /// (<c>Unit/SharedEntityFrameworkCore/CreateD2IndexExtensionsTests</c>) cannot cover:
 /// that the emitted operation actually produces valid DDL and creates a real index on the
@@ -69,7 +69,7 @@ public sealed class CreateD2IndexIntegrationTests : IAsyncLifetime
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        // Drop all four test indexes (idempotent — safe on re-run).
+        // Drop the test indexes (idempotent - safe on re-run).
         // Explicit per-constant DROP avoids SQL injection warnings from interpolation.
         await r_ctx.Database.ExecuteSqlRawAsync(
             "DROP INDEX IF EXISTS \"" + _IDX_DEFAULT + "\"");
@@ -87,7 +87,7 @@ public sealed class CreateD2IndexIntegrationTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // Case 1 — derived default name, non-unique
+    // Case 1 - derived default name, non-unique
     // =========================================================================
 
     [Fact]
@@ -112,7 +112,7 @@ public sealed class CreateD2IndexIntegrationTests : IAsyncLifetime
             "UNIQUE",
             "unique:false must not produce a UNIQUE index");
 
-        // Pin the EF-derived column name ↔ DeriveColumnName contract end-to-end.
+        // Pin the EF-derived column name <-> DeriveColumnName contract end-to-end.
         // If EF ever changes its complex-column naming convention, this assertion catches it.
         var efColumnName = GetEfColumnName();
         efColumnName.Should().Be(
@@ -122,7 +122,7 @@ public sealed class CreateD2IndexIntegrationTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // Case 2 — explicit name override, non-unique
+    // Case 2 - explicit name override, non-unique
     // =========================================================================
 
     [Fact]
@@ -150,7 +150,7 @@ public sealed class CreateD2IndexIntegrationTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // Case 3 — unique:true
+    // Case 3 - unique:true
     // =========================================================================
 
     [Fact]
@@ -190,7 +190,7 @@ public sealed class CreateD2IndexIntegrationTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // Case 4 — distinct column Geo.Longitude, unique:false
+    // Case 4 - distinct column Geo.Longitude, unique:false
     // =========================================================================
 
     [Fact]
@@ -211,7 +211,7 @@ public sealed class CreateD2IndexIntegrationTests : IAsyncLifetime
         row.IndexDef.Should().Contain(
             "\"Geo_Longitude\"",
             "member-chain Geo.Longitude must produce a Geo_Longitude column,"
-            + " not Geo_Latitude — proves derivation is not hard-wired to Latitude");
+            + " not Geo_Latitude - proves derivation is not hard-wired to Latitude");
         row.IndexDef.Should().NotContain(
             "UNIQUE",
             "unique:false must not produce a UNIQUE index");
@@ -233,9 +233,9 @@ public sealed class CreateD2IndexIntegrationTests : IAsyncLifetime
         Action<MigrationBuilder> configure)
     {
         // DDL cannot use SQL parameters (Postgres does not parameterize DDL identifiers).
-        // Index names are our own constants — not user input. Using a local variable so
+        // Index names are our own constants - not user input. Using a local variable so
         // the EF SQL-injection analyzers (EF1002/EF1003) do not fire on concatenation.
-        string dropSql = "DROP INDEX IF EXISTS \"" + indexName + "\"";
+        var dropSql = "DROP INDEX IF EXISTS \"" + indexName + "\"";
         await r_ctx.Database.ExecuteSqlRawAsync(dropSql);
 
         var mb = new MigrationBuilder("Npgsql.EntityFrameworkCore.PostgreSQL");
@@ -246,7 +246,7 @@ public sealed class CreateD2IndexIntegrationTests : IAsyncLifetime
 
         foreach (var cmd in commands)
         {
-            string ddl = cmd.CommandText;
+            var ddl = cmd.CommandText;
             await r_ctx.Database.ExecuteSqlRawAsync(ddl);
         }
     }
@@ -258,7 +258,7 @@ public sealed class CreateD2IndexIntegrationTests : IAsyncLifetime
     /// </summary>
     private async Task<IndexRow?> QueryIndexAsync(string indexName)
     {
-        // SqlQuery<T> uses FormattableString holes as SQL parameters — the {expr} values
+        // SqlQuery<T> uses FormattableString holes as SQL parameters - the {expr} values
         // are passed as $1/$2 bind parameters, not as string-interpolated SQL text.
         // Do NOT wrap the holes in SQL quotes: EF handles the parameterization.
         // A single $"..." expression is required (concatenation produces string, not

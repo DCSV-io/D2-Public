@@ -2,11 +2,12 @@
 Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 
-# DcsvIo.D2.Utilities — Enums
+# DcsvIo.D2.Utilities - Enums
 
 > Part of [`DcsvIo.D2.Utilities`](../README.md).
 
-Standard enum vocabulary shared across the framework. Lives here (rather than per-consumer) so reasons / isolation taxonomies stay aligned across every lib that surfaces them.
+Standard enums shared across the framework. They live here and not in each consuming lib, so the reason and isolation
+values are the same in every lib that surfaces them.
 
 | File                | Contents                                                                                                                          |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
@@ -28,6 +29,8 @@ Standard SQL isolation level enum with phenomena matrix. Values: `ReadUncommitte
 
 ## `RedactReason`
 
-Closed enum naming the reason a value is redacted from logs / traces / metrics. Carried on `[RedactData(Reason = ..., CustomReason = "...")]` — the Serilog destructuring policy reads both fields and elides the value at write time. See [`Attributes/README.md`](../Attributes/README.md) for the attribute usage.
+Closed enum of the reasons a value is redacted from logs / traces / metrics. Set on
+`[RedactData(Reason = ..., CustomReason = "...")]` - the Serilog destructuring policy reads both fields and elides the
+value at write time. See [`Attributes/README.md`](../Attributes/README.md) for the attribute usage.
 
 Values: `Unspecified`, `PersonalInformation`, `FinancialInformation`, `SecretInformation`, `VerboseContent`, `Other`.

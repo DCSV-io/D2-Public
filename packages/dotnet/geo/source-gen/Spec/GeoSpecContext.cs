@@ -8,10 +8,9 @@ namespace DcsvIo.D2.Geo.SourceGen.Spec;
 
 /// <summary>
 /// Aggregate view of all geo spec files parsed in a single generator run.
-/// Each property exposes one parsed catalog (or <c>null</c> when the
-/// corresponding spec file was absent / failed to parse — the loader
-/// surfaces the failure as a diagnostic, and downstream emitters degrade
-/// gracefully on a null catalog).
+/// Each property holds one parsed catalog, or <c>null</c> when the
+/// corresponding spec file was absent or failed to parse (the loader reports
+/// a parse failure as a diagnostic).
 /// </summary>
 /// <param name="Countries">Parsed <c>countries.spec.json</c>, or <c>null</c>.</param>
 /// <param name="Subdivisions">Parsed <c>subdivisions.spec.json</c>, or <c>null</c>.</param>

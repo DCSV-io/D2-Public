@@ -8,6 +8,7 @@ namespace DcsvIo.D2.Tests.Unit.I18n;
 
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 using AwesomeAssertions;
 using DcsvIo.D2.I18n;
 using JetBrains.Annotations;
@@ -108,14 +109,15 @@ public sealed class I18nServiceCollectionExtensionsTests
     [Fact]
     public void AddD2I18n_CalledTwice_RegistersOnceViaTryAdd()
     {
-        // TryAddSingleton semantics — second call is a no-op, first registration wins.
+        // TryAddSingleton semantics: the second call does nothing, and the
+        // first registration stays.
         using var dir = NewTempCatalogWithEnUs();
         var services = new ServiceCollection();
 
         services.AddD2I18n(EmptyConfig(), dir.Path);
         services.AddD2I18n(EmptyConfig(), dir.Path);
 
-        // Exactly one registration per type.
+        // Each type has exactly one registration.
         services.Should().ContainSingle(d => d.ServiceType == typeof(SupportedLocales));
         services.Should().ContainSingle(d => d.ServiceType == typeof(ITranslator));
     }
@@ -123,15 +125,21 @@ public sealed class I18nServiceCollectionExtensionsTests
     [Fact]
     public void AddD2I18n_DefaultMessagesDirectory_UsesAppContextBaseDirectorySlashMessages()
     {
-        // Smoke test: confirms the default directory path is what we documented.
-        // Doesn't actually try to resolve ITranslator (no messages dir exists at
-        // AppContext.BaseDirectory/messages in this test bin), just verifies the
-        // service descriptor was added without throwing during AddD2I18n itself.
+        // The build copies the message catalogs to AppContext.BaseDirectory/messages.
+        // The translator registered with no directory argument returns the en-US value
+        // that catalog holds for the key.
+        var catalog = Path.Combine(AppContext.BaseDirectory, "messages", "en-US.json");
+        using var document = JsonDocument.Parse(File.ReadAllText(catalog));
+        var expected = document.RootElement
+            .GetProperty(TK.Common.Errors.NOT_FOUND.Key)
+            .GetString();
         var services = new ServiceCollection();
+        services.AddD2I18n(EmptyConfig());
 
-        var act = () => services.AddD2I18n(EmptyConfig());
+        using var sp = services.BuildServiceProvider();
+        var translator = sp.GetRequiredService<ITranslator>();
 
-        act.Should().NotThrow();
+        translator.T("en-US", TK.Common.Errors.NOT_FOUND).Should().Be(expected);
     }
 
     // ----------------------------------------------------------------------
@@ -186,7 +194,8 @@ public sealed class I18nServiceCollectionExtensionsTests
             }
             catch (IOException)
             {
-                // file lock during parallel test cleanup — best-effort cleanup
+                // A file lock during parallel test cleanup can block the delete.
+                // The cleanup is best-effort.
             }
         }
     }

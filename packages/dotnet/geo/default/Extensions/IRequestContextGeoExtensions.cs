@@ -12,36 +12,35 @@ using AbsExt = DcsvIo.D2.Geo.Abstractions.Extensions.IRequestContextGeoExtension
 
 /// <summary>
 /// Default-layer record-returning wrappers over <see cref="IRequestContext"/>
-/// geo fields. Returns the full typed record (e.g. <see cref="Country"/>),
-/// not the typed code, so callers can read nested data
-/// (<c>request.Country()?.PrimaryLanguage?.DisplayName</c>) without a second
-/// catalog lookup. Consumers wanting only the typed code without catalog
-/// access use the Abstractions-layer extension under
-/// <c>DcsvIo.D2.Geo.Abstractions.Extensions</c>.
+/// geo fields. Returns the full typed record (e.g. <see cref="Country"/>)
+/// and not the typed code, so nested data
+/// (<c>request.Country()?.PrimaryLanguage?.DisplayName</c>) is readable
+/// without a second catalog lookup. The Abstractions-layer extension under
+/// <c>DcsvIo.D2.Geo.Abstractions.Extensions</c> returns only the typed code,
+/// without catalog access.
 /// </summary>
 /// <remarks>
 /// <para>
 /// The Abstractions-layer and Default-layer extensions share the same
 /// method names (<c>Country()</c>, <c>Subdivision()</c>) on the same
-/// receiver type (<see cref="IRequestContext"/>). Pick exactly one
-/// namespace per call site via <c>using</c>: importing both produces
-/// CS0121 (ambiguous reference) at compile time. The PATTERNS.md
-/// namespace-disambiguated-extension entry documents this idiom.
+/// receiver type (<see cref="IRequestContext"/>). Choose exactly one
+/// namespace per call site with a <c>using</c> directive: importing both
+/// produces CS0121 (ambiguous reference) at compile time.
 /// </para>
 /// <para>
-/// <b>Logging guidance for callers.</b> The fields these accessors return
+/// <b>Logging guidance.</b> The fields these accessors return
 /// derive from upstream IP-geolocation enrichment. Display strings such
-/// as <c>DisplayName</c> are not PII themselves but their context (a
+/// as <c>DisplayName</c> are not PII themselves, but their context (a
 /// session resolving to a specific country) can be. When logging from a
-/// request context prefer the canonical <c>Iso31661Alpha2Code</c> /
+/// request context, prefer the canonical <c>Iso31661Alpha2Code</c> /
 /// <c>Iso31662Code</c> (short, stable, audit-friendly) over the
-/// free-form <c>DisplayName</c> to keep log shapes stable and reduce
+/// free-form <c>DisplayName</c>, to keep log shapes stable and reduce
 /// locale coupling.
 /// </para>
 /// <para>
 /// <b>Boundary contract.</b> Both methods are pure wrappers over the
 /// Abstractions-layer parser. They never normalize the raw string
-/// themselves (no trim / lowercase / sanitize); the parser owns the
+/// themselves (no trim, lowercase or sanitize); the parser defines the
 /// boundary contract.
 /// </para>
 /// </remarks>
@@ -52,8 +51,8 @@ public static class IRequestContextGeoExtensions
         /// <summary>
         /// Returns the full <see cref="Country"/> record for the
         /// <see cref="IRequestContext"/>'s <c>CountryIso31661Alpha2Code</c>
-        /// raw string, or <c>null</c> if the raw string is absent / empty /
-        /// whitespace / unparseable / unknown to the catalog.
+        /// raw string, or <c>null</c> if the raw string is absent, empty,
+        /// whitespace, unparseable or unknown to the catalog.
         /// </summary>
         /// <returns>The matched <see cref="Country"/> record, or <c>null</c>.</returns>
         public Country? Country()
@@ -67,8 +66,8 @@ public static class IRequestContextGeoExtensions
         /// <summary>
         /// Returns the full <see cref="Subdivision"/> record for the
         /// <see cref="IRequestContext"/>'s <c>SubdivisionIso31662Code</c>
-        /// raw string, or <c>null</c> if the raw string is absent / empty /
-        /// whitespace / unparseable / unknown to the catalog.
+        /// raw string, or <c>null</c> if the raw string is absent, empty,
+        /// whitespace, unparseable or unknown to the catalog.
         /// </summary>
         /// <returns>The matched <see cref="Subdivision"/> record, or <c>null</c>.</returns>
         public Subdivision? Subdivision()

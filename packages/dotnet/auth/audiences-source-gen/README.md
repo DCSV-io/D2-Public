@@ -8,20 +8,25 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 **Input contract:** [`contracts/auth-audiences/`](../../../../contracts/auth-audiences/README.md)
 
-Roslyn incremental source generator that emits audience catalogs from `contracts/auth-audiences/audiences.spec.json` via `<AdditionalFiles>`.
+Roslyn incremental source generator that emits audience catalogs from `contracts/auth-audiences/audiences.spec.json` via
+`<AdditionalFiles>`.
 
-**Dual-target** (assembly-name gate):
+Assembly-name gate: the consuming assembly `DcsvIo.D2.Auth.Abstractions` receives `Audiences` under the
+`DcsvIo.D2.Auth.Abstractions` namespace, built from its own `audiences.spec.json` AdditionalFiles entry. Another
+assembly receives an audience class only when its project sets the MSBuild properties `D2AudiencesExtensionNamespace`
+and `D2AudiencesExtensionClassPrefix` and declares each as a `CompilerVisibleProperty` item.
+`D2AudiencesExtensionNamespace` sets the namespace, and `D2AudiencesExtensionClassPrefix` sets the identifier placed
+before `Audiences` in the class name. That class covers the union of every `audiences.spec.json` the assembly lists in
+AdditionalFiles and is written to the class name followed by `.g.cs`. The public assembly ignores these properties, and
+an assembly that sets neither receives no audience class.
 
-| Consuming assembly | Emitted type | Values |
-| --- | --- | --- |
-| `DcsvIo.D2.Auth.Abstractions` | `Audiences` under `DcsvIo.D2.Auth.Abstractions` | this package's AdditionalFiles only |
-| Host extension assembly (optional) | `ProductAudiences` under the host root namespace | public catalog ∪ host-supplied additional files |
+The spec file is the single source of truth for the platform's JWT-audience catalog. Every value an inbound JWT's `aud`
+claim can carry - including the broad internal audience every internal service accepts under the forward-unchanged
+model - and every token-exchange `targetAudience` value is defined in one JSON file, so no hand-written parallel
+constants exist that could drift per feature.
 
-Any other assembly → no emit. Hosts that need product-only audiences register an extension assembly that includes both public and host AdditionalFiles.
-
-The spec file is the single source of truth for the platform's JWT-audience catalog. Every value an inbound JWT's `aud` claim can carry — including the broad internal audience every internal service accepts under the forward-unchanged model — and every `targetAudience` argument for the retained boundary-mint / exception token exchanges (`TokenExchangeClient.ExchangeAsync`) lives in one JSON file — no hand-written parallel constants, no per-feature drift.
-
-**Convention**: spec-driven Roslyn `IIncrementalGenerator` pattern (file layout, diagnostic ID convention, generator anatomy, `<AdditionalFiles>` wiring).
+Convention: the generator follows the spec-driven Roslyn `IIncrementalGenerator` pattern (file layout, diagnostic ID
+convention, generator anatomy, `<AdditionalFiles>` wiring).
 
 ---
 
@@ -35,6 +40,9 @@ The spec file is the single source of truth for the platform's JWT-audience cata
 | `D2AUD004` | Error    | Two audience entries share the exact same URL (would silently alias one to the other at JWT `aud` validation time)                              |
 | `D2AUD005` | Error    | Audience URL is not a parseable absolute URI (would never match a real JWT `aud` claim value)                                                   |
 | `D2AUD006` | Error    | No `audiences.spec.json` found in `AdditionalFiles`                                                                                             |
+| `D2AUD007` | Error    | `D2AudiencesExtensionNamespace` is not a dot-separated sequence of C# identifiers                                                               |
+| `D2AUD008` | Error    | `D2AudiencesExtensionNamespace` is set and `D2AudiencesExtensionClassPrefix` is absent or invalid                                               |
+| `D2AUD009` | Warning  | `D2AudiencesExtensionClassPrefix` is set and `D2AudiencesExtensionNamespace` is not                                                             |
 
 ---
 
@@ -45,9 +53,9 @@ The spec file is the single source of truth for the platform's JWT-audience cata
   "$schema": "./schema.json",
   "audiences": [
     {
-      "name": "Files",
-      "url": "https://files.internal",
-      "description": "D² Files service — object/blob CRUD over SeaweedFS."
+      "name": "ExampleAudience",
+      "url": "https://example.internal",
+      "description": "Example service audience."
     }
   ]
 }
@@ -68,8 +76,8 @@ For each audience the generator emits:
 ```csharp
 public static partial class Audiences
 {
-    /// <summary>D² Files service — object/blob CRUD over SeaweedFS.</summary>
-    public const string Files = "https://files.internal";
+    /// <summary>Example service audience.</summary>
+    public const string ExampleAudience = "https://example.internal";
 
     // ... other audiences ...
 
@@ -81,18 +89,36 @@ public static partial class Audiences
 }
 ```
 
-`IsKnown(audience)` is the canonical inbound-validation helper — JWT validation calls it on the `aud` claim at every hop. `Resolve(name)` resolves a name like `"Files"` to its URL — used to address a `targetAudience` on a retained boundary-mint / exception token exchange. `ResolveByUrl(url)` is the inverse for telemetry / logging that wants a friendly name.
+`IsKnown(audience)` is the canonical inbound-validation helper - JWT validation calls it on the `aud` claim at every
+hop. `Resolve(name)` resolves a name like `"ExampleAudience"` to its URL - used to address a token-exchange
+`targetAudience`. `ResolveByUrl(url)` is the inverse for telemetry / logging that wants a
+friendly name.
 
 ---
 
 ## Sourcegen-specific notes
 
-Audience strings flow through the inbound JWT validator's `aud` claim check at every hop AND the `targetAudience` of the retained boundary-mint / exception `TokenExchangeClient.ExchangeAsync` calls. Spec-driving the catalog catches duplicate names, duplicate URLs, malformed URLs, and bad identifiers at compile time rather than at first JWT validation in production.
+The inbound JWT validator checks the `aud` claim against these strings at every hop, and token exchanges use them as
+`targetAudience`. Because the catalog is spec-driven,
+duplicate names, duplicate URLs, malformed URLs, and bad identifiers fail at compile time rather than at the first JWT
+validation in production.
 
 ---
 
 ## References
 
-- [`contracts/auth-audiences/schema.json`](../../../../contracts/auth-audiences/schema.json) — JSON Schema (editor-time gate)
-- [`contracts/auth-audiences/audiences.spec.json`](../../../../contracts/auth-audiences/audiences.spec.json) — the catalog
-- [`DcsvIo.D2.Auth.Abstractions`](../abstractions/README.md) — the consuming lib (where `Audiences.g.cs` lands)
+- [`contracts/auth-audiences/schema.json`](../../../../contracts/auth-audiences/schema.json) - JSON Schema (editor-time
+  gate)
+- [`contracts/auth-audiences/audiences.spec.json`](../../../../contracts/auth-audiences/audiences.spec.json) - the
+  catalog
+- [`DcsvIo.D2.Auth.Abstractions`](../abstractions/README.md) - the consuming lib (`Audiences.g.cs` is emitted into it)
+
+---
+
+## Validation ledger
+
+| Emitter              | Validated against                                                                                                                                                                                                                                                 | Test double stands in for                                                                      | What retires the double              |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `AudiencesEmitter`   | `AudiencesEmitterTests` drives the real emitter over spec entries and asserts the emitted source; `AudiencesGeneratorTests` runs the real `IIncrementalGenerator` through a `GeneratorDriver`; `AudiencesGeneratedTests` asserts the compiled `Audiences` output. | Nothing. No collaborator is doubled - the emitter, the loader and the spec shape are all real. | Not applicable - there is no double. |
+| `AudienceSpecLoader` | `AudienceSpecLoaderTests` parses spec JSON through the real loader, including the malformed and schema-violating shapes.                                                                                                                                          | Nothing. No collaborator is doubled - the emitter, the loader and the spec shape are all real. | Not applicable - there is no double. |
+| Diagnostics          | `AudiencesDiagnosticIdsTests` asserts each declared descriptor's id, severity and category.                                                                                                                                                                       | Nothing. No collaborator is doubled - the emitter, the loader and the spec shape are all real. | Not applicable - there is no double. |

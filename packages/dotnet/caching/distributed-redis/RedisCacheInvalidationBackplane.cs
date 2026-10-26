@@ -19,13 +19,14 @@ using StackExchange.Redis;
 /// <see cref="ICacheInvalidationBackplane"/>. Subscribes to a single
 /// channel (<see cref="RedisCacheOptions.InvalidationChannel"/>) at
 /// construction and dispatches incoming messages to every subscribed
-/// handler. Handlers are invoked sequentially per message; exceptions
-/// are isolated (one throwing handler doesn't break delivery to others).
+/// handler. Each handler is started without waiting for the others to
+/// finish; exceptions are isolated (one throwing handler doesn't break
+/// delivery to others).
 /// </summary>
 /// <remarks>
-/// Universal "everyone acts" rule: no sender-ID filtering. Publishers
-/// receive their own messages. Cost is bounded — see the abstraction's
-/// XML doc and the lib README for the full semantics.
+/// Every subscriber acts on every message: there is no sender-ID filtering,
+/// so publishers receive their own messages. The cost is bounded - see the
+/// abstraction's XML doc and the library README for the full semantics.
 /// </remarks>
 [MustDisposeResource(false)]
 public sealed class RedisCacheInvalidationBackplane : ICacheInvalidationBackplane
@@ -78,6 +79,12 @@ public sealed class RedisCacheInvalidationBackplane : ICacheInvalidationBackplan
         string key, CancellationToken ct = default)
     {
         if (key.Falsey()) return InputFailures.Required(nameof(key));
+
+        // A disposed backplane refuses the publish. The invalidation then reaches no other
+        // instance, whose L1 copy stays in use until its local time to live ends, and the
+        // caller receives ServiceUnavailable instead of a result that reports it as sent.
+        if (_disposed) return D2Result.ServiceUnavailable();
+
         try
         {
             await r_redis.GetSubscriber().PublishAsync(
@@ -97,6 +104,8 @@ public sealed class RedisCacheInvalidationBackplane : ICacheInvalidationBackplan
         IReadOnlyCollection<string> keys, CancellationToken ct = default)
     {
         if (keys.Falsey()) return InputFailures.Required(nameof(keys));
+
+        if (_disposed) return D2Result.ServiceUnavailable();
 
         try
         {
@@ -130,7 +139,7 @@ public sealed class RedisCacheInvalidationBackplane : ICacheInvalidationBackplan
         }
         catch (RedisException)
         {
-            // Best-effort on shutdown; swallow.
+            // Best effort on shutdown; the exception is ignored.
         }
 
         // Cancel any in-flight subscription work.
@@ -141,14 +150,14 @@ public sealed class RedisCacheInvalidationBackplane : ICacheInvalidationBackplan
 
     private void OnMessageReceived(string key)
     {
-        // Dispatch to every active subscription. Each handler is run
-        // sequentially with try/catch isolation. Async handlers are
-        // awaited per-handler; this runs on the StackExchange.Redis
-        // dispatch thread but Redis pub/sub doesn't backpressure us.
+        // Dispatch to every active subscription. Each handler is started
+        // with try/catch isolation and is not awaited here; this runs on
+        // the StackExchange.Redis dispatch thread, and Redis pub/sub applies
+        // no backpressure to it.
         foreach (var sub in r_subscriptions.Values)
         {
-            // Fire-and-forget per subscription, with isolation. We don't
-            // block the Redis dispatch thread on slow handlers.
+            // Fire-and-forget per subscription, with isolation, so a slow
+            // handler does not block the Redis dispatch thread.
             _ = InvokeHandlerAsync(sub, key);
         }
     }

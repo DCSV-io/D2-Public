@@ -15,8 +15,10 @@ using DcsvIo.D2.Tests.Unit.Auth;
 using Xunit;
 
 /// <summary>
-/// T3.3 — public packages / <c>D2.Public.slnx</c> graph never ProjectReferences
-/// private paths or private <c>DcsvIo.D2.*.Extensions</c> hosts.
+/// Checks that no project file under the public packages root
+/// ProjectReferences a private path or a private
+/// <c>DcsvIo.D2.*.Extensions</c> host, and that <c>D2.Public.slnx</c> lists no
+/// private path and no <c>.Extensions</c> project.
 /// </summary>
 [Trait("Category", "Unit")]
 public sealed class PublicSolutionIsolationTests

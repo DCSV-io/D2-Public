@@ -12,7 +12,7 @@ using DcsvIo.D2.Utilities.Extensions;
 /// Marker registered once per call to
 /// <see cref="EncryptionServiceCollectionExtensions.AddD2EncryptionFor"/>.
 /// The <see cref="EncryptionRegistry"/> aggregates these so the startup
-/// self-test knows what to round-trip. Public only so DI can resolve it —
+/// self-test knows what to round-trip. Public only so DI can resolve it -
 /// callers should not construct this directly.
 /// </summary>
 public sealed class EncryptionRegistration

@@ -6,19 +6,25 @@
 
 namespace DcsvIo.D2.Tests.Integration.Caching.Distributed;
 
+using System.Linq;
 using AwesomeAssertions;
+using DcsvIo.D2.Tests.Integration.Caching.Distributed.Fixtures;
 using JetBrains.Annotations;
 using Xunit;
 
 /// <summary>
 /// Adversarial / stress tests for <c>RedisDistributedCache</c>. Each
-/// scenario probes a known-hazardous code path or race shape — they're
-/// here specifically to BREAK the implementation if a regression
-/// re-introduces a hazard.
+/// scenario probes a known-hazardous code path or race shape and fails if a
+/// regression re-introduces the hazard.
 /// </summary>
 [Collection("Redis")]
 public sealed class RedisDistributedCacheAdversarialTests
 {
+    // The expiry cases poll on this budget. The longest lifetime they wait out
+    // is 150 ms, about eight polls, so a passing run never reaches the budget.
+    private const int _EXPIRY_POLL_ATTEMPTS = 50;
+    private const int _EXPIRY_POLL_GAP_MS = 20;
+
     private readonly RedisFixture r_fixture;
 
     public RedisDistributedCacheAdversarialTests(RedisFixture fixture)
@@ -56,7 +62,7 @@ public sealed class RedisDistributedCacheAdversarialTests
                 }
             });
 
-        // We can't assert exact counter value (Removes interleave) but
+        // The test cannot assert the exact counter value (Removes interleave) but
         // increments must have been processed without crashing.
         increments.Should().BeGreaterThan(0);
     }
@@ -71,26 +77,27 @@ public sealed class RedisDistributedCacheAdversarialTests
             "lock-k", "owner-A", TimeSpan.FromMilliseconds(150));
         first.Data.Should().BeTrue();
 
-        // Wait for lock to expire.
-        await Task.Delay(250);
+        var acquired = false;
 
-        var second = await ctx.Cache.AcquireLockAsync(
-            "lock-k", "owner-B", TimeSpan.FromSeconds(30));
-        second.Data.Should().BeTrue();
+        for (var attempt = 0; attempt < _EXPIRY_POLL_ATTEMPTS && !acquired; attempt++)
+        {
+            acquired = (await ctx.Cache.AcquireLockAsync(
+                "lock-k", "owner-B", TimeSpan.FromSeconds(30))).Data;
+
+            if (!acquired)
+                await Task.Delay(_EXPIRY_POLL_GAP_MS);
+        }
+
+        acquired.Should().BeTrue("the first owner's lock expires after its TTL");
     }
 
     [Fact]
     public async Task AcquireLockAsync_HighContention_SerialAccess()
     {
-        // 50 contenders try to acquire the same lock with a long TTL. Track
-        // who wins. Have each winner release immediately so the next one can
-        // acquire. Final state: every contender should have eventually held
-        // the lock at some point (with retries), or precisely one acquired
-        // first and others found it busy.
-        //
-        // Simpler invariant: at any moment, at most ONE acquirer holds the
-        // lock (verified by counting concurrent successful AcquireLock
-        // returns under a long TTL — only 1 should win).
+        // 50 contenders try to acquire the same lock with a long TTL, and no
+        // contender releases it. At any moment at most one acquirer holds the
+        // lock, so counting the successful AcquireLock returns under the long
+        // TTL must give exactly 1.
         await using var ctx = NewCache();
         var winners = 0;
 
@@ -128,7 +135,7 @@ public sealed class RedisDistributedCacheAdversarialTests
     public async Task SetAddAsync_HighCardinality_HandlesScale()
     {
         // 10K distinct members added concurrently. Cardinality math must be
-        // exact — Redis SADD is bounded only by memory.
+        // exact - Redis SADD is bounded only by memory.
         await using var ctx = NewCache();
         const int distinctMembers = 10_000;
 
@@ -147,7 +154,7 @@ public sealed class RedisDistributedCacheAdversarialTests
     [Fact]
     public async Task SetAddAsync_DuplicateMembers_NotDoubleCounted()
     {
-        // Same member added 100 times — cardinality must stay at 1.
+        // Same member added 100 times - cardinality must stay at 1.
         await using var ctx = NewCache();
         for (var i = 0; i < 100; i++)
             await ctx.Cache.SetAddAsync("k", "the-same-member");
@@ -159,9 +166,9 @@ public sealed class RedisDistributedCacheAdversarialTests
     [Fact]
     public async Task GetAsync_NullCachedValue_RoundTrips()
     {
-        // Caching a null value — Set<string?>(k, null) → Get<string?>(k)
-        // should return Ok(null), NOT NotFound and NOT a serialization failure.
-        // Regression check on the JsonCacheSerializer null-handling fix.
+        // Caching a null value - Set<string?>(k, null) -> Get<string?>(k)
+        // should return Ok(null), not NotFound and not a serialization failure.
+        // Pins the JsonCacheSerializer null handling.
         await using var ctx = NewCache();
         await ctx.Cache.SetAsync<string?>("k", null);
 
@@ -185,7 +192,7 @@ public sealed class RedisDistributedCacheAdversarialTests
     public async Task SetNxAsync_NullValue_StillEnforcesAtomicity()
     {
         // Edge: SetNx<string?>(k, null). The "absence" of a key vs the
-        // "presence of null" must be distinguished — SetNx should write
+        // "presence of null" must be distinguished - SetNx should write
         // null on first call, return false on second call.
         await using var ctx = NewCache();
         var first = await ctx.Cache.SetNxAsync<string?>("k", null);
@@ -198,7 +205,7 @@ public sealed class RedisDistributedCacheAdversarialTests
     [Fact]
     public async Task IncrementAsync_LargeAmount_HandledCorrectly()
     {
-        // Increment by a large value — Redis INCR is 64-bit signed.
+        // Increment by a large value - Redis INCR is 64-bit signed.
         // Anything within long.MaxValue should work.
         await using var ctx = NewCache();
         var inc = await ctx.Cache.IncrementAsync("big-counter", 1_000_000_000_000L);
@@ -250,10 +257,17 @@ public sealed class RedisDistributedCacheAdversarialTests
         await using var ctx = NewCache();
         await ctx.Cache.SetAsync("k", "v", TimeSpan.FromMilliseconds(100));
 
-        await Task.Delay(250);
+        var notFound = false;
 
-        var ttl = await ctx.Cache.GetTtlAsync("k");
-        ttl.IsNotFound.Should().BeTrue();
+        for (var attempt = 0; attempt < _EXPIRY_POLL_ATTEMPTS && !notFound; attempt++)
+        {
+            notFound = (await ctx.Cache.GetTtlAsync("k")).IsNotFound;
+
+            if (!notFound)
+                await Task.Delay(_EXPIRY_POLL_GAP_MS);
+        }
+
+        notFound.Should().BeTrue("an expired key has no TTL to report");
     }
 
     [Fact]
@@ -277,7 +291,7 @@ public sealed class RedisDistributedCacheAdversarialTests
     [Fact]
     public async Task MixedOps_HighConcurrency_NoExceptions()
     {
-        // 32 threads × 100 iterations doing random ops on a small key space.
+        // 32 threads x 100 iterations doing random ops on a small key space.
         // Probes for any unhandled exception, deadlock, or torn state under
         // realistic mixed contention.
         await using var ctx = NewCache();
@@ -290,8 +304,8 @@ public sealed class RedisDistributedCacheAdversarialTests
             {
                 for (var iter = 0; iter < 100; iter++)
                 {
-                    // Random.Shared is thread-safe; per-thread seeded instances
-                    // were unnecessary and triggered the §1.14/§4.7 carve-out.
+                    // Random.Shared is thread-safe, so the workers need no
+                    // per-thread seeded instances.
                     var key = $"k{Random.Shared.Next(keyCount)}";
                     var op = Random.Shared.Next(8);
                     switch (op)
@@ -325,10 +339,117 @@ public sealed class RedisDistributedCacheAdversarialTests
             });
     }
 
+    /// <summary>
+    /// Many callers hold the same expected value and exactly one write takes.
+    /// The script compares and writes inside one Redis
+    /// evaluation, so a losing caller cannot slip its write between another
+    /// caller's compare and its set.
+    /// </summary>
+    [Fact]
+    public async Task SetIfEqualAsync_ManyCallersFromOneExpectedValue_LetExactlyOneWin()
+    {
+        await using var ctx = NewCache();
+        await ctx.Cache.SetAsync("cas-race", 0);
+
+        var won = 0;
+        await Parallel.ForEachAsync(
+            Enumerable.Range(1, 24),
+            async (i, ct) =>
+            {
+                if ((await ctx.Cache.SetIfEqualAsync("cas-race", 0, i, ct: ct)).Data)
+                    _ = Interlocked.Increment(ref won);
+            });
+
+        won.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task SetIfEqualAsync_ManyCallersFromOneExpectedValue_LeaveTheWinnersValue()
+    {
+        // The call that succeeds stores its own value, so a script that wrote
+        // nothing at all fails here even though it passes the refusal case.
+        await using var ctx = NewCache();
+        await ctx.Cache.SetAsync("cas-race-value", 0);
+
+        var winner = 0;
+        await Parallel.ForEachAsync(
+            Enumerable.Range(1, 24),
+            async (i, ct) =>
+            {
+                if ((await ctx.Cache.SetIfEqualAsync("cas-race-value", 0, i, ct: ct)).Data)
+                    _ = Interlocked.Exchange(ref winner, i);
+            });
+
+        (await ctx.Cache.GetAsync<int>("cas-race-value")).Data.Should().Be(winner);
+    }
+
+    [Fact]
+    public async Task SetIfEqualAsync_ARemoveBetweenTheReadAndTheWrite_WritesNothing()
+    {
+        // Once the key is gone, a caller holding a copy of what used to be
+        // stored has nothing to compare against. Re-creating the key would
+        // restore a value that the next reader must find absent.
+        await using var ctx = NewCache();
+        await ctx.Cache.SetAsync("cas-removed", "v1");
+        await ctx.Cache.RemoveAsync("cas-removed");
+
+        var result = await ctx.Cache.SetIfEqualAsync("cas-removed", "v1", "v2");
+
+        result.Data.Should().BeFalse();
+        (await ctx.Cache.ExistsAsync("cas-removed")).Data.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SetIfEqualAsync_ASubMillisecondExpiration_WritesAnEntryThatStillExpires()
+    {
+        // A positive lifetime under one millisecond truncates to zero whole
+        // milliseconds, and the script reads zero as "no expiration" - which
+        // would leave the entry in a store that persists to disk and to
+        // backups. The local flavor expires the same input at once.
+        await using var ctx = NewCache();
+        await ctx.Cache.SetAsync("cas-sub-ms", "v1");
+
+        var written = await ctx.Cache.SetIfEqualAsync(
+            "cas-sub-ms",
+            "v1",
+            "v2",
+            TimeSpan.FromTicks(TimeSpan.TicksPerMillisecond / 2));
+
+        written.Data.Should().BeTrue("the compare matched, so the write took");
+
+        var gone = false;
+
+        for (var attempt = 0; attempt < _EXPIRY_POLL_ATTEMPTS && !gone; attempt++)
+        {
+            gone = !(await ctx.Cache.ExistsAsync("cas-sub-ms")).Data;
+
+            if (!gone)
+                await Task.Delay(_EXPIRY_POLL_GAP_MS);
+        }
+
+        gone.Should().BeTrue(
+            "a positive expiration must never reach the script's no-expiration arm");
+    }
+
+    [Fact]
+    public async Task IncrementAsync_ANonPositiveExpiration_LeavesTheKeyWithoutOne()
+    {
+        // The other side of the millisecond floor: zero and below mean no
+        // expiration, which is the arm the script reads as '0', and the floor
+        // must not turn that into a one-millisecond entry.
+        await using var ctx = NewCache();
+
+        var incremented = await ctx.Cache.IncrementAsync("counter-no-ttl", 1, TimeSpan.Zero);
+
+        incremented.Data.Should().Be(1);
+        (await ctx.Cache.GetTtlAsync("counter-no-ttl")).Data.Should().BeNull(
+            "a non-positive expiration asks for none");
+    }
+
     [MustDisposeResource(false)]
-    private CacheContext NewCache()
+    private CacheContextFixture NewCache()
     {
         var prefix = $"adversarial-{Guid.NewGuid():N}:";
-        return new CacheContext(r_fixture.ConnectionString, prefix);
+        return new CacheContextFixture(r_fixture.ConnectionString, prefix);
     }
 }

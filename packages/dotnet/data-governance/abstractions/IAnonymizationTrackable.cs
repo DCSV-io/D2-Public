@@ -19,12 +19,13 @@ namespace DcsvIo.D2.DataGovernance.Abstractions;
 /// enforces this at host-build time.
 /// </para>
 /// <para>
-/// The property is <em>read-only on this interface by design</em> — the engine writes via
-/// EF Core's <c>ExecuteUpdateAsync</c> or <c>SaveChanges</c>, not through this CLR
-/// accessor. Concrete entities provide a mutable backing (e.g. <c>public bool IsAnonymized
-/// { get; set; }</c>) that EF Core maps to the persistence column; the read-only contract
-/// here prevents callers from setting the flag out-of-band (only the engine owns this
-/// transition).
+/// The property is <em>read-only on this interface by design</em>. The engine writes
+/// through EF Core's <c>ExecuteUpdateAsync</c> or <c>SaveChanges</c> and not through this
+/// CLR accessor. Concrete entities provide a mutable backing (for example
+/// <c>public bool IsAnonymized
+/// { get; set; }</c>) that EF Core maps to the persistence column. The read-only contract
+/// prevents code that holds this interface from setting the flag out of band, because
+/// only the engine makes this transition.
 /// </para>
 /// </remarks>
 public interface IAnonymizationTrackable

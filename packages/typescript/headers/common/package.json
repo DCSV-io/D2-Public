@@ -1,6 +1,11 @@
 {
   "name": "@dcsv-io/d2-headers-common",
-  "version": "0.1.2",
+  "version": "0.1.8",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DCSV-io/D2-Public.git",
+    "directory": "packages/typescript/headers/common"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

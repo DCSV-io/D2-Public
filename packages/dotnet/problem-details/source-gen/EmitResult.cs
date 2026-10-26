@@ -10,7 +10,7 @@ using System.Collections.Immutable;
 using DcsvIo.D2.SourceGen;
 
 /// <summary>
-/// Result of <see cref="ProblemDetailsEmitter.Emit"/>. Pure data — the
+/// Result of <see cref="ProblemDetailsEmitter.Emit"/>. Pure data - the
 /// Roslyn host transforms the diagnostics into
 /// <see cref="Microsoft.CodeAnalysis.Diagnostic"/> instances and writes the
 /// generated source to the corresponding <c>.g.cs</c> file.

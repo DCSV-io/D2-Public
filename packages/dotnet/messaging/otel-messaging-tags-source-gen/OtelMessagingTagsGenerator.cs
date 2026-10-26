@@ -18,8 +18,8 @@ using Microsoft.CodeAnalysis.Text;
 /// <c>MessagingActivityTags</c> static class into
 /// <c>DcsvIo.D2.Messaging.RabbitMq</c> by reading
 /// <c>contracts/otel-messaging-tags/otel-messaging-tags.spec.json</c> via
-/// <c>AdditionalFiles</c>. Single-target — only emits when the consuming
-/// assembly is <c>DcsvIo.D2.Messaging.RabbitMq</c>.
+/// <c>AdditionalFiles</c>. It has a single target and emits only when the
+/// compiled assembly is <c>DcsvIo.D2.Messaging.RabbitMq</c>.
 /// </summary>
 [Generator]
 public sealed class OtelMessagingTagsGenerator : IIncrementalGenerator

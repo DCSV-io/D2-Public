@@ -12,6 +12,8 @@ DcsvIo.D2.Context.Abstractions.IRequestContext.ClientIp.get -> string?
 DcsvIo.D2.Context.Abstractions.IRequestContext.CountryIso31661Alpha2Code.get -> string?
 DcsvIo.D2.Context.Abstractions.IRequestContext.CurrencyIso4217Code.get -> string?
 DcsvIo.D2.Context.Abstractions.IRequestContext.CurrentFingerprint.get -> string?
+DcsvIo.D2.Context.Abstractions.IRequestContext.DeviceConfidence.get -> string?
+DcsvIo.D2.Context.Abstractions.IRequestContext.DeviceKey.get -> string?
 DcsvIo.D2.Context.Abstractions.IRequestContext.EdgeNodeId.get -> string?
 DcsvIo.D2.Context.Abstractions.IRequestContext.FeatureFlagsCsv.get -> string?
 DcsvIo.D2.Context.Abstractions.IRequestContext.Geohash.get -> string?
@@ -48,6 +50,8 @@ DcsvIo.D2.Context.Abstractions.MalformedActorChainException
 DcsvIo.D2.Context.Abstractions.MalformedActorChainException.MalformedActorChainException(string! message) -> void
 DcsvIo.D2.Context.Abstractions.MalformedActorChainException.MalformedActorChainException(string! message, System.Exception! innerException) -> void
 DcsvIo.D2.Context.Abstractions.MutableRequestContext
+DcsvIo.D2.Context.Abstractions.MutableRequestContext.AccessibleOrgIds.get -> System.Collections.Generic.IReadOnlySet<string!>!
+DcsvIo.D2.Context.Abstractions.MutableRequestContext.AccessibleOrgIds.set -> void
 DcsvIo.D2.Context.Abstractions.MutableRequestContext.ActorChain.get -> System.Collections.Generic.IReadOnlyList<DcsvIo.D2.Auth.Abstractions.ActorEntry!>!
 DcsvIo.D2.Context.Abstractions.MutableRequestContext.ActorChain.set -> void
 DcsvIo.D2.Context.Abstractions.MutableRequestContext.AdminLocationHashId.get -> string?
@@ -74,6 +78,10 @@ DcsvIo.D2.Context.Abstractions.MutableRequestContext.CurrencyIso4217Code.get -> 
 DcsvIo.D2.Context.Abstractions.MutableRequestContext.CurrencyIso4217Code.set -> void
 DcsvIo.D2.Context.Abstractions.MutableRequestContext.CurrentFingerprint.get -> string?
 DcsvIo.D2.Context.Abstractions.MutableRequestContext.CurrentFingerprint.set -> void
+DcsvIo.D2.Context.Abstractions.MutableRequestContext.DeviceConfidence.get -> string?
+DcsvIo.D2.Context.Abstractions.MutableRequestContext.DeviceConfidence.set -> void
+DcsvIo.D2.Context.Abstractions.MutableRequestContext.DeviceKey.get -> string?
+DcsvIo.D2.Context.Abstractions.MutableRequestContext.DeviceKey.set -> void
 DcsvIo.D2.Context.Abstractions.MutableRequestContext.EdgeNodeId.get -> string?
 DcsvIo.D2.Context.Abstractions.MutableRequestContext.EdgeNodeId.set -> void
 DcsvIo.D2.Context.Abstractions.MutableRequestContext.FeatureFlagsCsv.get -> string?
@@ -140,6 +148,8 @@ DcsvIo.D2.Context.Abstractions.MutableRequestContext.RequestedByClientId.get -> 
 DcsvIo.D2.Context.Abstractions.MutableRequestContext.RequestedByClientId.set -> void
 DcsvIo.D2.Context.Abstractions.MutableRequestContext.RiskScore.get -> int?
 DcsvIo.D2.Context.Abstractions.MutableRequestContext.RiskScore.set -> void
+DcsvIo.D2.Context.Abstractions.MutableRequestContext.RootOrgId.get -> System.Guid?
+DcsvIo.D2.Context.Abstractions.MutableRequestContext.RootOrgId.set -> void
 DcsvIo.D2.Context.Abstractions.MutableRequestContext.Scopes.get -> System.Collections.Generic.IReadOnlySet<string!>!
 DcsvIo.D2.Context.Abstractions.MutableRequestContext.Scopes.set -> void
 DcsvIo.D2.Context.Abstractions.MutableRequestContext.SessionFingerprint.get -> string?
@@ -172,6 +182,8 @@ DcsvIo.D2.Context.Abstractions.PropagatedContext.CurrencyIso4217Code.get -> stri
 DcsvIo.D2.Context.Abstractions.PropagatedContext.CurrencyIso4217Code.init -> void
 DcsvIo.D2.Context.Abstractions.PropagatedContext.CurrentFingerprint.get -> string?
 DcsvIo.D2.Context.Abstractions.PropagatedContext.CurrentFingerprint.init -> void
+DcsvIo.D2.Context.Abstractions.PropagatedContext.DeviceKey.get -> string?
+DcsvIo.D2.Context.Abstractions.PropagatedContext.DeviceKey.init -> void
 DcsvIo.D2.Context.Abstractions.PropagatedContext.EdgeNodeId.get -> string?
 DcsvIo.D2.Context.Abstractions.PropagatedContext.EdgeNodeId.init -> void
 DcsvIo.D2.Context.Abstractions.PropagatedContext.Equals(DcsvIo.D2.Context.Abstractions.PropagatedContext? other) -> bool

@@ -11,8 +11,8 @@ using System.Text.Json.Serialization;
 
 /// <summary>
 /// Predefined <see cref="JsonSerializerOptions"/> presets used across the
-/// codebase. All instances are frozen at construction so they are safe to
-/// share across threads and reuse without per-call allocation.
+/// codebase. Each instance is fully configured in its static initializer, so it
+/// is safe to share across threads and reuse without per-call allocation.
 /// </summary>
 public static class SerializerOptions
 {
@@ -25,8 +25,8 @@ public static class SerializerOptions
     };
 
     /// <summary>
-    /// Options for HTTP/Web responses. camelCase property naming, enums as
-    /// strings.
+    /// Options for HTTP and web responses: camelCase property names and enums
+    /// written as strings.
     /// </summary>
     public static readonly JsonSerializerOptions SR_Web = new()
     {

@@ -25,7 +25,7 @@ function base64Url(json: string): string {
   return Buffer.from(json, "utf8").toString("base64url");
 }
 
-describe("parseTraceparent — W3C linkage, fail-safe on malformed", () => {
+describe("parseTraceparent - W3C linkage, fail-safe on malformed", () => {
   it("parses a valid traceparent into a remote span context", () => {
     const ctx = parseTraceparent(SAMPLE_TRACEPARENT);
     expect(ctx).toBeDefined();
@@ -70,7 +70,7 @@ describe("parseTraceparent — W3C linkage, fail-safe on malformed", () => {
   });
 });
 
-describe("establishConsumeContext — §5.2a propagated-context apply", () => {
+describe("establishConsumeContext - propagated-context apply", () => {
   const full: IPropagatedContext = {
     requestId: "req-123",
     requestPath: "/v2/keys/rotate",
@@ -81,7 +81,7 @@ describe("establishConsumeContext — §5.2a propagated-context apply", () => {
     callPath: [
       { id: "edge", kind: "Edge", timestamp: "2026-07-03T00:00:00Z" },
       {
-        id: "keycustodian",
+        id: "sample-service",
         kind: "WorkloadHop",
         timestamp: "2026-07-03T00:00:01Z",
       },
@@ -99,11 +99,11 @@ describe("establishConsumeContext — §5.2a propagated-context apply", () => {
     expect(ctx.propagated.whoIsHashId).toBe("who-hash");
     expect(ctx.propagated.localeIetfBcp47Tag).toBe("en-US");
     expect(ctx.propagated.callPath).toHaveLength(2);
-    expect(ctx.propagated.callPath?.[1]?.id).toBe("keycustodian");
+    expect(ctx.propagated.callPath?.[1]?.id).toBe("sample-service");
   });
 
-  it("NEVER admits identity or origin from a crafted header (§9.41)", () => {
-    // Smuggle identity + origin impostor keys into the wire JSON.
+  it("NEVER admits identity or origin from a crafted header", () => {
+    // Add forged identity and origin keys to the wire JSON.
     const crafted = base64Url(
       JSON.stringify({
         requestId: "req-9",

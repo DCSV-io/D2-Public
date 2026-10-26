@@ -50,8 +50,8 @@ describe("RedisCacheInvalidationBackplane unit", () => {
   });
 
   it("backplane_ready_resolvesBeforeFirstHandlerDelivery", async () => {
-    // Hold child SUBSCRIBE so channelReady stays false; pre-ready messages
-    // must not deliver, then post-ready publish must deliver (trap pin).
+    // Hold the child SUBSCRIBE so channelReady stays false: messages published
+    // before ready must not be delivered, and a publish after ready must be.
     let release!: () => void;
     const hold = new Promise<void>((r) => {
       release = r;
@@ -279,7 +279,8 @@ describe("RedisCacheInvalidationBackplane unit", () => {
     await sub[Symbol.asyncDispose]();
     release();
     await pub;
-    // Flush the isolated handler microtask (no wall-clock sleep - section 1.33 unit ban).
+    // Flush the isolated handler microtask with awaited promises, not a wall-clock
+    // sleep: a unit test here waits on no elapsed-time deadline.
     await Promise.resolve();
     await Promise.resolve();
     await bp.dispose();

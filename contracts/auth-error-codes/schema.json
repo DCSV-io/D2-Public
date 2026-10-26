@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "D2 auth error codes spec",
-  "description": "Domain-specialized copy of contracts/error-codes/error-codes.canonical.schema.json, narrowed to the auth catalog: the AUTH_* code-prefix regex, the [401, 503] httpStatus subset, and the 3 auth categories. Conforms to the canonical 7-field set (including factoryShape) but tightens the value constraints so editors catch a non-AUTH_ code, a non-401/503 status, or a non-auth category at edit time. This is the source-of-truth catalog that DcsvIo.D2.Auth.ErrorCodes.SourceGen reads to emit AuthErrorCodes.g.cs + AuthFailures.g.cs into DcsvIo.D2.Auth. A drift-guard test asserts this copy stays field-aligned with the canonical schema.",
+  "description": "Domain-specialized copy of contracts/error-codes/error-codes.canonical.schema.json, narrowed to the portable auth-gate catalog: the LIB_AUTH_* code-prefix regex (owner LIB, domain token AUTH), the [401, 503] httpStatus subset, and the 3 auth categories. Conforms to the canonical 7-field set (including factoryShape) but tightens the value constraints so editors catch a non-LIB_AUTH_ code, a non-401/503 status, or a non-auth category at edit time. This is the source-of-truth catalog that DcsvIo.D2.Auth.ErrorCodes.SourceGen reads to emit AuthErrorCodes.g.cs + AuthFailures.g.cs into DcsvIo.D2.Auth. A drift-guard test asserts this copy stays field-aligned with the canonical schema.",
   "type": "object",
   "required": ["errorCodes"],
   "additionalProperties": false,
@@ -29,8 +29,8 @@
       "properties": {
         "code": {
           "type": "string",
-          "pattern": "^AUTH_[A-Z][A-Z0-9_]*$",
-          "description": "Wire-format error code (SCREAMING_SNAKE, AUTH_*-prefixed). Must be unique across the spec."
+          "pattern": "^LIB_AUTH_[A-Z][A-Z0-9_]*$",
+          "description": "Wire-format error code (SCREAMING_SNAKE, LIB_AUTH_*-prefixed - owner LIB, domain AUTH). Must be unique across the spec."
         },
         "httpStatus": {
           "type": "integer",
@@ -44,7 +44,7 @@
             "infrastructure_unavailable",
             "policy_denied"
           ],
-          "description": "Closed semantic/telemetry classification. NOT the factory selector — httpStatus drives factory selection. Added to the wire (gRPC trailers + JSON envelope) so consumers can do generic class-based handling without importing the producer's catalog."
+          "description": "Closed semantic/telemetry classification. NOT the factory selector - httpStatus drives factory selection. Added to the wire (gRPC trailers + JSON envelope) so consumers can do generic class-based handling without importing the producer's catalog."
         },
         "userMessageKey": {
           "type": "string",
@@ -59,7 +59,7 @@
         "factoryShape": {
           "type": "string",
           "enum": ["standard", "none"],
-          "description": "Closed enum that drives the generated factory's signature variant. standard: the one universal error-factory shape (messages?, inputErrors?, errorCode?, category?, traceId?) — ALL optional; the errorCode / category overrides are how a delegating domain factory stamps a specific code + category on its base status. none: no factory generated for this code. Every auth entry is standard (both 401 Unauthorized and 503 ServiceUnavailable delegate through it); the typed <T> overload on the 503 factories is an httpStatus-driven emitter rule, not a factoryShape value."
+          "description": "Closed enum that drives the generated factory's signature variant. standard: the one universal error-factory shape (messages?, inputErrors?, errorCode?, category?, traceId?) - ALL optional; the errorCode / category overrides are how a delegating domain factory stamps a specific code + category on its base status. none: no factory generated for this code. Every auth entry is standard (both 401 Unauthorized and 503 ServiceUnavailable delegate through it); the typed <T> overload on the 503 factories is an httpStatus-driven emitter rule, not a factoryShape value."
         },
         "doc": {
           "type": "string",
@@ -68,7 +68,7 @@
         },
         "deprecated": {
           "type": "boolean",
-          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive — the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
+          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive - the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
         },
         "deprecatedReason": {
           "type": "string",
@@ -82,7 +82,7 @@
         "sunset": {
           "type": "string",
           "format": "date",
-          "description": "ISO-8601 date for the future RFC 8594 Sunset response header. Edge-runtime-deferred: carried on the contract now, consumed by the Edge response middleware when it exists. Inert until then."
+          "description": "ISO-8601 date for the RFC 8594 Sunset response header. A host whose response pipeline emits that header reads the date from here; a host that does not ignores it."
         }
       }
     }

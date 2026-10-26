@@ -1,0 +1,3 @@
+#nullable enable
+DcsvIo.D2.EnvFiles.D2Env
+static DcsvIo.D2.EnvFiles.D2Env.Load(params string![]! fileNames) -> void

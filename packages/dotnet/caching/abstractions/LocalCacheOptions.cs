@@ -12,20 +12,20 @@ namespace DcsvIo.D2.Caching;
 /// 1-hour default TTL).
 /// </summary>
 /// <remarks>
-/// Per-entry size accounting is intentionally NOT exposed — the default
+/// Per-entry size accounting is intentionally not exposed - the default
 /// implementation always counts entries as size 1 so <see cref="MaxEntries"/>
-/// behaves as the literal entry-count cap most callers expect. Without
-/// this discipline, <c>IMemoryCache</c>'s <c>SizeLimit</c> only triggers
-/// eviction on system-wide memory pressure, making the configured ceiling
-/// fictional.
+/// behaves as a literal entry-count cap. Otherwise
+/// <c>IMemoryCache</c>'s <c>SizeLimit</c> only triggers eviction on
+/// system-wide memory pressure, and the configured ceiling would not limit
+/// the entry count.
 /// </remarks>
 public sealed class LocalCacheOptions
 {
     /// <summary>
-    /// Gets or sets the maximum number of entries before LRU-ish eviction
-    /// kicks in. Default 100_000 — sized for production Edge / Files-class
-    /// workloads where session-liveness, JWKS, token-exchange, and other
-    /// per-process caches share a single <see cref="ILocalCache"/> singleton.
+    /// Gets or sets the maximum number of entries before LRU-like eviction
+    /// starts. Default 100_000 - sized for production workloads where
+    /// session-liveness, JWKS, token-exchange, and other per-process caches
+    /// share a single <see cref="ILocalCache"/> singleton.
     /// At ~1 KB / entry that's ~100 MB process RSS worst-case. Per-service
     /// overrides remain possible via the <c>configure</c> delegate of
     /// <c>AddD2LocalCache</c>.

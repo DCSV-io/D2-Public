@@ -13,7 +13,7 @@ using DcsvIo.D2.SourceGen;
 
 /// <summary>
 /// Pure logic for parsing <c>mq-messages.spec.json</c> into a
-/// <see cref="MqMessagesSpec"/>. JSON-shape validation only — semantic
+/// <see cref="MqMessagesSpec"/>. JSON-shape validation only - semantic
 /// validation (constant-name format, encryption-domain whitelist,
 /// duplicate-constant detection, etc.) lives in <see cref="MqEmitter"/>.
 /// </summary>

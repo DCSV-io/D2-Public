@@ -13,7 +13,7 @@ using DcsvIo.D2.Encryption;
 using Xunit;
 
 /// <summary>
-/// Adversarial coverage of the full seal → open path over real P-256
+/// Adversarial coverage of the full seal -> open path over real P-256
 /// material: round-trips, wrong-recipient rejection (the service-identity
 /// AEAD binding), the tamper matrix, version dispatch across the symmetric
 /// and sealed modes, forward-secrecy properties, concurrency, and the
@@ -31,7 +31,7 @@ public sealed class SealOpenRoundTripTests
     [Fact]
     public void SealOpen_RoundTrips_Plaintext()
     {
-        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("audit", "seal-kid-1");
+        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("orders", "seal-kid-1");
 
         var framed = sealer.Seal(sr_payload);
         var opened = opener.Open(framed);
@@ -42,7 +42,7 @@ public sealed class SealOpenRoundTripTests
     [Fact]
     public void SealOpen_EmptyPlaintext_RoundTrips()
     {
-        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("audit", "seal-kid-1");
+        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("orders", "seal-kid-1");
 
         var framed = sealer.Seal(ReadOnlySpan<byte>.Empty);
         var opened = opener.Open(framed);
@@ -53,7 +53,7 @@ public sealed class SealOpenRoundTripTests
     [Fact]
     public void SealOpen_LargePayload_RoundTrips()
     {
-        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("audit", "seal-kid-1");
+        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("orders", "seal-kid-1");
         var large = RandomNumberGenerator.GetBytes(1024 * 1024);
 
         var framed = sealer.Seal(large);
@@ -65,7 +65,7 @@ public sealed class SealOpenRoundTripTests
     [Fact]
     public void Seal_FrameCarriesVersion2AndActiveKid()
     {
-        var (sealer, _) = SealedTestKeys.SealerOpenerPair("audit", "seal-kid-1");
+        var (sealer, _) = SealedTestKeys.SealerOpenerPair("orders", "seal-kid-1");
 
         var framed = sealer.Seal(sr_payload);
 
@@ -81,9 +81,9 @@ public sealed class SealOpenRoundTripTests
         var retiring = SealedTestKeys.GenerateKeypair();
         var active = SealedTestKeys.GenerateKeypair();
         var sealerUnderRetiring = new PayloadSealer(
-            SealedTestKeys.PublicKeyring("audit", "kid-old", retiring));
+            SealedTestKeys.PublicKeyring("orders", "kid-old", retiring));
         using var privateRing = new RecipientPrivateKeyring(
-            "audit",
+            "orders",
             new Dictionary<string, byte[]>
             {
                 ["kid-new"] = active.PrivatePkcs8,
@@ -103,16 +103,16 @@ public sealed class SealOpenRoundTripTests
     [Fact]
     public void Open_FrameSealedToOtherService_ThrowsAuthenticationTagMismatch()
     {
-        // Different keypairs AND different service ids — the ordinary
+        // Different keypairs AND different service ids - the ordinary
         // wrong-recipient case.
-        var (sealerToAudit, _) = SealedTestKeys.SealerOpenerPair("audit", "kid-a");
-        var courier = SealedTestKeys.GenerateKeypair();
-        using var courierRing = SealedTestKeys.PrivateKeyring("courier", "kid-a", courier);
-        var courierOpener = new PayloadOpener(courierRing);
+        var (sealerToOrders, _) = SealedTestKeys.SealerOpenerPair("orders", "kid-a");
+        var inventory = SealedTestKeys.GenerateKeypair();
+        using var inventoryRing = SealedTestKeys.PrivateKeyring("inventory", "kid-a", inventory);
+        var inventoryOpener = new PayloadOpener(inventoryRing);
 
-        var framed = sealerToAudit.Seal(sr_payload);
+        var framed = sealerToOrders.Seal(sr_payload);
 
-        var act = () => courierOpener.Open(framed);
+        var act = () => inventoryOpener.Open(framed);
 
         act.Should().Throw<AuthenticationTagMismatchException>();
     }
@@ -122,15 +122,15 @@ public sealed class SealOpenRoundTripTests
     {
         // The SAME keypair registered under two service ids: the binding is
         // the SERVICE identity (AAD + HKDF info/salt), not the key
-        // coincidence — opening under a different id must fail.
+        // coincidence - opening under a different id must fail.
         var keypair = SealedTestKeys.GenerateKeypair();
-        var sealerToAudit = new PayloadSealer(
-            SealedTestKeys.PublicKeyring("audit", "kid-a", keypair));
+        var sealerToOrders = new PayloadSealer(
+            SealedTestKeys.PublicKeyring("orders", "kid-a", keypair));
         using var sameKeyOtherService = SealedTestKeys.PrivateKeyring(
-            "courier", "kid-a", keypair);
+            "inventory", "kid-a", keypair);
         var otherOpener = new PayloadOpener(sameKeyOtherService);
 
-        var framed = sealerToAudit.Seal(sr_payload);
+        var framed = sealerToOrders.Seal(sr_payload);
 
         var act = () => otherOpener.Open(framed);
 
@@ -141,13 +141,13 @@ public sealed class SealOpenRoundTripTests
     public void Open_MismatchedKeypairSameKid_ThrowsAuthenticationTagMismatch()
     {
         // Same service id + same kid, but the private key does not match the
-        // public key that sealed — the misconfigured-pair case the startup
+        // public key that sealed - the misconfigured-pair case the startup
         // self-check exists to catch.
         var sealingPair = SealedTestKeys.GenerateKeypair();
         var wrongPair = SealedTestKeys.GenerateKeypair();
         var sealer = new PayloadSealer(
-            SealedTestKeys.PublicKeyring("audit", "kid-a", sealingPair));
-        using var wrongRing = SealedTestKeys.PrivateKeyring("audit", "kid-a", wrongPair);
+            SealedTestKeys.PublicKeyring("orders", "kid-a", sealingPair));
+        using var wrongRing = SealedTestKeys.PrivateKeyring("orders", "kid-a", wrongPair);
         var opener = new PayloadOpener(wrongRing);
 
         var framed = sealer.Seal(sr_payload);
@@ -164,10 +164,10 @@ public sealed class SealOpenRoundTripTests
     [Fact]
     public void Open_TamperedCiphertextByte_Throws()
     {
-        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("audit", "kid-a");
+        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("orders", "kid-a");
         var framed = sealer.Seal(sr_payload);
 
-        // Last byte is inside the tag; second-to-last-16 is ciphertext — flip
+        // Last byte is inside the tag; second-to-last-16 is ciphertext - flip
         // a byte firmly inside the ciphertext region.
         framed[^(SealedFrameLayout.CONSTRAINT_TAG_LENGTH + 1)] ^= 0xFF;
 
@@ -179,7 +179,7 @@ public sealed class SealOpenRoundTripTests
     [Fact]
     public void Open_TamperedTagByte_Throws()
     {
-        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("audit", "kid-a");
+        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("orders", "kid-a");
         var framed = sealer.Seal(sr_payload);
 
         framed[^1] ^= 0xFF;
@@ -192,7 +192,7 @@ public sealed class SealOpenRoundTripTests
     [Fact]
     public void Open_TamperedNonce_Throws()
     {
-        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("audit", "kid-a");
+        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("orders", "kid-a");
         var framed = sealer.Seal(sr_payload);
 
         // Nonce sits immediately before ct+tag; ct = payload + tag.
@@ -210,14 +210,13 @@ public sealed class SealOpenRoundTripTests
     [Fact]
     public void Open_TamperedEphemeralPublic_Throws()
     {
-        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("audit", "kid-a");
+        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("orders", "kid-a");
         var framed = sealer.Seal(sr_payload);
 
         // The eph_pub DER sits after [ver][kid_len]["kid-a"][len:2]. Flip a
-        // byte in the middle of the encoded point. Depending on where the
-        // flip lands the failure surfaces as a structural import failure, a
-        // derivation failure, or an AEAD tag mismatch — every arm is a hard
-        // throw; none may decrypt.
+        // byte in the middle of the encoded point. Depending on which byte is
+        // flipped, the failure is a structural import failure, a derivation
+        // failure, or an AEAD tag mismatch - every arm throws; none may decrypt.
         var view = SealedFrame.Decode(framed);
         var ephOffset = SealedFrameLayout.RECIPIENT_KID_OFFSET
             + Encoding.UTF8.GetByteCount(view.RecipientKid)
@@ -236,10 +235,10 @@ public sealed class SealOpenRoundTripTests
     [Fact]
     public void Open_TamperedRecipientKid_ThrowsKidNotInKeyringOrTagMismatch()
     {
-        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("audit", "kid-a");
+        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("orders", "kid-a");
         var framed = sealer.Seal(sr_payload);
 
-        // Flip a kid byte to another valid ASCII char → unknown kid.
+        // Flip a kid byte to another valid ASCII char -> unknown kid.
         framed[SealedFrameLayout.RECIPIENT_KID_OFFSET] ^= 0x01;
 
         var act = () => opener.Open(framed);
@@ -255,8 +254,8 @@ public sealed class SealOpenRoundTripTests
     {
         var keypair = SealedTestKeys.GenerateKeypair();
         var sealer = new PayloadSealer(
-            SealedTestKeys.PublicKeyring("audit", "kid-unknown-to-opener", keypair));
-        using var ring = SealedTestKeys.PrivateKeyring("audit", "kid-b", keypair);
+            SealedTestKeys.PublicKeyring("orders", "kid-unknown-to-opener", keypair));
+        using var ring = SealedTestKeys.PrivateKeyring("orders", "kid-b", keypair);
         var opener = new PayloadOpener(ring);
 
         var framed = sealer.Seal(sr_payload);
@@ -268,14 +267,14 @@ public sealed class SealOpenRoundTripTests
     }
 
     // ---------------------------------------------------------------
-    // Version dispatch across the two modes.
+    // Version dispatch across the symmetric and sealed modes.
     // ---------------------------------------------------------------
 
     [Fact]
     public void Open_V1SymmetricFrame_ThrowsFrameVersionMismatch()
     {
-        var (_, opener) = SealedTestKeys.SealerOpenerPair("audit", "kid-a");
-        using var symmetricRing = TestKeyrings.AuditSingleKey();
+        var (_, opener) = SealedTestKeys.SealerOpenerPair("orders", "kid-a");
+        using var symmetricRing = TestKeyrings.OrdersSingleKey();
         var v1Frame = new PayloadCrypto(symmetricRing).Encrypt(sr_payload);
 
         var act = () => opener.Open(v1Frame);
@@ -287,10 +286,10 @@ public sealed class SealOpenRoundTripTests
     [Fact]
     public void SymmetricDecrypt_V2SealedFrame_ThrowsFrameVersionMismatch()
     {
-        // Regression pin: the v1 symmetric path is UNCHANGED — it hard-rejects
+        // Regression pin: the v1 symmetric path is UNCHANGED - it hard-rejects
         // a sealed frame on the version byte, never mis-parses it.
-        var (sealer, _) = SealedTestKeys.SealerOpenerPair("audit", "kid-a");
-        using var symmetricRing = TestKeyrings.AuditSingleKey();
+        var (sealer, _) = SealedTestKeys.SealerOpenerPair("orders", "kid-a");
+        using var symmetricRing = TestKeyrings.OrdersSingleKey();
         var crypto = new PayloadCrypto(symmetricRing);
 
         var sealedFrame = sealer.Seal(sr_payload);
@@ -304,7 +303,7 @@ public sealed class SealOpenRoundTripTests
     [Fact]
     public void Open_UnknownVersion3_Throws()
     {
-        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("audit", "kid-a");
+        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("orders", "kid-a");
         var framed = sealer.Seal(sr_payload);
         framed[0] = 3;
 
@@ -321,7 +320,7 @@ public sealed class SealOpenRoundTripTests
     [Fact]
     public void Seal_TwoCallsSamePlaintext_ProduceDifferentEphemeralAndCiphertext()
     {
-        var (sealer, _) = SealedTestKeys.SealerOpenerPair("audit", "kid-a");
+        var (sealer, _) = SealedTestKeys.SealerOpenerPair("orders", "kid-a");
 
         var first = sealer.Seal(sr_payload);
         var second = sealer.Seal(sr_payload);
@@ -356,7 +355,7 @@ public sealed class SealOpenRoundTripTests
     [Fact]
     public void SealerToString_NeverContainsKeyMaterial()
     {
-        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("audit", "kid-a");
+        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("orders", "kid-a");
 
         sealer.ToString().Should().Be(nameof(PayloadSealer));
         opener.ToString().Should().Be(nameof(PayloadOpener));
@@ -369,7 +368,7 @@ public sealed class SealOpenRoundTripTests
     [Fact]
     public void Seal_ConcurrentCallers_AllFramesOpen()
     {
-        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("audit", "kid-a");
+        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("orders", "kid-a");
         var frames = new byte[32][];
 
         Parallel.For(0, frames.Length, i =>
@@ -384,7 +383,7 @@ public sealed class SealOpenRoundTripTests
     [Fact]
     public void Open_ConcurrentCallers_AllSucceed()
     {
-        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("audit", "kid-a");
+        var (sealer, opener) = SealedTestKeys.SealerOpenerPair("orders", "kid-a");
         var framed = sealer.Seal(sr_payload);
 
         Parallel.For(0, 32, _ =>
@@ -401,8 +400,8 @@ public sealed class SealOpenRoundTripTests
     public void Open_AfterKeyringDispose_ThrowsObjectDisposed()
     {
         var keypair = SealedTestKeys.GenerateKeypair();
-        var sealer = new PayloadSealer(SealedTestKeys.PublicKeyring("audit", "kid-a", keypair));
-        var ring = SealedTestKeys.PrivateKeyring("audit", "kid-a", keypair);
+        var sealer = new PayloadSealer(SealedTestKeys.PublicKeyring("orders", "kid-a", keypair));
+        var ring = SealedTestKeys.PrivateKeyring("orders", "kid-a", keypair);
         var opener = new PayloadOpener(ring);
         var framed = sealer.Seal(sr_payload);
 
@@ -416,13 +415,15 @@ public sealed class SealOpenRoundTripTests
     [Fact]
     public async Task Open_ConcurrentWithDispose_ThrowsCleanly()
     {
-        // Hammer Open on N threads while disposing the keyring mid-flight:
-        // every call either succeeds (pre-dispose) or throws
-        // ObjectDisposedException — never a torn/undefined outcome like a
-        // partial decrypt under zeroed key bytes silently succeeding.
+        // Call Open on N threads while disposing the keyring mid-flight:
+        // every call succeeds (pre-dispose), throws ObjectDisposedException,
+        // or, when it races the zeroize, throws
+        // AuthenticationTagMismatchException - never a torn/undefined outcome
+        // like a partial decrypt under zeroed key bytes silently succeeding.
+        // No call returns a wrong plaintext.
         var keypair = SealedTestKeys.GenerateKeypair();
-        var sealer = new PayloadSealer(SealedTestKeys.PublicKeyring("audit", "kid-a", keypair));
-        var ring = SealedTestKeys.PrivateKeyring("audit", "kid-a", keypair);
+        var sealer = new PayloadSealer(SealedTestKeys.PublicKeyring("orders", "kid-a", keypair));
+        var ring = SealedTestKeys.PrivateKeyring("orders", "kid-a", keypair);
         var opener = new PayloadOpener(ring);
         var framed = sealer.Seal(sr_payload);
 
@@ -439,8 +440,8 @@ public sealed class SealOpenRoundTripTests
             }
             catch (AuthenticationTagMismatchException)
             {
-                // A decrypt racing the zeroize loses AEAD authentication —
-                // a hard throw, never a silent wrong-plaintext success.
+                // A decrypt racing the zeroize fails AEAD authentication -
+                // it throws, and never returns a wrong plaintext.
             }
         })).ToArray();
 

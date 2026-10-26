@@ -15,13 +15,13 @@ public sealed class DlqNamingTests
     [Fact]
     public void DlxFor_AppendsDlxSuffix()
     {
-        DlqNaming.DlxFor("audit.events").Should().Be("audit.events.dlx");
+        DlqNaming.DlxFor("orders.events").Should().Be("orders.events.dlx");
     }
 
     [Fact]
     public void DlqFor_AppendsDlqSuffix()
     {
-        DlqNaming.DlqFor("audit.events").Should().Be("audit.events.dlq");
+        DlqNaming.DlqFor("orders.events").Should().Be("orders.events.dlq");
     }
 
     [Fact]
@@ -41,6 +41,6 @@ public sealed class DlqNamingTests
     [Fact]
     public void RetryReturnExchangeFor_AppendsReturnSuffix()
     {
-        DlqNaming.RetryReturnExchangeFor("audit.events").Should().Be("audit.events.retry.return");
+        DlqNaming.RetryReturnExchangeFor("orders.events").Should().Be("orders.events.retry.return");
     }
 }

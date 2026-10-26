@@ -10,12 +10,13 @@ import type { D2Result } from "@dcsv-io/d2-result";
  * completes. Subscribers (typically tiered caches in other instances)
  * drop their L1 copy of the affected key on receipt.
  *
- * Implemented by both {@link IDistributedCache} (so callers writing
- * directly to L2 can still bust other instances' L1) and
+ * Implemented by both {@link IDistributedCache} (whose `*AndBroadcast*`
+ * writes go directly to L2 and still invalidate the L1 copies of other
+ * instances) and
  * {@link ITieredCache} (which writes both tiers and broadcasts in one
  * call).
  *
- * **Registration error carve-out:** `*AndBroadcast*` methods **throw**
+ * **Registration error exception:** `*AndBroadcast*` methods **throw**
  * (not `D2Result`) when no `ICacheInvalidationBackplane` was registered
  * with the cache. Registration error is a construction-time / wiring
  * concern, not a per-call failure. Use the plain `set` / `remove` if
@@ -23,7 +24,7 @@ import type { D2Result } from "@dcsv-io/d2-result";
  */
 export interface ICacheBroadcast {
   /**
-   * Writes a value AND publishes an invalidation message via the
+   * Writes a value and publishes an invalidation message via the
    * registered {@link ICacheInvalidationBackplane}.
    *
    * @throws When no backplane was registered with the cache.
@@ -47,7 +48,7 @@ export interface ICacheBroadcast {
   ): Promise<D2Result>;
 
   /**
-   * Removes a key AND publishes an invalidation message so other
+   * Removes a key and publishes an invalidation message so other
    * instances drop their L1 copies.
    *
    * @throws When no backplane was registered with the cache.
@@ -55,7 +56,7 @@ export interface ICacheBroadcast {
   removeAndBroadcast(key: string, signal?: AbortSignal): Promise<D2Result>;
 
   /**
-   * Bulk-remove + broadcast invalidation per key.
+   * Bulk-remove, and broadcast an invalidation per key.
    *
    * @throws When no backplane was registered with the cache.
    */

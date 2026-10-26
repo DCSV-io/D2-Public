@@ -6,17 +6,21 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    // Unit suite only. The Testcontainer-backed integration suite lives under
-    // tests/integration/ and runs via vitest.integration.config.ts (no
-    // coverage gate — real-broker paths are proven, not line-counted).
+    // D2_VITEST_WORKERS workers per package, 4 when it is unset, each a child
+    // process that exits with the run.
+    pool: "forks",
+    maxWorkers: Number(process.env.D2_VITEST_WORKERS) || 4,
+    // Unit suite only. The Testcontainers integration suite lives under
+    // tests/integration/ and runs through vitest.integration.config.ts. It has
+    // no coverage gate: its tests check real-broker paths and do not count lines.
     include: ["tests/**/*.test.ts"],
     exclude: ["tests/integration/**", "node_modules", "dist"],
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts"],
-      // `domain-crypto-map.ts` is types-only (the compile-time publish witness);
-      // it is proven by tests/publisher-type-witness.compile.ts under the
-      // type-check gate, not by runtime coverage.
+      // `domain-crypto-map.ts` holds types only (the compile-time publish witness).
+      // tests/publisher-type-witness.compile.ts checks it under the type-check
+      // gate, and runtime coverage does not measure it.
       exclude: [
         "src/**/*.g.ts",
         "src/index.ts",

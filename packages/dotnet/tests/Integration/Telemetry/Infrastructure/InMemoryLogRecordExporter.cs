@@ -13,7 +13,8 @@ using OpenTelemetry.Logs;
 /// <summary>
 /// Hand-rolled <see cref="BaseExporter{T}"/> that captures every exported
 /// <see cref="LogRecord"/> into an in-memory <see cref="ConcurrentBag{T}"/>.
-/// Same shape and rationale as <see cref="InMemoryActivityExporter"/>.
+/// It has the same shape as <see cref="InMemoryActivityExporter"/> and is
+/// hand-rolled for the same reason.
 /// </summary>
 internal sealed class InMemoryLogRecordExporter : BaseExporter<LogRecord>
 {

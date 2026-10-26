@@ -2,13 +2,14 @@
 // Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 // -----------------------------------------------------------------------
 //
-// AbortSignal-threading + genuine-cancellation proofs (C# parity with the
-// linked-CancellationToken model). Each test asserts an OBSERVABLE cancellation
-// effect: an inner op's `signal.aborted` flips, a caller abort surfaces as
-// `AbortError` (not `TimeoutError`), or — the headline — one Singleflight caller
-// aborting does NOT cancel the shared op for the other waiters.
+// Tests of AbortSignal threading and of cancellation (matching the C#
+// linked-CancellationToken model). Each test asserts an observable cancellation
+// effect: the `signal.aborted` flag of an inner op flips, a caller abort
+// surfaces as `AbortError` and not `TimeoutError`, or one Singleflight caller
+// aborting does not cancel the shared op for the other waiters.
 //
-// Deterministic: fake timers + awaited deferreds, no real-clock races.
+// The tests are deterministic: they use fake timers and awaited deferreds, with
+// no real-clock races.
 // -----------------------------------------------------------------------
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -46,10 +47,10 @@ function deferred<T>(): {
 }
 
 // ===========================================================================
-// TimeoutLayer — genuinely CANCELS the inner op on expiry
+// TimeoutLayer - cancels the inner op on expiry
 // ===========================================================================
 
-describe("TimeoutLayer — cancels the inner op on timeout (C# linked-CTS parity)", () => {
+describe("TimeoutLayer - cancels the inner op on timeout (C# linked-CTS parity)", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
@@ -60,7 +61,7 @@ describe("TimeoutLayer — cancels the inner op on timeout (C# linked-CTS parity
 
     const p = layer.execute("k", (signal) => {
       observed = signal;
-      return inner.promise; // hang — never resolves on its own
+      return inner.promise; // hang - never resolves on its own
     });
     const caught = p.catch((e: unknown) => e);
 
@@ -70,7 +71,7 @@ describe("TimeoutLayer — cancels the inner op on timeout (C# linked-CTS parity
 
     await vi.advanceTimersByTimeAsync(101);
 
-    // The deadline fired → the inner op's signal was aborted (cooperative
+    // The deadline fired -> the inner op's signal was aborted (cooperative
     // cancellation), and the layer rejected with TimeoutError.
     expect(observed?.aborted).toBe(true);
     expect((await caught) as Error).toBeInstanceOf(Error);
@@ -80,7 +81,7 @@ describe("TimeoutLayer — cancels the inner op on timeout (C# linked-CTS parity
   });
 
   it("a cooperative inner op (fetch-like) observes the abort and stops", async () => {
-    // Models a `fetch`: rejects its OWN AbortError once its signal aborts.
+    // Models a `fetch`: rejects with its own AbortError once its signal aborts.
     const layer = new TimeoutLayer(new TerminalLayer(), { durationMs: 50 });
     let innerSignal: AbortSignal | undefined;
 
@@ -96,14 +97,14 @@ describe("TimeoutLayer — cancels the inner op on timeout (C# linked-CTS parity
 
     await vi.advanceTimersByTimeAsync(51);
 
-    // The fetch-like op was actually canceled via its signal …
+    // The fetch-like op was actually canceled via its signal ...
     expect(innerSignal?.aborted).toBe(true);
-    // … and the layer still surfaces TimeoutError (the timer won the race,
-    // deterministically — a timeout, not a caller abort).
+    // ... and the layer still surfaces TimeoutError (the timer won the race,
+    // deterministically - a timeout, not a caller abort).
     expect(((await caught) as Error).name).toBe("TimeoutError");
   });
 
-  it("inner op that resolves before the deadline → its signal is NOT aborted", async () => {
+  it("inner op that resolves before the deadline -> its signal is NOT aborted", async () => {
     let observed: AbortSignal | undefined;
     const layer = new TimeoutLayer(new TerminalLayer(), { durationMs: 1_000 });
 
@@ -118,11 +119,11 @@ describe("TimeoutLayer — cancels the inner op on timeout (C# linked-CTS parity
 });
 
 // ===========================================================================
-// TimeoutLayer — caller abort is NOT masked + cancels the inner op
+// TimeoutLayer - caller abort is not masked and cancels the inner op
 // ===========================================================================
 
-describe("TimeoutLayer — caller abort propagates as AbortError (not TimeoutError)", () => {
-  it("caller aborts a hanging op → AbortError, and the inner signal is aborted", async () => {
+describe("TimeoutLayer - caller abort propagates as AbortError (not TimeoutError)", () => {
+  it("caller aborts a hanging op -> AbortError, and the inner signal is aborted", async () => {
     const controller = new AbortController();
     let observed: AbortSignal | undefined;
     const inner = deferred<number>();
@@ -155,11 +156,11 @@ describe("TimeoutLayer — caller abort propagates as AbortError (not TimeoutErr
     inner.resolve(0);
   });
 
-  it("caller aborted AND the timer fires (non-cooperative op) → caller cancellation wins (AbortError)", async () => {
+  it("caller aborted AND the timer fires (non-cooperative op) -> caller cancellation wins (AbortError)", async () => {
     // Edge: the caller has aborted, but the inner op ignores its signal and
-    // hangs, so the deadline TIMER is what settles. C# prioritizes the caller
-    // (`when (timeoutCts && !ct)` fails when ct fired) — so this surfaces
-    // AbortError, NOT TimeoutError.
+    // hangs, so the deadline timer settles the race. C# prioritizes the caller
+    // (`when (timeoutCts && !ct)` fails when ct fired), so this surfaces
+    // AbortError and not TimeoutError.
     vi.useFakeTimers();
     try {
       const controller = new AbortController();
@@ -167,7 +168,7 @@ describe("TimeoutLayer — caller abort propagates as AbortError (not TimeoutErr
       const inner = deferred<number>();
       const layer = new TimeoutLayer(new TerminalLayer(), { durationMs: 50 });
 
-      // Op ignores its signal entirely → only the timer can settle the race.
+      // Op ignores its signal entirely -> only the timer can settle the race.
       const p = layer.execute("k", () => inner.promise, controller.signal);
       const caught = p.catch((e: unknown) => e);
 
@@ -180,7 +181,7 @@ describe("TimeoutLayer — caller abort propagates as AbortError (not TimeoutErr
     }
   });
 
-  it("caller signal already aborted → inner op sees an aborted signal + AbortError", async () => {
+  it("caller signal already aborted -> inner op sees an aborted signal + AbortError", async () => {
     const controller = new AbortController();
     controller.abort();
     let observed: AbortSignal | undefined;
@@ -204,10 +205,10 @@ describe("TimeoutLayer — caller abort propagates as AbortError (not TimeoutErr
 });
 
 // ===========================================================================
-// TimeoutLayer — no AbortController / listener leak
+// TimeoutLayer - no AbortController / listener leak
 // ===========================================================================
 
-describe("TimeoutLayer — no listener leak on the caller signal", () => {
+describe("TimeoutLayer - no listener leak on the caller signal", () => {
   it("removes its caller-signal listener once the op settles normally", async () => {
     const controller = new AbortController();
     const added: string[] = [];
@@ -239,10 +240,10 @@ describe("TimeoutLayer — no listener leak on the caller signal", () => {
 });
 
 // ===========================================================================
-// Singleflight — ONE caller aborting does NOT cancel the shared op
+// Singleflight - one caller aborting does not cancel the shared op
 // ===========================================================================
 
-describe("Singleflight — one caller aborts; shared op survives for the others", () => {
+describe("Singleflight - one caller aborts; shared op survives for the others", () => {
   it("aborting caller rejects AbortError; shared op runs once; other waiters still resolve", async () => {
     let executions = 0;
     const shared = deferred<number>();
@@ -250,7 +251,7 @@ describe("Singleflight — one caller aborts; shared op survives for the others"
 
     const sharedOp = (signal?: AbortSignal): Promise<number> => {
       executions++;
-      // The shared op must be handed NO caller signal — it cannot be canceled
+      // The shared op must be handed no caller signal - it cannot be canceled
       // by any single caller (mirrors CancellationToken.None on the .NET side).
       expect(signal).toBeUndefined();
       return shared.promise;
@@ -266,13 +267,13 @@ describe("Singleflight — one caller aborts; shared op survives for the others"
 
     const caught2 = p2.catch((e: unknown) => e);
 
-    // Caller #2 bails out.
+    // Caller #2 aborts.
     c2.abort();
 
-    // #2's wait was canceled …
+    // #2's wait was canceled ...
     expect(((await caught2) as Error).name).toBe("AbortError");
 
-    // … but the SHARED op is still running for #1 and #3.
+    // ... but the shared op is still running for #1 and #3.
     shared.resolve(99);
     expect(await p1).toBe(99);
     expect(await p3).toBe(99);
@@ -295,14 +296,14 @@ describe("Singleflight — one caller aborts; shared op survives for the others"
     const c1 = new AbortController();
     const p1 = pipeline.execute("shared", sharedOp, c1.signal);
 
-    // Caller #2 joins with an ALREADY-aborted signal → its wait short-circuits.
+    // Caller #2 joins with an already-aborted signal -> its wait short-circuits.
     const c2 = new AbortController();
     c2.abort();
     await expect(
       pipeline.execute("shared", sharedOp, c2.signal),
     ).rejects.toMatchObject({ name: "AbortError" });
 
-    // The shared op is unaffected — still one execution, #1 still resolves.
+    // The shared op is unaffected - still one execution, #1 still resolves.
     shared.resolve(5);
     expect(await p1).toBe(5);
     expect(executions).toBe(1);
@@ -310,8 +311,8 @@ describe("Singleflight — one caller aborts; shared op survives for the others"
 
   it("when the shared op REJECTS, a waiting caller (with a signal) receives the rejection", async () => {
     // Covers the raceAbort rejection-forwarding path: the shared op fails and
-    // the caller is awaiting THROUGH raceAbort (it supplied a signal), so the
-    // original error must propagate (not be swallowed into AbortError).
+    // the caller is awaiting through raceAbort (it supplied a signal), so the
+    // original error must propagate and not be swallowed into AbortError.
     const shared = deferred<number>();
     const pipeline = new ResilientPipelineBuilder().useSingleflight().build();
     const controller = new AbortController();
@@ -330,9 +331,9 @@ describe("Singleflight — one caller aborts; shared op survives for the others"
   });
 
   it("the underlying Singleflight ran the factory exactly once and cleared on settle", async () => {
-    // Lower-level mirror: prove the dedup primitive itself is untouched by the
-    // per-caller cancellation (cancellation is the LAYER's concern, not the
-    // primitive's).
+    // Lower-level mirror: shows that the dedup primitive itself is unaffected
+    // by per-caller cancellation (cancellation belongs to the layer, not to the
+    // primitive).
     const sf = new Singleflight<string, number>();
     const shared = deferred<number>();
     let runs = 0;
@@ -354,10 +355,10 @@ describe("Singleflight — one caller aborts; shared op survives for the others"
 });
 
 // ===========================================================================
-// Retry — caller abort stops retrying (not classified transient)
+// Retry - caller abort stops retrying (not classified transient)
 // ===========================================================================
 
-describe("Retry — caller abort stops retrying", () => {
+describe("Retry - caller abort stops retrying", () => {
   it("a caller abort propagates AbortError and does not re-attempt", async () => {
     let calls = 0;
     const controller = new AbortController();
@@ -369,8 +370,8 @@ describe("Retry — caller abort stops retrying", () => {
       "k",
       async () => {
         calls++;
-        // The op aborts the caller signal then throws AbortError — a
-        // cancellation must NOT be retried.
+        // The op aborts the caller signal then throws AbortError - a
+        // cancellation must not be retried.
         controller.abort();
         throw Object.assign(new Error("aborted"), { name: "AbortError" });
       },
@@ -404,10 +405,10 @@ describe("Retry — caller abort stops retrying", () => {
 });
 
 // ===========================================================================
-// Retry + per-attempt timeout — each attempt gets its OWN aborting signal
+// Retry + per-attempt timeout - each attempt gets its own aborting signal
 // ===========================================================================
 
-describe("Retry with inner per-attempt timeout — each attempt's signal cancels independently", () => {
+describe("Retry with inner per-attempt timeout - each attempt's signal cancels independently", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
@@ -423,7 +424,7 @@ describe("Retry with inner per-attempt timeout — each attempt's signal cancels
     const p = pipeline.execute("k", (signal) => {
       calls++;
       observedSignals.push(signal);
-      if (calls === 1) return firstAttempt.promise; // hang → times out
+      if (calls === 1) return firstAttempt.promise; // hang -> times out
       return Promise.resolve(42); // second attempt succeeds
     });
 
@@ -431,11 +432,11 @@ describe("Retry with inner per-attempt timeout — each attempt's signal cancels
 
     expect(await p).toBe(42);
     expect(calls).toBe(2);
-    // First attempt's per-attempt signal was aborted by its timeout …
+    // First attempt's per-attempt signal was aborted by its timeout ...
     expect(observedSignals[0]?.aborted).toBe(true);
-    // … the second attempt got a FRESH, non-aborted per-attempt signal.
+    // ... the second attempt got a fresh, non-aborted per-attempt signal.
     expect(observedSignals[1]?.aborted).toBe(false);
-    // The two attempts have distinct signals (fresh linked controller each).
+    // The attempts have distinct signals (fresh linked controller each).
     expect(observedSignals[0]).not.toBe(observedSignals[1]);
 
     firstAttempt.resolve(0);
@@ -443,10 +444,10 @@ describe("Retry with inner per-attempt timeout — each attempt's signal cancels
 });
 
 // ===========================================================================
-// RateLimiter — caller abort while waiting for a permit
+// RateLimiter - caller abort while waiting for a permit
 // ===========================================================================
 
-describe("RateLimiterLayer — caller abort while waiting for a permit", () => {
+describe("RateLimiterLayer - caller abort while waiting for a permit", () => {
   it("aborting a queued waiter rejects AbortError without consuming a permit", async () => {
     const layer = new RateLimiterLayer(new TerminalLayer(), {
       maxConcurrency: 1,
@@ -469,7 +470,7 @@ describe("RateLimiterLayer — caller abort while waiting for a permit", () => {
     expect(layer.activeCount).toBe(1);
 
     // Release the holder; the layer returns to a clean slate (the aborted
-    // waiter was spliced out — it gets no phantom permit).
+    // waiter was spliced out - it gets no phantom permit).
     holder.resolve(1);
     await holderCall;
     expect(layer.activeCount).toBe(0);
@@ -504,10 +505,10 @@ describe("RateLimiterLayer — caller abort while waiting for a permit", () => {
 });
 
 // ===========================================================================
-// CircuitBreaker — caller abort propagates
+// CircuitBreaker - caller abort propagates
 // ===========================================================================
 
-describe("CircuitBreakerLayer — caller abort propagates as AbortError", () => {
+describe("CircuitBreakerLayer - caller abort propagates as AbortError", () => {
   it("a caller abort surfaces from the breaker as AbortError", async () => {
     const controller = new AbortController();
     const pipeline = new ResilientPipelineBuilder()
@@ -530,14 +531,14 @@ describe("CircuitBreakerLayer — caller abort propagates as AbortError", () => 
 });
 
 // ===========================================================================
-// Pipeline — caller signal threads end-to-end
+// Pipeline - caller signal threads end-to-end
 // ===========================================================================
 
-describe("ResilientPipeline — caller signal threads to the inner op", () => {
-  it("the signal reaches the innermost op through RL → Retry → CB", async () => {
+describe("ResilientPipeline - caller signal threads to the inner op", () => {
+  it("the signal reaches the innermost op through RL -> Retry -> CB", async () => {
     let observed: AbortSignal | undefined;
     const controller = new AbortController();
-    // No Singleflight here: SF deliberately hands the SHARED op NO signal (the
+    // No Singleflight here: SF deliberately hands the shared op no signal (the
     // uncancellable-by-one-caller guarantee), so it would mask the threading.
     // The other layers pass the caller signal straight through to the op.
     const pipeline = new ResilientPipelineBuilder()
@@ -555,14 +556,14 @@ describe("ResilientPipeline — caller signal threads to the inner op", () => {
       controller.signal,
     );
 
-    // Through RL → Retry → CB the SAME caller signal arrived at the op
+    // Through RL -> Retry -> CB the same caller signal arrived at the op
     // (no inner timeout layer here, so it is the caller's own signal).
     expect(observed).toBe(controller.signal);
   });
 
   it("Singleflight outermost hands the shared op NO signal (uncancellable-by-one-caller)", async () => {
     const sentinel = new AbortController().signal;
-    let observed: AbortSignal | undefined = sentinel; // proves the op DID run
+    let observed: AbortSignal | undefined = sentinel; // proves the op ran
     const controller = new AbortController();
     const pipeline = new ResilientPipelineBuilder()
       .useSingleflight()
@@ -579,7 +580,7 @@ describe("ResilientPipeline — caller signal threads to the inner op", () => {
     );
 
     // The shared op ran (observed reassigned away from the sentinel) and got
-    // `undefined` — one caller cannot cancel the shared work.
+    // `undefined` - one caller cannot cancel the shared work.
     expect(observed).not.toBe(sentinel);
     expect(observed).toBeUndefined();
   });

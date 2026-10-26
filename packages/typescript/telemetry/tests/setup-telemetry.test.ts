@@ -16,7 +16,7 @@ afterEach(async () => {
 });
 
 describe("setupTelemetry", () => {
-  it("disabled=true short-circuits → no-op handle", async () => {
+  it("disabled=true short-circuits -> no-op handle", async () => {
     handle = setupTelemetry({ serviceName: "svc", disabled: true });
     expect(handle.disabled).toBe(true);
     await expect(handle.shutdown()).resolves.toBeUndefined();

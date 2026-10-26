@@ -10,9 +10,9 @@ using System.Formats.Asn1;
 using System.Security.Cryptography;
 
 /// <summary>
-/// Immutable keyring holding THIS service's PRIVATE sealing keys (active +
-/// any retiring) — the consumer side of the sealed encryption mode. Holds
-/// raw private key material — never log, serialize, or otherwise expose a
+/// Immutable keyring holding this service's private sealing keys (active +
+/// any retiring) - the consumer side of the sealed encryption mode. Holds
+/// raw private key material - never log, serialize, or otherwise expose a
 /// keyring instance through any I/O path.
 /// </summary>
 /// <remarks>
@@ -22,7 +22,7 @@ using System.Security.Cryptography;
 /// any <see cref="PayloadOpener"/> still referencing this keyring at
 /// dispose time will throw <see cref="ObjectDisposedException"/> on its
 /// next call. The constructor validates every entry imports as a P-256
-/// private key — public-only input, a wrong curve, or garbage fails loud at
+/// private key - public-only input, a wrong curve, or garbage throws at
 /// the construction boundary.
 /// </remarks>
 public sealed class RecipientPrivateKeyring : IDisposable
@@ -35,7 +35,7 @@ public sealed class RecipientPrivateKeyring : IDisposable
     /// </summary>
     /// <param name="recipientServiceId">
     /// This service's id (lowercase <c>[a-z0-9-]</c>, at most 64 characters
-    /// — the workload service-id grammar). Anchors the AEAD binding and the
+    /// - the workload service-id grammar). Anchors the AEAD binding and the
     /// key derivation; must equal the id producers seal to.
     /// </param>
     /// <param name="privateKeysByKid">
@@ -55,7 +55,7 @@ public sealed class RecipientPrivateKeyring : IDisposable
         if (privateKeysByKid.Count == 0)
         {
             throw new ArgumentException(
-                "privateKeysByKid must contain at least one key — an empty " +
+                "privateKeysByKid must contain at least one key - an empty " +
                 "private keyring can never open anything.",
                 nameof(privateKeysByKid));
         }
@@ -69,9 +69,9 @@ public sealed class RecipientPrivateKeyring : IDisposable
             ArgumentNullException.ThrowIfNull(pkcs8, nameof(privateKeysByKid));
             SealedKeyringValidation.ValidateKid(kid, nameof(privateKeysByKid));
 
-            // Fail loud at the boundary: the bytes must import as a P-256
-            // PRIVATE key (an SPKI/public-only blob is rejected by the
-            // PKCS#8 import) AND complete a real agreement.
+            // Throw at the boundary: the bytes must import as a P-256
+            // private key (an SPKI/public-only blob is rejected by the
+            // PKCS#8 import) and complete a real agreement.
             try
             {
                 using var imported = EcdhP256.ImportPrivatePkcs8P256(pkcs8);
@@ -86,7 +86,7 @@ public sealed class RecipientPrivateKeyring : IDisposable
                     ex);
             }
 
-            // Defensive copy — caller may zeroize their original immediately.
+            // Defensive copy - caller may zeroize their original immediately.
             var copy = new byte[pkcs8.Length];
             pkcs8.CopyTo(copy, 0);
             r_privateKeys[kid] = copy;
@@ -96,7 +96,7 @@ public sealed class RecipientPrivateKeyring : IDisposable
     }
 
     /// <summary>
-    /// Gets this service's id — the recipient identity the AEAD binding and
+    /// Gets this service's id - the recipient identity the AEAD binding and
     /// key derivation are anchored on.
     /// </summary>
     public string RecipientServiceId { get; }
@@ -113,7 +113,7 @@ public sealed class RecipientPrivateKeyring : IDisposable
     }
 
     /// <summary>
-    /// Returns a redacted string — never includes key bytes.
+    /// Returns a redacted string - never includes key bytes.
     /// </summary>
     public override string ToString()
         => _disposed
@@ -126,7 +126,7 @@ public sealed class RecipientPrivateKeyring : IDisposable
     /// </summary>
     /// <param name="kid">
     /// The kid to look up. Null returns false
-    /// (defensive — the kid comes from the wire frame).
+    /// (defensive - the kid comes from the wire frame).
     /// </param>
     /// <param name="privateKeyPkcs8">The private key bytes when found; default otherwise.</param>
     /// <returns>True when the kid is present; false otherwise.</returns>

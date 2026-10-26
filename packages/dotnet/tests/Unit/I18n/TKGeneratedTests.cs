@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 // <copyright file="TKGeneratedTests.cs" company="DCSV">
 // Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -16,18 +16,18 @@ using DcsvIo.D2.I18n;
 using Xunit;
 
 /// <summary>
-/// End-to-end smoke test for the SrcGen + Abstractions integration.
-/// Proves the SrcGen actually produces the TK class against the live
-/// <c>contracts/messages/en-US.json</c> with the expected shape.
+/// End-to-end smoke test of the source generator together with the
+/// abstractions package. It checks that the generator produces the TK class
+/// with the expected shape from the live <c>contracts/messages/en-US.json</c>.
 /// </summary>
 public sealed class TKGeneratedTests
 {
     [Fact]
     public void TK_HasNestedStaticPartialClasses_ForEveryDomain()
     {
-        // Every TK.X is a nested static partial class. Reflective discovery
-        // proves the generated source structure rather than just probing
-        // hand-picked names.
+        // Every TK.X is a nested static partial class. Finding the nested
+        // types by reflection checks the generated structure and does not
+        // depend on hand-picked names.
         var tk = typeof(TK);
         var nested = tk.GetNestedTypes(BindingFlags.Public);
 
@@ -42,8 +42,8 @@ public sealed class TKGeneratedTests
     [Fact]
     public void TK_HasExpectedSampleConstants()
     {
-        // Hand-picked sample across multiple domains, proving SrcGen emitted
-        // the right shape for the live catalog.
+        // A hand-picked sample across several domains checks that the
+        // generator emitted the expected shape for the live catalog.
         TK.Common.Errors.NOT_FOUND.Should().NotBeNull();
         TK.Common.Errors.UNKNOWN.Should().NotBeNull();
         TK.Common.Validation.EMAIL_INVALID.Should().NotBeNull();
@@ -54,28 +54,29 @@ public sealed class TKGeneratedTests
     [Fact]
     public void TK_ConstantKeys_MatchExactJsonKeys()
     {
-        // The generated constants embed the literal JSON key. Sample to verify
-        // case is preserved exactly (catches accidental normalization in SrcGen).
+        // The generated constants embed the literal JSON key. The sample
+        // checks that case is preserved exactly, which fails if the
+        // generator normalizes a key.
         TK.Common.Errors.NOT_FOUND.Key.Should().Be("common_errors_NOT_FOUND");
         TK.Common.Errors.UNKNOWN.Key.Should().Be("common_errors_UNKNOWN");
         TK.Auth.Errors.TEMPORARILY_UNAVAILABLE.Key.Should().Be("auth_errors_TEMPORARILY_UNAVAILABLE");
 
-        // Lowercase identifier is preserved verbatim from the JSON for any
-        // legacy keys that haven't been promoted to SCREAMING_SNAKE yet.
+        // A lowercase key is copied verbatim from the JSON, as in the keys
+        // not yet renamed to SCREAMING_SNAKE.
         TK.Geo.Validation.IP_REQUIRED.Key.Should().Be("geo_validation_ip_required");
     }
 
     [Fact]
     public void TK_AllConstants_HaveCorrespondingKeyInEnUsJson()
     {
-        // Inverse drift gate: if the generator ever falls behind the JSON, this
-        // catches "TK references a key that doesn't exist in en-US." With SrcGen
-        // this should be structurally impossible Î“Ã‡Ã¶ but cheap insurance and a
-        // useful smoke-test for the build wiring.
+        // Inverse drift check: a TK constant whose key does not exist in
+        // en-US.json fails this test. The generator derives the constants
+        // from that file, so a failure points to a generator fault or to the
+        // build wiring.
         var enUsPath = Path.Combine(AppContext.BaseDirectory, "messages", "en-US.json");
         File.Exists(enUsPath).Should().BeTrue(
             $"test wiring requires en-US.json at {enUsPath} (DcsvIo.D2.I18n's content-copy " +
-            "must land in the test project's output Î“Ã‡Ã¶ check the i18n csproj's <None> Pack/Copy " +
+            "must land in the test project's output - check the i18n csproj's <None> Pack/Copy " +
             "directives if this fails).");
 
         var json = File.ReadAllText(enUsPath);

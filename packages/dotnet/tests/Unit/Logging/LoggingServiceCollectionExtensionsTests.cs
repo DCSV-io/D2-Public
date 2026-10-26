@@ -17,10 +17,11 @@ using Serilog;
 using Xunit;
 
 /// <summary>
-/// <c>Log.Logger</c> is a process-global static; the
-/// <c>LogLoggerIsSetAfterAddD2Logging</c> test mutates it. We pin it into a
-/// dedicated xUnit collection so its execution is serialized against any
-/// other test that might also touch the static.
+/// <c>Log.Logger</c> is a process-global static, and the
+/// <c>LogLoggerIsSetAfterAddD2Logging</c> test mutates it. This class is in the
+/// <c>LogLoggerStaticState</c> xUnit collection, which disables parallelization
+/// (LogLoggerStaticStateCollectionDefinition.cs), so it does not run at the same
+/// time as any other test that might also touch the static.
 /// </summary>
 [Collection("LogLoggerStaticState")]
 public sealed class LoggingServiceCollectionExtensionsTests
@@ -201,7 +202,7 @@ public sealed class LoggingServiceCollectionExtensionsTests
         });
         services.PostConfigure<D2LoggingOptions>(opts =>
         {
-            // Force the post-bind validation to see an empty list.
+            // Make the post-bind validation see an empty list.
             var t = opts.GetType();
             var field = t.GetProperty(nameof(D2LoggingOptions.InfrastructurePaths))!;
             field.SetValue(opts, Array.Empty<string>());
@@ -263,8 +264,8 @@ public sealed class LoggingServiceCollectionExtensionsTests
     }
 
     /// <summary>
-    /// Minimal <see cref="IHostEnvironment"/> stub used to drive the
-    /// env-derived defaults inside <c>AddD2Logging</c>.
+    /// Minimal <see cref="IHostEnvironment"/> stub that supplies the values
+    /// from which <c>AddD2Logging</c> derives its defaults.
     /// </summary>
     private sealed class TestHostEnvironment : IHostEnvironment
     {

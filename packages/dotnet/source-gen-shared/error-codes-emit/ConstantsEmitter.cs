@@ -18,18 +18,18 @@ using DcsvIo.D2.SourceGen.Polyfills;
 /// <summary>
 /// Shared logic for emitting the per-catalog constants static class source
 /// (e.g. <c>AuthErrorCodes</c> / <c>ErrorCodes</c>) from a parsed
-/// <see cref="ErrorCodesSpec"/> + a <see cref="CatalogConfig"/>. Stateless
-/// and unit-testable in isolation. Runs the superset of validations gated by
+/// <see cref="ErrorCodesSpec"/> + a <see cref="CatalogConfig"/>. Stateless,
+/// and testable in isolation because it reports problems as
+/// <see cref="EmitDiagnostic"/> records and never creates Roslyn
+/// <c>Diagnostic</c> instances. Runs the superset of validations gated by
 /// the catalog config so each catalog reproduces its existing diagnostic
-/// surface byte-for-byte. The Roslyn host (<c>ErrorCodesGenerator</c> shell)
-/// calls this and translates emit-side <see cref="EmitDiagnostic"/> records
-/// into Roslyn <c>Diagnostic</c> instances.
+/// surface byte-for-byte.
 /// </summary>
 internal static class ConstantsEmitter
 {
     /// <summary>
     /// HTTP statuses the codegen mapping supports. Superset across every
-    /// catalog — the auth catalog further narrows the accepted set via its
+    /// catalog - the auth catalog further narrows the accepted set via its
     /// schema's <c>[401, 503]</c> enum at edit time, but the engine accepts
     /// the full range so any per-domain catalog may use any standard status.
     /// </summary>
@@ -37,8 +37,8 @@ internal static class ConstantsEmitter
         ImmutableArray.Create(200, 206, 207, 400, 401, 403, 404, 409, 413, 429, 500, 503);
 
     /// <summary>
-    /// SCREAMING_SNAKE code-shape validator. Bucket 1 (no backtracking) — anchored
-    /// character-class match; no timeout needed.
+    /// SCREAMING_SNAKE code-shape validator. The pattern is an anchored
+    /// character-class match with no backtracking, so it needs no timeout.
     /// </summary>
     private static readonly Regex sr_codePattern =
         new("^[A-Z][A-Z0-9_]*$", RegexOptions.CultureInvariant);
@@ -52,10 +52,10 @@ internal static class ConstantsEmitter
     /// <param name="categoryWireSet">
     /// The spec-derived closed set of valid <c>category</c> wire strings (from
     /// <c>error-category.spec.json</c>). When empty (spec absent / malformed)
-    /// the category-membership check degrades to a no-op. Non-engine callers
-    /// (the base/domain failures emitters) pass
-    /// <see cref="ImmutableHashSet{T}.Empty"/> — category validation already
-    /// ran in the constants pass for the same entry set.
+    /// the category-membership check degrades to a no-op. The base and failures
+    /// emitters validate with <see cref="ImmutableHashSet{T}.Empty"/>, because
+    /// this method, the constants pass, already reported the category
+    /// diagnostics for the same entry set.
     /// </param>
     /// <returns>Generated source + diagnostics.</returns>
     public static EmitResult Emit(
@@ -72,8 +72,8 @@ internal static class ConstantsEmitter
     /// <summary>
     /// Runs the catalog's validation rules, collecting diagnostics and
     /// returning the entries that survive every check (in spec order).
-    /// Shared with <see cref="FailuresEmitter"/> so the constants + failures
-    /// files agree on which entries are valid.
+    /// Both the constants and the failures files take their entries from this
+    /// method, so they agree on which entries are valid.
     /// </summary>
     /// <param name="spec">Parsed error-codes spec.</param>
     /// <param name="config">The catalog configuration.</param>
@@ -81,7 +81,7 @@ internal static class ConstantsEmitter
     /// The spec-derived closed set of valid <c>category</c> wire strings (from
     /// <c>error-category.spec.json</c>). When non-empty it is the membership
     /// authority for the category check; when empty (spec absent / malformed)
-    /// the check is skipped — mirroring the en-US.json TK cross-check's
+    /// the check is skipped - mirroring the en-US.json TK cross-check's
     /// empty-degrades-to-no-op behavior so a missing AdditionalFile never
     /// fires a false unknown-category diagnostic.
     /// </param>
@@ -104,9 +104,9 @@ internal static class ConstantsEmitter
 
         foreach (var entry in spec.ErrorCodes)
         {
-            // Generic-only: the SCREAMING_SNAKE code-shape regex (auth relies
-            // on its schema's ^AUTH_… regex at edit time + the engine's
-            // domain-prefix diagnostic at build time).
+            // Generic-only: the SCREAMING_SNAKE code-shape regex (domain catalogs
+            // rely on their schema's owner-prefix regex at edit time + the
+            // engine's DomainPrefix diagnostic at build time).
             if (config.InvalidCodeId is { } invalidCodeId &&
                 (entry.Code.Falsey() || !sr_codePattern.IsMatch(entry.Code)))
             {
@@ -114,13 +114,12 @@ internal static class ConstantsEmitter
                 continue;
             }
 
-            // Engine-level: per-domain codes must start with the catalog's
-            // enforced domain prefix (generic catalog is exempt, prefix null).
-            if (config.DomainPrefix is { } prefix &&
-                !entry.Code.StartsWith(prefix, StringComparison.Ordinal))
+            // Engine-level: every catalog code must start with the full
+            // owner-aware DomainPrefix (GEN_ / LIB_AUTH_ / DOM_*).
+            if (!entry.Code.StartsWith(config.DomainPrefix, StringComparison.Ordinal))
             {
                 diagnostics.Add(EngineDiagnostics.DomainPrefixViolation(
-                    entry.Code, config.TargetAssemblyName, prefix));
+                    entry.Code, config.TargetAssemblyName, config.DomainPrefix));
                 continue;
             }
 
@@ -141,7 +140,7 @@ internal static class ConstantsEmitter
 
             // Auth-only: category enum membership against the spec-derived
             // closed set. An empty set means error-category.spec.json was not
-            // surfaced / was unparseable — skip the check (the same degradation
+            // surfaced / was unparseable - skip the check (the same degradation
             // the en-US.json TK cross-check uses) rather than fire false
             // positives.
             if (config.ValidateCategory && config.UnknownCategoryId is { } unknownCatId &&
@@ -191,8 +190,8 @@ internal static class ConstantsEmitter
     /// <c>deprecatedReason</c>, with <c>" Use {replacedBy} instead."</c> appended
     /// when a successor code is declared. The result is wrapped in a C# string
     /// literal (the same escaping the emitter applies to other string literals).
-    /// Shared with <see cref="FailuresEmitter"/> so the constant + factory carry
-    /// an identical attribute message.
+    /// Both the constant and the factory build their attribute with this
+    /// method, so they carry an identical message.
     /// </summary>
     /// <param name="entry">A deprecated entry (<c>entry.Deprecated == true</c>).</param>
     /// <returns>The quoted, escaped <c>[Obsolete]</c> message literal.</returns>
@@ -256,17 +255,17 @@ internal static class ConstantsEmitter
     /// <summary>
     /// Appends a newline-delimited config block one line at a time via
     /// <see cref="StringBuilder.AppendLine()"/>. Every emitted line is later
-    /// collapsed to a bare LF at the source funnel (<see cref="EmitSource"/>'s
-    /// <c>LfNormalized()</c> return), so the generated source is LF-only
+    /// collapsed to a bare LF when <see cref="EmitSource"/> returns
+    /// <c>LfNormalized()</c>, so the generated source is LF-only
     /// regardless of the build host's <c>Environment.NewLine</c>. The block's
-    /// trailing newline is consumed by the per-line split, so callers do NOT
-    /// add a separate blank-line append.
+    /// trailing newline is consumed by the per-line split, so the caller does
+    /// not add a separate blank-line append.
     /// </summary>
     private static void EmitBlock(StringBuilder sb, string block)
     {
         var lines = block.Split('\n');
 
-        // A trailing newline produces a final empty segment — drop it so the
+        // A trailing newline produces a final empty segment - drop it so the
         // block ends exactly at its last real line.
         var count = lines.Length;
 
@@ -315,9 +314,9 @@ internal static class ConstantsEmitter
     {
         sb.AppendLine("    /// <summary>");
         sb.AppendLine(
-            "    /// Converts a SCREAMING_SNAKE error code (e.g. <c>AUTH_BEARER_MISSING</c>)");
+            "    /// Converts a SCREAMING_SNAKE error code (e.g. <c>LIB_AUTH_BEARER_MISSING</c>)");
         sb.AppendLine(
-            "    /// to its kebab-case form (<c>auth-bearer-missing</c>) for use in the");
+            "    /// to its kebab-case form (<c>lib-auth-bearer-missing</c>) for use in the");
         sb.AppendLine(
             "    /// RFC 7807 ProblemDetails <c>type</c> URI.");
         sb.AppendLine("    /// </summary>");

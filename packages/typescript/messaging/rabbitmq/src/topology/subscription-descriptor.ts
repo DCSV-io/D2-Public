@@ -5,11 +5,11 @@
 import { QueuePattern } from "./queue-pattern.js";
 
 /**
- * Optional broker-level tiered-retry contract. Mirrors the .NET
- * `TieredRetryDescriptor` — the framework declares the tier topology; the
- * per-handler driver is responsible for routing a transient failure to a
- * tier exchange. `maxAttempts` caps the total retry cycles via the broker's
- * `x-death` header count.
+ * Optional broker-level tiered-retry contract. It mirrors the .NET
+ * `TieredRetryDescriptor`. The framework declares the tier topology, and the
+ * per-handler driver routes a transient failure to a tier exchange.
+ * `maxAttempts` caps the total retry cycles, counted from the broker's
+ * `x-death` header.
  */
 export interface TieredRetryDescriptor {
   /** Total retry cycles allowed before a message routes direct to the DLQ. */
@@ -19,8 +19,8 @@ export interface TieredRetryDescriptor {
 }
 
 /**
- * The transport-agnostic subscription contract a consumer registers. Mirrors
- * the fields of the .NET `ISubscriberRegistration` + its `MqSubscriptionDescriptor`
+ * The transport-agnostic subscription contract that a consumer registers. It
+ * mirrors the fields of the .NET `ISubscriberRegistration` + its `MqSubscriptionDescriptor`
  * that the consumer runtime needs: which queue, bound to which exchange, with
  * what durability pattern, prefetch, idempotency opt-in, and optional retry
  * tiers. The producer/message-type coupling lives in the spec-driven
@@ -30,7 +30,7 @@ export interface SubscriptionDescriptor {
   /**
    * Base primary-queue name. For a {@link QueuePattern.FanoutExclusiveAutoDelete}
    * subscription the runtime appends a per-process suffix (see
-   * {@link resolveQueueName}) so multi-replica services don't race on the
+   * {@link resolveQueueName}), so multi-replica services do not race on the
    * broker's exclusive-queue lock.
    */
   readonly queueName: string;
@@ -40,7 +40,7 @@ export interface SubscriptionDescriptor {
   readonly exchangeType: "fanout" | "topic" | "direct";
   /** Queue durability / exclusivity pattern. */
   readonly pattern: QueuePattern;
-  /** Routing key used for the primary queue↔exchange binding (empty for fanout). */
+  /** Routing key used for the primary queue<->exchange binding (empty for fanout). */
   readonly routingKeyBinding: string;
   /** Per-consumer prefetch window (whole messages). */
   readonly prefetch: number;
@@ -64,7 +64,7 @@ const _QUEUE_SUFFIX_LENGTH = 8;
  * name unchanged.
  *
  * @param descriptor The subscription descriptor.
- * @param suffix Optional explicit suffix (deterministic tests supply one);
+ * @param suffix Optional explicit suffix, for a deterministic queue name;
  *   defaults to a random 8-char hex token.
  */
 export function resolveQueueName(

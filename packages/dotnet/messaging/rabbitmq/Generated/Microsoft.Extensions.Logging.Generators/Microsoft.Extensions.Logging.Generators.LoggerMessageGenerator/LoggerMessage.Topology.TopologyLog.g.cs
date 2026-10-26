@@ -7,7 +7,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Topology
     {
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Int32, global::System.Exception?> __DeclarationStartedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.Int32>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(200, nameof(DeclarationStarted)), "Declaring messaging topology: {SubscriberCount} subscriber(s).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.Int32>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(200, nameof(DeclarationStarted)), "Declaring messaging topology: {SubscriberCount} subscriber(s).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void DeclarationStarted(global::Microsoft.Extensions.Logging.ILogger logger, global::System.Int32 subscriberCount)
@@ -19,7 +19,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Topology
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Double, global::System.Exception?> __DeclarationCompletedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.Double>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(201, nameof(DeclarationCompleted)), "Topology declaration complete in {DurationMs:F0}ms.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.Double>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(201, nameof(DeclarationCompleted)), "Topology declaration complete in {DurationMs:F0}ms.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void DeclarationCompleted(global::Microsoft.Extensions.Logging.ILogger logger, global::System.Double durationMs)
@@ -31,7 +31,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Topology
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String, global::System.String, global::System.String, global::System.String, global::System.String, global::System.Exception?> __SubscriberTopologyDeclaredCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String, global::System.String, global::System.String, global::System.String, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(202, nameof(SubscriberTopologyDeclared)), "Declared exchange={Exchange} type={Type} queue={Queue} pattern={Pattern} (DLX={Dlx}, DLQ={Dlq}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String, global::System.String, global::System.String, global::System.String, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(202, nameof(SubscriberTopologyDeclared)), "Declared exchange={Exchange} type={Type} queue={Queue} pattern={Pattern} (DLX={Dlx}, DLQ={Dlq}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void SubscriberTopologyDeclared(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String exchange, global::System.String type, global::System.String queue, global::System.String pattern, global::System.String dlx, global::System.String dlq)
@@ -43,7 +43,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Topology
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Int32, global::System.String, global::System.String, global::System.Exception?> __RetryTopologyDeclaredCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.Int32, global::System.String, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(203, nameof(RetryTopologyDeclared)), "Declared {TierCount} retry tier(s) for queue={Queue} (TTLs={Ttls}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.Int32, global::System.String, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(203, nameof(RetryTopologyDeclared)), "Declared {TierCount} retry tier(s) for queue={Queue} (TTLs={Ttls}).", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void RetryTopologyDeclared(global::Microsoft.Extensions.Logging.ILogger logger, global::System.Int32 tierCount, global::System.String queue, global::System.String ttls)
@@ -55,7 +55,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Topology
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.String, global::System.String, global::System.Exception?> __DeclarationFailedCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(204, nameof(DeclarationFailed)), "Topology declaration failed ({ExceptionType}, queue={Queue}); host startup will fail. Likely causes: broker permissions, conflicting pre-existing declarations.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define<global::System.String, global::System.String>(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(204, nameof(DeclarationFailed)), "Topology declaration failed ({ExceptionType}, queue={Queue}); host startup will fail. Likely causes: broker permissions, conflicting pre-existing declarations.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void DeclarationFailed(global::Microsoft.Extensions.Logging.ILogger logger, global::System.String exceptionType, global::System.String queue)
@@ -67,7 +67,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Topology
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Exception?> __DeclarationFailedFaultSinkCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(206, nameof(DeclarationFailedFaultSink)), "Topology declaration cycle faulted in background; host startup will fail.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Error, new global::Microsoft.Extensions.Logging.EventId(206, nameof(DeclarationFailedFaultSink)), "Topology declaration cycle faulted in background; host startup will fail.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void DeclarationFailedFaultSink(global::Microsoft.Extensions.Logging.ILogger logger, global::System.Exception ex)
@@ -79,7 +79,7 @@ namespace DcsvIo.D2.Messaging.RabbitMq.Topology
         }
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, global::System.Exception?> __NoSubscribersToDeclareCallback =
-            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(205, nameof(NoSubscribersToDeclare)), "Topology hosted service: no subscribers registered; nothing to declare.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true }); 
+            global::Microsoft.Extensions.Logging.LoggerMessage.Define(global::Microsoft.Extensions.Logging.LogLevel.Information, new global::Microsoft.Extensions.Logging.EventId(205, nameof(NoSubscribersToDeclare)), "Topology hosted service: no subscribers registered; nothing to declare.", new global::Microsoft.Extensions.Logging.LogDefineOptions() { SkipEnabledCheck = true });
 
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Extensions.Logging.Generators", "10.0.14.21808")]
         public static partial void NoSubscribersToDeclare(global::Microsoft.Extensions.Logging.ILogger logger)

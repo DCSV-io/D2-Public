@@ -12,9 +12,9 @@ using DcsvIo.D2.OtelMessagingTags.SourceGen;
 using Xunit;
 
 /// <summary>
-/// Pure-logic tests for the OtelMessagingTags emitter. §1.20 fail-path
-/// proof: drives the emitter with valid + 3 deliberate-drift specs and
-/// asserts both the emit shape and the diagnostics.
+/// Tests of the OtelMessagingTags emitter that need no I/O. They run the
+/// emitter on a valid spec and on specs with deliberate drift, and assert both
+/// the emitted source and the diagnostics.
 /// </summary>
 public sealed class OtelMessagingTagsEmitterTests
 {
@@ -38,10 +38,10 @@ public sealed class OtelMessagingTagsEmitterTests
     [Fact]
     public void Emit_MessagingOperationType_PinsTheCanonicalAttributeName()
     {
-        // Regression pin: the OTel sem-conv canonical attribute is
-        // "messaging.operation.type", NOT the non-standard
-        // "messaging.operation". Spec-driving the attribute name structurally
-        // prevents drift from the standard.
+        // Regression pin: the OTel semantic-convention attribute is
+        // "messaging.operation.type", not the non-standard
+        // "messaging.operation". Taking the attribute name from the spec
+        // structurally prevents drift from the standard.
         var spec = MakeSpec(
             new OtelMessagingTagEntry(
                 "MESSAGING_OPERATION_TYPE", "messaging.operation.type", "doc"));
@@ -57,13 +57,14 @@ public sealed class OtelMessagingTagsEmitterTests
     }
 
     // ---------------------------------------------------------------
-    // §1.20 fail-path proof — 3 deliberate drift cases.
+    // Failure paths - deliberate drift cases: a duplicate constant name, a
+    // duplicate value and an invalid constant name.
     // ---------------------------------------------------------------
 
     [Fact]
     public void Emit_DuplicateConstName_EmitsDuplicateConstNameDiagnostic()
     {
-        // DRIFT CASE 1.
+        // Drift case: a duplicate constant name.
         var spec = MakeSpec(
             new OtelMessagingTagEntry("TAG", "a", "doc"),
             new OtelMessagingTagEntry("TAG", "b", "doc"));
@@ -77,7 +78,7 @@ public sealed class OtelMessagingTagsEmitterTests
     [Fact]
     public void Emit_DuplicateValue_EmitsDuplicateValueDiagnostic()
     {
-        // DRIFT CASE 2.
+        // Drift case: a duplicate value.
         var spec = MakeSpec(
             new OtelMessagingTagEntry("X", "a", "doc"),
             new OtelMessagingTagEntry("Y", "a", "doc"));
@@ -91,7 +92,7 @@ public sealed class OtelMessagingTagsEmitterTests
     [Fact]
     public void Emit_InvalidConstName_EmitsInvalidConstNameDiagnostic()
     {
-        // DRIFT CASE 3.
+        // Drift case: an invalid constant name.
         var spec = MakeSpec(new OtelMessagingTagEntry("lowerCase", "a", "doc"));
 
         var result = OtelMessagingTagsEmitter.Emit(spec);

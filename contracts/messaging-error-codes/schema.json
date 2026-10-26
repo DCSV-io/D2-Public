@@ -1,0 +1,90 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "D2 messaging error codes spec",
+  "description": "Domain-specialized copy of contracts/error-codes/error-codes.canonical.schema.json, narrowed to the portable messaging catalog: the LIB_MESSAGING_* code-prefix regex (owner LIB, domain token MESSAGING), the [503] httpStatus subset, and the one category that status carries. Conforms to the canonical 7-field set (including factoryShape) but tightens the value constraints so editors catch a non-LIB_MESSAGING_ code, a non-503 status, or an out-of-set category at edit time. This is the source-of-truth catalog that DcsvIo.D2.Messaging.RabbitMq.ErrorCodes.SourceGen reads to emit MessagingErrorCodes.g.cs + MessagingTransportFailures.g.cs into DcsvIo.D2.Messaging.RabbitMq.",
+  "type": "object",
+  "required": ["errorCodes"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "errorCodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/errorCode"
+      }
+    }
+  },
+  "definitions": {
+    "errorCode": {
+      "type": "object",
+      "required": [
+        "code",
+        "httpStatus",
+        "category",
+        "userMessageKey",
+        "factoryName",
+        "factoryShape",
+        "doc"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^LIB_MESSAGING_[A-Z][A-Z0-9_]*$",
+          "description": "Wire-format error code (SCREAMING_SNAKE). Must be unique across the spec. The literal IS the wire format. Owner LIB, domain token MESSAGING - every code is LIB_MESSAGING_{REST}."
+        },
+        "httpStatus": {
+          "type": "integer",
+          "enum": [503],
+          "description": "HTTP status mapping. Drives transport-side response shape. Every code in this catalog describes a transport that could not carry the message, so 503 is the only member; widening the set requires extending this enum AND the codegen mapping."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["infrastructure_unavailable"],
+          "description": "Closed semantic/telemetry classification. Every code in this catalog is a messaging-transport failure, so infrastructure_unavailable is the only member."
+        },
+        "userMessageKey": {
+          "type": "string",
+          "pattern": "^TK(\\.[A-Za-z][A-Za-z0-9]*){2}\\.[A-Z][A-Z0-9_]*$",
+          "description": "Translation key reference rendered as the messages argument on the emitted D2Result factory (e.g. TK.Common.Errors.SERVICE_UNAVAILABLE). The generator enforces existence by inverse-transforming the symbol path to the snake_case key (TK.Common.Errors.SERVICE_UNAVAILABLE -> common_errors_SERVICE_UNAVAILABLE) and asserting it is present in contracts/messages/en-US.json (D2ERC002). Codes in this catalog share the generic transport-unavailable key: the caller is told the service could not take the message, and the distinction between the transport failures is carried by the code and the operator-facing logs, not by the text a person reads."
+        },
+        "factoryName": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Za-z0-9]*$",
+          "description": "PascalCase symbol for the emitted factory method. It is the code with its LIB_MESSAGING_ prefix removed, rendered in Pascal case (LIB_MESSAGING_PUBLISH_UNROUTABLE -> PublishUnroutable). Must be unique across the spec."
+        },
+        "factoryShape": {
+          "type": "string",
+          "enum": ["standard", "none"],
+          "description": "Closed enum that drives the generated factory's signature variant. standard: the one universal error-factory shape (messages?, inputErrors?, errorCode?, category?, traceId?) - ALL optional; the errorCode / category overrides are how a delegating domain factory stamps a specific code + category on its base status. none: no factory generated for this code. Every messaging entry is standard."
+        },
+        "doc": {
+          "type": "string",
+          "minLength": 1,
+          "description": "XML <summary> text rendered on the emitted constant + factory."
+        },
+        "deprecated": {
+          "type": "boolean",
+          "description": "When true, the entry is deprecated: the generated C# constant + factory carry [Obsolete] and the TS constant + factory carry @deprecated. Additive - the entry is NEVER deleted. Deleting a deprecated (or non-deprecated) entry is a breaking change the JSON-diff gate fails."
+        },
+        "deprecatedReason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Plain dev-facing English explaining why the code is deprecated; rendered into the [Obsolete(\"...\")] message, the @deprecated JSDoc, and the changelog entry. NOT a TK key (developer-facing, not user-facing)."
+        },
+        "replacedBy": {
+          "type": "string",
+          "description": "Wire code of the successor entry (e.g. RESOURCE_NOT_FOUND). Must reference a real, non-deprecated entry in the merged registry. Omit for pure retirement with no replacement."
+        },
+        "sunset": {
+          "type": "string",
+          "format": "date",
+          "description": "ISO-8601 date for the RFC 8594 Sunset response header. A host whose response pipeline emits that header reads the date from here; a host that does not ignores it."
+        }
+      }
+    }
+  }
+}

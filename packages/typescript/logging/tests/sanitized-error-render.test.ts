@@ -16,7 +16,7 @@ describe("sanitizedErrorRender", () => {
       const r = sanitizedErrorRender(e);
       expect(r.name).toBe("TypeError");
       expect(r.firstFrame).toMatch(/^at /);
-      // message contents must NEVER appear in the render shape.
+      // The message text must never appear in the render shape.
       expect(JSON.stringify(r)).not.toContain("password=secret");
     }
   });
@@ -45,7 +45,7 @@ describe("sanitizedErrorRender", () => {
     ["null", null, "object"],
     ["undefined", undefined, "undefined"],
     ["object", {}, "object"],
-  ])("non-Error %s → typeof name", (_label, val, expectedName) => {
+  ])("non-Error %s -> typeof name", (_label, val, expectedName) => {
     const r = sanitizedErrorRender(val);
     expect(r.name).toBe(expectedName);
     expect(r.firstFrame).toBeUndefined();

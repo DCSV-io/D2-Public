@@ -10,11 +10,10 @@ using DcsvIo.D2.Utilities.Attributes;
 using DcsvIo.D2.Utilities.Enums;
 
 /// <summary>
-/// Fixture types used to drive <c>RedactDataDestructuringPolicy</c> unit
-/// tests. Consolidated into one file because they exist solely to exercise
-/// one policy class — splitting into 17+ tiny per-type files would add noise
-/// without value (deliberate single-file deviation from the
-/// one-class-per-file convention; called out in the Plan).
+/// Fixture types for the <c>RedactDataDestructuringPolicy</c> unit tests.
+/// They are in one file because they exist only to exercise that one policy
+/// class, and a separate file for each type would add noise without value. The
+/// file deviates on purpose from the one-class-per-file convention.
 /// </summary>
 internal static class RedactionFixtures
 {
@@ -58,7 +57,7 @@ internal static class RedactionFixtures
         public int Age { get; init; }
     }
 
-    /// <summary>Plain record with no redaction — passthrough fixture.</summary>
+    /// <summary>Plain record with no redaction - passthrough fixture.</summary>
     internal sealed record PassthroughInner(string Value);
 
     /// <summary>Outer record holding a redacted-typed inner record property.</summary>
@@ -90,7 +89,7 @@ internal static class RedactionFixtures
         public IReadOnlyList<TypeLevelRedactedRecord> Items { get; init; } = [];
     }
 
-    /// <summary>No redaction anywhere — passthrough.</summary>
+    /// <summary>No redaction anywhere - passthrough.</summary>
     internal sealed record PassthroughRecord(string Name, int Number);
 
     /// <summary>Two redacted properties with different reasons.</summary>
@@ -104,8 +103,9 @@ internal static class RedactionFixtures
     }
 
     /// <summary>
-    /// Base class that declares a redacted property; subclass inherits it.
-    /// Tests inheritance walk on the property attribute.
+    /// Base class that declares a redacted property that the subclass inherits.
+    /// It tests that the policy follows inheritance when it reads the property
+    /// attribute.
     /// </summary>
     internal abstract record InheritanceBase
     {
@@ -128,32 +128,33 @@ internal static class RedactionFixtures
         public string AccountNumber { get; init; } = string.Empty;
     }
 
-    /// <summary>Type with no public properties — no-redaction-needed empty fixture.</summary>
+    /// <summary>Type with no public properties - no-redaction-needed empty fixture.</summary>
     internal sealed class EmptyClass
     {
     }
 
     /// <summary>
-    /// Mixed access fixture — a public + private + static property; the policy
-    /// must only see <c>BindingFlags.Public | Instance</c> (so no private,
-    /// no static).
+    /// Mixed access fixture with a public instance property, a private field
+    /// and a public static property. The policy reads only
+    /// <c>BindingFlags.Public | Instance</c> members, so it skips the private
+    /// field and the static property.
     /// </summary>
     internal sealed class MixedAccessClass
     {
 #pragma warning disable CS0414, IDE0051
-        // Private readonly field exists only to verify the policy SKIPS private fields.
+        // The private readonly field exists only to verify that the policy skips private fields.
         private readonly string _privateValue = "private";
 #pragma warning restore CS0414, IDE0051
 
-        // Static + private members exist only to verify the policy SKIPS them.
+        // The static member exists only to verify that the policy skips static members.
         public static string StaticValue { get; set; } = "static";
 
         public string PublicValue { get; set; } = "public";
     }
 
     /// <summary>
-    /// Field-level <c>[RedactData]</c> — pinning the documented limitation
-    /// (the policy ignores field-level attributes).
+    /// Field-level <c>[RedactData]</c>. It pins the documented limitation that
+    /// the policy ignores attributes on fields.
     /// </summary>
     internal sealed class FieldLevelRedactedClass
     {
@@ -164,8 +165,9 @@ internal static class RedactionFixtures
     }
 
     /// <summary>
-    /// Cyclic graph — outer references inner references outer. Used to verify
-    /// our policy doesn't break Serilog's recursion-depth gate.
+    /// Cyclic graph: the outer node references the inner node, which references
+    /// the outer node. It verifies that the policy does not interfere with
+    /// Serilog's recursion-depth limit.
     /// </summary>
     internal sealed class CyclicNode
     {

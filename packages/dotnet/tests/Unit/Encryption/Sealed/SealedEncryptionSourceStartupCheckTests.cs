@@ -8,14 +8,15 @@ namespace DcsvIo.D2.Tests.Unit.Encryption.Sealed;
 
 using AwesomeAssertions;
 using DcsvIo.D2.Encryption;
+using DcsvIo.D2.Tests.Unit.Handler;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
 /// <summary>
-/// Deny-by-default coverage for <see cref="SealedEncryptionSourceStartupCheck"/> — the sealed
+/// Deny-by-default coverage for <see cref="SealedEncryptionSourceStartupCheck"/> - the sealed
 /// provenance guard: an unmarked (static) sealed recipient crashes a non-Development host,
-/// a KeyCustodian-marked recipient passes, and a Development host logs-and-proceeds.
+/// a recipient marked Managed passes, and a Development host logs-and-proceeds.
 /// </summary>
 public sealed class SealedEncryptionSourceStartupCheckTests
 {
@@ -39,20 +40,99 @@ public sealed class SealedEncryptionSourceStartupCheckTests
     }
 
     [Fact]
-    public async Task KeyCustodianMarkedRecipient_NonDevelopment_Passes()
+    public async Task ManagedMarkedRecipient_NonDevelopment_Passes()
     {
         var provider = BuildProvider(
             isDevelopment: false,
             services =>
             {
-                services.MarkD2EncryptionSource(_SERVICE_ID, EncryptionKeyringSource.KeyCustodian);
+                services.MarkD2EncryptionSource(_SERVICE_ID, EncryptionKeyringSource.Managed);
                 services.AddD2SealedEncryptionRecipient(_SERVICE_ID);
                 services.AddD2SealedEncryptionSourceCheck();
             });
 
         var act = () => RunCheckAsync(provider);
 
-        await act.Should().NotThrowAsync("a KeyCustodian-sourced recipient passes in every env");
+        await act.Should().NotThrowAsync("a recipient marked Managed passes in every env");
+    }
+
+    [Fact]
+    public async Task UnmarkedRecipient_NonDevelopment_ExceptionStatesManagedRegistration()
+    {
+        var provider = BuildProvider(
+            isDevelopment: false,
+            services =>
+            {
+                services.AddD2SealedEncryptionRecipient(_SERVICE_ID);
+                services.AddD2SealedEncryptionSourceCheck();
+            });
+
+        var act = () => RunCheckAsync(provider);
+
+        (await act.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage(
+                $"Sealed encryption recipient '{_SERVICE_ID}' is backed by a static sealing-key "
+                + "source rather than a managed, rotation-aware keyring. Back its sealer with a managed "
+                + "keyring and mark it Managed via MarkD2EncryptionSource before starting a "
+                + "non-Development host.");
+    }
+
+    [Fact]
+    public async Task ManagedAndStaticMarkers_NonDevelopment_Throws()
+    {
+        var provider = BuildProvider(
+            isDevelopment: false,
+            services =>
+            {
+                services.MarkD2EncryptionSource(_SERVICE_ID, EncryptionKeyringSource.Managed);
+                services.MarkD2EncryptionSource(_SERVICE_ID, EncryptionKeyringSource.StaticFactory);
+                services.AddD2SealedEncryptionRecipient(_SERVICE_ID);
+                services.AddD2SealedEncryptionSourceCheck();
+            });
+
+        var act = () => RunCheckAsync(provider);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task ManagedMarkedRecipient_NonDevelopment_LogsPassedEntry()
+    {
+        var provider = BuildProvider(
+            isDevelopment: false,
+            services =>
+            {
+                services.MarkD2EncryptionSource(_SERVICE_ID, EncryptionKeyringSource.Managed);
+                services.AddD2SealedEncryptionRecipient(_SERVICE_ID);
+            });
+
+        var logger = new TestLogger<SealedEncryptionSourceStartupCheck>();
+
+        await CheckWithLogger(provider, logger).StartAsync(CancellationToken.None);
+
+        logger.Entries.Should().ContainSingle(e => e.EventId.Id == 2)
+            .Which.Message.Should().Be(
+                $"Sealed encryption recipient {_SERVICE_ID} is managed-sourced - "
+                + "provenance check passed.");
+    }
+
+    [Fact]
+    public async Task UnmarkedRecipient_Development_LogsWarningNamingManagedRegistration()
+    {
+        var provider = BuildProvider(
+            isDevelopment: true,
+            services => services.AddD2SealedEncryptionRecipient(_SERVICE_ID));
+
+        var logger = new TestLogger<SealedEncryptionSourceStartupCheck>();
+
+        await CheckWithLogger(provider, logger).StartAsync(CancellationToken.None);
+
+        logger.Entries.Should().ContainSingle(e => e.EventId.Id == 3)
+            .Which.Message.Should().Be(
+                $"Sealed encryption recipient {_SERVICE_ID} is backed by a static / unmarked "
+                + "source rather than a managed, rotation-aware keyring. Permitted only in a "
+                + "Development host; a non-Development host crashes. Back its sealer with a "
+                + "managed keyring and mark it Managed via MarkD2EncryptionSource.");
     }
 
     [Fact]
@@ -126,6 +206,10 @@ public sealed class SealedEncryptionSourceStartupCheckTests
 
         return services.BuildServiceProvider();
     }
+
+    private static SealedEncryptionSourceStartupCheck CheckWithLogger(
+        ServiceProvider provider, TestLogger<SealedEncryptionSourceStartupCheck> logger)
+        => new(provider, provider.GetRequiredService<SealedEncryptionRegistry>(), logger);
 
     private static async Task RunCheckAsync(ServiceProvider provider)
     {

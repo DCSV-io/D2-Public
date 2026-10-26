@@ -11,7 +11,7 @@ using DcsvIo.D2.SourceGen;
 
 /// <summary>
 /// Result of an emitter pass (<see cref="ConstantsEmitter.Emit"/> /
-/// <see cref="FailuresEmitter.Emit"/>). Pure data — the Roslyn host
+/// <see cref="FailuresEmitter.Emit"/>). Pure data - the Roslyn host
 /// transforms the diagnostics into
 /// <see cref="Microsoft.CodeAnalysis.Diagnostic"/> instances and writes the
 /// generated source to the corresponding <c>.g.cs</c> file.

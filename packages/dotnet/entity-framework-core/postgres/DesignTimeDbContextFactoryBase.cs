@@ -26,13 +26,13 @@ using Microsoft.EntityFrameworkCore.Design;
 /// CommandTimeout + MigrationsAssembly), and wires it into the context.
 /// </para>
 /// <para>
-/// Usage — subclass in the consuming <c>infra/</c> project:
+/// Usage - subclass in the project that owns the context and its migrations:
 /// <code>
 /// public sealed class MyDbContextFactory
 ///     : DesignTimeDbContextFactoryBase&lt;MyDbContext&gt;
 /// {
 ///     protected override string ConnectionStringEnvVar => "MY_DATABASE_URL";
-///     protected override string MigrationsAssembly =>
+///     protected override string MigrationsAssemblyName =>
 ///         typeof(MyDbContextFactory).Assembly.GetName().Name!;
 ///     protected override MyDbContext CreateContext(DbContextOptions&lt;MyDbContext&gt; opts)
 ///         => new(opts);
@@ -71,7 +71,7 @@ public abstract class DesignTimeDbContextFactoryBase<TContext>
         {
             throw new InvalidOperationException(
                 $"Design-time DbContext factory requires environment variable "
-                + $"'{ConnectionStringEnvVar}' — set it before running 'dotnet ef'.");
+                + $"'{ConnectionStringEnvVar}' - set it before running 'dotnet ef'.");
         }
 
         var builder = new DbContextOptionsBuilder<TContext>();

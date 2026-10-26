@@ -13,19 +13,19 @@ using DcsvIo.D2.Location;
 using Xunit;
 
 /// <summary>
-/// Adversarial test coverage for <see cref="DefaultPostalCodeValidator"/>
-/// per §7.1 matrix: happy-path global formats (US/CA/UK/JP/AU/DE),
-/// null / empty / whitespace / emoji garbage, length boundaries 3-10,
-/// non-alphanumeric end-of-string rejection, CRLF / NUL injection
-/// rejection, country-blind behavior, regex matchTimeout guard on
-/// oversized input.
+/// Adversarial test coverage for <see cref="DefaultPostalCodeValidator"/>:
+/// valid formats from several countries (US, CA, UK, JP, AU and DE),
+/// null, empty, whitespace and emoji input, length boundaries 3-10,
+/// rejection of a non-alphanumeric end of string, rejection of CRLF and NUL
+/// injection, behavior that ignores the country, and the regex matchTimeout
+/// guard on oversized input.
 /// </summary>
 public sealed class DefaultPostalCodeValidatorTests
 {
     private static readonly DefaultPostalCodeValidator sr_Validator = new();
 
     // -----------------------------------------------------------------------
-    // Happy path — valid global formats
+    // Happy path - valid global formats
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -44,7 +44,7 @@ public sealed class DefaultPostalCodeValidatorTests
     }
 
     // -----------------------------------------------------------------------
-    // Garbage — null / empty / whitespace
+    // Invalid input - null, empty and whitespace
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -103,7 +103,7 @@ public sealed class DefaultPostalCodeValidatorTests
     }
 
     // -----------------------------------------------------------------------
-    // Non-alphanumeric at start / end rejected
+    // A non-alphanumeric start or end is rejected
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -115,15 +115,15 @@ public sealed class DefaultPostalCodeValidatorTests
     }
 
     [Theory]
-    [InlineData(" 12345")] // leading space — trimmed before regex
-    [InlineData("12345 ")] // trailing space — trimmed before regex
+    [InlineData(" 12345")] // leading space - trimmed before regex
+    [InlineData("12345 ")] // trailing space - trimmed before regex
     public void Validate_LeadingOrTrailingSpace_TrimmedBeforeRegex_ReturnsOk(string code)
     {
         sr_Validator.Validate(code).Success.Should().BeTrue();
     }
 
     // -----------------------------------------------------------------------
-    // Country-blind by design
+    // The validator ignores the country by design
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -141,7 +141,7 @@ public sealed class DefaultPostalCodeValidatorTests
     }
 
     // -----------------------------------------------------------------------
-    // Adversarial — CRLF / NUL injection rejected
+    // Adversarial - CRLF and NUL injection is rejected
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -157,18 +157,18 @@ public sealed class DefaultPostalCodeValidatorTests
     }
 
     // -----------------------------------------------------------------------
-    // Adversarial — all-spaces input
+    // Adversarial - all-spaces input
     // -----------------------------------------------------------------------
 
     [Fact]
     public void Validate_AllSpaces_ReturnsValidationFailed()
     {
-        // Trim → string.Empty → Falsey rejects.
+        // Trim returns string.Empty, which Falsey rejects.
         sr_Validator.Validate("     ").Success.Should().BeFalse();
     }
 
     // -----------------------------------------------------------------------
-    // Adversarial — super-long input does not timeout / hang
+    // Adversarial - very long input does not time out or hang
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -176,9 +176,10 @@ public sealed class DefaultPostalCodeValidatorTests
     {
         var huge = new string('A', 10_000);
 
-        // Should fail fast (regex rejects on length); if super-linear backtracking
-        // were reached, RegexMatchTimeoutException would be caught and mapped to
-        // a validation failure — never an unhandled exception.
+        // The validator fails fast because the regex rejects on length. If
+        // super-linear backtracking were reached, the validator would catch
+        // RegexMatchTimeoutException and return a validation failure, and
+        // would not let the exception escape.
         var result = sr_Validator.Validate(huge);
         result.Success.Should().BeFalse();
     }

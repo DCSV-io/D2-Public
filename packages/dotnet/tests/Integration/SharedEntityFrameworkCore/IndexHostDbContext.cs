@@ -14,8 +14,8 @@ using Microsoft.EntityFrameworkCore;
 /// Minimal synthetic host <c>DbContext</c> for <c>CreateD2Index</c> live-DB
 /// integration tests. Holds one entity (<see cref="CreateD2IndexProbe"/>) whose
 /// <c>Geo</c> complex property produces <c>Geo_Latitude</c> and <c>Geo_Longitude</c>
-/// columns via <c>MapCoordinates()</c> — the target columns for the four index cases.
-/// Schema created via <c>EnsureSchemaAsync</c> (IF NOT EXISTS DDL) — no migrations.
+/// columns via <c>MapCoordinates()</c> - the target columns for the index cases.
+/// Schema created via <c>EnsureSchemaAsync</c> (IF NOT EXISTS DDL) - no migrations.
 /// </summary>
 internal sealed class IndexHostDbContext : DbContext
 {
@@ -96,7 +96,7 @@ internal sealed class IndexHostDbContext : DbContext
     /// <summary>
     /// Minimal probe entity for <c>CreateD2Index</c> live-DB assertions.
     /// The <c>Geo</c> complex property maps to <c>Geo_Latitude</c>, <c>Geo_Longitude</c>,
-    /// and other <c>Geo_*</c> columns via <c>MapCoordinates()</c> — the columns targeted
+    /// and other <c>Geo_*</c> columns via <c>MapCoordinates()</c> - the columns targeted
     /// by the integration-test index cases.
     /// </summary>
     internal sealed class CreateD2IndexProbe

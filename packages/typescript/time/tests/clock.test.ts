@@ -137,7 +137,7 @@ describe("TestClock", () => {
 
   it("setTo_temporalInstantBoundary_storedCorrectly", () => {
     // Temporal.Instant supports a range from -271821-04-20 to 275760-09-13.
-    // Use a near-max instant well inside the supported range.
+    // Use a far-future instant (year 9999) well inside the supported range.
     const farFuture = Temporal.Instant.from("9999-12-31T23:59:59Z");
     const clock = new TestClock(Temporal.Instant.fromEpochMilliseconds(0));
 
@@ -150,7 +150,7 @@ describe("TestClock", () => {
     // JS is single-threaded so OS-level concurrency does not apply; this
     // test runs many microtask-scheduled advance calls and asserts the
     // final value is exactly N * delta. Documents the single-threaded
-    // contract — TestClock is safe under cooperative concurrency because
+    // contract - TestClock is safe under cooperative concurrency because
     // every advance() runs atomically between microtask boundaries.
     const clock = new TestClock(Temporal.Instant.fromEpochMilliseconds(0));
     const tasks: Promise<void>[] = [];

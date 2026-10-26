@@ -4,10 +4,11 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-time
 
-> **Audience**: backend Node/TypeScript service and BFF engineers who need the same deterministic clock seam and temporal storage types as `DcsvIo.D2.Time` (.NET).
+> **Audience**: backend Node/TypeScript service and BFF engineers who need the same deterministic clock seam and
+> temporal storage types as `DcsvIo.D2.Time` (.NET).
 
-Temporal-API wrapper providing the `IClock` injection seam + Category 1/3
-temporal storage types. Mirrors `DcsvIo.D2.Time` (.NET).
+Wraps the Temporal API. It provides the `IClock` interface, through which code receives the current time by
+injection, and the Category 1 and Category 3 temporal storage types. Mirrors `DcsvIo.D2.Time` (.NET).
 
 ## Install
 
@@ -17,46 +18,41 @@ pnpm add @dcsv-io/d2-time
 
 ## Overview
 
-All production code reads "what time is it right now?" through `IClock`,
-never via `Temporal.Now.instant()` directly. Production binds `IClock` →
-`SystemClock`. Tests construct `TestClock` directly and drive it
-deterministically.
+All production code reads the current time through `IClock`, never through `Temporal.Now.instant()` directly.
+Production binds `IClock` -> `SystemClock`. Tests construct `TestClock` directly and set its time with `advance`
+and `setTo`.
 
-The Temporal API (TC39 Stage 3) is the JavaScript equivalent of NodaTime —
-unambiguous `Instant` (UTC), `PlainDateTime` (wall-clock, no zone),
-`Duration`, etc. Node 22+ ships partial native support; we use
-`temporal-polyfill` for stable cross-runtime behavior.
+The Temporal API (TC39 Stage 3) is the JavaScript equivalent of NodaTime. It provides types such as `Instant`
+(an unambiguous UTC time), `PlainDateTime` (wall-clock time with no zone) and `Duration`. Node 22+ ships partial
+native support. This package uses `temporal-polyfill` so that behavior is stable across runtimes.
 
 ## Public surface
 
-| Type / function      | Purpose                                                                                                                                                                                                                                                                           |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IClock`             | Interface — single method `getInstant(): Temporal.Instant`. The injection seam.                                                                                                                                                                                                   |
-| `SystemClock`        | Production `IClock`. Delegates to `Temporal.Now.instant()`.                                                                                                                                                                                                                       |
-| `TestClock`          | Test-only `IClock` with `now` getter + `advance(Duration)` / `setTo(Instant)`. JS is single-threaded so no explicit locking is needed.                                                                                                                                            |
-| `ZonedInstant`       | Category 1 class — `{ instant, ianaIdentifier }`. Smart-constructor (`ZonedInstant.create(instant, iana)` → `D2Result<ZonedInstant>`) validates + canonicalizes IANA.                                                                                                             |
-| `LocalAnchoredEvent` | Category 3 class — `{ scheduledLocal, ianaIdentifier, nextFireUtc? }`. Smart-constructor (`LocalAnchoredEvent.create(scheduledLocal, iana, nextFireUtc?)` → `D2Result<LocalAnchoredEvent>`) + `computeNextFire()` encapsulating the Temporal `disambiguation: "compatible"` rule. |
+| Type / function      | Purpose                                                                                                                                                                                                                                                                                          |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `IClock`             | Interface with the single method `getInstant(): Temporal.Instant`. Code receives it by injection to read the current time.                                                                                                                                                                       |
+| `SystemClock`        | Production `IClock`. Delegates to `Temporal.Now.instant()`.                                                                                                                                                                                                                                      |
+| `TestClock`          | Test-only `IClock` with a `now` getter, `advance(Duration)` and `setTo(Instant)`. JavaScript is single-threaded, so the class uses no locking.                                                                                                                                                   |
+| `ZonedInstant`       | Category 1 class with the fields `{ instant, ianaIdentifier }`. The smart constructor `ZonedInstant.create(instant, iana)` returns `D2Result<ZonedInstant>`; it validates the IANA identifier and converts it to its canonical name.                                                             |
+| `LocalAnchoredEvent` | Category 3 class with the fields `{ scheduledLocal, ianaIdentifier, nextFireUtc? }`. The smart constructor `LocalAnchoredEvent.create(scheduledLocal, iana, nextFireUtc?)` returns `D2Result<LocalAnchoredEvent>`. `computeNextFire()` applies the Temporal `disambiguation: "compatible"` rule. |
 
-## Three timestamp categories
+## Timestamp categories
 
-Every timestamp MUST be assigned a category at design time. The categories
-drive storage shape, sort/compare correctness, and DST handling.
+Every timestamp MUST be assigned a category at design time. The category determines the storage shape, how to sort
+and compare correctly, and how to handle DST.
 
-| #   | Category                                          | Storage                                                                                | Custom type                                                                |
-| --- | ------------------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| 1   | Past instant (optionally with original context)   | `event_at TIMESTAMPTZ` + optional `event_at_zone TEXT NULL`                            | `ZonedInstant` (when context is needed); bare `Temporal.Instant` otherwise |
-| 2   | Future fixed instant (JWT exp, session expiry)    | `expires_at TIMESTAMPTZ`                                                               | bare `Temporal.Instant`                                                    |
-| 3   | Future local-anchored event (cron-like schedules) | `scheduled_local TIMESTAMP` + `scheduled_zone TEXT` + `next_fire_utc TIMESTAMPTZ NULL` | `LocalAnchoredEvent`                                                       |
+| # | Category                                          | Storage                                                                                | Custom type                                                                |
+| - | ------------------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| 1 | Past instant (optionally with original context)   | `event_at TIMESTAMPTZ` + optional `event_at_zone TEXT NULL`                            | `ZonedInstant` (when context is needed); bare `Temporal.Instant` otherwise |
+| 2 | Future fixed instant (JWT exp, session expiry)    | `expires_at TIMESTAMPTZ`                                                               | bare `Temporal.Instant`                                                    |
+| 3 | Future local-anchored event (cron-like schedules) | `scheduled_local TIMESTAMP` + `scheduled_zone TEXT` + `next_fire_utc TIMESTAMPTZ NULL` | `LocalAnchoredEvent`                                                       |
 
-Sort by absolute time: always use the UTC `Instant` field — zone-agnostic
-and unambiguous.
+To sort by absolute time, always use the UTC `Instant` field, which is zone-agnostic and unambiguous.
 
-DST ambiguity (Category 3 only): call `LocalAnchoredEvent.computeNextFire()`,
-which applies Temporal's `disambiguation: "compatible"` (matches .NET
-NodaTime's `Resolvers.LenientResolver`). Cross-language wire parity is
-enforced by `contracts/temporal/temporal-adversarial.fixture.json` —
-loaded by both .NET (`CrossLanguageTemporalParityTests`) and TS
-(`cross-language.test.ts`) test suites.
+To handle DST ambiguity (Category 3 only), call `LocalAnchoredEvent.computeNextFire()`, which applies Temporal's
+`disambiguation: "compatible"`. That matches .NET NodaTime's `Resolvers.LenientResolver`. Cross-language wire
+parity is enforced by `contracts/temporal/temporal-adversarial.fixture.json`, which both the .NET test suite
+(`CrossLanguageTemporalParityTests`) and the TypeScript test suite (`cross-language.test.ts`) load.
 
 ## Construction (smart-constructor pattern)
 
@@ -81,13 +77,11 @@ const fire = evt.data!.computeNextFire();
 // On US DST fall-back, fire.data === Instant 2026-11-01T05:30:00Z (earlier of the ambiguous pair).
 ```
 
-`PlainDateTime` itself is not re-validated by `create` — Temporal's parser
-throws `RangeError` for invalid calendar dates (Feb 30, Feb 29 in a
-non-leap year, hour 24, …) at the `Temporal.PlainDateTime.from(...)` call
-site BEFORE `create` is reached. The lib's tests document the throw
-behavior exhaustively (note: Temporal silently CLAMPS seconds = 60 to 59,
-unlike .NET NodaTime which throws — both reject leap seconds, but with
-different error modes; documented as a contract divergence).
+`create` does not re-validate the `PlainDateTime`. Temporal's parser throws `RangeError` for invalid calendar dates (Feb
+30, Feb 29 in a non-leap year, hour 24, and similar) at the `Temporal.PlainDateTime.from(...)` call site, BEFORE
+`create` is reached. The package's tests document the throw behavior exhaustively. Temporal silently CLAMPS seconds = 60
+to 59, unlike .NET NodaTime, which throws. Both reject leap seconds, but with different error modes. This is a
+documented contract divergence.
 
 ## TestClock usage
 
@@ -116,14 +110,15 @@ across runtimes.
 
 ## Telemetry
 
-No telemetry surface — foundation lib emits no spans or metrics directly; consumers instrument via their own OTel setup.
+No telemetry surface. The package emits no spans or metrics itself; consumers instrument with their own OTel setup.
 
 ## Configuration
 
-No configuration — zero-config; consumers register `IClock → SystemClock` themselves in their service composition root.
+No configuration. Consumers register `IClock -> SystemClock` in their own service composition root.
 
 ## Dependencies
 
 - `temporal-polyfill` (npm)
-- `@dcsv-io/d2-i18n-keys` — generated TK constant catalog; `TK.common.errors.*` and `TK.common.time.*` keys used by the `create` factories.
-- `@dcsv-io/d2-result` — `D2Result<T>`, `InputError`, and TK helpers returned by the `create` factories.
+- `@dcsv-io/d2-i18n-keys`: the generated TK constant catalog. The `create` factories use its `TK.common.errors.*` and
+  `TK.common.time.*` keys.
+- `@dcsv-io/d2-result`: `D2Result<T>`, `InputError` and the TK helpers returned by the `create` factories.

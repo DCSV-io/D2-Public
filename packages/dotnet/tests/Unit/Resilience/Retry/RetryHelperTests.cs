@@ -17,7 +17,7 @@ using Xunit;
 public sealed class RetryHelperTests
 {
     // ----------------------------------------------------------------------
-    // IsTransientException — classifier matrix
+    // IsTransientException - classifier matrix
     // ----------------------------------------------------------------------
 
     [Theory]
@@ -79,9 +79,9 @@ public sealed class RetryHelperTests
     [Fact]
     public void IsTransientException_CircuitOpenException_IsTransient()
     {
-        // Critical for the retry-OUTSIDE-CB composition — the caller's retry
-        // layer must back off through CO so that an upstream restart can
-        // resolve naturally as the breaker cools down between attempts.
+        // The retry-OUTSIDE-CB composition depends on this: a retry layer around a
+        // CB must retry on CO (CircuitOpenException) and back off between attempts,
+        // so an upstream restart can finish while the breaker cools down.
         RetryHelper.IsTransientException(new CircuitOpenException()).Should().BeTrue();
     }
 
@@ -94,14 +94,14 @@ public sealed class RetryHelperTests
     }
 
     // ----------------------------------------------------------------------
-    // RetryAsync — happy path + exhaustion
+    // RetryAsync - happy path + exhaustion
     // ----------------------------------------------------------------------
 
     [Fact]
     public async Task RetryAsync_NullOptions_AppliesDefaults()
     {
-        // Coverage: the `options ??= new RetryOptions<T>()` branch must be
-        // hit when caller passes null.
+        // Covers the `options ??= new RetryOptions<T>()` branch, which runs
+        // when the caller passes null.
         var result = await RetryHelper.RetryAsync(
             (_, _) => ValueTask.FromResult(7),
             options: null,
@@ -195,7 +195,7 @@ public sealed class RetryHelperTests
     }
 
     // ----------------------------------------------------------------------
-    // RetryAsync — value-failure (ShouldRetry) path
+    // RetryAsync - value-failure (ShouldRetry) path
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -224,8 +224,8 @@ public sealed class RetryHelperTests
     [Fact]
     public async Task RetryAsync_ShouldRetryAlwaysTrue_ReturnsLastValueAfterExhaustion()
     {
-        // Adversarial: caller signals "always retry" but options exhaust.
-        // Last-returned value wins (final attempt was a return, not a throw).
+        // Adversarial: ShouldRetry always asks for a retry, but the attempts run out.
+        // The last returned value is the result (the final attempt returned; it did not throw).
         var options = NoDelayOptions(maxAttempts: 3) with
         {
             ShouldRetry = _ => true,
@@ -242,8 +242,8 @@ public sealed class RetryHelperTests
     [Fact]
     public async Task RetryAsync_ReturnedThenThrew_ThrowsLastException()
     {
-        // Adversarial: alternating return → throw across attempts. The last
-        // attempt threw, so the throw wins on exhaustion.
+        // Adversarial: the attempts return values until the last one, which throws.
+        // The exception from the last attempt is what RetryAsync throws when the attempts run out.
         var options = NoDelayOptions(maxAttempts: 4) with
         {
             ShouldRetry = _ => true,
@@ -262,14 +262,14 @@ public sealed class RetryHelperTests
     }
 
     // ----------------------------------------------------------------------
-    // RetryAsync — cancellation
+    // RetryAsync - cancellation
     // ----------------------------------------------------------------------
 
     [Fact]
     public async Task RetryAsync_PreCanceled_ThrowsImmediately()
     {
-        // Capture the token by VALUE before the closure so the closure never
-        // closes over the IDisposable cts itself (R# AccessToDisposedClosure).
+        // Copy the token into a local before the lambda, so the lambda does not
+        // capture the IDisposable cts itself (R# AccessToDisposedClosure).
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
         var token = cts.Token;
@@ -289,10 +289,10 @@ public sealed class RetryHelperTests
     public async Task RetryAsync_OperationCanceledExceptionFromCt_PropagatesNotAsTransient()
     {
         // Adversarial: when ct is the SOURCE of cancellation, the catch
-        // filter intentionally lets OCE through as cancellation, not as a
-        // transient retry candidate. Direct-await (no fluent ThrowAsync
-        // lambda) keeps the cts capture inside the using scope, eliminating
-        // any AccessToDisposedClosure ambiguity.
+        // filter lets the OCE propagate as a cancellation and does not treat it
+        // as a transient failure to retry. The test awaits directly in a
+        // try/catch instead of using a ThrowAsync lambda, so the cts capture
+        // stays inside the using scope and AccessToDisposedClosure does not apply.
         using var cts = new CancellationTokenSource();
         Exception? captured = null;
 
@@ -320,10 +320,10 @@ public sealed class RetryHelperTests
     public async Task RetryAsync_CtCanceledOce_BypassesCatch_EvenWhenClassifierSaysTransient()
     {
         // Pin: the catch filter `ex is not OperationCanceledException ||
-        // !ct.IsCancellationRequested` is what bails out — NOT the IsTransient
-        // classifier. Override IsTransient to ALWAYS say "transient." Without
-        // the catch-filter exclusion, the OCE would be retried — which would
-        // be wrong (caller asked to cancel; retrying is hostile).
+        // !ct.IsCancellationRequested` ends the retry loop, NOT the IsTransient
+        // classifier. The test overrides IsTransient to ALWAYS return true. Without
+        // the catch-filter exclusion, RetryAsync would retry the OCE, which is
+        // wrong because the caller asked to cancel.
         using var cts = new CancellationTokenSource();
         var attempts = 0;
         Exception? captured = null;
@@ -351,7 +351,7 @@ public sealed class RetryHelperTests
     }
 
     // ----------------------------------------------------------------------
-    // RetryAsync — DelayFunc invoked between attempts
+    // RetryAsync - DelayFunc invoked between attempts
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -383,16 +383,16 @@ public sealed class RetryHelperTests
         }
         catch (TimeoutException)
         {
-            // expected — exhaustion throws
+            // Expected: RetryAsync throws when the attempts run out.
         }
 
-        // 3 attempts → 2 delays between them.
+        // 3 attempts -> 2 delays between them.
         delayInvocations.Should().Be(2);
         observedDelays.Should().HaveCount(2);
     }
 
     // ----------------------------------------------------------------------
-    // RetryD2ResultAsync — D2Result-aware overload
+    // RetryD2ResultAsync - D2Result-aware overload
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -419,7 +419,7 @@ public sealed class RetryHelperTests
     [Fact]
     public async Task RetryD2ResultAsync_DefaultPredicate_DoesNotRetryNonTransientFailure()
     {
-        // Adversarial: NotFound is failed but NOT transient → no retries.
+        // Adversarial: NotFound is a failure but NOT transient, so there are no retries.
         var attempts = 0;
 
         var result = await RetryHelper.RetryD2ResultAsync(
@@ -461,29 +461,39 @@ public sealed class RetryHelperTests
     [Fact]
     public async Task RetryD2ResultAsync_NullOptions_StillUsesDefaultPredicate()
     {
-        // Adversarial: caller passes null options. Default classifier still
-        // wires up — but with default delays (1s+), so prove behavior with a
-        // single attempt + ShouldRetry never invoked because attempt == max.
-        var nullOptionsForceSingleAttempt = new RetryOptions<D2Result<int>>
+        // Adversarial: the options leave ShouldRetry at its default, so
+        // RetryD2ResultAsync substitutes the D2Result-aware predicate
+        // (RetryHelper.cs): a transient failure is retried and a non-transient
+        // one is not. Two attempts, no delay.
+        var transientAttempts = await CountAttemptsAsync(D2Result<int>.ServiceUnavailable());
+        var permanentAttempts = await CountAttemptsAsync(D2Result<int>.NotFound());
+
+        (transientAttempts, permanentAttempts).Should().Be((2, 1));
+
+        static async Task<int> CountAttemptsAsync(D2Result<int> outcome)
         {
-            MaxAttempts = 1,
-            BaseDelayMs = 0,
-            DelayFunc = (_, _) => Task.CompletedTask,
-        };
-
-        var result = await RetryHelper.RetryD2ResultAsync(
-            (_, _) => ValueTask.FromResult(D2Result<int>.ServiceUnavailable()),
-            nullOptionsForceSingleAttempt,
-            CancellationToken.None);
-
-        result.Success.Should().BeFalse();
+            var attempts = 0;
+            await RetryHelper.RetryD2ResultAsync(
+                (_, _) =>
+                {
+                    attempts++;
+                    return ValueTask.FromResult(outcome);
+                },
+                new RetryOptions<D2Result<int>>
+                {
+                    MaxAttempts = 2,
+                    BaseDelayMs = 0,
+                    DelayFunc = (_, _) => Task.CompletedTask,
+                },
+                CancellationToken.None);
+            return attempts;
+        }
     }
 
     [Fact]
     public async Task RetryD2ResultAsync_DefaultOptions_AppliesPredicate()
     {
-        // Specifically exercises the `options is null → defaults applied`
-        // branch in the helper.
+        // Exercises the `options is null -> defaults applied` branch in the helper.
         var result = await RetryHelper.RetryD2ResultAsync(
             (_, _) => ValueTask.FromResult(D2Result<int>.Ok(1)),
             options: null,
@@ -493,7 +503,7 @@ public sealed class RetryHelperTests
     }
 
     // ----------------------------------------------------------------------
-    // CalculateDelay — internal math
+    // CalculateDelay - internal math
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -539,9 +549,9 @@ public sealed class RetryHelperTests
     [Fact]
     public void CalculateDelay_LargeRetryIndex_ClampsExponentSafely()
     {
-        // Adversarial: int.MaxValue retryIndex would overflow Math.Pow and
-        // produce +Infinity. The helper clamps the exponent to 63 and then
-        // Math.Min(+Inf, max) → max, so we never produce a weird TimeSpan.
+        // Adversarial: an int.MaxValue retryIndex would overflow Math.Pow and
+        // produce +Infinity. The helper clamps the exponent to 63, and then
+        // Math.Min(+Inf, max) -> max, so the result is always a valid TimeSpan.
         var d = RetryHelper.CalculateDelay(
             retryIndex: int.MaxValue,
             baseDelayMs: 100,
@@ -559,11 +569,10 @@ public sealed class RetryHelperTests
     [Fact]
     public async Task RetryAsync_MaxAttemptsZero_ExecutesOnce_ThenPropagates()
     {
-        // Boundary: MaxAttempts=0 means `attempt < MaxAttempts` is false on
-        // attempt 1 (since attempt starts at 0 then increments to 1), so the
-        // first attempt's outcome is the FINAL outcome — no retry loop body
-        // executes the continue path. Observable behavior identical to
-        // MaxAttempts=1.
+        // Boundary: with MaxAttempts=0, `attempt < MaxAttempts` is false on
+        // attempt 1 (attempt starts at 0 and increments to 1), so the
+        // first attempt's outcome is the FINAL outcome and the loop never takes
+        // the continue path. The behavior is identical to MaxAttempts=1.
         var attempts = 0;
         var act = async () => await RetryHelper.RetryAsync(
             (_, _) =>
@@ -581,10 +590,10 @@ public sealed class RetryHelperTests
     [Fact]
     public async Task RetryAsync_DelayFuncThrows_ExceptionPropagates()
     {
-        // Adversarial: a buggy DelayFunc (e.g. test-time fake that throws
-        // on a particular delay value, or one that surfaces an unrelated
-        // bug) must propagate out of RetryAsync — the lib makes no attempt
-        // to suppress unexpected delegate failures.
+        // Adversarial: an exception thrown by DelayFunc (for example a test fake
+        // that throws on a particular delay value, or a DelayFunc with an unrelated
+        // bug) must propagate out of RetryAsync. RetryAsync does not suppress
+        // exceptions from the delegate.
         var attempts = 0;
         var options = new RetryOptions<int>
         {
@@ -608,20 +617,20 @@ public sealed class RetryHelperTests
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("delay func boom");
 
-        // Only the FIRST attempt ran; the buggy DelayFunc broke the retry loop.
+        // Only the FIRST attempt ran; the exception from DelayFunc ended the retry loop.
         attempts.Should().Be(1);
     }
 
     [Fact]
     public async Task RetryAsync_CtCanceledDuringDelayFunc_PropagatesOce()
     {
-        // Adversarial: caller cancels the CT mid-backoff. The DelayFunc
-        // (Task.Delay or override) honors the CT; the OCE escapes RetryAsync
+        // Adversarial: the caller cancels the CT during the backoff. DelayFunc
+        // (Task.Delay or an override) honors the CT, and the OCE escapes RetryAsync
         // because the catch filter excludes "OCE when ct is canceled."
         //
-        // Note: cts is disposed manually AFTER `act` is awaited so the
-        // captured-disposable lambda discipline holds (no `using` here would
-        // race with the lambda's reference).
+        // The finally block disposes cts AFTER `act` is awaited, instead of a
+        // `using` declaration, so the lambda that captures cts has finished
+        // before the dispose.
         var cts = new CancellationTokenSource();
         try
         {
@@ -654,8 +663,8 @@ public sealed class RetryHelperTests
             await act.Should().ThrowAsync<OperationCanceledException>();
 
             // ReSharper restore AccessToDisposedClosure
-            // First attempt threw transient; DelayFunc canceled mid-backoff;
-            // OCE escaped before the second attempt could begin.
+            // The first attempt threw a transient exception, DelayFunc canceled
+            // during the backoff, and the OCE escaped before the second attempt began.
             attempts.Should().Be(1);
         }
         finally
@@ -667,8 +676,8 @@ public sealed class RetryHelperTests
     [Fact]
     public void CalculateDelay_WithJitter_StaysWithinZeroToCalculated()
     {
-        // Property: jittered delay is always in [0, calculated). Run many
-        // samples to reduce flakiness from a degenerate single draw.
+        // Property: a jittered delay is always in [0, calculated). The loop draws
+        // many samples, because a single draw could pass by chance.
         const int retry_index = 2;
         const int base_delay_ms = 100;
         const double backoff = 2.0;

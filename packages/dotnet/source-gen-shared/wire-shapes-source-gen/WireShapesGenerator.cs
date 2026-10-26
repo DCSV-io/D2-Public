@@ -21,17 +21,17 @@ using Microsoft.CodeAnalysis.Text;
 /// Dispatches per consuming assembly:
 /// <list type="bullet">
 ///   <item>
-///     <c>DcsvIo.D2.I18n.Abstractions</c> → reads
-///     <c>tk-message.spec.json</c> → emits <c>TkMessageWireShape.g.cs</c>.
+///     <c>DcsvIo.D2.I18n.Abstractions</c> -> reads
+///     <c>tk-message.spec.json</c> -> emits <c>TkMessageWireShape.g.cs</c>.
 ///   </item>
 ///   <item>
-///     <c>DcsvIo.D2.Result</c> → reads <c>input-error.spec.json</c> →
+///     <c>DcsvIo.D2.Result</c> -> reads <c>input-error.spec.json</c> ->
 ///     emits <c>InputErrorWireShape.g.cs</c>.
 ///   </item>
-///   <item>Anything else → emit nothing.</item>
+///   <item>Anything else -> emit nothing.</item>
 /// </list>
 /// One analyzer, one shared scaffolding (loader + emitter), multiple
-/// catalogs — same approach as <c>DcsvIo.D2.Headers.SourceGen</c>'s
+/// catalogs - same approach as <c>DcsvIo.D2.Headers.SourceGen</c>'s
 /// per-transport dispatch.
 /// </summary>
 [Generator]
@@ -70,7 +70,7 @@ public sealed class WireShapesGenerator : IIncrementalGenerator
                 Content: file.GetText(ct)?.ToString() ?? string.Empty))
             .Collect();
 
-        // 2. Combine with the compilation so we can gate emission by assembly name.
+        // 2. Combine with the compilation to gate emission by assembly name.
         var combined = specs.Combine(context.CompilationProvider);
 
         // 3. For each pipeline run, dispatch by assembly name.

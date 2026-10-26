@@ -3,18 +3,19 @@
 // -----------------------------------------------------------------------
 
 // Only these x-death reasons reflect a consumer-side retry cycle. Broker-side
-// flow control (maxlen, delivery_limit) is intentionally excluded — counting
-// it would trip RETRIES_EXHAUSTED prematurely.
+// flow control (maxlen, delivery_limit) is excluded, because counting it would
+// trip RETRIES_EXHAUSTED too early.
 const RETRY_CYCLE_REASONS = new Set(["expired", "rejected"]);
 
 /**
- * Counts redelivery attempts via the broker's `x-death` header — the mirror of
- * the .NET `SubscriberChannel.ReadAttemptCount`. RabbitMQ pushes one entry per
- * `(queue, reason)` the message has cycled through; the `count` field increments
- * each additional cycle. Sums `count` across entries whose `reason` is `expired`
- * (retry-tier TTL expiry) or `rejected` (consumer NACK). Returns 0 on first
- * delivery / missing / malformed header (fail-open — a broker quirk must not
- * strand a message in retry forever).
+ * Counts redelivery attempts from the broker's `x-death` header. It mirrors
+ * the .NET `SubscriberChannel.ReadAttemptCount`. RabbitMQ adds one entry per
+ * `(queue, reason)` the message has cycled through, and the `count` field
+ * increments on each further cycle. The function sums `count` across entries
+ * whose `reason` is `expired` (retry-tier TTL expiry) or `rejected` (consumer
+ * NACK). It returns 0 for a first delivery and for a missing or malformed
+ * header. It fails open, because a broker quirk must not strand a message in
+ * retry forever.
  *
  * @param headers The delivery's AMQP headers (or undefined).
  */

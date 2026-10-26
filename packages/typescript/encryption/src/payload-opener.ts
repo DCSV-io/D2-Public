@@ -21,9 +21,9 @@ import type { WebCryptoKey } from "./subtle.js";
  * derivation conventions the sealer uses. The twin of .NET
  * `DcsvIo.D2.Encryption.PayloadOpener`.
  *
- * Per open: parse the sealed frame → resolve the recipient kid against the
- * private keyring → import the frame's ephemeral public key (rejecting non-P-256
- * material as frame malformation) → ECDH → HKDF-SHA256 → AES-256-GCM decrypt.
+ * Per open: parse the sealed frame -> resolve the recipient kid against the
+ * private keyring -> import the frame's ephemeral public key (rejecting non-P-256
+ * material as frame malformation) -> ECDH -> HKDF-SHA256 -> AES-256-GCM decrypt.
  * Tampering, a wrong-recipient frame, or a mismatched keypair all surface as
  * {@link AuthenticationTagMismatchError}. The shared secret and the derived key
  * are zeroized on every path. Thread-safe: no shared mutable state.
@@ -36,7 +36,8 @@ export class PayloadOpener implements IPayloadOpener {
   constructor(keyring: RecipientPrivateKeyring) {
     this.#keyring = keyring;
 
-    // Salt + AAD bytes are fixed per recipient — non-secret, computed once.
+    // Salt and AAD bytes are fixed per recipient and not secret, so they are
+    // computed once.
     this.#serviceIdBytes = serviceIdBytes(keyring.recipientServiceId);
   }
 
@@ -84,7 +85,7 @@ export class PayloadOpener implements IPayloadOpener {
     }
   }
 
-  /** Returns the type name only — never includes keyring contents. */
+  /** Returns the type name only; it never includes keyring contents. */
   toString(): string {
     return "PayloadOpener";
   }

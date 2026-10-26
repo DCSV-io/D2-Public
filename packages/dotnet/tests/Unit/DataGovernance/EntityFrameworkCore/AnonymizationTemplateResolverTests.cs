@@ -9,12 +9,11 @@ namespace DcsvIo.D2.Tests.Unit.DataGovernance.EntityFrameworkCore;
 using AwesomeAssertions;
 using DcsvIo.D2.DataGovernance.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Xunit;
 
 /// <summary>
 /// Tests for <see cref="AnonymizationTemplateResolver"/>. Parse tests are pure-string;
-/// validate and resolve tests build a tiny Npgsql model (model-build-only — no live connection).
+/// validate and resolve tests build a tiny Npgsql model (model-build-only - no live connection).
 /// </summary>
 [Trait("Category", "Unit")]
 public sealed class AnonymizationTemplateResolverTests
@@ -48,13 +47,13 @@ public sealed class AnonymizationTemplateResolverTests
     }
 
     // =========================================================================
-    // Parse — empty string
+    // Parse - empty string
     // =========================================================================
 
     [Fact]
     public void Parse_empty_string_produces_zero_segments_and_zero_token_names()
     {
-        AnonymizationTemplatePlan plan = AnonymizationTemplateResolver.Parse(string.Empty);
+        var plan = AnonymizationTemplateResolver.Parse(string.Empty);
 
         plan.Segments.Should().BeEmpty();
         plan.TokenNames.Should().BeEmpty();
@@ -62,13 +61,13 @@ public sealed class AnonymizationTemplateResolverTests
     }
 
     // =========================================================================
-    // Parse — single token
+    // Parse - single token
     // =========================================================================
 
     [Fact]
     public void Parse_single_token_produces_3_segments_and_1_token_name()
     {
-        AnonymizationTemplatePlan plan = AnonymizationTemplateResolver.Parse("a{X}b");
+        var plan = AnonymizationTemplateResolver.Parse("a{X}b");
 
         plan.Segments.Count.Should().Be(3);
         plan.Segments[0].IsToken.Should().BeFalse();
@@ -83,13 +82,13 @@ public sealed class AnonymizationTemplateResolverTests
     }
 
     // =========================================================================
-    // Parse — multiple tokens
+    // Parse - multiple tokens
     // =========================================================================
 
     [Fact]
     public void Parse_multiple_tokens_produces_correct_segment_list()
     {
-        AnonymizationTemplatePlan plan = AnonymizationTemplateResolver.Parse("x{A}y{B}z");
+        var plan = AnonymizationTemplateResolver.Parse("x{A}y{B}z");
 
         plan.Segments.Count.Should().Be(5);
         plan.Segments[0].Text.Should().Be("x");
@@ -104,13 +103,13 @@ public sealed class AnonymizationTemplateResolverTests
     }
 
     // =========================================================================
-    // Parse — adjacent tokens (no literal between)
+    // Parse - adjacent tokens (no literal between)
     // =========================================================================
 
     [Fact]
     public void Parse_adjacent_tokens_produces_exactly_2_token_segments_and_no_literal_between()
     {
-        AnonymizationTemplatePlan plan = AnonymizationTemplateResolver.Parse("{A}{B}");
+        var plan = AnonymizationTemplateResolver.Parse("{A}{B}");
 
         plan.Segments.Count.Should().Be(2);
         plan.Segments[0].IsToken.Should().BeTrue();
@@ -122,14 +121,14 @@ public sealed class AnonymizationTemplateResolverTests
     }
 
     // =========================================================================
-    // Parse — no tokens
+    // Parse - no tokens
     // =========================================================================
 
-    // long identifier — cannot wrap
+    // long identifier - cannot wrap
     [Fact]
     public void Parse_template_with_no_tokens_produces_single_literal_segment_and_empty_token_names()
     {
-        AnonymizationTemplatePlan plan = AnonymizationTemplateResolver.Parse("plainliteral");
+        var plan = AnonymizationTemplateResolver.Parse("plainliteral");
 
         plan.Segments.Count.Should().Be(1);
         plan.Segments[0].IsToken.Should().BeFalse();
@@ -138,15 +137,15 @@ public sealed class AnonymizationTemplateResolverTests
     }
 
     // =========================================================================
-    // Parse — literal brace escape {{ and }}
+    // Parse - literal brace escape {{ and }}
     // =========================================================================
 
     [Fact]
     public void Parse_double_open_brace_produces_literal_open_brace_in_segment()
     {
-        AnonymizationTemplatePlan plan = AnonymizationTemplateResolver.Parse("a{{b}}c");
+        var plan = AnonymizationTemplateResolver.Parse("a{{b}}c");
 
-        // "a{{b}}c" → literal "a{b}c"
+        // "a{{b}}c" -> literal "a{b}c"
         plan.Segments.Count.Should().Be(1);
         plan.Segments[0].IsToken.Should().BeFalse();
         plan.Segments[0].Text.Should().Be("a{b}c");
@@ -157,20 +156,20 @@ public sealed class AnonymizationTemplateResolverTests
     public void Parse_RawTemplate_preserves_original_string_including_escape_sequences()
     {
         const string template = "a{{b}}c";
-        AnonymizationTemplatePlan plan = AnonymizationTemplateResolver.Parse(template);
+        var plan = AnonymizationTemplateResolver.Parse(template);
 
         plan.RawTemplate.Should().Be(template);
     }
 
-    // long identifier — cannot wrap
+    // long identifier - cannot wrap
     [Fact]
     public void Parse_token_followed_by_double_close_brace_escape_produces_token_and_literal_close_brace()
     {
-        // "{Field}}}suffix" → token "Field" + literal "}" + literal "suffix"
+        // "{Field}}}suffix" -> token "Field" + literal "}" + literal "suffix"
         // The first "}" (position 6) closes the token; "}}" at positions 7-8 is the
         // literal-brace escape producing one "}"; "suffix" is appended as literal.
         // This is the string.Format convention: {token}}} = {token} + }} = value + }.
-        AnonymizationTemplatePlan plan = AnonymizationTemplateResolver.Parse("{Field}}}suffix");
+        var plan = AnonymizationTemplateResolver.Parse("{Field}}}suffix");
 
         plan.TokenNames.Should().ContainSingle().Which.Should().Be("Field");
 
@@ -183,7 +182,7 @@ public sealed class AnonymizationTemplateResolverTests
     }
 
     // =========================================================================
-    // Parse — malformed / adversarial inputs
+    // Parse - malformed / adversarial inputs
     // =========================================================================
 
     [Fact]
@@ -219,14 +218,14 @@ public sealed class AnonymizationTemplateResolverTests
     }
 
     // =========================================================================
-    // ValidateTokens — valid token
+    // ValidateTokens - valid token
     // =========================================================================
 
     [Fact]
     public void ValidateTokens_valid_scalar_sibling_returns_empty_bad_token_list()
     {
-        using ValidateContext ctx = ValidateContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ValidateEntity))!;
+        using var ctx = ValidateContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ValidateEntity))!;
         var plan = AnonymizationTemplateResolver.Parse(
             "deletedUser{UserId}@deleted.user.dcsv.io");
 
@@ -236,14 +235,14 @@ public sealed class AnonymizationTemplateResolverTests
     }
 
     // =========================================================================
-    // ValidateTokens — missing sibling (adversarial)
+    // ValidateTokens - missing sibling (adversarial)
     // =========================================================================
 
     [Fact]
     public void ValidateTokens_nonexistent_sibling_name_appears_in_bad_token_list()
     {
-        using ValidateContext ctx = ValidateContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ValidateEntity))!;
+        using var ctx = ValidateContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ValidateEntity))!;
         var plan = AnonymizationTemplateResolver.Parse("{DoesNotExist}");
 
         var badTokens = AnonymizationTemplateResolver.ValidateTokens(plan, entityType);
@@ -252,14 +251,14 @@ public sealed class AnonymizationTemplateResolverTests
     }
 
     // =========================================================================
-    // ValidateTokens — shadow property (adversarial)
+    // ValidateTokens - shadow property (adversarial)
     // =========================================================================
 
     [Fact]
     public void ValidateTokens_shadow_property_name_appears_in_bad_token_list()
     {
-        using ShadowPropertyContext ctx = ShadowPropertyContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ShadowEntity))!;
+        using var ctx = ShadowPropertyContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ShadowEntity))!;
 
         // "ShadowField" is a shadow property set up in OnModelCreating.
         var plan = AnonymizationTemplateResolver.Parse("{ShadowField}");
@@ -270,33 +269,33 @@ public sealed class AnonymizationTemplateResolverTests
     }
 
     // =========================================================================
-    // ValidateTokens — navigation property token (adversarial)
+    // ValidateTokens - navigation property token (adversarial)
     // =========================================================================
 
     [Fact]
     public void ValidateTokens_navigation_property_name_appears_in_bad_token_list()
     {
-        using NavEntityContext ctx = NavEntityContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(NavOwnerEntity))!;
+        using var ctx = NavEntityContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(NavOwnerEntity))!;
 
-        // "Related" is a navigation property — not a scalar; ValidateTokens must reject it.
-        AnonymizationTemplatePlan plan = AnonymizationTemplateResolver.Parse("{Related}");
+        // "Related" is a navigation property - not a scalar; ValidateTokens must reject it.
+        var plan = AnonymizationTemplateResolver.Parse("{Related}");
 
         var badTokens = AnonymizationTemplateResolver.ValidateTokens(plan, entityType);
 
-        // FindProperty returns null for navigations → token lands in bad-token list.
+        // FindProperty returns null for navigations -> token lands in bad-token list.
         badTokens.Should().Contain("Related");
     }
 
     // =========================================================================
-    // ValidateTokens — null guard
+    // ValidateTokens - null guard
     // =========================================================================
 
     [Fact]
     public void ValidateTokens_null_plan_throws_ArgumentNullException()
     {
-        using ValidateContext ctx = ValidateContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ValidateEntity))!;
+        using var ctx = ValidateContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ValidateEntity))!;
 
         var act = () => AnonymizationTemplateResolver.ValidateTokens(null!, entityType);
 
@@ -306,7 +305,7 @@ public sealed class AnonymizationTemplateResolverTests
     [Fact]
     public void ValidateTokens_null_entity_type_throws_ArgumentNullException()
     {
-        AnonymizationTemplatePlan plan = AnonymizationTemplateResolver.Parse("a{X}b");
+        var plan = AnonymizationTemplateResolver.Parse("a{X}b");
 
         var act = () => AnonymizationTemplateResolver.ValidateTokens(plan, null!);
 
@@ -314,15 +313,15 @@ public sealed class AnonymizationTemplateResolverTests
     }
 
     // =========================================================================
-    // Resolve — Guid sibling → 32-char lowercase no-dashes
+    // Resolve - Guid sibling -> 32-char lowercase no-dashes
     // =========================================================================
 
     [Fact]
     public void Resolve_guid_sibling_formats_as_32_char_lowercase_no_dashes()
     {
-        using ValidateContext ctx = ValidateContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ValidateEntity))!;
-        AnonymizationTemplatePlan plan = AnonymizationTemplateResolver.Parse("{UserId}");
+        using var ctx = ValidateContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ValidateEntity))!;
+        var plan = AnonymizationTemplateResolver.Parse("{UserId}");
 
         var instance = new ValidateEntity
         {
@@ -331,9 +330,9 @@ public sealed class AnonymizationTemplateResolverTests
             Name = "Alice",
         };
 
-        string result = AnonymizationTemplateResolver.Resolve(plan, entityType, instance);
+        var result = AnonymizationTemplateResolver.Resolve(plan, entityType, instance);
 
-        // Guid.ToString("N") → lowercase, no dashes, 32 hex chars.
+        // Guid.ToString("N") -> lowercase, no dashes, 32 hex chars.
         result.Should().Be("112233445566778899aabbccddeeff00");
         result.Length.Should().Be(32);
         result.Should().NotContain("-");
@@ -341,110 +340,110 @@ public sealed class AnonymizationTemplateResolverTests
     }
 
     // =========================================================================
-    // Resolve — string sibling substituted verbatim
+    // Resolve - string sibling substituted verbatim
     // =========================================================================
 
     [Fact]
     public void Resolve_string_sibling_is_substituted_verbatim()
     {
-        using ValidateContext ctx = ValidateContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ValidateEntity))!;
-        AnonymizationTemplatePlan plan = AnonymizationTemplateResolver.Parse("{Name}");
+        using var ctx = ValidateContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ValidateEntity))!;
+        var plan = AnonymizationTemplateResolver.Parse("{Name}");
 
         var instance = new ValidateEntity { Id = 1, UserId = Guid.NewGuid(), Name = "Alice Smith" };
 
-        string result = AnonymizationTemplateResolver.Resolve(plan, entityType, instance);
+        var result = AnonymizationTemplateResolver.Resolve(plan, entityType, instance);
 
         result.Should().Be("Alice Smith");
     }
 
     // =========================================================================
-    // Resolve — multiple tokens in order
+    // Resolve - multiple tokens in order
     // =========================================================================
 
     [Fact]
     public void Resolve_multiple_tokens_substituted_in_order()
     {
-        using ValidateContext ctx = ValidateContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ValidateEntity))!;
+        using var ctx = ValidateContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ValidateEntity))!;
         var plan = AnonymizationTemplateResolver.Parse("del{Name}_{UserId}@x");
 
         var guid = new Guid("aaaabbbbccccddddeeeeffffaaaabbbb");
         var instance = new ValidateEntity { Id = 1, UserId = guid, Name = "bob" };
 
-        string result = AnonymizationTemplateResolver.Resolve(plan, entityType, instance);
+        var result = AnonymizationTemplateResolver.Resolve(plan, entityType, instance);
 
-        string expected_guid_part = guid.ToString("N");
+        var expected_guid_part = guid.ToString("N");
         result.Should().Be($"delbob_{expected_guid_part}@x");
     }
 
     // =========================================================================
-    // Resolve — the email sentinel pattern
+    // Resolve - the email sentinel pattern
     // =========================================================================
 
     [Fact]
     public void Resolve_email_sentinel_template_produces_correct_tombstone()
     {
-        using ValidateContext ctx = ValidateContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ValidateEntity))!;
+        using var ctx = ValidateContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ValidateEntity))!;
         var plan = AnonymizationTemplateResolver.Parse(
             "deletedUser{UserId}@deleted.user.dcsv.io");
 
         var guid = new Guid("11223344-5566-7788-99aa-bbccddeeff00");
         var instance = new ValidateEntity { Id = 1, UserId = guid, Name = "someone" };
 
-        string result = AnonymizationTemplateResolver.Resolve(plan, entityType, instance);
+        var result = AnonymizationTemplateResolver.Resolve(plan, entityType, instance);
 
         result.Should().Be("deletedUser112233445566778899aabbccddeeff00@deleted.user.dcsv.io");
     }
 
     // =========================================================================
-    // Resolve — null sibling → empty substitution, no throw (adversarial)
+    // Resolve - null sibling -> empty substitution, no throw (adversarial)
     // =========================================================================
 
     [Fact]
     public void Resolve_null_nullable_string_sibling_substitutes_empty_string_without_throwing()
     {
-        using NullableSiblingContext ctx = NullableSiblingContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(NullableSiblingEntity))!;
+        using var ctx = NullableSiblingContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(NullableSiblingEntity))!;
         var plan = AnonymizationTemplateResolver.Parse("prefix{NullableField}suffix");
 
         var instance = new NullableSiblingEntity { Id = 1, NullableField = null };
 
-        string result = AnonymizationTemplateResolver.Resolve(plan, entityType, instance);
+        var result = AnonymizationTemplateResolver.Resolve(plan, entityType, instance);
 
-        // Null sibling → empty; no throw.
+        // Null sibling -> empty; no throw.
         result.Should().Be("prefixsuffix");
     }
 
     // =========================================================================
-    // Resolve — non-Guid non-string (int) → invariant ToString
+    // Resolve - non-Guid non-string (int) -> invariant ToString
     // =========================================================================
 
     [Fact]
     public void Resolve_int_sibling_uses_invariant_culture_and_is_not_culture_dependent()
     {
-        using IntSiblingContext ctx = IntSiblingContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(IntSiblingEntity))!;
-        AnonymizationTemplatePlan plan = AnonymizationTemplateResolver.Parse("count_{Count}");
+        using var ctx = IntSiblingContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(IntSiblingEntity))!;
+        var plan = AnonymizationTemplateResolver.Parse("count_{Count}");
 
         var instance = new IntSiblingEntity { Id = 1, Count = 42 };
 
-        string result = AnonymizationTemplateResolver.Resolve(plan, entityType, instance);
+        var result = AnonymizationTemplateResolver.Resolve(plan, entityType, instance);
 
         // Invariant: 42 renders as "42" regardless of culture.
         result.Should().Be("count_42");
     }
 
     // =========================================================================
-    // Resolve — null guards
+    // Resolve - null guards
     // =========================================================================
 
     [Fact]
     public void Resolve_null_plan_throws_ArgumentNullException()
     {
-        using ValidateContext ctx = ValidateContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ValidateEntity))!;
+        using var ctx = ValidateContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ValidateEntity))!;
 
         var act = () => AnonymizationTemplateResolver.Resolve(
             null!,
@@ -457,7 +456,7 @@ public sealed class AnonymizationTemplateResolverTests
     [Fact]
     public void Resolve_null_entity_type_throws_ArgumentNullException()
     {
-        AnonymizationTemplatePlan plan = AnonymizationTemplateResolver.Parse("a{X}b");
+        var plan = AnonymizationTemplateResolver.Parse("a{X}b");
         var act = () => AnonymizationTemplateResolver.Resolve(plan, null!, new ValidateEntity());
 
         act.Should().Throw<ArgumentNullException>();
@@ -466,9 +465,9 @@ public sealed class AnonymizationTemplateResolverTests
     [Fact]
     public void Resolve_null_entity_instance_throws_ArgumentNullException()
     {
-        using ValidateContext ctx = ValidateContext.Build();
-        IEntityType entityType = ctx.Model.FindEntityType(typeof(ValidateEntity))!;
-        AnonymizationTemplatePlan plan = AnonymizationTemplateResolver.Parse("a{UserId}b");
+        using var ctx = ValidateContext.Build();
+        var entityType = ctx.Model.FindEntityType(typeof(ValidateEntity))!;
+        var plan = AnonymizationTemplateResolver.Parse("a{UserId}b");
 
         var act = () => AnonymizationTemplateResolver.Resolve(plan, entityType, null!);
 
@@ -534,7 +533,7 @@ public sealed class AnonymizationTemplateResolverTests
             model.Entity<ShadowEntity>(e =>
             {
                 e.HasKey(x => x.Id);
-                e.Property<string>("ShadowField"); // shadow property — no CLR member
+                e.Property<string>("ShadowField"); // shadow property - no CLR member
             });
         }
     }
@@ -595,7 +594,7 @@ public sealed class AnonymizationTemplateResolverTests
         }
     }
 
-    // -- Navigation property entity (for M-3: ValidateTokens rejects navigation token) --
+    // -- Navigation property entity (for the ValidateTokens navigation-token rejection test) --
 
     private sealed class NavRelatedEntity
     {
@@ -635,7 +634,7 @@ public sealed class AnonymizationTemplateResolverTests
             {
                 e.HasKey(x => x.Id);
 
-                // "Related" is a navigation property — FindProperty returns null for navigations.
+                // "Related" is a navigation property - FindProperty returns null for navigations.
                 e.HasOne(x => x.Related).WithMany().HasForeignKey(x => x.RelatedId);
             });
         }

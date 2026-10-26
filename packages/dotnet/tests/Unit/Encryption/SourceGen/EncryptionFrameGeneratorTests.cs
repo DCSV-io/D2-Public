@@ -18,7 +18,7 @@ using Xunit;
 
 /// <summary>
 /// IIncrementalGenerator integration tests for the EncryptionFrame SrcGen
-/// — drives <see cref="EncryptionFrameGenerator"/> via a synthetic
+/// - drives <see cref="EncryptionFrameGenerator"/> via a synthetic
 /// <see cref="CSharpGeneratorDriver"/> rather than the build pipeline.
 /// </summary>
 public sealed class EncryptionFrameGeneratorTests

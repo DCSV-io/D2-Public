@@ -255,7 +255,7 @@ public sealed class LocalAnchoredEventTests
     [Fact]
     public void LocalDateTime_LeapDayInGregorianLeapEdge2000_Feb29_DoesNotThrow()
     {
-        // Year 2000 IS a leap year (div by 400 — the Gregorian century-leap
+        // Year 2000 IS a leap year (div by 400 - the Gregorian century-leap
         // exception to the "div by 100 not leap" rule).
         var scheduled = new LocalDateTime(2000, 2, 29, 12, 0);
 
@@ -276,7 +276,7 @@ public sealed class LocalAnchoredEventTests
     [Fact]
     public void LocalDateTime_LeapDayInGregorianEdge1900_Feb29_LocalDateTimeThrows()
     {
-        // Year 1900: div by 100 but NOT div by 400 → NOT a leap year (the
+        // Year 1900: div by 100 but NOT div by 400 -> NOT a leap year (the
         // Gregorian exception to the "div by 4 is leap" rule).
         var act = () => _ = new LocalDateTime(1900, 2, 29, 9, 0);
 
@@ -359,8 +359,8 @@ public sealed class LocalAnchoredEventTests
     public void LocalDateTime_Second60_NoLeapSecondSupport_LocalDateTimeThrows()
     {
         // NodaTime explicitly does not model leap seconds; the second-of-minute
-        // domain is [0, 59]. This test documents the throw + the no-support
-        // contract.
+        // domain is [0, 59]. This test documents that the constructor throws,
+        // because leap seconds are not supported.
         var act = () => _ = new LocalDateTime(2026, 6, 1, 9, 30, 60);
 
         act.Should().Throw<ArgumentOutOfRangeException>();
@@ -369,8 +369,8 @@ public sealed class LocalAnchoredEventTests
     [Fact]
     public void LocalDateTime_YearMinNodaTime_DoesNotThrow_PassesToCreate()
     {
-        // NodaTime ISO calendar supports years from -9998 to 9999. Lower bound
-        // is min year that does NOT throw.
+        // NodaTime ISO calendar supports years from -9998 to 9999. -9998 is the
+        // lowest year that does NOT throw.
         var scheduled = new LocalDateTime(-9998, 1, 1, 0, 0);
 
         var result = LocalAnchoredEvent.Create(scheduled, "UTC");
@@ -462,7 +462,7 @@ public sealed class LocalAnchoredEventTests
     {
         // March 8 2026 = US DST spring-forward (second Sunday of March).
         // 2:00-3:00 AM EST doesn't exist. Lenient maps 2:30 AM forward by
-        // the DST offset → 3:30 AM EDT clock = 7:30 UTC.
+        // the DST offset -> 3:30 AM EDT clock = 7:30 UTC.
         var ev = LocalAnchoredEvent.Create(
             new LocalDateTime(2026, 3, 8, 2, 30),
             "America/New_York").Data!;
@@ -476,7 +476,7 @@ public sealed class LocalAnchoredEventTests
     [Fact]
     public void ComputeNextFire_USSpringForwardSkippedTime_2_00AMExact_LenientMapsForward()
     {
-        // Exact gap boundary — 2:00 AM is the first instant that doesn't exist.
+        // Exact gap boundary - 2:00 AM is the first instant that doesn't exist.
         var ev = LocalAnchoredEvent.Create(
             new LocalDateTime(2026, 3, 8, 2, 0),
             "America/New_York").Data!;
@@ -494,7 +494,7 @@ public sealed class LocalAnchoredEventTests
     {
         // March 29 2026 = BST start in Europe/London (last Sunday of March).
         // 1:00-2:00 AM GMT doesn't exist. Lenient maps 1:30 AM forward
-        // → 2:30 AM BST clock = 1:30 UTC.
+        // -> 2:30 AM BST clock = 1:30 UTC.
         var ev = LocalAnchoredEvent.Create(
             new LocalDateTime(2026, 3, 29, 1, 30),
             "Europe/London").Data!;
@@ -510,7 +510,7 @@ public sealed class LocalAnchoredEventTests
     {
         // Australian DST starts first Sunday of October. October 2026: first
         // Sunday is Oct 4. 2:00-3:00 AM AEST doesn't exist on that day.
-        // 2:30 AM AEST + 1h DST = 3:30 AM AEDT (UTC+11) → 16:30 UTC Oct 3
+        // 2:30 AM AEST + 1h DST = 3:30 AM AEDT (UTC+11) -> 16:30 UTC Oct 3
         // (Sydney is UTC+10 in standard time, UTC+11 in DST; 2:30 + the gap
         // resolves to 3:30 AEDT which is 16:30 the previous UTC day).
         var ev = LocalAnchoredEvent.Create(
@@ -530,7 +530,7 @@ public sealed class LocalAnchoredEventTests
     {
         // November 1 2026 = US DST fall-back (first Sunday of November).
         // 1:00-2:00 AM occurs twice (once EDT, once EST). Lenient picks the
-        // earlier (EDT) instant → 1:30 AM EDT = 5:30 UTC, NOT 1:30 AM EST
+        // earlier (EDT) instant -> 1:30 AM EDT = 5:30 UTC, NOT 1:30 AM EST
         // (which would be 6:30 UTC).
         var ev = LocalAnchoredEvent.Create(
             new LocalDateTime(2026, 11, 1, 1, 30),
@@ -545,9 +545,9 @@ public sealed class LocalAnchoredEventTests
     [Fact]
     public void ComputeNextFire_EuropeanFallBackAmbiguousTime_LenientPicksEarlier()
     {
-        // October 26 2025 = BST→GMT fall-back in Europe/London (last Sunday).
+        // October 26 2025 = BST->GMT fall-back in Europe/London (last Sunday).
         // 1:00-2:00 AM occurs twice (BST then GMT). Lenient picks earlier
-        // (BST) → 1:30 AM BST = 0:30 UTC.
+        // (BST) -> 1:30 AM BST = 0:30 UTC.
         var ev = LocalAnchoredEvent.Create(
             new LocalDateTime(2025, 10, 26, 1, 30),
             "Europe/London").Data!;
@@ -565,9 +565,9 @@ public sealed class LocalAnchoredEventTests
     {
         // Egypt observed DST in 2010 (+03 in summer), abolished it in 2011,
         // and re-observed in some later years. For 2010, July 15 noon local
-        // = +03 offset → 09:00 UTC. For 2012, no DST → +02 offset → 10:00
-        // UTC. The delta is exactly 1 hour, proving the lib applies the
-        // historically-correct rule for each year.
+        // = +03 offset -> 09:00 UTC. For 2012, no DST -> +02 offset -> 10:00
+        // UTC. The results differ by exactly 1 hour, which shows that the library
+        // applies the historically correct rule for each year.
         var ev2010 = LocalAnchoredEvent.Create(
             new LocalDateTime(2010, 7, 15, 12, 0),
             "Africa/Cairo").Data!;
@@ -578,9 +578,10 @@ public sealed class LocalAnchoredEventTests
         var fire2010 = ev2010.ComputeNextFire().Data;
         var fire2012 = ev2012.ComputeNextFire().Data;
 
-        // 2012 (no DST, +02) should be 1 hour LATER in UTC than 2010 (+03)
-        // because +02 means UTC is 2h behind local, so local-12:00 = UTC-10:00.
-        // Strip the year-2-year date delta and compare offsets via UTC hour.
+        // 2012 (no DST, +02) is 1 hour LATER in UTC than 2010 (+03): +02 means
+        // UTC is 2 hours behind local time, so local 12:00 is 10:00 UTC.
+        // The assertions compare the UTC hour of each result, so the date
+        // difference between the two years does not matter.
         fire2010.InUtc().Hour.Should().Be(9);
         fire2012.InUtc().Hour.Should().Be(10);
     }
@@ -588,11 +589,11 @@ public sealed class LocalAnchoredEventTests
     [Fact]
     public void ComputeNextFire_SamoaDateLineShift_2011_LenientHandlesSkippedDay()
     {
-        // Samoa skipped Dec 30 2011 entirely (UTC-11 → UTC+13). Any local
+        // Samoa skipped Dec 30 2011 entirely (UTC-11 -> UTC+13). Any local
         // time on that date is non-existent. Lenient must not throw; it
         // resolves forward into a valid instant. The exact resolution is
-        // implementation-defined; this test ensures the lib does NOT throw
-        // on this insane edge case.
+        // implementation-defined; this test checks only that the library does
+        // NOT throw for a local time on the skipped day.
         var ev = LocalAnchoredEvent.Create(
             new LocalDateTime(2011, 12, 30, 12, 0),
             "Pacific/Apia").Data!;

@@ -12,31 +12,26 @@ using System.Collections.Immutable;
 using DcsvIo.D2.SourceGen;
 
 /// <summary>
-/// Build-time safety gate that enforces two cross-catalog invariants across
+/// Build-time safety gate that enforces these cross-catalog invariants across
 /// all loaded error-code specs:
 /// <list type="bullet">
 ///   <item>
-///     No two catalogs declare the same <c>code</c> string — if they do,
-///     <see cref="RegistryDiagnosticIds.CrossCatalogDuplicateCode"/>
-///     (<c>D2ERC004</c>) fires.
+///     No two catalogs declare the same <c>code</c> string; a duplicate is
+///     reported as <see cref="RegistryDiagnosticIds.CrossCatalogDuplicateCode"/>
+///     (<c>D2ERC004</c>).
 ///   </item>
 ///   <item>
-///     The reserved-namespace rule is respected — unprefixed codes (no
-///     <c>_</c> anywhere in the code after the first character) belong
-///     exclusively to the generic catalog (<c>common</c> domain); per-domain
-///     catalogs must prefix every code with their domain token in
-///     SCREAMING_SNAKE (e.g. <c>AUTH_</c>). Violations surface as
-///     <see cref="RegistryDiagnosticIds.ReservedNamespaceViolation"/>
-///     (<c>D2ERC005</c>).
+///     Owner-aware reserved-namespace rule (<c>D2ERC005</c>): every code must
+///     start with its catalog's full <see cref="RegistrySpecEntry.DomainPrefix"/>
+///     (for example <c>GEN_</c>, <c>LIB_AUTH_</c>, <c>DOM_AUTH_</c>). A generic
+///     (GEN) catalog must not carry another catalog's full prefix. Multi-segment
+///     owner prefixes are not reduced to the first underscore segment.
 ///   </item>
 /// </list>
-/// When any diagnostic fires the caller MUST NOT emit the registry (the
-/// registry would be incomplete or ambiguous).
+/// When any diagnostic is reported, the registry must not be emitted.
 /// </summary>
 internal static class RegistryCollisionChecker
 {
-    private const string _GENERIC_DOMAIN = "common";
-
     /// <summary>
     /// Runs both cross-catalog checks against the full set of aggregated
     /// entries. Returns one diagnostic per violation found; empty when the
@@ -47,7 +42,7 @@ internal static class RegistryCollisionChecker
     /// were loaded.
     /// </param>
     /// <returns>
-    /// Diagnostics for cross-catalog collisions + reserved-namespace
+    /// Diagnostics for cross-catalog collisions and reserved-namespace
     /// violations; empty when the catalog set is clean.
     /// </returns>
     public static ImmutableArray<EmitDiagnostic> Check(
@@ -65,7 +60,7 @@ internal static class RegistryCollisionChecker
         IReadOnlyList<RegistrySpecEntry> entries,
         ImmutableArray<EmitDiagnostic>.Builder diagnostics)
     {
-        // code → first SpecFileName that declared it.
+        // code -> first SpecFileName that declared it.
         var seenCodes = new Dictionary<string, string>(StringComparer.Ordinal);
 
         foreach (var entry in entries)
@@ -76,8 +71,6 @@ internal static class RegistryCollisionChecker
                 continue;
             }
 
-            // Only emit the diagnostic once per (code, pair) — using the
-            // stable "first spec" reference and the current spec name.
             diagnostics.Add(RegistryDiagnostics.CrossCatalogDuplicateCode(
                 entry.Code, firstSpec, entry.SpecFileName));
         }
@@ -87,82 +80,52 @@ internal static class RegistryCollisionChecker
         IReadOnlyList<RegistrySpecEntry> entries,
         ImmutableArray<EmitDiagnostic>.Builder diagnostics)
     {
-        // Collect the set of non-generic domain tokens present in the
-        // aggregated catalog. These are the UPPERCASE prefixes that
-        // per-domain codes MUST start with (e.g. "AUTH", "GEO").
-        var domainPrefixes = new HashSet<string>(StringComparer.Ordinal);
+        // Collect every non-GEN full DomainPrefix present, so a GEN catalog
+        // cannot contain LIB_ or DOM_ codes.
+        var foreignPrefixes = new HashSet<string>(StringComparer.Ordinal);
         foreach (var entry in entries)
         {
-            if (!string.Equals(entry.Domain, _GENERIC_DOMAIN, StringComparison.Ordinal))
-                domainPrefixes.Add(entry.Domain.ToUpperInvariant());
+            if (!string.Equals(entry.Owner, "gen", StringComparison.Ordinal))
+                foreignPrefixes.Add(entry.DomainPrefix);
         }
 
         foreach (var entry in entries)
         {
-            var isGenericCatalog = string.Equals(
-                entry.Domain, _GENERIC_DOMAIN, StringComparison.Ordinal);
-
-            if (isGenericCatalog)
+            // Every entry must start with its catalog's full DomainPrefix.
+            if (!entry.Code.StartsWith(entry.DomainPrefix, StringComparison.Ordinal))
             {
-                // Generic catalog codes must NOT start with any known domain
-                // prefix (e.g. AUTH_, GEO_). The domain prefix is derived from
-                // the code's first underscore-delimited segment compared against
-                // the set of known non-generic domain tokens.
-                var codePrefix = CodePrefixSegment(entry.Code);
-                if (codePrefix is not null && domainPrefixes.Contains(codePrefix))
-                {
-                    diagnostics.Add(RegistryDiagnostics.ReservedNamespaceViolation(
-                        entry.Code,
-                        entry.SpecFileName,
-                        $"the generic catalog must not contain domain-prefixed codes; "
-                        + $"code '{entry.Code}' starts with the '{codePrefix}_' domain prefix "
-                        + $"which belongs in the '{codePrefix.ToLowerInvariant()}' catalog"));
-                }
+                diagnostics.Add(RegistryDiagnostics.ReservedNamespaceViolation(
+                    entry.Code,
+                    entry.SpecFileName,
+                    $"codes in owner '{entry.Owner}' domain '{entry.Domain}' must start "
+                    + $"with the full DomainPrefix '{entry.DomainPrefix}'; "
+                    + $"code '{entry.Code}' lacks the prefix"));
+                continue;
             }
-            else
+
+            // A GEN catalog must not start with any foreign LIB_ or DOM_ prefix. A
+            // prefix equal to this entry's own is not foreign: a catalog
+            // registered with the GEN_ prefix under another owner would
+            // otherwise report every legitimate GEN code.
+            if (string.Equals(entry.Owner, "gen", StringComparison.Ordinal))
             {
-                // Per-domain catalog codes must start with {DOMAIN.UPPER}_ .
-                // D2ERC001 already enforces this per-catalog; the registry
-                // re-asserts it at the cross-catalog level so a code that
-                // somehow bypasses the per-catalog check still fails the build.
-                var expectedPrefix = entry.Domain.ToUpperInvariant() + "_";
-                if (!entry.Code.StartsWith(expectedPrefix, StringComparison.Ordinal))
+                foreach (var foreign in foreignPrefixes)
                 {
-                    diagnostics.Add(RegistryDiagnostics.ReservedNamespaceViolation(
-                        entry.Code,
-                        entry.SpecFileName,
-                        $"per-domain codes must start with the domain prefix '{expectedPrefix}'; "
-                        + $"code '{entry.Code}' in domain '{entry.Domain}' lacks the prefix"));
+                    if (string.Equals(foreign, entry.DomainPrefix, StringComparison.Ordinal))
+                        continue;
+
+                    if (entry.Code.StartsWith(foreign, StringComparison.Ordinal))
+                    {
+                        diagnostics.Add(RegistryDiagnostics.ReservedNamespaceViolation(
+                            entry.Code,
+                            entry.SpecFileName,
+                            $"the generic (GEN) catalog must not contain domain-prefixed "
+                            + $"codes; code '{entry.Code}' starts with foreign prefix "
+                            + $"'{foreign}'"));
+                        break;
+                    }
                 }
             }
         }
-    }
-
-    /// <summary>
-    /// Returns the all-uppercase prefix segment before the first underscore
-    /// in <paramref name="code"/>, or <see langword="null"/> when the first
-    /// segment is not all uppercase letters (indicating a non-domain-prefix
-    /// pattern).
-    /// </summary>
-    /// <param name="code">SCREAMING_SNAKE error code.</param>
-    /// <returns>
-    /// The uppercase prefix segment (e.g. <c>"AUTH"</c> for
-    /// <c>"AUTH_BEARER_MISSING"</c>), or <see langword="null"/> when the
-    /// code does not start with a domain-prefix pattern.
-    /// </returns>
-    private static string? CodePrefixSegment(string code)
-    {
-        var underscoreIdx = code.IndexOf('_');
-        if (underscoreIdx <= 0)
-            return null;
-
-        var prefix = code.Substring(0, underscoreIdx);
-        foreach (var ch in prefix)
-        {
-            if (ch < 'A' || ch > 'Z')
-                return null;
-        }
-
-        return prefix;
     }
 }

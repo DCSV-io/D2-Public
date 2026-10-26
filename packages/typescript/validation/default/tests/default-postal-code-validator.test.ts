@@ -12,11 +12,11 @@ const validator = new DefaultPostalCodeValidator();
 const US = "US" as CountryCode;
 const CA = "CA" as CountryCode;
 
-describe("DefaultPostalCodeValidator — adversarial + property + fail-closed", () => {
+describe("DefaultPostalCodeValidator - adversarial + property + fail-closed", () => {
   it("rejects undefined input (falsey path)", () => {
     const result = validator.validate(undefined, US);
     expect(result.success).toBe(false);
-    expect(result.errorCode).toBe("VALIDATION_FAILED");
+    expect(result.errorCode).toBe("GEN_VALIDATION_FAILED");
     expect(result.inputErrors[0]?.field).toBe("postalCode");
     expect(result.inputErrors[0]?.errors[0]?.key).toBe(
       TK.common.validation.POSTAL_CODE_INVALID.key,
@@ -32,11 +32,11 @@ describe("DefaultPostalCodeValidator — adversarial + property + fail-closed", 
   });
 
   it("FAILS CLOSED when no country is supplied", () => {
-    // A valid-looking US ZIP with no country must NOT validate — there is
+    // A valid-looking US ZIP with no country must not validate - there is
     // no permissive country-agnostic fallback (parity with the .NET side).
     const result = validator.validate("90210");
     expect(result.success).toBe(false);
-    expect(result.errorCode).toBe("VALIDATION_FAILED");
+    expect(result.errorCode).toBe("GEN_VALIDATION_FAILED");
   });
 
   it("FAILS CLOSED on an unknown country code", () => {
@@ -62,7 +62,7 @@ describe("DefaultPostalCodeValidator — adversarial + property + fail-closed", 
     expect(result.data).toBe("K1A 0B1");
   });
 
-  it("is idempotent — re-validating a normalized value returns it unchanged", () => {
+  it("is idempotent - re-validating a normalized value returns it unchanged", () => {
     const first = validator.validate("  k1a 0b1  ", CA);
     expect(first.success).toBe(true);
     const second = validator.validate(first.data!, CA);
@@ -76,9 +76,9 @@ describe("DefaultPostalCodeValidator — adversarial + property + fail-closed", 
     const result = validator.validate(pathological, US);
     const elapsedMs = performance.now() - start;
     expect(result.success).toBe(false);
-    // 500 ms ceiling — a 10x margin over the ~50 ms intent. A backtracking
-    // regex would blow past this on a 50k-char input; the bounded pattern
-    // short-circuits well under it.
+    // 500 ms ceiling, 10x the 50 ms budget this path is expected to meet. A
+    // backtracking regex would exceed it on a 50k-char input; the bounded
+    // pattern finishes well under it.
     expect(elapsedMs).toBeLessThan(500);
   });
 });

@@ -17,7 +17,7 @@ using System.Collections.Immutable;
 /// </param>
 /// <param name="ConsumingAssembly">
 /// .NET assembly name whose <c>*TelemetryTags.g.cs</c> file is emitted to.
-/// Single-target dispatch — only the named assembly receives this meter's
+/// Single-target dispatch - only the named assembly receives this meter's
 /// emission. Meters with no closed-enum tags receive no emitted file (the
 /// spec entry is documentation-only).
 /// </param>

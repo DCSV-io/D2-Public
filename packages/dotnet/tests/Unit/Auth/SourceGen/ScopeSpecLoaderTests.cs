@@ -11,10 +11,10 @@ using DcsvIo.D2.Auth.Scopes.SourceGen;
 using Xunit;
 
 /// <summary>
-/// Adversarial coverage for <see cref="ScopeSpecLoader.Load"/>. The loader is
-/// responsible only for JSON-shape validation (D2SCP001 — malformed spec); all
-/// semantic validation (naming convention, enum values, etc.) is delegated to
-/// <see cref="ScopesEmitter"/> and tested separately.
+/// Adversarial coverage for <see cref="ScopeSpecLoader.Load"/>. The loader
+/// validates only the JSON shape (D2SCP001 - malformed spec).
+/// <see cref="ScopesEmitter"/> performs all semantic validation (naming
+/// convention, enum values and so on), and its tests cover that separately.
 /// </summary>
 public sealed class ScopeSpecLoaderTests
 {
@@ -31,7 +31,6 @@ public sealed class ScopeSpecLoaderTests
             {
               "name": "self.read",
               "description": "Read self",
-              "actionSensitivity": "Routine",
               "impersonationBlocked": false,
               "grantedTo": { "*": ["*"] }
             }
@@ -47,7 +46,6 @@ public sealed class ScopeSpecLoaderTests
         var scope = result.Spec.Scopes[0];
         scope.Name.Should().Be("self.read");
         scope.Description.Should().Be("Read self");
-        scope.ActionSensitivity.Should().Be("Routine");
         scope.ImpersonationBlocked.Should().BeFalse();
         scope.GrantedTo.Should().NotBeNull();
         scope.GrantedTo!.Should().ContainKey("*");
@@ -62,7 +60,6 @@ public sealed class ScopeSpecLoaderTests
           "scopes": [
             {
               "name": "anon.public.health",
-              "actionSensitivity": "Routine",
               "impersonationBlocked": false
             }
           ]
@@ -82,12 +79,12 @@ public sealed class ScopeSpecLoaderTests
         const string json = """
         {
           "scopes": [
-            { "name": "z.last",   "actionSensitivity": "Routine",
-              "impersonationBlocked": false, "grantedTo": { "*": ["*"] } },
-            { "name": "a.first",  "actionSensitivity": "Routine",
-              "impersonationBlocked": false, "grantedTo": { "*": ["*"] } },
-            { "name": "m.middle", "actionSensitivity": "Routine",
-              "impersonationBlocked": false, "grantedTo": { "*": ["*"] } }
+            { "name": "z.last",   "impersonationBlocked": false,
+              "grantedTo": { "*": ["*"] } },
+            { "name": "a.first",  "impersonationBlocked": false,
+              "grantedTo": { "*": ["*"] } },
+            { "name": "m.middle", "impersonationBlocked": false,
+              "grantedTo": { "*": ["*"] } }
           ]
         }
         """;
@@ -100,7 +97,7 @@ public sealed class ScopeSpecLoaderTests
     }
 
     // ----------------------------------------------------------------------
-    // D2SCP001 — malformed JSON / schema-violating
+    // D2SCP001 - malformed JSON / schema-violating
     // ----------------------------------------------------------------------
 
     [Theory]
@@ -156,7 +153,7 @@ public sealed class ScopeSpecLoaderTests
     public void Load_ScopeMissingName_EmitsD2SCP001()
     {
         const string json = """
-        { "scopes": [ { "actionSensitivity": "Routine", "impersonationBlocked": false } ] }
+        { "scopes": [ { "impersonationBlocked": false } ] }
         """;
 
         var result = ScopeSpecLoader.Load("scopes.spec.json", json);
@@ -170,32 +167,19 @@ public sealed class ScopeSpecLoaderTests
     {
         const string json = """
         { "scopes": [
-            { "name": 42, "actionSensitivity": "Routine", "impersonationBlocked": false } ] }
+            { "name": 42, "impersonationBlocked": false } ] }
         """;
 
         var result = ScopeSpecLoader.Load("scopes.spec.json", json);
 
         result.Diagnostic!.DescriptorId.Should().Be(DiagnosticIds.MalformedSpec);
-    }
-
-    [Fact]
-    public void Load_ScopeMissingActionSensitivity_EmitsD2SCP001()
-    {
-        const string json = """
-        { "scopes": [ { "name": "self.read", "impersonationBlocked": false } ] }
-        """;
-
-        var result = ScopeSpecLoader.Load("scopes.spec.json", json);
-
-        result.Diagnostic!.DescriptorId.Should().Be(DiagnosticIds.MalformedSpec);
-        ((string)result.Diagnostic.Args[1]).Should().Contain("actionSensitivity");
     }
 
     [Fact]
     public void Load_ScopeMissingImpersonationBlocked_EmitsD2SCP001()
     {
         const string json = """
-        { "scopes": [ { "name": "self.read", "actionSensitivity": "Routine" } ] }
+        { "scopes": [ { "name": "self.read" } ] }
         """;
 
         var result = ScopeSpecLoader.Load("scopes.spec.json", json);
@@ -209,7 +193,7 @@ public sealed class ScopeSpecLoaderTests
     {
         const string json = """
         { "scopes": [
-            { "name": "x.y", "actionSensitivity": "Routine", "impersonationBlocked": "true" } ] }
+            { "name": "x.y", "impersonationBlocked": "true" } ] }
         """;
 
         var result = ScopeSpecLoader.Load("scopes.spec.json", json);
@@ -223,7 +207,7 @@ public sealed class ScopeSpecLoaderTests
         const string json = """
         {
           "scopes": [
-            { "name": "x.y", "actionSensitivity": "Routine", "impersonationBlocked": false,
+            { "name": "x.y", "impersonationBlocked": false,
               "grantedTo": [] }
           ]
         }
@@ -238,11 +222,11 @@ public sealed class ScopeSpecLoaderTests
     [Fact]
     public void Load_GrantedToValueIsString_EmitsD2SCP001()
     {
-        // grantedTo entry value MUST be an array per the schema.
+        // A grantedTo entry value must be an array per the schema.
         const string json = """
         {
           "scopes": [
-            { "name": "x.y", "actionSensitivity": "Routine", "impersonationBlocked": false,
+            { "name": "x.y", "impersonationBlocked": false,
               "grantedTo": { "Admin": "Owner" } }
           ]
         }
@@ -259,7 +243,7 @@ public sealed class ScopeSpecLoaderTests
         const string json = """
         {
           "scopes": [
-            { "name": "x.y", "actionSensitivity": "Routine", "impersonationBlocked": false,
+            { "name": "x.y", "impersonationBlocked": false,
               "grantedTo": { "Admin": [42] } }
           ]
         }
@@ -271,12 +255,12 @@ public sealed class ScopeSpecLoaderTests
     }
 
     // ----------------------------------------------------------------------
-    // Adversarial — extra unknown properties
+    // Adversarial - extra unknown properties
     //
-    // The schema's additionalProperties is `false` (editor-time gate), but the
-    // loader's responsibility ends at JSON-shape validation. Unknown properties
-    // on a scope entry are silently ignored at load-time — schema-level gate
-    // catches them in editors / IDEs / a JSON-Schema CLI.
+    // The schema sets additionalProperties to `false` (an editor-time gate), but
+    // the loader only validates JSON shape. The loader silently ignores unknown
+    // properties on a scope entry at load time; the schema gate catches them in
+    // editors, IDEs and a JSON-Schema CLI.
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -285,7 +269,7 @@ public sealed class ScopeSpecLoaderTests
         const string json = """
         {
           "scopes": [
-            { "name": "self.read", "actionSensitivity": "Routine", "impersonationBlocked": false,
+            { "name": "self.read", "impersonationBlocked": false,
               "grantedTo": { "*": ["*"] }, "extraField": "ignored", "anotherExtra": 42 }
           ]
         }
@@ -301,13 +285,13 @@ public sealed class ScopeSpecLoaderTests
     [Fact]
     public void Load_DescriptionWrongType_IsTreatedAsAbsent()
     {
-        // description is optional; a non-string value is silently treated as
-        // absent rather than rejected — keeps loader lenient on optional fields.
+        // description is optional; the loader silently treats a non-string
+        // value as absent and does not reject it, which keeps the loader
+        // lenient on optional fields.
         const string json = """
         {
           "scopes": [
-            { "name": "x.y", "description": 42,
-              "actionSensitivity": "Routine", "impersonationBlocked": false,
+            { "name": "x.y", "description": 42, "impersonationBlocked": false,
               "grantedTo": { "*": ["*"] } }
           ]
         }
@@ -320,13 +304,94 @@ public sealed class ScopeSpecLoaderTests
     }
 
     // ----------------------------------------------------------------------
-    // Boundary — empty scopes array
+    // The declared internal flag
+    // ----------------------------------------------------------------------
+
+    [Fact]
+    public void Load_InternalTrue_SetsTheFlag()
+    {
+        const string json = """
+        {
+          "scopes": [
+            { "name": "internal.example.sign", "impersonationBlocked": true,
+              "internal": true }
+          ]
+        }
+        """;
+
+        var result = ScopeSpecLoader.Load("scopes.spec.json", json);
+
+        result.Diagnostic.Should().BeNull();
+        result.Spec!.Scopes[0].Internal.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Load_InternalAbsent_LeavesTheFlagFalse()
+    {
+        // The paired case: an entry that declares nothing is not internal,
+        // which shows that the reader in the test above does not return true
+        // for every entry.
+        const string json = """
+        {
+          "scopes": [
+            { "name": "self.read", "impersonationBlocked": false,
+              "grantedTo": { "*": ["*"] } }
+          ]
+        }
+        """;
+
+        var result = ScopeSpecLoader.Load("scopes.spec.json", json);
+
+        result.Spec!.Scopes[0].Internal.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Load_InternalFalse_LeavesTheFlagFalse()
+    {
+        const string json = """
+        {
+          "scopes": [
+            { "name": "self.read", "impersonationBlocked": false,
+              "internal": false, "grantedTo": { "*": ["*"] } }
+          ]
+        }
+        """;
+
+        var result = ScopeSpecLoader.Load("scopes.spec.json", json);
+
+        result.Spec!.Scopes[0].Internal.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Load_InternalWrongJsonType_LeavesTheFlagFalse()
+    {
+        // A string is not the declaration; only the JSON boolean true is. A
+        // typo therefore fails closed into the D2SCP010 prefix disagreement and
+        // does not exempt the entry from the grant-matrix requirement.
+        const string json = """
+        {
+          "scopes": [
+            { "name": "internal.example.sign", "impersonationBlocked": true,
+              "internal": "true" }
+          ]
+        }
+        """;
+
+        var result = ScopeSpecLoader.Load("scopes.spec.json", json);
+
+        result.Diagnostic.Should().BeNull();
+        result.Spec!.Scopes[0].Internal.Should().BeFalse();
+    }
+
+    // ----------------------------------------------------------------------
+    // Boundary - empty scopes array
     // ----------------------------------------------------------------------
 
     [Fact]
     public void Load_EmptyScopesArray_ReturnsEmptySpec()
     {
-        // Schema's minItems: 1 is editor-time only; loader accepts empty array.
+        // The schema's minItems: 1 applies at editor time only; the loader
+        // accepts an empty array.
         const string json = """{ "scopes": [] }""";
 
         var result = ScopeSpecLoader.Load("scopes.spec.json", json);

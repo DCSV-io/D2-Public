@@ -11,7 +11,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 
 /// <summary>
-/// DI registration entry point for the D² health-check baseline — registers
+/// DI registration entry point for the D2 health-check baseline - registers
 /// the canonical <c>"self"</c> check tagged
 /// <see cref="D2AspNetCoreConstants.LIVE_HEALTH_TAG"/>.
 /// </summary>
@@ -21,10 +21,10 @@ public static class HealthEndpointsServiceCollectionExtensions
     extension(IServiceCollection services)
     {
         /// <summary>
-        /// Registers the D² health-check baseline. Adds the
+        /// Registers the D2 health-check baseline. Adds the
         /// <see cref="D2AspNetCoreConstants.SELF_HEALTH_CHECK_NAME"/> check that always returns
         /// <see cref="HealthStatus.Healthy"/> tagged
-        /// <see cref="D2AspNetCoreConstants.LIVE_HEALTH_TAG"/> — so it
+        /// <see cref="D2AspNetCoreConstants.LIVE_HEALTH_TAG"/> - so it
         /// participates in both <c>/health</c> (full status) and
         /// <c>/alive</c> (live-tag-only) endpoints when mapped via
         /// <see cref="HealthEndpointsRouteBuilderExtensions.MapD2HealthEndpoints"/>.
@@ -40,10 +40,10 @@ public static class HealthEndpointsServiceCollectionExtensions
         /// with the same name is already registered before adding it.
         /// </para>
         /// <para>
-        /// Per-service infrastructure layers add their own checks (DB,
-        /// Redis, RabbitMQ, KeyCustodian) by chaining
+        /// Additional checks (DB, Redis, RabbitMQ, and so on) are added by
+        /// chaining
         /// <c>services.AddHealthChecks().AddDbContextCheck&lt;...&gt;()</c>
-        /// etc. — those auto-flow into the <c>/health</c> endpoint via the
+        /// etc. - those are included in the <c>/health</c> endpoint via the
         /// shared underlying
         /// <see cref="HealthCheckService"/>. Checks tagged with
         /// <see cref="D2AspNetCoreConstants.LIVE_HEALTH_TAG"/> additionally
@@ -91,7 +91,7 @@ public static class HealthEndpointsServiceCollectionExtensions
 
     /// <summary>
     /// Marker registration recording that <c>AddD2HealthChecks</c> already
-    /// added the "self" check — used by the idempotency guard above to
+    /// added the "self" check - used by the idempotency guard above to
     /// skip duplicate registration on repeat calls. Implements the
     /// <c>IConfigureOptions</c> contract trivially (no-op Configure).
     /// </summary>
@@ -107,7 +107,7 @@ public static class HealthEndpointsServiceCollectionExtensions
 
         public void Configure(HealthCheckServiceOptions options)
         {
-            // Marker only — actual check registration happens in
+            // Marker only - actual check registration happens in
             // AddD2HealthChecks via healthChecksBuilder.AddCheck.
         }
     }

@@ -18,8 +18,8 @@ using Microsoft.CodeAnalysis.Text;
 /// const-int catalog (<c>FieldConstraints.g.cs</c>) and the closed-list taxonomy
 /// enums (<c>Taxonomy.g.cs</c>) into <c>DcsvIo.D2.Validation.Abstractions</c>
 /// by reading <c>contracts/validation/field-constraints.spec.json</c> via
-/// <c>AdditionalFiles</c>. Single-target — only emits when the consuming
-/// assembly is <c>DcsvIo.D2.Validation.Abstractions</c>.
+/// <c>AdditionalFiles</c>. Single-target - only emits when the assembly being
+/// compiled is <c>DcsvIo.D2.Validation.Abstractions</c>.
 /// </summary>
 [Generator]
 public sealed class FieldConstraintsGenerator : IIncrementalGenerator
@@ -38,15 +38,15 @@ public sealed class FieldConstraintsGenerator : IIncrementalGenerator
                 Content: file.GetText(ct)?.ToString() ?? string.Empty))
             .Collect();
 
-        // 2. Combine with the compilation so we can gate emission by assembly name.
+        // 2. Combine with the compilation to gate emission by assembly name.
         var combined = specs.Combine(context.CompilationProvider);
 
-        // 3. For each pipeline run, drive the loader + emitter.
+        // 3. For each pipeline run, drive the loader and the emitter.
         context.RegisterSourceOutput(combined, static (spc, tuple) =>
         {
             var (specFiles, compilation) = tuple;
 
-            // Only emit when the consuming assembly is the validation
+            // Only emit when the assembly being compiled is the validation
             // abstractions library.
             if (!string.Equals(
                 compilation.AssemblyName,
@@ -57,7 +57,8 @@ public sealed class FieldConstraintsGenerator : IIncrementalGenerator
             if (specFiles.IsDefaultOrEmpty)
                 return;
 
-            // Convention: only one field-constraints.spec.json per consuming project.
+            // Convention: only one field-constraints.spec.json per project. If there are
+            // several, the generator uses the first in ordinal order of path.
             var spec = specFiles.OrderBy(s => s.Path, StringComparer.Ordinal).First();
 
             var loadResult = FieldConstraintsSpecLoader.Load(spec.Path, spec.Content);

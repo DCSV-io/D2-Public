@@ -1,0 +1,42 @@
+<!--
+Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>DcsvIo.D2.EnvFiles</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      dotenv.net - parses one .env file into key/value pairs. D2Env implements the
+      discovery walk and the precedence rules; this package supplies the parse.
+      It is the only runtime dependency here, which is the reason the reader
+      lives in its own package: every other package references DcsvIo.D2.Utilities,
+      and Utilities has no runtime package dependency of its own.
+    -->
+    <PackageReference Include="dotenv.net" />
+    <!--
+      Public-API surface tracking (Microsoft.CodeAnalysis.PublicApiAnalyzers +
+      the PublicAPI.Shipped.txt / PublicAPI.Unshipped.txt AdditionalFiles) is
+      wired centrally for every consumable in public/packages/dotnet/Directory.Build.props,
+      scoped to IsPackable=true. No per-project analyzer wiring is needed here.
+    -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DcsvIo.D2.Tests" />
+  </ItemGroup>
+
+  <!-- Publish metadata (per-package semver + NuGet identity). -->
+  <PropertyGroup>
+    <Version>0.1.5</Version>
+    <PackageId>DcsvIo.D2.EnvFiles</PackageId>
+    <Description>Convention-based .env file loader for D2 - nearest-directory discovery, process-env-wins precedence, and idempotent loading.</Description>
+    <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>

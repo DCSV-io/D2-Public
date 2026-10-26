@@ -11,9 +11,9 @@ using DcsvIo.D2.OtelMessagingTags.SourceGen;
 using Xunit;
 
 /// <summary>
-/// Pure-logic tests for the OtelMessagingTags spec loader's JSON-shape
-/// validation. Drives the loader directly (no Roslyn host) and asserts the
-/// <c>EmitDiagnostic</c> records surfaced for malformed input.
+/// Tests of the JSON-shape validation in the OtelMessagingTags spec loader,
+/// with no I/O. The tests call the loader directly, without a Roslyn host, and
+/// assert the <c>EmitDiagnostic</c> records that malformed input produces.
 /// </summary>
 public sealed class OtelMessagingTagsSpecLoaderTests
 {

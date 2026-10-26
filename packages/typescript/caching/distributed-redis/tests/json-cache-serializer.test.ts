@@ -67,20 +67,20 @@ describe("JsonCacheSerializer", () => {
     const bytes = new TextEncoder().encode("{not-json");
     const result = serializer.deserialize(bytes);
     expect(result.success).toBe(false);
-    expect(result.errorCode).toBe(ErrorCodes.COULD_NOT_BE_DESERIALIZED);
+    expect(result.errorCode).toBe(ErrorCodes.GEN_COULD_NOT_BE_DESERIALIZED);
     expect(result.statusCode).toBe(HttpStatusCode.InternalServerError);
   });
 
   it("deserialize_emptyBytes_returnsCouldNotBeDeserialized", () => {
     const result = serializer.deserialize(new Uint8Array());
     expect(result.success).toBe(false);
-    expect(result.errorCode).toBe(ErrorCodes.COULD_NOT_BE_DESERIALIZED);
+    expect(result.errorCode).toBe(ErrorCodes.GEN_COULD_NOT_BE_DESERIALIZED);
   });
 
   it("serialize_bigint_returnsCouldNotBeSerialized", () => {
     const result = serializer.serialize({ n: 1n });
     expect(result.success).toBe(false);
-    expect(result.errorCode).toBe(ErrorCodes.COULD_NOT_BE_SERIALIZED);
+    expect(result.errorCode).toBe(ErrorCodes.GEN_COULD_NOT_BE_SERIALIZED);
     expect(result.statusCode).toBe(HttpStatusCode.InternalServerError);
   });
 

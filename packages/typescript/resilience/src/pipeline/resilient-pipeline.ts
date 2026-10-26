@@ -16,13 +16,13 @@ import { TimeoutLayer } from "./timeout-layer.js";
 /**
  * Final composed pipeline. Outer-first ordering.
  *
- * Use {@link ResilientPipelineBuilder} to compose layers. The canonical
- * full-stack order (outermost → innermost) mirrors the .NET standard:
+ * Use {@link ResilientPipelineBuilder} to compose layers. The full-stack order
+ * (outermost -> innermost) mirrors the standard .NET order:
  * ```
- * Singleflight → RateLimiter → TotalTimeout → Retry → CircuitBreaker → PerAttemptTimeout
+ * Singleflight -> RateLimiter -> TotalTimeout -> Retry -> CircuitBreaker -> PerAttemptTimeout
  * ```
  *
- * **Order matters.** `CircuitBreaker` outside `Retry` trips after N total
+ * Order matters. `CircuitBreaker` outside `Retry` trips after N total
  * failures across all attempts; `CircuitBreaker` inside `Retry` trips after
  * one burst of N consecutive per-attempt failures (re-arms on every outer
  * retry). Use `PassThrough` for a zero-layer pipeline that still executes the
@@ -33,7 +33,7 @@ export class ResilientPipeline {
 
   /**
    * Executes `op` through the configured layer stack. The optional `signal`
-   * (≈ .NET `CancellationToken`) threads down every layer; the op receives the
+   * (~= .NET `CancellationToken`) threads down every layer; the op receives the
    * signal it should observe for cooperative cancellation (a {@link TimeoutLayer}
    * substitutes a signal that ALSO fires on its deadline).
    */
@@ -49,15 +49,15 @@ export class ResilientPipeline {
    * A zero-layer pass-through pipeline. Runs the op directly with no
    * resilience wrapping. Mirrors .NET `ResilientPipeline.PassThrough`.
    *
-   * Use as an explicit bypass: the caller opts for a raw call while retaining
-   * the same `ResilientPipeline` call-site interface.
+   * Use as an explicit bypass: a raw call that keeps the same
+   * `ResilientPipeline` call-site interface.
    */
   static get PassThrough(): ResilientPipeline {
     return new ResilientPipeline(new TerminalLayer());
   }
 }
 
-/** Innermost layer — runs the supplied op directly with the threaded signal. */
+/** Innermost layer: runs the supplied op directly with the threaded signal. */
 class TerminalLayer implements IResilientLayer {
   execute<T>(
     _key: string,
@@ -69,7 +69,7 @@ class TerminalLayer implements IResilientLayer {
 }
 
 /**
- * Builder for {@link ResilientPipeline}. Outer-first ordering — the
+ * Builder for {@link ResilientPipeline}. Outer-first ordering: the
  * first layer added is the outermost wrapper. Mirrors .NET
  * `ResilientPipelineBuilder`.
  *
@@ -117,8 +117,8 @@ export class ResilientPipelineBuilder {
 
   /**
    * Adds a {@link RateLimiterLayer} at the current position. Place outermost
-   * (after `useSingleflight` if used) for admission-control semantics — reject
-   * callers before they consume retry or timeout budget.
+   * (after `useSingleflight` if used) for admission-control semantics: it
+   * rejects callers before they consume retry or timeout budget.
    *
    * `opts.maxConcurrency` must be >= 1 (validated at construction).
    */

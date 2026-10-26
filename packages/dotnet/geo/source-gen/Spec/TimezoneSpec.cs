@@ -11,8 +11,8 @@ using System.Collections.Generic;
 /// <summary>
 /// One entry parsed from <c>timezones.spec.json</c>. Offsets are sampled
 /// from Node ICU <c>Intl.DateTimeFormat</c> at January 15 (STD) and
-/// July 15 (DST) per UTC year — emitters bake the values into the
-/// generated abstractions.
+/// July 15 (DST) per UTC year, and the generated abstractions contain
+/// these values.
 /// </summary>
 /// <param name="IanaIdentifier">
 /// IANA tzdb zone identifier (e.g. <c>"America/New_York"</c>).

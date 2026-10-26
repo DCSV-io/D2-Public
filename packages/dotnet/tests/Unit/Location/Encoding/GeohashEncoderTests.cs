@@ -17,7 +17,7 @@ using Xunit;
 public sealed class GeohashEncoderTests
 {
     // -----------------------------------------------------------------------
-    // §1.2 Round-trip fidelity
+    // Round-trip fidelity
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -36,7 +36,7 @@ public sealed class GeohashEncoderTests
     [Fact]
     public void Encode_ThenDecode_CellCenterRoundTrip_IsIdempotent()
     {
-        // Encode → decode center → re-encode → same hash.
+        // Encode -> decode center -> re-encode -> same hash.
         const double lat = 40.7128;
         const double lon = -74.006;
 
@@ -48,7 +48,7 @@ public sealed class GeohashEncoderTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 Reference test vectors (Wikipedia + standard references)
+    // Reference test vectors (Wikipedia + standard references)
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -75,7 +75,7 @@ public sealed class GeohashEncoderTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 Edge coordinates (boundary values)
+    // Edge coordinates (boundary values)
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -97,7 +97,7 @@ public sealed class GeohashEncoderTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 Precision / length
+    // Precision / length
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -123,7 +123,7 @@ public sealed class GeohashEncoderTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 TruncateOrPad
+    // TruncateOrPad
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -148,7 +148,8 @@ public sealed class GeohashEncoderTests
     [Fact]
     public void TruncateOrPad_ShorterHash_PadsToTargetPrecision()
     {
-        // A 5-char hash padded to 10 chars must decode close to original cell center.
+        // A 5-character hash padded to 10 characters decodes close to the
+        // center of the original cell.
         var hash5 = GeohashEncoder.Encode(40.7128, -74.006, 5);
         var padded = GeohashEncoder.TruncateOrPad(hash5);
 
@@ -162,7 +163,7 @@ public sealed class GeohashEncoderTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 Determinism
+    // Determinism
     // -----------------------------------------------------------------------
 
     [Fact]

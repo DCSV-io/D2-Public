@@ -14,9 +14,9 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
 
 /// <summary>
-/// Verifies <c>AddValidation()</c> registers all three default validator
-/// implementations as singletons, registrations are idempotent (TryAdd
-/// semantics), and consumer-side overrides via <c>Replace</c> work.
+/// Verifies <c>AddValidation()</c> registers the default email, phone and postal
+/// code validator implementations as singletons, registrations are idempotent
+/// (TryAdd semantics), and overrides via <c>Replace</c> work.
 /// </summary>
 public sealed class DependencyInjectionTests
 {
@@ -108,7 +108,7 @@ public sealed class DependencyInjectionTests
     }
 
     // -------------------------------------------------------------------------
-    // Idempotency — calling twice does not double-register (TryAdd semantics)
+    // Idempotency - calling twice does not double-register (TryAdd semantics)
     // -------------------------------------------------------------------------
 
     [Fact]
@@ -195,7 +195,7 @@ public sealed class DependencyInjectionTests
     }
 
     // -------------------------------------------------------------------------
-    // Stub implementations (test-internal; not exercise-worthy on their own)
+    // Stub implementations (test-only replacements that the override tests resolve by type)
     // -------------------------------------------------------------------------
 
     private sealed class StubEmailValidator : IEmailValidator

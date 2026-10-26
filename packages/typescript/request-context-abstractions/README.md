@@ -6,8 +6,8 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 `IRequestContext` interface (extends `IAuthContext`) + `IPropagatedContext`
 cross-hop subset + `PropagatedContextSerializer` round-trip helper.
-Emitted from `contracts/request-context/IRequestContext.spec.json` via
-the request-context spec (sources committed). Mirrors `DcsvIo.D2.Context.Abstractions` (.NET).
+Emitted from `contracts/request-context/IRequestContext.spec.json`, and the
+generated sources are committed. Mirrors `DcsvIo.D2.Context.Abstractions` (.NET).
 
 ## Install
 
@@ -31,21 +31,21 @@ Plus all `@dcsv-io/d2-auth-context-abstractions` exports re-exported transitivel
 ## Codegen workflow
 
 `prebuild` runs the `request-context-emit.ts` script before `tsc -b`, so
-`pnpm -r build` regenerates transparently. The emitter reuses the
-`emitAuthContext` core for the interface + emits the additional propagated
+`pnpm -r build` regenerates the files without a separate step. The emitter reuses the
+`emitAuthContext` core for the interface and also emits the propagated
 artifacts.
 
-The emitter honors the spec's `extends` field: when set (as it is for
+The emitter reads the spec's `extends` field: when set (as it is for
 `IRequestContext.spec.json:6` `"extends": "DcsvIo.D2.AuthContext.Abstractions.IAuthContext"`),
 the generated `IRequestContext.g.ts` declares
 `export interface IRequestContext extends IAuthContext { ... }` and
 emits a `import type { IAuthContext } from "@dcsv-io/d2-auth-context-abstractions";`
-line at the top. Consumers see the unified `IRequestContext` shape as a
-single import — IAuthContext properties are inherited transitively.
+line at the top. Consumers import the single `IRequestContext` shape, and
+the `IAuthContext` properties are inherited transitively.
 
 ## Dependencies
 
-- `@dcsv-io/d2-auth-context-abstractions` — `IAuthContext` + supporting enums.
+- `@dcsv-io/d2-auth-context-abstractions` - `IAuthContext` + supporting enums.
 
 ## Usage example
 
@@ -65,7 +65,7 @@ const decoded = PropagatedContextSerializer.tryDecode(headers["x-d2-context"]);
 
 // Wire PII paths into Pino redaction.
 const log = setupLogger({
-  serviceName: "edge",
+  serviceName: "orders-api",
   redactPaths: [IRequestContextRedactPaths],
 });
 ```
@@ -74,22 +74,24 @@ const log = setupLogger({
 
 Mirrors `DcsvIo.D2.Context.Abstractions`:
 
-- `IRequestContext` ↔ same property set, camelCased.
-- `PropagatedContextSerializer` ↔ 1:1 type-named class with
- `Serialize`/`Deserialize`.
-- `IPropagatedContext` ↔ same propagated subset.
+- `IRequestContext` <-> same property set, camelCased.
+- `PropagatedContextSerializer` <-> 1:1 type-named class with
+  `Serialize`/`Deserialize`.
+- `IPropagatedContext` <-> same propagated subset.
 
 ## Nullability convention
 
-> Canonical nullability rule (same as `@dcsv-io/d2-auth-context-abstractions`): `IRequestContext` extends `IAuthContext` and inherits the same spec-driven `T | null` emission for spec-emitted property types (the spec's `?` suffix on a type entry — e.g. `"string?"` in `IRequestContext.spec.json` — triggers the `| null` emission).
+> Canonical nullability rule (same as `@dcsv-io/d2-auth-context-abstractions`): `IRequestContext` extends
+> `IAuthContext` and inherits the same spec-driven `T | null` emission for spec-emitted property types (the spec's `?`
+> suffix on a type entry - e.g. `"string?"` in `IRequestContext.spec.json` - triggers the `| null` emission).
 
 ## Edge cases
 
-- `tryDecode` enforces per-field `maxLength` caps from the spec — a
- forged envelope with any cap exceeded is dropped wholesale (returns
- `undefined`). Propagation is opportunistic, never required.
+- `tryDecode` enforces per-field `maxLength` caps from the spec - a
+  forged envelope with any cap exceeded is dropped wholesale (returns
+  `undefined`). Propagation is opportunistic, never required.
 - `tryDecode` type-checks numeric / boolean fields and rejects on
- shape mismatch.
-- `null` values survive serialize → deserialize without becoming the
- string `"null"`.
+  shape mismatch.
+- `null` values survive serialize -> deserialize without becoming the
+  string `"null"`.
 - Generated files (`*.g.ts`) are committed to git.

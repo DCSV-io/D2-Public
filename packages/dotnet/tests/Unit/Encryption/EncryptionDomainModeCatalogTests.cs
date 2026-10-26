@@ -8,6 +8,7 @@ namespace DcsvIo.D2.Tests.Unit.Encryption;
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using AwesomeAssertions;
 using DcsvIo.D2.Encryption;
@@ -15,10 +16,10 @@ using Xunit;
 
 /// <summary>
 /// Unit pins for the public composition overlay
-/// <see cref="EncryptionDomainModeCatalog"/> — product sealed domains register
-/// here so messaging can resolve <c>IsSealed</c> without private package refs.
-/// Uses unique per-test domain ids so static registrations never pollute the
-/// public catalog baseline used by other Shared.Tests cases.
+/// <see cref="EncryptionDomainModeCatalog"/>. A host registers its own sealed
+/// domains in the overlay, so messaging resolves <c>IsSealed</c> for them without
+/// a reference to the host's packages. Each test uses a unique domain id, so static registrations
+/// never change the public catalog baseline that other tests in this assembly use.
 /// </summary>
 public sealed class EncryptionDomainModeCatalogTests
 {
@@ -87,6 +88,83 @@ public sealed class EncryptionDomainModeCatalogTests
 
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*cannot re-map*");
+    }
+
+    [Fact]
+    public void RegisterSealedDomain_PlaintextSentinel_ThrowsAndLeavesItSymmetric()
+    {
+        var act = () => EncryptionDomainModeCatalog.RegisterSealedDomain(
+            EncryptionDomains.PLAINTEXT, "consumer-plain");
+
+        act.Should().Throw<InvalidOperationException>().WithMessage(
+            "Encryption domain 'plaintext' is the cleartext sentinel; it cannot "
+            + "be registered with an encryption mode.");
+
+        EncryptionDomainModeCatalog.ModeFor(EncryptionDomains.PLAINTEXT)
+            .Should().Be(EncryptionDomainMode.Symmetric);
+
+        EncryptionDomainModeCatalog.TryGetConsumerService(EncryptionDomains.PLAINTEXT, out _)
+            .Should().BeFalse();
+    }
+
+    [Fact]
+    public void RegisterSealedDomain_GeneratedSealedDomainWithAnotherConsumer_Throws()
+    {
+        var act = () => EncryptionDomainModeCatalog.RegisterSealedDomain(
+            EncryptionDomains.FIXTURE_SEALED, "consumer-other");
+
+        act.Should().Throw<InvalidOperationException>().WithMessage(
+            "Encryption domain 'payload-fixture-sealed' already maps consumer "
+            + "'payload-fixture-sealed'; cannot re-map to 'consumer-other'.");
+
+        EncryptionDomainModeCatalog.TryGetConsumerService(
+            EncryptionDomains.FIXTURE_SEALED, out var consumer).Should().BeTrue();
+
+        consumer.Should().Be("payload-fixture-sealed");
+    }
+
+    [Fact]
+    public void RegisterSealedDomain_GeneratedSealedDomainWithItsOwnConsumer_IsAccepted()
+    {
+        var act = () => EncryptionDomainModeCatalog.RegisterSealedDomain(
+            EncryptionDomains.FIXTURE_SEALED, "payload-fixture-sealed");
+
+        act.Should().NotThrow();
+
+        EncryptionDomainModeCatalog.ModeFor(EncryptionDomains.FIXTURE_SEALED)
+            .Should().Be(EncryptionDomainMode.Sealed);
+    }
+
+    [Fact]
+    public void ThrowIfConflictsWithCatalog_CatalogSymmetricDomain_Throws()
+    {
+        // Fail-without-fix: against a no-op helper body this case fails, because
+        // nothing is thrown.
+        var modes = new Dictionary<string, EncryptionDomainMode>(StringComparer.Ordinal)
+        {
+            ["ledger-fixture"] = EncryptionDomainMode.Symmetric,
+        };
+
+        var act = () => EncryptionDomainModeCatalog.ThrowIfConflictsWithCatalog(
+            "ledger-fixture", "consumer-a", modes, new Dictionary<string, string>());
+
+        act.Should().Throw<InvalidOperationException>().WithMessage(
+            "Encryption domain 'ledger-fixture' was already registered as Symmetric; "
+            + "cannot re-register as Sealed.");
+    }
+
+    [Fact]
+    public void ThrowIfConflictsWithCatalog_DomainTheCatalogDoesNotDeclare_DoesNotThrow()
+    {
+        var modes = new Dictionary<string, EncryptionDomainMode>(StringComparer.Ordinal)
+        {
+            ["ledger-fixture"] = EncryptionDomainMode.Symmetric,
+        };
+
+        var act = () => EncryptionDomainModeCatalog.ThrowIfConflictsWithCatalog(
+            "orders-fixture", "consumer-a", modes, new Dictionary<string, string>());
+
+        act.Should().NotThrow();
     }
 
     [Fact]

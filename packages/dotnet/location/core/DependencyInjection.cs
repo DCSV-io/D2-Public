@@ -21,11 +21,11 @@ public static class DependencyInjection
         /// Registers <see cref="DefaultPostalCodeValidator"/> as the
         /// singleton <see cref="IPostalCodeValidator"/>. The default
         /// validator is stateless (regex is static readonly with JIT
-        /// pre-warm), so the singleton lifetime is safe. Consumers
-        /// requiring per-country strict validation register an override
-        /// via <c>services.Replace(...)</c> AFTER calling this method.
+        /// pre-warm), so the singleton lifetime is safe. A per-country
+        /// strict validator is registered through
+        /// <c>services.Replace(...)</c> AFTER calling this method.
         /// </summary>
-        /// <returns>The same <c>services</c> instance for call chaining.</returns>
+        /// <returns>The same <c>services</c> instance, so calls can be chained.</returns>
         public IServiceCollection AddD2Location()
         {
             services.TryAddSingleton<IPostalCodeValidator, DefaultPostalCodeValidator>();

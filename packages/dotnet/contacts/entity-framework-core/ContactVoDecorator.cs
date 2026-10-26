@@ -14,9 +14,9 @@ using DcsvIo.D2.Validation.Abstractions;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 /// <summary>
-/// Internal single-source per-VO decoration core consumed by the per-VO
+/// Internal single-source per-VO decoration core behind the per-VO
 /// <c>MapXxx</c> complex-type helpers in <see cref="ContactMappingExtensions"/>.
-/// Changing a field rule here updates the helper for every host that uses it.
+/// Changing a field rule here changes it in every <c>MapXxx</c> helper.
 /// </summary>
 /// <remarks>
 /// Per-field anonymize defaults are written via the
@@ -26,18 +26,18 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 internal static class ContactVoDecorator
 {
     // =========================================================================
-    // Private constants — caps not in FieldConstraints
+    // Private constants - caps not in FieldConstraints
     // =========================================================================
 
     // "v1." (3 chars) + SHA-256 hex (SHA256.HashSizeInBytes * 2 = 64 chars) = 67.
     private const int _HASH_ID_MAX = 3 + (SHA256.HashSizeInBytes * 2);
 
-    // Cleared HashId sentinel written on erasure: "v1." + 64 × '0'.
+    // Cleared HashId sentinel written on erasure: "v1." + 64 x '0'.
     private static readonly string sr_hashIdCleared =
         "v1." + new string('0', SHA256.HashSizeInBytes * 2);
 
     // =========================================================================
-    // Exposed constants for test assertions
+    // Exposed constants
     // =========================================================================
 
     /// <summary>Gets the HashId cleared sentinel used on erasure.</summary>
@@ -92,7 +92,7 @@ internal static class ContactVoDecorator
     /// <summary>
     /// Decorates a <c>Professional</c> VO mapped as a <c>ComplexProperty</c>.
     /// The <c>CompanyWebsite</c> <see cref="Uri"/> field gets a
-    /// <c>string ↔ AbsoluteUri</c> value converter plus <c>HasMaxLength</c>.
+    /// <c>string &lt;-> AbsoluteUri</c> value converter plus <c>HasMaxLength</c>.
     /// </summary>
     /// <param name="cp">The complex-property builder for <c>Professional</c>.</param>
     internal static void DecorateProfessional(ComplexPropertyBuilder<Professional> cp)

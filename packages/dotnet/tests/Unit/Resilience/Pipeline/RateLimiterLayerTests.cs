@@ -37,7 +37,7 @@ public sealed class RateLimiterLayerTests
         try
         {
             var gate = new TaskCompletionSource();
-            var acquired = new TaskCompletionSource(); // signals: permit is held
+            var acquired = new TaskCompletionSource(); // completes when the permit is held
             var first = layer.WrapAsync(
                 "k",
                 async _ =>
@@ -48,7 +48,7 @@ public sealed class RateLimiterLayerTests
                 },
                 default).AsTask();
 
-            // Wait until the permit is demonstrably held before attempting the +1 call.
+            // Wait until the single permit is held; the +1 call that follows is rejected.
             await acquired.Task;
 
             await Assert.ThrowsAsync<RateLimitRejectedException>(
@@ -75,7 +75,7 @@ public sealed class RateLimiterLayerTests
                 _ => throw new InvalidOperationException("boom"),
                 default).AsTask());
 
-        // Permit must be released — next call succeeds.
+        // The layer releases the permit when the op throws, so the next call succeeds.
         var result = await layer.WrapAsync("k", _ => ValueTask.FromResult(7), default);
         result.Should().Be(7);
     }
@@ -92,7 +92,7 @@ public sealed class RateLimiterLayerTests
                 new RateLimiterOptions(maxConcurrency: 1, acquisitionTimeout: TimeSpan.Zero)));
 
         var gate = new TaskCompletionSource();
-        var acquired = new TaskCompletionSource(); // signals: permit is held
+        var acquired = new TaskCompletionSource(); // completes when the permit is held
         var first = pipeline.ExecuteAsync("k", async _ =>
         {
             acquired.SetResult();
@@ -100,7 +100,7 @@ public sealed class RateLimiterLayerTests
             return 1;
         }).AsTask();
 
-        // Wait until the permit is demonstrably held before attempting the rejected call.
+        // Wait until the permit is held before attempting the rejected call.
         await acquired.Task;
 
         var result = await pipeline.ExecuteAsync("k", _ => ValueTask.FromResult(99));
@@ -114,7 +114,7 @@ public sealed class RateLimiterLayerTests
     }
 
     // ----------------------------------------------------------------------
-    // Keyed-DI overload (§1.3 DI resolution test)
+    // Keyed-DI overload (resolves the limiter from the service provider)
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -155,18 +155,18 @@ public sealed class RateLimiterLayerTests
     }
 
     // ----------------------------------------------------------------------
-    // Explicit-instance overload (used in builder tests + manual composition)
+    // Explicit-instance overload (the caller supplies and owns the limiter)
     // ----------------------------------------------------------------------
 
     [Fact]
     public async Task RateLimiterLayer_ExplicitLimiterInstance_DoesNotOwnLimiter()
     {
         // When constructed with an explicit RateLimiter, the layer must NOT
-        // dispose the shared limiter on Dispose (the shared-limiter story).
+        // dispose the shared limiter on Dispose, because the caller owns it.
         using var limiter = new RateLimiter(new(maxConcurrency: 3));
         var layer = new RateLimiterLayer<string, int>(limiter);
 
-        // Dispose the layer — the shared limiter should still be usable.
+        // Dispose the layer; the shared limiter must still be usable.
         layer.Dispose();
 
         var result = await limiter.ExecuteAsync(_ => ValueTask.FromResult(1));

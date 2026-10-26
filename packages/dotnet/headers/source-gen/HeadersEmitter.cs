@@ -17,9 +17,9 @@ using DcsvIo.D2.SourceGen.Polyfills;
 
 /// <summary>
 /// Pure logic for emitting one per-transport headers catalog source from a
-/// parsed <see cref="HeadersSpec"/>. Stateless and unit-testable in
-/// isolation. The Roslyn-host integration (<see cref="HeadersGenerator"/>)
-/// calls this once per consuming assembly with the matching catalog filter.
+/// parsed <see cref="HeadersSpec"/>. The emitter is stateless and has no
+/// dependency on the Roslyn host, so it runs in isolation. It runs once per
+/// consuming assembly, with the catalog filter that matches that assembly.
 /// </summary>
 internal static class HeadersEmitter
 {
@@ -43,7 +43,7 @@ internal static class HeadersEmitter
         new("^[A-Z][A-Z0-9_]*$", RegexOptions.Compiled);
 
     /// <summary>
-    /// Catalog filter — selects which spec entries belong in a given catalog.
+    /// Catalog filter that selects which spec entries belong in a given catalog.
     /// </summary>
     public enum CatalogFilter
     {
@@ -127,7 +127,7 @@ internal static class HeadersEmitter
                         SR_RecognizedConventions.OrderBy(s => s, StringComparer.Ordinal))));
             }
 
-            // Per-catalog duplicate check (across all catalogs the entry would belong to).
+            // Per-catalog duplicate check, across all catalogs the entry belongs to.
             var duplicate = false;
             foreach (var cat in CatalogsForEntry(entry))
             {
@@ -145,7 +145,7 @@ internal static class HeadersEmitter
             validEntries.Add(entry);
         }
 
-        // Filter to the catalog this emit call is for.
+        // Keep only the entries of the catalog this call emits.
         var filtered = validEntries.Where(e => BelongsTo(e, filter)).ToList();
         var source = EmitSource(filtered, filter, targetNamespace, className);
         return new EmitResult(source, diagnostics.ToImmutable());

@@ -14,7 +14,7 @@ using Xunit;
 
 /// <summary>
 /// Wire-permanence freeze gate for the sealed key-derivation and AEAD-binding
-/// conventions. The pinned values below are FROZEN — HKDF info =
+/// conventions. The pinned values below are FROZEN - HKDF info =
 /// <c>"d2-seal-v1"</c> ‖ len16BE(serviceId) ‖ serviceId ‖ len16BE(ephSPKI) ‖
 /// ephSPKI, HKDF salt = UTF-8(serviceId), AES-GCM AAD = UTF-8(serviceId).
 /// Any drift in the label, the length-delimited info encoding, the salt, the
@@ -29,7 +29,7 @@ public sealed class SealedKeyDerivationFreezeTests
     // data generated once and pinned; the recipient/ephemeral keys exist
     // only inside this test.
     // ---------------------------------------------------------------
-    private const string _SERVICE_ID = "audit";
+    private const string _SERVICE_ID = "orders";
     private const string _KAT_KID = "seal-kat-kid";
     private const string _KAT_PLAINTEXT = "d2-seal-known-answer";
 
@@ -52,15 +52,15 @@ public sealed class SealedKeyDerivationFreezeTests
         "020C7365616C2D6B61742D6B6964005B3059301306072A8648CE3D020106082A8648CE3D" +
         "0301070342000490B3BA914A6B961EE261D4220E8E5A3D54BCCFE871CED4282BC9B8AFFB" +
         "FA4518C1A8D861BE5B12696DF9A8B9E006C9C0B9B31421D5F5AF7C2B22E3E564607E7000" +
-        "0102030405060708090A0B24645B3E8AF74C10CB1F8975C91756975014883A1DCF988950" +
-        "A08304107CDD64B5DC3718";
+        "0102030405060708090A0B670E3AF1DEEC915C7C46FDAA56725A31A5E0B4AD652D6276C8" +
+        "F681FA7C2F4A415D489CCD";
 
-    /// <summary>The frozen HKDF info bytes for (serviceId=audit, the pinned ephemeral).</summary>
+    /// <summary>The frozen HKDF info bytes for (serviceId=orders, the pinned ephemeral).</summary>
     private const string _KAT_INFO_HEX =
-        "64322D7365616C2D763100056175646974005B3059301306072A8648CE3D020106082A86" +
-        "48CE3D0301070342000490B3BA914A6B961EE261D4220E8E5A3D54BCCFE871CED4282BC9" +
-        "B8AFFBFA4518C1A8D861BE5B12696DF9A8B9E006C9C0B9B31421D5F5AF7C2B22E3E56460" +
-        "7E70";
+        "64322D7365616C2D763100066F7264657273005B3059301306072A8648CE3D020106082A" +
+        "8648CE3D0301070342000490B3BA914A6B961EE261D4220E8E5A3D54BCCFE871CED4282B" +
+        "C9B8AFFBFA4518C1A8D861BE5B12696DF9A8B9E006C9C0B9B31421D5F5AF7C2B22E3E564" +
+        "607E70";
 
     private static readonly byte[] sr_katNonce =
         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
@@ -73,7 +73,7 @@ public sealed class SealedKeyDerivationFreezeTests
     public void SealConstruction_FrozenKnownAnswer_RoundTripsPinnedVector()
     {
         // 1. Recompute the frame from the pinned inputs through the REAL
-        //    derivation + AEAD + codec — any drift in info/salt/AAD/HKDF/
+        //    derivation + AEAD + codec - any drift in info/salt/AAD/HKDF/
         //    frame encoding produces different bytes and fails the pin.
         var ephSpki = Convert.FromBase64String(_EPHEMERAL_PUBLIC_SPKI_B64);
         var serviceIdBytes = Encoding.UTF8.GetBytes(_SERVICE_ID);
@@ -160,7 +160,7 @@ public sealed class SealedKeyDerivationFreezeTests
     public void HkdfSalt_IsRecipientServiceId()
     {
         // DeriveDek must equal a direct HKDF-SHA256 with salt =
-        // UTF-8(serviceId) and info = BuildInfo(...) — pinning that the salt
+        // UTF-8(serviceId) and info = BuildInfo(...) - pinning that the salt
         // is the service id (and nothing else) and the hash is SHA-256.
         var ephSpki = Convert.FromBase64String(_EPHEMERAL_PUBLIC_SPKI_B64);
         var serviceIdBytes = Encoding.UTF8.GetBytes(_SERVICE_ID);
@@ -185,7 +185,7 @@ public sealed class SealedKeyDerivationFreezeTests
     public void Aad_IsRecipientServiceId()
     {
         // Seal via the PRODUCTION sealer, then decrypt manually: only
-        // aad = UTF-8(serviceId) authenticates; any other AAD fails. That IS
+        // aad = UTF-8(serviceId) authenticates; any other AAD fails. That is
         // the frozen AEAD binding.
         var keypair = SealedTestKeys.GenerateKeypair();
         var sealer = new PayloadSealer(
@@ -226,7 +226,7 @@ public sealed class SealedKeyDerivationFreezeTests
             // ReSharper disable once AccessToDisposedClosure -- wrongAad is invoked
             // synchronously inside Should().Throw(), before gcm disposes.
             var wrongAad = () => gcm.Decrypt(
-                nonce, ciphertext, tag, recovered, Encoding.UTF8.GetBytes("courier"));
+                nonce, ciphertext, tag, recovered, Encoding.UTF8.GetBytes("inventory"));
             wrongAad.Should().Throw<AuthenticationTagMismatchException>();
         }
     }

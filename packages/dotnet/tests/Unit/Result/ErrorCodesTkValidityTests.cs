@@ -24,10 +24,11 @@ using Xunit;
 /// every generic spec entry that ships a constructing factory
 /// (<c>factoryShape != none</c>), asserts the ACTUAL wire
 /// <see cref="TKMessage"/> the generated <see cref="D2Result"/> factory
-/// produces RENDERS to real en-US text — not the raw key — via the
-/// <see cref="Translator"/> over <c>contracts/messages</c>. Mirrors the auth
-/// <c>AuthFailuresTkValidityTests</c>; the TS half lands in the cross-runtime
-/// parity suite. Data-driven over the spec so a future entry is auto-covered.
+/// produces RENDERS to real en-US text - not the raw key - via the
+/// <see cref="Translator"/> over <c>contracts/messages</c>. The TypeScript half
+/// is in the cross-runtime parity suite. The test reads the spec when it runs,
+/// so an entry added to the spec with a factory is covered without a change to
+/// this test.
 /// </summary>
 public sealed class ErrorCodesTkValidityTests
 {
@@ -40,7 +41,7 @@ public sealed class ErrorCodesTkValidityTests
         {
             var shape = entry.GetProperty("factoryShape").GetString()!;
 
-            // none-shape codes emit no factory — nothing to render.
+            // none-shape codes emit no factory - nothing to render.
             if (shape == "none")
                 continue;
 
@@ -80,8 +81,9 @@ public sealed class ErrorCodesTkValidityTests
 
         // The wire key the factory emits must be the inverse-snake of the spec's
         // userMessageKey symbol path (e.g. TK.Common.Errors.UNKNOWN ->
-        // common_errors_UNKNOWN) — pins the code <-> userMessageKey link for the
-        // two name-mismatch quirks (UNHANDLED_EXCEPTION/RATE_LIMITED).
+        // common_errors_UNKNOWN). This pins the link between a code and its
+        // userMessageKey for the codes whose names differ from their keys
+        // (UNHANDLED_EXCEPTION, RATE_LIMITED).
         message.Key.Should().Be(SnakeFromSymbolPath(userMessageKey));
     }
 

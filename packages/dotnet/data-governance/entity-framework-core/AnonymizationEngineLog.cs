@@ -10,9 +10,9 @@ using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// PII-safe <c>LoggerMessage</c> delegates for the anonymization engine.
-/// Subject ids are never logged — only sweep correlation ids, entity-type
-/// names (model metadata), tier labels, row counts, and sanitized exception
-/// type + first-frame strings appear here.
+/// The logs never contain a subject id. They contain only sweep correlation ids,
+/// entity-type names (model metadata), tier labels, row counts, and sanitized
+/// exception type and first-frame strings.
 /// </summary>
 internal static partial class AnonymizationEngineLog
 {
@@ -60,7 +60,7 @@ internal static partial class AnonymizationEngineLog
         EventId = 9403,
         Level = LogLevel.Error,
         Message = "Anonymization sweep failed: Tier-C entity type reached runtime "
-            + "— this is a startup-guard bypass "
+            + "- this is a startup-guard bypass "
             + "(sweepId={SweepId}, entityTypeName={EntityTypeName}, "
             + "blockerProperty={BlockerProperty}).")]
     public static partial void TierCReachedRuntime(
@@ -109,7 +109,7 @@ internal static partial class AnonymizationEngineLog
         EventId = 9407,
         Level = LogLevel.Error,
         Message = "Anonymization Tier-A plan misconfiguration "
-            + "— SetNull on non-nullable value-type column; "
+            + "- SetNull on non-nullable value-type column; "
             + "returning failure (sweepId={SweepId}, "
             + "entityTypeName={EntityTypeName}, reason={Reason}).")]
     public static partial void TierASetNullMisconfiguration(
@@ -123,7 +123,7 @@ internal static partial class AnonymizationEngineLog
         Level = LogLevel.Error,
         Message = "Anonymization Tier-A plan could not be built for entity type "
             + "(sweepId={SweepId}, entityTypeName={EntityTypeName}). "
-            + "The setter expression could not be constructed — returning UnhandledException.")]
+            + "The setter expression could not be constructed - returning UnhandledException.")]
     public static partial void TierAPlanInvalid(
         ILogger logger,
         string sweepId,

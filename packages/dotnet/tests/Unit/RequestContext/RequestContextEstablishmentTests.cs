@@ -14,11 +14,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 /// <summary>
-/// The request-context establishment surface: the three folded-in <see cref="IRequestContext"/>
+/// The request-context establishment surface: the folded-in <see cref="IRequestContext"/>
 /// fields (<c>Origin</c> / <c>ImmediateCaller</c> / <c>CallPath</c>), their
 /// fail-closed mutable defaults, the structural anti-spoofing invariant (the
 /// authority-grade non-propagated fields NEVER reach <see cref="PropagatedContext"/>),
-/// and the hand-authored vocabulary trio (<see cref="RequestOrigin"/> /
+/// and the hand-authored vocabulary types (<see cref="RequestOrigin"/> /
 /// <see cref="CallPathKind"/> / <see cref="CallPathEntry"/>).
 /// </summary>
 public sealed class RequestContextEstablishmentTests
@@ -38,7 +38,7 @@ public sealed class RequestContextEstablishmentTests
     public void MutableRequestContext_ResolvedFromDi_HasFailClosedDefaults()
     {
         // DI-resolution proof: the scoped context resolves and its
-        // establishment fields default to the fail-closed values — an
+        // establishment fields default to the fail-closed values - an
         // unestablished origin is the scoped default, so a capability authority
         // can never see an assumed plane.
         using var provider = new ServiceCollection()
@@ -71,7 +71,7 @@ public sealed class RequestContextEstablishmentTests
     {
         // Anti-spoofing invariant #1: Origin + ImmediateCaller are derived FRESH
         // by every boundary from unforgeable transport facts and are NEVER
-        // propagated — so they MUST be structurally absent from the wire record.
+        // propagated - so they MUST be structurally absent from the wire record.
         // CallPath (telemetry) IS propagated and therefore present.
         var record = typeof(PropagatedContext);
 
@@ -108,9 +108,9 @@ public sealed class RequestContextEstablishmentTests
     {
         var ts = new DateTimeOffset(2026, 5, 27, 10, 0, 0, TimeSpan.Zero);
 
-        var entry = new CallPathEntry("key-custodian", CallPathKind.WorkloadHop, ts);
+        var entry = new CallPathEntry("inventory", CallPathKind.WorkloadHop, ts);
 
-        entry.Id.Should().Be("key-custodian");
+        entry.Id.Should().Be("inventory");
         entry.Kind.Should().Be(CallPathKind.WorkloadHop);
         entry.Timestamp.Should().Be(ts);
     }

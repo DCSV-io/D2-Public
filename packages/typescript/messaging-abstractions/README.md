@@ -4,7 +4,10 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 
 # @dcsv-io/d2-messaging-abstractions
 
-D2 messaging-protocol wire identifiers. Today: the DLQ failure-metadata wire shape (`DlqFailureMetadataFields` for JSON property names + `DlqFailureCauses` for the closed-enum cause-string catalog). Mirrors .NET `DcsvIo.D2.Messaging.DlqFailureMetadataFields` (in `DcsvIo.D2.Messaging.Abstractions`) and `DcsvIo.D2.Messaging.RabbitMq.Subscribing.DlqFailureCauses` (in `DcsvIo.D2.Messaging.RabbitMq`).
+D2 messaging-protocol wire identifiers, including the DLQ failure-metadata wire shape (`DlqFailureMetadataFields` for
+JSON property names + `DlqFailureCauses` for the closed-enum cause-string catalog). Mirrors .NET
+`DcsvIo.D2.Messaging.DlqFailureMetadataFields` (in `DcsvIo.D2.Messaging.Abstractions`) and
+`DcsvIo.D2.Messaging.RabbitMq.Subscribing.DlqFailureCauses` (in `DcsvIo.D2.Messaging.RabbitMq`).
 
 ## Install
 
@@ -29,13 +32,19 @@ pnpm add @dcsv-io/d2-messaging-abstractions
 
 ## When to reach for this catalog
 
-- **DLQ ops tooling**: `d2 msg inspect-dlq` reads the `x-d2-failure-reason` header from DLQ messages — use the field-name constants to deserialize the JSON shape, use the cause-string constants to dispatch on failure category; importing this catalog keeps the tool in lockstep with the production publisher.
-- **TS-side RabbitMQ subscribers**: any handler that may end up generating a DLQ entry (via header forwarding) references the same cause constants.
+- DLQ operations tooling: a tool that reads the `x-d2-failure-reason` header from DLQ messages uses the
+  field-name constants to deserialize the JSON shape and the cause-string constants to branch on failure category.
+  `@dcsv-io/d2-messaging-rabbitmq` imports the same constants to build that header, so the tool and the publisher use
+  one set of names.
+- TS-side RabbitMQ subscribers: any handler that may end up generating a DLQ entry (via header forwarding)
+  references the same cause constants.
 
 ## Spec contract
 
-`contracts/dlq-failure-metadata/dlq-failure-metadata.spec.json` is the single source of truth. Two sub-catalogs: `fields[]` (property names) + `causes[]` (closed-enum cause strings). The .NET side dispatches the fields-half to `DcsvIo.D2.Messaging.Abstractions` and the causes-half to `DcsvIo.D2.Messaging.RabbitMq`.
+`contracts/dlq-failure-metadata/dlq-failure-metadata.spec.json` is the single source of truth.
+It has the sub-catalogs `fields[]` (property names) and `causes[]` (closed-enum cause strings). The .NET side emits the
+fields half into `DcsvIo.D2.Messaging.Abstractions` and the causes half into `DcsvIo.D2.Messaging.RabbitMq`.
 
 ## Dependencies
 
-None at runtime — pure constants. DevDeps: `vitest` + `@vitest/coverage-v8` + `typescript`.
+None at runtime - pure constants. DevDeps: `vitest` + `@vitest/coverage-v8` + `typescript`.

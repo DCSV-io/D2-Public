@@ -12,9 +12,9 @@ using DcsvIo.D2.Resilience.CircuitBreaker;
 using DcsvIo.D2.Result;
 
 /// <summary>
-/// Generic retry utility with exponential backoff and optional jitter. Knows
-/// how to spot transient HTTP / socket / timeout exceptions out of the box,
-/// and exposes a <see cref="D2Result"/>-aware overload via the
+/// Generic retry utility with exponential backoff and optional jitter. By
+/// default it classifies transient HTTP, socket and timeout exceptions, and it
+/// has a <see cref="D2Result"/>-aware overload that uses the
 /// <see cref="D2Result.IsTransientRetryable"/> classifier.
 /// </summary>
 /// <remarks>
@@ -44,19 +44,19 @@ public static class RetryHelper
     /// <remarks>
     /// <para>
     /// <see cref="CircuitOpenException"/> is treated as transient so that the
-    /// retry-OUTSIDE-CB composition (<c>retry → CB → upstream</c>) recovers
-    /// naturally when an upstream restarts: the breaker opens, the retry
+    /// retry-outside-breaker composition (<c>retry -> CB -> upstream</c>)
+    /// recovers when an upstream restarts: the breaker opens, the retry
     /// layer backs off, the breaker's cooldown elapses, and a later retry
-    /// attempt finds the breaker probing / closed and succeeds. Callers
-    /// MUST size <see cref="RetryOptions{T}.MaxAttempts"/> + backoff to span
-    /// the breaker's <see cref="CircuitBreakerOptions.CooldownDuration"/>,
+    /// attempt finds the breaker probing / closed and succeeds. The caller
+    /// must size <see cref="RetryOptions{T}.MaxAttempts"/> and the backoff to
+    /// span the breaker's <see cref="CircuitBreakerOptions.CooldownDuration"/>,
     /// otherwise retries exhaust before the breaker has a chance to recover.
     /// </para>
     /// <para>
-    /// Does NOT include gRPC-specific checks — that would force a transitive
-    /// gRPC dependency on every consumer of this lib. Callers needing gRPC
-    /// awareness should pass a custom <see cref="RetryOptions{T}.IsTransient"/>
-    /// predicate.
+    /// Does not include gRPC-specific checks, because that would add a
+    /// transitive gRPC dependency to every project that references this
+    /// library. To classify gRPC errors, pass a custom
+    /// <see cref="RetryOptions{T}.IsTransient"/> predicate.
     /// </para>
     /// </remarks>
     public static bool IsTransientException(Exception ex)
@@ -99,10 +99,10 @@ public static class RetryHelper
         CancellationToken ct = default)
     {
         // RetryOptions<T> is the single source of truth for defaults
-        // — falling back to a parameterless ctor here delegates that work.
+        // - falling back to a parameterless ctor here delegates that work.
         options ??= new RetryOptions<T>();
 
-        // while(true) instead of for(...) — guarantees every path through the
+        // while(true) instead of for(...) - guarantees every path through the
         // loop body returns or throws. The compiler cannot prove the same of
         // a counted loop, which would force a defensive (unreachable) epilogue.
         var attempt = 0;
@@ -153,7 +153,7 @@ public static class RetryHelper
 
     /// <summary>
     /// <see cref="D2Result"/>-aware retry overload: retries when the
-    /// returned <see cref="D2Result{TData}"/> is failed AND
+    /// returned <see cref="D2Result{TData}"/> is failed and
     /// <see cref="D2Result.IsTransientRetryable"/>. Caller-supplied
     /// <see cref="RetryOptions{T}.ShouldRetry"/> takes precedence when set.
     /// </summary>
@@ -178,7 +178,7 @@ public static class RetryHelper
         // Detect "caller didn't customize ShouldRetry" via reference-equality
         // against the cached default delegate. Any explicit predicate (even
         // one that happens to be `_ => false`) is a different delegate and
-        // wins over the smart D2Result-aware substitution.
+        // wins over the D2Result-aware substitution.
         if (ReferenceEquals(
                 effective.ShouldRetry,
                 RetryOptions<D2Result<TData>>.SR_DefaultShouldRetry))

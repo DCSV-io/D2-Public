@@ -14,13 +14,13 @@ using DcsvIo.D2.Utilities.Serialization;
 using Xunit;
 
 /// <summary>
-/// Pins the property-name VALUES on the codegen-emitted wire-shape
-/// catalogs (<see cref="TkMessageWireShape"/> + <see cref="InputErrorWireShape"/>).
-/// These constants govern the cross-language JSON wire format — they
-/// ride on every TKMessage / InputError envelope shipped between .NET
-/// and TypeScript. A change here cascades to BOTH sides via the shared
-/// spec; the tests are belt-and-braces (per-VALUE pin so failure
-/// messages name exactly which property name drifted).
+/// Pins the property-name values on the codegen-emitted wire-shape
+/// catalogs (<see cref="TkMessageWireShape"/> and <see cref="InputErrorWireShape"/>).
+/// These constants define the cross-language JSON wire format - they are the
+/// property names in every TKMessage / InputError envelope exchanged between .NET
+/// and TypeScript. A change to the shared spec changes both sides; each test
+/// pins the values it names, so a failure message states which property name
+/// drifted.
 /// </summary>
 public sealed class WireShapeCatalogTests
 {
@@ -51,8 +51,8 @@ public sealed class WireShapeCatalogTests
     [Fact]
     public void TKMessageJsonConverter_SerializesWithKeyConstName()
     {
-        // Round-trip pins — the JsonConverter MUST emit the property
-        // name from TkMessageWireShape.KEY, not an inline string literal.
+        // Serialization pin - the property name the JsonConverter emits must
+        // equal the value of TkMessageWireShape.KEY.
         var json = JsonSerializer.Serialize(new TKMessage("common_errors_NOT_FOUND"));
         json.Should().Contain($"\"{TkMessageWireShape.KEY}\":\"common_errors_NOT_FOUND\"");
     }
@@ -77,9 +77,9 @@ public sealed class WireShapeCatalogTests
     public void InputErrorSerialization_UnderWebOptions_UsesFieldAndErrorsConstNames()
     {
         // The production wire path serializes InputError through
-        // SR_Web (camelCase). The constants on InputErrorWireShape lock
-        // the expected lowercase property names; the test detects
-        // regression if either the spec or the production options change.
+        // SR_Web (camelCase). The constants on InputErrorWireShape fix
+        // the expected lowercase property names; the test fails if either
+        // the spec or the production options change them.
         var ie = new InputError(
             "email",
             [new TKMessage("common_validation_EMAIL_INVALID")]);

@@ -11,8 +11,8 @@ using DcsvIo.D2.Encryption;
 using Xunit;
 
 /// <summary>
-/// Asserts that this lib's exceptions never embed ciphertext or key bytes
-/// in their <see cref="Exception.Message"/>. Logs and crash dumps surface
+/// Asserts that this library's exceptions never embed ciphertext or key bytes
+/// in their <see cref="Exception.Message"/>. Logs and crash dumps include
 /// these messages, so any leakage here is a security regression.
 /// </summary>
 public sealed class EncryptionExceptionMessageTests
@@ -20,8 +20,8 @@ public sealed class EncryptionExceptionMessageTests
     [Fact]
     public void KidNotInKeyringException_MessageContainsKidNotBytes()
     {
-        var ex = new KidNotInKeyringException("audit-2026q2");
-        ex.Message.Should().Contain("audit-2026q2");
+        var ex = new KidNotInKeyringException("orders-2026q2");
+        ex.Message.Should().Contain("orders-2026q2");
         AssertNoLongHexRun(ex.Message);
     }
 
@@ -43,7 +43,7 @@ public sealed class EncryptionExceptionMessageTests
     [Fact]
     public void Decrypt_ProducedExceptions_DoNotLeakFrameBytes()
     {
-        using var ring = TestKeyrings.AuditSingleKey();
+        using var ring = TestKeyrings.OrdersSingleKey();
         var crypto = new PayloadCrypto(ring);
         var framed = crypto.Encrypt("payload"u8);
         framed[0] = 7;

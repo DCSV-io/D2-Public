@@ -12,9 +12,9 @@ using DcsvIo.D2.Utilities.Extensions;
 /// Records the provenance (<see cref="EncryptionKeyringSource"/>) of one
 /// encryption registration. Registered as a keyed singleton under the same
 /// service key as the keyring it describes, so <see cref="EncryptionSourceStartupCheck"/>
-/// can assert the source WITHOUT changing the shape of the consumable
+/// can assert the source without changing the shape of the consumable
 /// <see cref="EncryptionRegistration"/> record. Public only so DI can resolve
-/// it — callers mark a source via <c>MarkD2EncryptionSource</c> rather than
+/// it - mark a source with <c>MarkD2EncryptionSource</c> instead of
 /// constructing this directly.
 /// </summary>
 public sealed class EncryptionSourceMarker

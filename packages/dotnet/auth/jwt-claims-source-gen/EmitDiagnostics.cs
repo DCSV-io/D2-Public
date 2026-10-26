@@ -11,7 +11,7 @@ using DcsvIo.D2.SourceGen;
 /// <summary>
 /// Topic-specific factory helpers that produce
 /// <see cref="EmitDiagnostic"/> instances with jwt-claims-source-gen
-/// descriptor IDs (<c>D2JCT*</c>). The diagnostic record itself lives in
+/// descriptor IDs (<c>D2JWT*</c>). The diagnostic record itself lives in
 /// <c>DcsvIo.D2.SourceGen</c> (shared across every source generator); only
 /// the per-topic factory shape lives here.
 /// </summary>

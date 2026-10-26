@@ -2,7 +2,7 @@
 Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 -->
 <Solution>
-  <!-- Public-only solution. Paths relative to public/. -->
+  <!-- Public-only solution. Paths are relative to the directory that contains this file. -->
   <Folder Name="/packages/dotnet/aspnetcore/">
     <Project Path="packages/dotnet/aspnetcore/DcsvIo.D2.AspNetCore.csproj" />
   </Folder>
@@ -153,6 +153,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   <Folder Name="/packages/dotnet/messaging/rabbitmq/">
     <Project Path="packages/dotnet/messaging/rabbitmq/DcsvIo.D2.Messaging.RabbitMq.csproj" />
   </Folder>
+  <Folder Name="/packages/dotnet/messaging/rabbitmq/error-codes-source-gen/">
+    <Project Path="packages/dotnet/messaging/rabbitmq/error-codes-source-gen/DcsvIo.D2.Messaging.RabbitMq.ErrorCodes.SourceGen.csproj" />
+  </Folder>
   <Folder Name="/packages/dotnet/resilience/">
     <Project Path="packages/dotnet/resilience/DcsvIo.D2.Resilience.csproj" />
   </Folder>
@@ -167,6 +170,39 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   </Folder>
   <Folder Name="/packages/dotnet/time/">
     <Project Path="packages/dotnet/time/DcsvIo.D2.Time.csproj" />
+  </Folder>
+  <Folder Name="/packages/dotnet/password-hashing/">
+    <Project Path="packages/dotnet/password-hashing/DcsvIo.D2.PasswordHashing.csproj" />
+  </Folder>
+  <Folder Name="/packages/dotnet/pagination/">
+    <Project Path="packages/dotnet/pagination/DcsvIo.D2.Pagination.csproj" />
+  </Folder>
+  <Folder Name="/packages/dotnet/pagination/entity-framework-core/">
+    <Project Path="packages/dotnet/pagination/entity-framework-core/DcsvIo.D2.Pagination.EntityFrameworkCore.csproj" />
+  </Folder>
+  <Folder Name="/packages/dotnet/pagination/entity-framework-core-nodatime/">
+    <Project Path="packages/dotnet/pagination/entity-framework-core-nodatime/DcsvIo.D2.Pagination.EntityFrameworkCore.NodaTime.csproj" />
+  </Folder>
+  <Folder Name="/packages/dotnet/pagination/entity-framework-core-postgres/">
+    <Project Path="packages/dotnet/pagination/entity-framework-core-postgres/DcsvIo.D2.Pagination.EntityFrameworkCore.Postgres.csproj" />
+  </Folder>
+  <Folder Name="/packages/dotnet/pagination/error-codes-source-gen/">
+    <Project Path="packages/dotnet/pagination/error-codes-source-gen/DcsvIo.D2.Pagination.ErrorCodes.SourceGen.csproj" />
+  </Folder>
+  <Folder Name="/packages/dotnet/outbox/core/">
+    <Project Path="packages/dotnet/outbox/core/DcsvIo.D2.Outbox.csproj" />
+  </Folder>
+  <Folder Name="/packages/dotnet/outbox/entity-framework-core/">
+    <Project Path="packages/dotnet/outbox/entity-framework-core/DcsvIo.D2.Outbox.EntityFrameworkCore.csproj" />
+  </Folder>
+  <Folder Name="/packages/dotnet/outbox/entity-framework-core-postgres/">
+    <Project Path="packages/dotnet/outbox/entity-framework-core-postgres/DcsvIo.D2.Outbox.EntityFrameworkCore.Postgres.csproj" />
+  </Folder>
+  <Folder Name="/packages/dotnet/handler/analyzers/">
+    <Project Path="packages/dotnet/handler/analyzers/DcsvIo.D2.Handler.Analyzers.csproj" />
+  </Folder>
+  <Folder Name="/packages/dotnet/usernames/">
+    <Project Path="packages/dotnet/usernames/DcsvIo.D2.Usernames.csproj" />
   </Folder>
   <Folder Name="/packages/dotnet/location/core/">
     <Project Path="packages/dotnet/location/core/DcsvIo.D2.Location.csproj" />
@@ -209,6 +245,9 @@ Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
   </Folder>
   <Folder Name="/packages/dotnet/utilities/">
     <Project Path="packages/dotnet/utilities/DcsvIo.D2.Utilities.csproj" />
+  </Folder>
+  <Folder Name="/packages/dotnet/env-files/">
+    <Project Path="packages/dotnet/env-files/DcsvIo.D2.EnvFiles.csproj" />
   </Folder>
   <Folder Name="/packages/dotnet/workload-identity/">
     <Project Path="packages/dotnet/workload-identity/DcsvIo.D2.Spiffe.csproj" />

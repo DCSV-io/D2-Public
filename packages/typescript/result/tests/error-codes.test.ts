@@ -10,56 +10,60 @@ import {
 } from "../src/error-codes.g.js";
 import { HttpStatusCode } from "../src/http-status-codes.js";
 
-describe("ErrorCodes — per-VALUE pinning (defends rename safety)", () => {
+describe("ErrorCodes - per-VALUE pinning (defends rename safety)", () => {
   it.each([
-    ["NOT_FOUND", "NOT_FOUND"],
-    ["FORBIDDEN", "FORBIDDEN"],
-    ["UNAUTHORIZED", "UNAUTHORIZED"],
-    ["VALIDATION_FAILED", "VALIDATION_FAILED"],
-    ["CONFLICT", "CONFLICT"],
-    ["UNHANDLED_EXCEPTION", "UNHANDLED_EXCEPTION"],
-    ["COULD_NOT_BE_SERIALIZED", "COULD_NOT_BE_SERIALIZED"],
-    ["COULD_NOT_BE_DESERIALIZED", "COULD_NOT_BE_DESERIALIZED"],
-    ["SERVICE_UNAVAILABLE", "SERVICE_UNAVAILABLE"],
-    ["SOME_FOUND", "SOME_FOUND"],
-    ["PARTIAL_SUCCESS", "PARTIAL_SUCCESS"],
-    ["RATE_LIMITED", "RATE_LIMITED"],
-    ["IDEMPOTENCY_IN_FLIGHT", "IDEMPOTENCY_IN_FLIGHT"],
-    ["PAYLOAD_TOO_LARGE", "PAYLOAD_TOO_LARGE"],
-    ["CANCELED", "CANCELED"],
+    ["GEN_NOT_FOUND", "GEN_NOT_FOUND"],
+    ["GEN_FORBIDDEN", "GEN_FORBIDDEN"],
+    ["GEN_UNAUTHORIZED", "GEN_UNAUTHORIZED"],
+    ["GEN_VALIDATION_FAILED", "GEN_VALIDATION_FAILED"],
+    ["GEN_CONFLICT", "GEN_CONFLICT"],
+    ["GEN_UNHANDLED_EXCEPTION", "GEN_UNHANDLED_EXCEPTION"],
+    ["GEN_COULD_NOT_BE_SERIALIZED", "GEN_COULD_NOT_BE_SERIALIZED"],
+    ["GEN_COULD_NOT_BE_DESERIALIZED", "GEN_COULD_NOT_BE_DESERIALIZED"],
+    ["GEN_SERVICE_UNAVAILABLE", "GEN_SERVICE_UNAVAILABLE"],
+    ["GEN_SOME_FOUND", "GEN_SOME_FOUND"],
+    ["GEN_PARTIAL_SUCCESS", "GEN_PARTIAL_SUCCESS"],
+    ["GEN_RATE_LIMITED", "GEN_RATE_LIMITED"],
+    ["GEN_IDEMPOTENCY_IN_FLIGHT", "GEN_IDEMPOTENCY_IN_FLIGHT"],
+    ["GEN_PAYLOAD_TOO_LARGE", "GEN_PAYLOAD_TOO_LARGE"],
+    ["GEN_CANCELED", "GEN_CANCELED"],
+    ["GEN_FORGERY_REFUSED", "GEN_FORGERY_REFUSED"],
   ])("ErrorCodes.%s = %s", (key, value) => {
     expect(ErrorCodes[key as keyof typeof ErrorCodes]).toBe(value);
   });
 });
 
-describe("ALL_ERROR_CODES — exhaustiveness", () => {
+describe("ALL_ERROR_CODES - exhaustiveness", () => {
   it("contains every ErrorCodes key", () => {
     expect([...ALL_ERROR_CODES].sort()).toEqual(Object.keys(ErrorCodes).sort());
   });
 
-  it("preserves spec order (NOT_FOUND first, CANCELED last)", () => {
-    expect(ALL_ERROR_CODES[0]).toBe("NOT_FOUND");
-    expect(ALL_ERROR_CODES[ALL_ERROR_CODES.length - 1]).toBe("CANCELED");
+  it("preserves spec order (NOT_FOUND first, FORGERY_REFUSED last)", () => {
+    expect(ALL_ERROR_CODES[0]).toBe("GEN_NOT_FOUND");
+    expect(ALL_ERROR_CODES[ALL_ERROR_CODES.length - 1]).toBe(
+      "GEN_FORGERY_REFUSED",
+    );
   });
 });
 
-describe("getErrorHttpStatus — per-VALUE pinning (mirrors .NET ErrorCodes.GetHttpStatus)", () => {
+describe("getErrorHttpStatus - per-VALUE pinning (mirrors .NET ErrorCodes.GetHttpStatus)", () => {
   it.each([
-    ["NOT_FOUND", 404],
-    ["FORBIDDEN", 403],
-    ["UNAUTHORIZED", 401],
-    ["VALIDATION_FAILED", 400],
-    ["CONFLICT", 409],
-    ["UNHANDLED_EXCEPTION", 500],
-    ["COULD_NOT_BE_SERIALIZED", 500],
-    ["COULD_NOT_BE_DESERIALIZED", 500],
-    ["SERVICE_UNAVAILABLE", 503],
-    ["SOME_FOUND", 206],
-    ["PARTIAL_SUCCESS", 207],
-    ["RATE_LIMITED", 429],
-    ["IDEMPOTENCY_IN_FLIGHT", 409],
-    ["PAYLOAD_TOO_LARGE", 413],
-    ["CANCELED", 400],
+    ["GEN_NOT_FOUND", 404],
+    ["GEN_FORBIDDEN", 403],
+    ["GEN_UNAUTHORIZED", 401],
+    ["GEN_VALIDATION_FAILED", 400],
+    ["GEN_CONFLICT", 409],
+    ["GEN_UNHANDLED_EXCEPTION", 500],
+    ["GEN_COULD_NOT_BE_SERIALIZED", 500],
+    ["GEN_COULD_NOT_BE_DESERIALIZED", 500],
+    ["GEN_SERVICE_UNAVAILABLE", 503],
+    ["GEN_SOME_FOUND", 206],
+    ["GEN_PARTIAL_SUCCESS", 503],
+    ["GEN_RATE_LIMITED", 429],
+    ["GEN_IDEMPOTENCY_IN_FLIGHT", 409],
+    ["GEN_PAYLOAD_TOO_LARGE", 413],
+    ["GEN_CANCELED", 400],
+    ["GEN_FORGERY_REFUSED", 403],
   ])("getErrorHttpStatus(%s) = %s", (code, expectedStatus) => {
     expect(getErrorHttpStatus(code)).toBe(expectedStatus);
   });
@@ -69,10 +73,11 @@ describe("getErrorHttpStatus — per-VALUE pinning (mirrors .NET ErrorCodes.GetH
   });
 });
 
-describe("HttpStatusCode — per-VALUE pinning", () => {
+describe("HttpStatusCode - per-VALUE pinning", () => {
   it.each([
     ["OK", 200],
     ["Created", 201],
+    ["NoContent", 204],
     ["PartialContent", 206],
     ["BadRequest", 400],
     ["Unauthorized", 401],

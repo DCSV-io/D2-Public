@@ -33,20 +33,14 @@
           ]
         },
         {
-          "name": "d2.auth.session.liveness.checks",
-          "constName": "SessionLivenessChecks",
+          "name": "d2.auth.session.revoke_events",
+          "constName": "SessionRevokeEvents",
           "kind": "counter",
-          "description": "Total session liveness checks.",
+          "description": "Total session revoke events received from the cache invalidation backplane.",
           "tags": [
             {
               "name": "outcome",
-              "values": [
-                "alive",
-                "revoked",
-                "unavailable",
-                "invalid_input",
-                "backplane_revoked"
-              ]
+              "values": ["backplane_revoked"]
             }
           ]
         },
@@ -114,13 +108,6 @@
               ]
             }
           ]
-        },
-        {
-          "name": "d2.auth.session.liveness.lookup.duration",
-          "constName": "SessionLivenessLookupDurationMs",
-          "kind": "histogram",
-          "unit": "ms",
-          "description": "Wall-clock duration of a session liveness lookup."
         },
         {
           "name": "d2.auth.jwks.fetch.duration",
@@ -246,7 +233,7 @@
           "constName": "PublishFailures",
           "kind": "counter",
           "unit": "{publish}",
-          "description": "Terminal publish failures (after retries exhausted)."
+          "description": "Publishes that fail after the retry loop, retried or not."
         },
         {
           "name": "d2.messaging.rabbitmq.publish_duration",
@@ -267,14 +254,14 @@
           "constName": "DlqRepublishFailures",
           "kind": "counter",
           "unit": "{republish}",
-          "description": "Consumer-side republish-to-DLX failures (failure-header lost; fell back to BasicNack-no-requeue)."
+          "description": "Consumer-side failures to republish to the dead-letter exchange: the failure header was lost and the consumer fell back to a nack without requeue."
         },
         {
           "name": "d2.messaging.rabbitmq.ack_failures",
           "constName": "AckFailures",
           "kind": "counter",
           "unit": "{ack}",
-          "description": "Consumer-side BasicAck failures (handler succeeded but ack could not be sent - broker will redeliver)."
+          "description": "Consumer-side failures after a successful handler run: the idempotency mark could not be written (the message is nacked to the dead-letter queue) or the ack could not be sent (the broker redelivers the message)."
         }
       ]
     },

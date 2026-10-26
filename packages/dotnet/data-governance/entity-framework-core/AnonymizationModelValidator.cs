@@ -30,43 +30,43 @@ using Microsoft.Extensions.Options;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The guard runs seven checks across every entity type in the model:
+/// The guard runs the checks V1 to V7 across every entity type in the model:
 /// <list type="bullet">
 ///   <item>
-///     <strong>V1</strong> — every decorated entity carries an ownership marker
+///     <strong>V1</strong> - every decorated entity carries an ownership marker
 ///     (<c>IUserOwned</c>/<c>IOrgOwned</c>) or <c>IExemptFromAnonymization</c>.
 ///   </item>
 ///   <item>
-///     <strong>V2</strong> — every decorated non-exempt entity implements
+///     <strong>V2</strong> - every decorated non-exempt entity implements
 ///     <c>IAnonymizationTrackable</c>.
 ///   </item>
 ///   <item>
-///     <strong>V3</strong> — no decorated entity is Tier-C (owned-JSON or
+///     <strong>V3</strong> - no decorated entity is Tier-C (owned-JSON or
 ///     <c>OwnsMany</c> child shape).
 ///   </item>
 ///   <item>
-///     <strong>V4</strong> — every Template field references valid, existing scalar
+///     <strong>V4</strong> - every Template field references valid, existing scalar
 ///     sibling properties.
 ///   </item>
 ///   <item>
-///     <strong>V5</strong> — every CLR property carrying <c>[Anonymizable]</c> produced a
+///     <strong>V5</strong> - every CLR property carrying <c>[Anonymizable]</c> produced a
 ///     <c>D2:Anonymize</c> annotation (detects a missing
 ///     <c>ApplyAnonymizationConventions()</c> call).
 ///   </item>
 ///   <item>
-///     <strong>V6</strong> — no property carries <c>[Anonymizable]</c> whose
+///     <strong>V6</strong> - no property carries <c>[Anonymizable]</c> whose
 ///     attribute-derived rule differs from the surviving annotation rule (divergent
 ///     attribute + fluent double-declaration).
 ///   </item>
 ///   <item>
-///     <strong>V7</strong> — no <c>SetNull</c> rule targets a non-nullable column.
+///     <strong>V7</strong> - no <c>SetNull</c> rule targets a non-nullable column.
 ///   </item>
 /// </list>
 /// </para>
 /// <para>
 /// All findings are aggregated before throwing so operators see the complete list in one
 /// boot attempt. Only entity-type names, property names, column names, and token names are
-/// included in the diagnostic — never row data.
+/// included in the diagnostic - never row data.
 /// </para>
 /// <para>
 /// The guard is disabled when
@@ -125,13 +125,13 @@ internal sealed partial class AnonymizationModelValidator : IHostedService
         var message = new StringBuilder();
 
         message.Append(
-            "AnonymizationModelValidator: host startup BLOCKED — "
+            "AnonymizationModelValidator: host startup BLOCKED - "
             + $"{findings.Count} misconfiguration(s) found in the EF Core model. ");
 
         message.Append(
             "Fix all findings and restart. "
             + "To disable this guard (test hosts only), set "
-            + "DATA_GOVERNANCE__SKIPMODELVALIDATION=true. "
+            + "LIB_DATA_GOVERNANCE__SKIPMODELVALIDATION=true. "
             + "Findings: ");
 
         message.Append(summary);
@@ -149,7 +149,7 @@ internal sealed partial class AnonymizationModelValidator : IHostedService
         var clrType = entityType.ClrType;
 
         // Owned sub-entities (OwnsOne / OwnsMany / ToJson) are not root aggregates.
-        // V1 and V2 are root-aggregate concerns — the owner carries the ownership marker
+        // V1 and V2 are root-aggregate concerns - the owner carries the ownership marker
         // and IAnonymizationTrackable, not the sub-entity. V3 on the sub-entity's columns
         // is accounted for when classifying the root (the root becomes Tier-C). Skip all
         // validations if an ancestor in the ownership chain is IExemptFromAnonymization.
@@ -261,7 +261,7 @@ internal sealed partial class AnonymizationModelValidator : IHostedService
             catch (ArgumentException ex)
             {
                 findings.Add(
-                    $"V4 [{clrType.Name}.{col.PropertyName}]: Template parse failed — "
+                    $"V4 [{clrType.Name}.{col.PropertyName}]: Template parse failed - "
                     + "malformed template syntax "
                     + $"({SanitizedExceptionRender.TypeName(ex)}). "
                     + "Correct the template string.");
@@ -317,8 +317,8 @@ internal sealed partial class AnonymizationModelValidator : IHostedService
         // Walk scalar CLR properties on the root entity type.
         ValidateAttributeAnnotationParityForScalars(entityType, clrType, findings);
 
-        // Recurse into complex properties — [Anonymizable] on a complex sub-property
-        // is silently undetected without this walk (mirrors AnonymizableAttributeConvention).
+        // Recurse into complex properties. [Anonymizable] on a complex sub-property
+        // would go undetected without this walk (mirrors AnonymizableAttributeConvention).
         foreach (var complexProp in entityType.GetComplexProperties())
             ValidateAttributeAnnotationParityForComplexType(complexProp.ComplexType, findings);
     }
@@ -335,21 +335,22 @@ internal sealed partial class AnonymizationModelValidator : IHostedService
             if (attr is null)
                 continue;
 
-            // Skip [NotMapped] members — never mapped, so no annotation is expected.
+            // Skip [NotMapped] members - never mapped, so no annotation is expected.
             if (propInfo.GetCustomAttribute<
                     System.ComponentModel.DataAnnotations.Schema.NotMappedAttribute>()
                 is not null)
                 continue;
 
             var efProp = typeBase.FindProperty(propInfo.Name);
+
             if (efProp is null)
-                continue; // Unmapped by other means — not our concern.
+                continue; // Unmapped by other means; this check does not apply.
 
             var annotation = efProp.FindAnnotation(AnonymizationAnnotations.ANONYMIZE);
 
             if (annotation is null)
             {
-                // V5: attribute present, no annotation → ApplyAnonymizationConventions() missing.
+                // V5: attribute present, no annotation -> ApplyAnonymizationConventions() missing.
                 findings.Add(
                     $"V5 [{clrType.Name}.{propInfo.Name}]: property carries "
                     + "[Anonymizable] but no D2:Anonymize annotation was written. "
@@ -358,7 +359,7 @@ internal sealed partial class AnonymizationModelValidator : IHostedService
                 continue;
             }
 
-            // V6: both attribute and annotation present — check for rule divergence.
+            // V6: both attribute and annotation present - check for rule divergence.
             var annotationRule = annotation.Value as AnonymizationRule;
             if (annotationRule is null)
                 continue;
@@ -463,7 +464,7 @@ internal sealed partial class AnonymizationModelValidator : IHostedService
     [LoggerMessage(
         EventId = 9500,
         Level = LogLevel.Error,
-        Message = "AnonymizationModelValidator: host startup BLOCKED — "
+        Message = "AnonymizationModelValidator: host startup BLOCKED - "
             + "{FindingCount} finding(s): {Summary}")]
     private static partial void LogModelValidationBlocked(
         ILogger logger,

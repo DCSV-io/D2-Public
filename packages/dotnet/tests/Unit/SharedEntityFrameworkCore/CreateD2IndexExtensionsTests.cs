@@ -22,7 +22,7 @@ using Xunit;
 public sealed class CreateD2IndexExtensionsTests
 {
     // =========================================================================
-    // DeriveColumnName — column-name derivation
+    // DeriveColumnName - column-name derivation
     // =========================================================================
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class CreateD2IndexExtensionsTests
     [Fact]
     public void DeriveColumnName_unwraps_boxing_for_nullable_int_member()
     {
-        // NullableCount is int? — the lambda boxes it into object?,
+        // NullableCount is int? - the lambda boxes it into object?,
         // wrapping the member access in a Convert node the walker must unwrap.
         // Assign a value here so the set accessor is exercised (avoids unused-accessor
         // inspection warnings on test-only types).
@@ -72,7 +72,7 @@ public sealed class CreateD2IndexExtensionsTests
     }
 
     // =========================================================================
-    // CreateD2Index — operation emission
+    // CreateD2Index - operation emission
     // =========================================================================
 
     [Fact]
@@ -144,7 +144,7 @@ public sealed class CreateD2IndexExtensionsTests
     }
 
     // =========================================================================
-    // Test entities (self-contained — no Location/Contacts/Geo deps)
+    // Test entities (self-contained - no Location/Contacts/Geo deps)
     // =========================================================================
 
     private sealed class NestedVo
@@ -152,7 +152,7 @@ public sealed class CreateD2IndexExtensionsTests
         public string Name { get; init; } = string.Empty;
 
         // int? so the lambda boxes it into object?, producing a Convert node
-        // the DeriveColumnName walker must unwrap — same path as nullable enum/struct.
+        // the DeriveColumnName walker must unwrap - same path as nullable enum/struct.
         public int? NullableCount { get; set; }
     }
 

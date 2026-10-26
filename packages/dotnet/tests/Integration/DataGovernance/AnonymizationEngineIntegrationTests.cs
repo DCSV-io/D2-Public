@@ -17,10 +17,10 @@ using Microsoft.Extensions.Options;
 using Xunit;
 
 /// <summary>
-/// End-to-end anonymization engine integration tests. Each test seeds unique subject
-/// <see cref="Guid"/> values so tests share the container schema without cross-test
-/// interference. The schema is created once via <c>EnsureCreatedAsync</c> in the
-/// collection fixture-shared setup call.
+/// End-to-end anonymization engine integration tests. <c>InitializeAsync</c> creates an
+/// isolated database with <see cref="PostgresFixture.CreateIsolatedDatabaseAsync"/> and
+/// builds the schema in it with <c>EnsureCreatedAsync</c>. Each test seeds unique subject
+/// <see cref="Guid"/> values, so tests do not interfere with each other.
 /// </summary>
 [Collection("Postgres")]
 [Trait("Category", "Integration")]
@@ -60,13 +60,14 @@ public sealed class AnonymizationEngineIntegrationTests : IAsyncLifetime
 
         await r_schemaCtx.DisposeAsync();
         AnonymizationTierClassifier.ClearCache();
+        await r_fixture.AssertNoConnectionOpenAsync(r_connectionString);
     }
 
     // =========================================================================
-    // Test 1 — Tier-A overwrite: constant, null, empty, owned, complex fields
+    // Test 1 - Tier-A overwrite: constant, null, empty, owned, complex fields
     // =========================================================================
 
-    // long identifier — cannot wrap
+    // long identifier - cannot wrap
     [Fact]
     public async Task AnonymizeUserAsync_TierA_overwrites_all_decorated_columns_and_sets_IsAnonymized()
     {
@@ -106,7 +107,7 @@ public sealed class AnonymizationEngineIntegrationTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // Test 2 — Tier-B template render (guid-no-dashes) + constant
+    // Test 2 - Tier-B template render (guid-no-dashes) + constant
     // =========================================================================
 
     [Fact]
@@ -131,7 +132,7 @@ public sealed class AnonymizationEngineIntegrationTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // Test 3 — Exempt entity: untouched, counted in EntityTypesSkippedExempt
+    // Test 3 - Exempt entity: untouched, counted in EntityTypesSkippedExempt
     // =========================================================================
 
     [Fact]
@@ -156,7 +157,7 @@ public sealed class AnonymizationEngineIntegrationTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // Test 4 — Subject isolation: anonymizing S1 does not touch S2
+    // Test 4 - Subject isolation: anonymizing S1 does not touch S2
     // =========================================================================
 
     [Fact]
@@ -180,7 +181,7 @@ public sealed class AnonymizationEngineIntegrationTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // Test 5 — User/org isolation: AnonymizeUserAsync does not touch OrgRecord rows
+    // Test 5 - User/org isolation: AnonymizeUserAsync does not touch OrgRowFixture rows
     // =========================================================================
 
     [Fact]
@@ -190,13 +191,13 @@ public sealed class AnonymizationEngineIntegrationTests : IAsyncLifetime
         var orgId = Guid.NewGuid();
         await SeedTierAUser(
             userId, "User", null, string.Empty, "active", "Street", null, "First", null);
-        await SeedOrgRecord(orgId, "MyOrg");
+        await SeedOrgRow(orgId, "MyOrg");
 
         var engine = BuildEngine();
         await engine.AnonymizeUserAsync(userId);
 
         await using var readCtx = GovDbContext.Build(r_connectionString);
-        var orgRow = await readCtx.OrgRecords.FirstAsync(o => o.OrgId == orgId);
+        var orgRow = await readCtx.Orgs.FirstAsync(o => o.OrgId == orgId);
         orgRow.OrgName.Should().Be("MyOrg");
         orgRow.IsAnonymized.Should().BeFalse();
     }
@@ -208,7 +209,7 @@ public sealed class AnonymizationEngineIntegrationTests : IAsyncLifetime
         var orgId = Guid.NewGuid();
         await SeedTierAUser(
             userId, "User", null, string.Empty, "active", "Street", null, "First", null);
-        await SeedOrgRecord(orgId, "OrgToAnonymize");
+        await SeedOrgRow(orgId, "OrgToAnonymize");
 
         var engine = BuildEngine();
         var result = await engine.AnonymizeOrgAsync(orgId);
@@ -217,7 +218,7 @@ public sealed class AnonymizationEngineIntegrationTests : IAsyncLifetime
         result.Data!.RowsAnonymized.Should().Be(1);
 
         await using var readCtx = GovDbContext.Build(r_connectionString);
-        var orgRow = await readCtx.OrgRecords.FirstAsync(o => o.OrgId == orgId);
+        var orgRow = await readCtx.Orgs.FirstAsync(o => o.OrgId == orgId);
         orgRow.OrgName.Should().Be("Deleted");
         orgRow.IsAnonymized.Should().BeTrue();
 
@@ -227,10 +228,10 @@ public sealed class AnonymizationEngineIntegrationTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // Test 6 — Idempotent re-run: second call → RowsAnonymized==0, AlreadyAnonymizedRows>0
+    // Test 6 - Idempotent re-run: second call -> RowsAnonymized==0, AlreadyAnonymizedRows>0
     // =========================================================================
 
-    // long identifier — cannot wrap
+    // long identifier - cannot wrap
     [Fact]
     public async Task AnonymizeUserAsync_idempotent_rerun_reports_already_anonymized_and_skips_writes()
     {
@@ -256,7 +257,7 @@ public sealed class AnonymizationEngineIntegrationTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // Test 7 — Batch > BatchSize: all rows anonymized across multiple chunks
+    // Test 7 - Batch > BatchSize: all rows anonymized across multiple chunks
     // =========================================================================
 
     [Fact]
@@ -285,7 +286,7 @@ public sealed class AnonymizationEngineIntegrationTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // Test 8 — Concurrency: engine materializes chunk, external writer bumps xmin,
+    // Test 8 - Concurrency: engine materializes chunk, external writer bumps xmin,
     //           engine's first SaveChanges fires DbUpdateConcurrencyException,
     //           retry converges and the row ends up anonymized.
     // =========================================================================
@@ -304,7 +305,7 @@ public sealed class AnonymizationEngineIntegrationTests : IAsyncLifetime
         var engine = BuildEngine();
         engine.OnBeforeFirstSave = () =>
         {
-            // Synchronous bump via a fresh blocking context — runs on the thread-pool
+            // Synchronous bump via a fresh blocking context - runs on the thread-pool
             // continuation before the engine's SaveChangesAsync actually sends bytes.
             using var bumpCtx = GovDbContext.Build(r_connectionString);
             var bumpRow = bumpCtx.TierBUsers.First(u => u.UserId == userId);
@@ -325,7 +326,7 @@ public sealed class AnonymizationEngineIntegrationTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // Test 9 — Guid.Empty: no writes, ValidationFailed
+    // Test 9 - Guid.Empty: no writes, ValidationFailed
     // =========================================================================
 
     [Fact]
@@ -347,7 +348,7 @@ public sealed class AnonymizationEngineIntegrationTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // Test 10 — Zero-match subject: Ok with all-zero row counts
+    // Test 10 - Zero-match subject: Ok with all-zero row counts
     // =========================================================================
 
     [Fact]
@@ -362,7 +363,7 @@ public sealed class AnonymizationEngineIntegrationTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // Test 11 — Mixed tiers in one sweep: TierAUser + TierBUser for same subject
+    // Test 11 - Mixed tiers in one sweep: TierAUser + TierBUser for same subject
     // =========================================================================
 
     [Fact]
@@ -392,7 +393,7 @@ public sealed class AnonymizationEngineIntegrationTests : IAsyncLifetime
     }
 
     // =========================================================================
-    // Test 12 — Converter field survives: Status round-trips to empty string in DB
+    // Test 12 - Converter field survives: Status round-trips to empty string in DB
     // =========================================================================
 
     [Fact]
@@ -409,13 +410,13 @@ public sealed class AnonymizationEngineIntegrationTests : IAsyncLifetime
         await using var readCtx = GovDbContext.Build(r_connectionString);
         var row = await readCtx.TierAUsers.FirstAsync(u => u.UserId == userId);
 
-        // Status decorated with SetEmpty — should be empty string in DB.
+        // Status decorated with SetEmpty - should be empty string in DB.
         row.Status.Should().BeEmpty();
         row.IsAnonymized.Should().BeTrue();
     }
 
     // =========================================================================
-    // Test 13 — Pre-canceled token: engine aborts with OperationCanceledException
+    // Test 13 - Pre-canceled token: engine aborts with OperationCanceledException
     //           (no silent partial success)
     // =========================================================================
 
@@ -430,7 +431,7 @@ public sealed class AnonymizationEngineIntegrationTests : IAsyncLifetime
 
         var engine = BuildEngine();
 
-        // A pre-canceled token must cause the engine to abort — it must NOT return a
+        // A pre-canceled token must cause the engine to abort - it must NOT return a
         // successful D2Result with rows anonymized (silent partial success). The engine
         // propagates OperationCanceledException, which is the contract: the operation was
         // cleanly aborted, not committed in an indeterminate state.
@@ -488,10 +489,10 @@ public sealed class AnonymizationEngineIntegrationTests : IAsyncLifetime
         await ctx.SaveChangesAsync();
     }
 
-    private async Task SeedOrgRecord(Guid orgId, string orgName)
+    private async Task SeedOrgRow(Guid orgId, string orgName)
     {
         await using var ctx = GovDbContext.Build(r_connectionString);
-        ctx.OrgRecords.Add(new GovDbContext.OrgRecord
+        ctx.Orgs.Add(new GovDbContext.OrgRowFixture
         {
             Id = Guid.NewGuid(),
             OrgId = orgId,

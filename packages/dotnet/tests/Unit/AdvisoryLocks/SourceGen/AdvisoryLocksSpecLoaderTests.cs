@@ -28,16 +28,16 @@ public sealed class AdvisoryLocksSpecLoaderTests
             {
               "locks": [
                 {
-                  "constName": "MIGRATOR",
-                  "database": "d2-keycustodian",
+                  "constName": "REINDEX",
+                  "database": "d2-fixture-db",
                   "key": 1001001001,
-                  "doc": "Migration lock."
+                  "doc": "Reindex lock."
                 },
                 {
-                  "constName": "ROTATION",
-                  "database": "d2-keycustodian",
+                  "constName": "CLEANUP",
+                  "database": "d2-fixture-db",
                   "key": 2002002002,
-                  "doc": "Rotation lock."
+                  "doc": "Cleanup lock."
                 }
               ]
             }
@@ -48,10 +48,10 @@ public sealed class AdvisoryLocksSpecLoaderTests
         result.Diagnostic.Should().BeNull();
         result.Spec.Should().NotBeNull();
         result.Spec!.Locks.Should().HaveCount(2);
-        result.Spec.Locks[0].ConstName.Should().Be("MIGRATOR");
-        result.Spec.Locks[0].Database.Should().Be("d2-keycustodian");
+        result.Spec.Locks[0].ConstName.Should().Be("REINDEX");
+        result.Spec.Locks[0].Database.Should().Be("d2-fixture-db");
         result.Spec.Locks[0].Key.Should().Be(1001001001L);
-        result.Spec.Locks[1].ConstName.Should().Be("ROTATION");
+        result.Spec.Locks[1].ConstName.Should().Be("CLEANUP");
         result.Spec.Locks[1].Key.Should().Be(2002002002L);
     }
 
@@ -68,7 +68,7 @@ public sealed class AdvisoryLocksSpecLoaderTests
     }
 
     // =========================================================================
-    // MalformedSpec — root not an object
+    // MalformedSpec - root not an object
     // =========================================================================
 
     [Fact]
@@ -91,7 +91,7 @@ public sealed class AdvisoryLocksSpecLoaderTests
     }
 
     // =========================================================================
-    // MalformedSpec — invalid JSON
+    // MalformedSpec - invalid JSON
     // =========================================================================
 
     [Fact]
@@ -104,7 +104,7 @@ public sealed class AdvisoryLocksSpecLoaderTests
     }
 
     // =========================================================================
-    // MalformedSpec — missing locks array
+    // MalformedSpec - missing locks array
     // =========================================================================
 
     [Fact]
@@ -126,7 +126,7 @@ public sealed class AdvisoryLocksSpecLoaderTests
     }
 
     // =========================================================================
-    // MalformedSpec — entry-level field validation
+    // MalformedSpec - entry-level field validation
     // =========================================================================
 
     [Fact]
@@ -215,13 +215,13 @@ public sealed class AdvisoryLocksSpecLoaderTests
     }
 
     // =========================================================================
-    // KeyOutOfRange — key exceeds int64
+    // KeyOutOfRange - key exceeds int64
     // =========================================================================
 
     [Fact]
     public void Load_KeyExceedsInt64_ReturnsKeyOutOfRangeDiagnostic()
     {
-        // 9223372036854775808 = long.MaxValue + 1 — one beyond the max
+        // 9223372036854775808 = long.MaxValue + 1 - one beyond the max
         const string json = """
             {
               "locks": [
@@ -249,5 +249,121 @@ public sealed class AdvisoryLocksSpecLoaderTests
         result.Diagnostic!.Args.Should().NotBeEmpty();
         var firstArg = result.Diagnostic.Args[0].ToString();
         firstArg.Should().Be("advisory-locks.spec.json");
+    }
+
+    // =========================================================================
+    // Two-integer lock classes
+    // =========================================================================
+
+    [Fact]
+    public void Load_NoClassesArray_ParsesToAnEmptyClassSet()
+    {
+        const string json = """
+            {
+              "locks": [
+                {"constName": "X", "database": "db", "key": 1, "doc": "d"}
+              ]
+            }
+            """;
+
+        var result = AdvisoryLocksSpecLoader.Load("spec.json", json);
+
+        result.Diagnostic.Should().BeNull();
+        result.Spec!.Classes.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Load_AClassEntry_ParsesEveryField()
+    {
+        const string json = """
+            {
+              "locks": [
+                {"constName": "X", "database": "db", "key": 1, "doc": "d"}
+              ],
+              "classes": [
+                {"constName": "ACCOUNT", "database": "db", "class": 8008008, "doc": "cd"}
+              ]
+            }
+            """;
+
+        var result = AdvisoryLocksSpecLoader.Load("spec.json", json);
+
+        result.Diagnostic.Should().BeNull();
+        var entry = result.Spec!.Classes.Should().ContainSingle().Subject;
+        entry.ConstName.Should().Be("ACCOUNT");
+        entry.Database.Should().Be("db");
+        entry.Class.Should().Be(8008008);
+        entry.Doc.Should().Be("cd");
+    }
+
+    [Fact]
+    public void Load_ClassesIsNotAnArray_IsRefused()
+    {
+        const string json = """
+            {
+              "locks": [{"constName": "X", "database": "db", "key": 1, "doc": "d"}],
+              "classes": {}
+            }
+            """;
+
+        var result = AdvisoryLocksSpecLoader.Load("spec.json", json);
+
+        result.Spec.Should().BeNull();
+        result.Diagnostic!.DescriptorId.Should().Be(DiagnosticIds.MalformedSpec);
+    }
+
+    [Fact]
+    public void Load_AClassEntryThatIsNotAnObject_IsRefused()
+    {
+        const string json = """
+            {
+              "locks": [{"constName": "X", "database": "db", "key": 1, "doc": "d"}],
+              "classes": ["nope"]
+            }
+            """;
+
+        var result = AdvisoryLocksSpecLoader.Load("spec.json", json);
+
+        result.Spec.Should().BeNull();
+        result.Diagnostic!.DescriptorId.Should().Be(DiagnosticIds.MalformedSpec);
+    }
+
+    [Theory]
+    [InlineData("""{"database": "db", "class": 1, "doc": "d"}""")]
+    [InlineData("""{"constName": "A", "class": 1, "doc": "d"}""")]
+    [InlineData("""{"constName": "A", "database": "db", "doc": "d"}""")]
+    [InlineData("""{"constName": "A", "database": "db", "class": 1}""")]
+    public void Load_AClassEntryMissingARequiredField_IsRefused(string classEntry)
+    {
+        var json = $$"""
+            {
+              "locks": [{"constName": "X", "database": "db", "key": 1, "doc": "d"}],
+              "classes": [{{classEntry}}]
+            }
+            """;
+
+        var result = AdvisoryLocksSpecLoader.Load("spec.json", json);
+
+        result.Spec.Should().BeNull();
+        result.Diagnostic!.DescriptorId.Should().Be(DiagnosticIds.MalformedSpec);
+    }
+
+    [Fact]
+    public void Load_AClassBeyondTheIntegerRange_IsRefused()
+    {
+        // 2147483648 = int.MaxValue + 1 - one beyond the max.
+        const string json = """
+            {
+              "locks": [{"constName": "X", "database": "db", "key": 1, "doc": "d"}],
+              "classes": [
+                {"constName": "A", "database": "db", "class": 2147483648, "doc": "d"}
+              ]
+            }
+            """;
+
+        var result = AdvisoryLocksSpecLoader.Load("spec.json", json);
+
+        result.Spec.Should().BeNull();
+        result.Diagnostic!.DescriptorId.Should().Be(DiagnosticIds.ClassOutOfRange);
     }
 }

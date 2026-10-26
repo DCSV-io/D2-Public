@@ -29,9 +29,9 @@ public sealed class RateLimiterTests
     [Fact]
     public void Options_MaxConcurrencyBelowOne_ThrowsArgumentOutOfRange()
     {
-        // F-2 regression pin: MaxConcurrency=0 (or negative) is a misconfiguration;
-        // RateLimiterOptions ctor must throw at construction time, not silently propagate
-        // to SemaphoreSlim where the error message is less informative.
+        // Regression pin: MaxConcurrency=0 (or negative) is a misconfiguration.
+        // The RateLimiterOptions ctor must throw at construction time instead of
+        // passing the value to SemaphoreSlim, whose error message is less informative.
         var act0 = () => new RateLimiterOptions(maxConcurrency: 0);
         var actNeg = () => new RateLimiterOptions(maxConcurrency: -1);
 
@@ -55,12 +55,13 @@ public sealed class RateLimiterTests
         {
             var gate = new TaskCompletionSource();
 
-            // One TCS per in-flight op so we know each permit is held before the +1 call.
+            // One TCS per in-flight op, so the test knows each permit is held before the +1 call.
             var acquiredSignals = Enumerable.Range(0, max_concurrency)
                 .Select(_ => new TaskCompletionSource())
                 .ToArray();
 
-            // Hold max_concurrency operations in-flight; each signals when it has the permit.
+            // Hold max_concurrency operations in flight; each completes its TCS when it
+            // has the permit.
             var inFlight = acquiredSignals
                 .Select(sig => limiter.ExecuteAsync(async _ =>
                 {
@@ -70,10 +71,11 @@ public sealed class RateLimiterTests
                 }).AsTask())
                 .ToArray();
 
-            // Wait until all max_concurrency permits are demonstrably held (deterministic).
+            // Wait until every one of the max_concurrency permits is held. The wait is
+            // on the TCS tasks, not a delay.
             await Task.WhenAll(acquiredSignals.Select(s => s.Task));
 
-            // N+1 caller should be immediately rejected (timeout = zero).
+            // The N+1 caller is rejected immediately (acquisition timeout = zero).
             await Assert.ThrowsAsync<RateLimitRejectedException>(
                 () => limiter.ExecuteAsync(_ => ValueTask.FromResult(99)).AsTask());
 
@@ -94,7 +96,7 @@ public sealed class RateLimiterTests
             acquisitionTimeout: TimeSpan.FromMilliseconds(500)));
 
         var gate = new TaskCompletionSource();
-        var acquired = new TaskCompletionSource(); // signals: permit is held by first op
+        var acquired = new TaskCompletionSource(); // completes when the first op holds the permit
         var first = limiter.ExecuteAsync(async _ =>
         {
             acquired.SetResult();
@@ -102,10 +104,10 @@ public sealed class RateLimiterTests
             return 1;
         }).AsTask();
 
-        // Wait until the first op demonstrably holds the permit before the second queues.
+        // Wait until the first op holds the permit before the second caller queues.
         await acquired.Task;
 
-        // Second caller should queue (500ms window). Release first immediately.
+        // The second caller queues (500ms window). Release the first op immediately.
         gate.SetResult();
 
         var second = await limiter.ExecuteAsync(_ => ValueTask.FromResult(2));
@@ -124,7 +126,7 @@ public sealed class RateLimiterTests
         try
         {
             var gate = new TaskCompletionSource();
-            var acquired = new TaskCompletionSource(); // signals: permit is held by first op
+            var acquired = new TaskCompletionSource(); // completes when the first op has the permit
             var first = limiter.ExecuteAsync(async _ =>
             {
                 acquired.SetResult();
@@ -132,10 +134,11 @@ public sealed class RateLimiterTests
                 return 1;
             }).AsTask();
 
-            // Wait until the first op demonstrably holds the permit before attempting the second.
+            // Wait until the first op holds the permit before attempting the second.
             await acquired.Task;
 
-            // Acquisition window is 30ms; gate won't release — second caller should be rejected.
+            // The acquisition window is 30ms and the gate stays closed, so the second
+            // caller is rejected.
             await Assert.ThrowsAsync<RateLimitRejectedException>(
                 () => limiter.ExecuteAsync(_ => ValueTask.FromResult(99)).AsTask());
 
@@ -149,7 +152,7 @@ public sealed class RateLimiterTests
     }
 
     // ----------------------------------------------------------------------
-    // Semaphore release discipline
+    // Semaphore release
     // ----------------------------------------------------------------------
 
     [Fact]
@@ -157,11 +160,11 @@ public sealed class RateLimiterTests
     {
         using var limiter = new RateLimiter(new(maxConcurrency: 1, acquisitionTimeout: TimeSpan.Zero));
 
-        // First call throws.
+        // The first call throws.
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => limiter.ExecuteAsync<int>(_ => throw new InvalidOperationException("boom")).AsTask());
 
-        // The permit must have been released — second call should succeed.
+        // The limiter must have released the permit, so the second call succeeds.
         var result = await limiter.ExecuteAsync(_ => ValueTask.FromResult(7));
         result.Should().Be(7);
     }
@@ -169,39 +172,40 @@ public sealed class RateLimiterTests
     [Fact]
     public async Task ExecuteAsync_CallerCancels_BeforeAcquire_ThrowsOce_NoPermitLeaked()
     {
-        // F-3 regression pin: caller cancels the WaitAsync before it can acquire —
-        // OperationCanceledException (or its subtype TaskCanceledException) propagates;
-        // no permit is acquired so the gate count should remain correct.
+        // Regression pin: the caller cancels the WaitAsync before it can acquire a
+        // permit. OperationCanceledException (or its subtype TaskCanceledException)
+        // propagates, and the call acquires no permit, so the gate count stays correct.
         //
-        // Deterministic handshake: instead of Task.Delay(20) (a race), we use a
-        // TaskCompletionSource inside the op to signal back to the test once the op
-        // has actually acquired the permit — only then do we issue the pre-canceled call.
+        // The test does not use Task.Delay(20), which would race. A TaskCompletionSource
+        // inside the op completes once the op has acquired the permit, and only then
+        // does the test issue the call with the already canceled token.
         using var limiter = new RateLimiter(new(
             maxConcurrency: 1,
             acquisitionTimeout: TimeSpan.FromMilliseconds(500)));
 
         var gate = new TaskCompletionSource();
-        var acquired = new TaskCompletionSource(); // signals: "permit is held"
+        var acquired = new TaskCompletionSource(); // completes when the permit is held
         var first = limiter.ExecuteAsync(async _ =>
         {
-            acquired.SetResult(); // permit is now held; test may proceed
+            acquired.SetResult(); // the permit is held; the test can continue
             await gate.Task;
             return 1;
         }).AsTask();
 
-        // Wait until the op has provably acquired the permit before issuing the canceled call.
+        // Wait until the op has acquired the permit before issuing the canceled call.
         await acquired.Task;
 
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
         // WaitAsync(timeout, alreadyCanceledToken) must propagate OCE (or TaskCanceledException,
-        // which IS-A OperationCanceledException). Use ThrowsAsync which accepts subtypes.
+        // a subtype of OperationCanceledException). ThrowsAnyAsync, unlike ThrowsAsync,
+        // accepts subtypes.
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => limiter.ExecuteAsync(_ => ValueTask.FromResult(99), cts.Token).AsTask());
 
-        // Release the first holder — a fresh (non-canceled) call should succeed,
-        // proving no permit was leaked by the canceled call.
+        // Release the first holder. A new (non-canceled) call succeeds, which shows
+        // the canceled call did not leak a permit.
         gate.SetResult();
         await first;
 
@@ -219,13 +223,12 @@ public sealed class RateLimiterTests
         const int max_concurrency = 5;
         const int total_callers = 50;
 
-        // Acquisition timeout is deliberately large (60s). Under CI load Task.Delay(10)
-        // can be delayed much longer than 10ms — a tight timeout (e.g. 5s) causes
-        // legitimate callers to be rejected when the system is under pressure from
-        // other parallel tests (Docker container starts, Redis, etc.), which makes
-        // the test fail with RateLimitRejectedException rather than the intended
-        // semaphore-violation assertion. 60s exceeds any plausible per-task delay
-        // while still being finite enough to catch a genuine deadlock.
+        // The acquisition timeout is large (60s) on purpose. Under CI load Task.Delay(10)
+        // can take much longer than 10ms. A short timeout (e.g. 5s) rejects
+        // valid callers when parallel tests load the system (Docker container
+        // starts, Redis, etc.), and the test then fails with RateLimitRejectedException
+        // instead of the semaphore-violation assertion. 60s exceeds any plausible
+        // per-task delay and is still finite, so a real deadlock fails the test.
         var limiter = new RateLimiter(new(
             maxConcurrency: max_concurrency,
             acquisitionTimeout: TimeSpan.FromSeconds(60)));
@@ -241,9 +244,9 @@ public sealed class RateLimiterTests
 
                 // CAS loop: update maxObserved only when current exceeds it.
                 // Interlocked.Exchange without compare-and-swap can overwrite a
-                // higher value written by a concurrent thread (TOCTOU), causing
-                // the measured peak to be falsely low. The CAS loop guarantees
-                // maxObserved monotonically increases to the true concurrency peak.
+                // higher value written by a concurrent thread (TOCTOU), which makes
+                // the measured peak too low. The CAS loop makes maxObserved rise
+                // monotonically to the true concurrency peak.
                 int observed;
                 do
                 {

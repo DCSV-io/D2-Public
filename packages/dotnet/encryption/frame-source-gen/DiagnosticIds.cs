@@ -19,11 +19,11 @@ internal static class DiagnosticIds
     public const string OverlappingFields = "D2EF003";
 
     /// <summary>
-    /// Field declares an invalid length (negative when not -1 sentinel; zero on fixed-length).
+    /// Field declares an invalid length (below the -1 sentinel, or zero).
     /// </summary>
     public const string InvalidLength = "D2EF004";
 
-    /// <summary>Spec version is invalid (must be ≥ 1).</summary>
+    /// <summary>Spec version is invalid (must be >= 1).</summary>
     public const string InvalidVersion = "D2EF005";
 
     /// <summary>Sealed spec file is malformed JSON or violates the schema.</summary>
@@ -37,19 +37,19 @@ internal static class DiagnosticIds
 
     /// <summary>
     /// Sealed-spec field declares an invalid length
-    /// (negative when not -1 sentinel; zero on fixed-length).
+    /// (below the -1 sentinel, or zero).
     /// </summary>
     public const string SealedInvalidLength = "D2EF009";
 
     /// <summary>
-    /// Sealed spec version is invalid (must be ≥ 2 — version 1 is the
+    /// Sealed spec version is invalid (must be >= 2, because version 1 is the
     /// symmetric frame's discriminator).
     /// </summary>
     public const string SealedInvalidVersion = "D2EF010";
 
     /// <summary>
-    /// Sealed-spec field declares a kind outside the closed set the sealed
-    /// codec knows how to read.
+    /// Sealed-spec field declares a kind outside the closed set of kinds the
+    /// sealed codec can read.
     /// </summary>
     public const string SealedUnknownFieldKind = "D2EF011";
 

@@ -11,20 +11,20 @@ using System;
 /// <summary>
 /// Thrown by <see cref="ActorChainParser"/> when the JWT <c>act</c> claim is
 /// structurally malformed: invalid JSON, exceeds the maximum delegation
-/// depth, missing a required claim per RFC 8693 §2.1, or violates D²
+/// depth, missing a required claim per RFC 8693 section 2.1, or violates D2
 /// conventions (e.g. an impersonation entry missing <c>d2_session_id</c>).
 /// </summary>
 /// <remarks>
 /// <para>
-/// Auth middleware calling the parser MUST catch this and convert to
-/// <c>D2Result.Unauthorized</c> (HTTP 401) — a malformed actor chain is a
-/// signed-token-with-bad-payload condition that should never reach a handler.
-/// Letting it bubble through <c>BaseHandler.RunCorePipelineAsync</c> would
-/// surface as <c>UnhandledException</c> (500), which is the wrong signal.
+/// This exception MUST be converted to <c>D2Result.Unauthorized</c> (HTTP 401),
+/// because a malformed actor chain is a signed token with a bad payload and should
+/// never reach a handler. If it propagates through
+/// <c>BaseHandler.RunCorePipelineAsync</c> it surfaces as
+/// <c>UnhandledException</c> (500), which is the wrong status.
 /// </para>
 /// <para>
-/// The exception message includes the specific malformation reason so logs +
-/// alerts can detect non-conforming token issuers quickly.
+/// The exception message includes the specific malformation reason, so logs and
+/// alerts can identify a token issuer that does not conform.
 /// </para>
 /// </remarks>
 public sealed class MalformedActorChainException : Exception

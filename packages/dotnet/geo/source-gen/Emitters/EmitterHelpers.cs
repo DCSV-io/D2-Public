@@ -9,9 +9,9 @@ namespace DcsvIo.D2.Geo.SourceGen.Emitters;
 using System.Text;
 
 /// <summary>
-/// Shared scaffolding helpers used by every per-target emitter in this
-/// directory — the autogen file-header banner + per-language escape rules
-/// for embedded values (string literals + XML doc text).
+/// Shared helpers for the per-target emitters in this directory: the
+/// auto-generated file-header banner and the escape rules for embedded
+/// values (string literals and XML doc text).
 /// </summary>
 internal static class EmitterHelpers
 {
@@ -19,9 +19,9 @@ internal static class EmitterHelpers
     public const string AbstractionsNamespace = "DcsvIo.D2.Geo.Abstractions";
 
     /// <summary>
-    /// Appends the auto-generated file banner (5-line block + <c>#nullable enable</c>)
-    /// to the supplied <see cref="StringBuilder"/>. Keeps every emitted file's
-    /// preamble identical so consumers can spot a hand-edit at a glance.
+    /// Appends the auto-generated file banner and <c>#nullable enable</c>
+    /// to the supplied <see cref="StringBuilder"/>. Every emitted file has the
+    /// same preamble, so a hand edit to a preamble stands out.
     /// </summary>
     /// <param name="sb">The destination buffer.</param>
     public static void AppendFileHeader(StringBuilder sb)

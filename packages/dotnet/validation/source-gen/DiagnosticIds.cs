@@ -9,10 +9,10 @@ namespace DcsvIo.D2.Validation.SourceGen;
 /// <summary>
 /// String identifiers for the diagnostics emitted by
 /// <see cref="FieldConstraintsGenerator"/>. Kept in a separate class from
-/// <see cref="DiagnosticDescriptors"/> so non-Roslyn-host consumers
-/// (e.g. unit tests of the pure-logic <see cref="FieldConstraintsEmitter"/> /
-/// <see cref="FieldConstraintsSpecLoader"/>) can reference the IDs without
-/// dragging in <c>Microsoft.CodeAnalysis</c> (which the SrcGen csproj
+/// <see cref="DiagnosticDescriptors"/> so code that runs outside the Roslyn host
+/// (e.g. the pure-logic <see cref="FieldConstraintsEmitter"/> /
+/// <see cref="FieldConstraintsSpecLoader"/> and their unit tests) can reference
+/// the IDs without loading <c>Microsoft.CodeAnalysis</c> (which the SrcGen csproj
 /// marks <c>PrivateAssets="all"</c>).
 /// </summary>
 internal static class DiagnosticIds

@@ -23,13 +23,13 @@ describe("falsey", () => {
     ["zero number", 0, false],
     ["false bool", false, false],
     ["object", {}, false],
-  ])("%s → %s", (_label, input, expected) => {
+  ])("%s -> %s", (_label, input, expected) => {
     expect(falsey(input)).toBe(expected);
   });
 
   it("treats empty UUID string as a regular non-empty string", () => {
-    // EMPTY_UUID is non-empty AS A STRING — falsey only checks string-emptiness.
-    // tryParseTruthyUndefUuid is the helper that collapses empty UUID → undefined.
+    // EMPTY_UUID is a non-empty string, and falsey checks only string emptiness.
+    // tryParseTruthyUndefUuid is the helper that collapses the empty UUID to undefined.
     expect(falsey(EMPTY_UUID)).toBe(false);
   });
 });

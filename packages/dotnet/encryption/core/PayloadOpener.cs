@@ -16,9 +16,9 @@ using System.Security.Cryptography;
 /// sealer uses.
 /// </summary>
 /// <remarks>
-/// Per open: parse the sealed frame → resolve the recipient kid against the
-/// private keyring → import the frame's ephemeral public key (rejecting
-/// non-P-256 material as frame malformation) → ECDH → HKDF-SHA256 → AES-256-GCM
+/// Per open: parse the sealed frame -> resolve the recipient kid against the
+/// private keyring -> import the frame's ephemeral public key (rejecting
+/// non-P-256 material as frame malformation) -> ECDH -> HKDF-SHA256 -> AES-256-GCM
 /// decrypt. Tampering, a wrong-recipient frame, or a mismatched keypair all
 /// surface as <see cref="AuthenticationTagMismatchException"/>. The shared
 /// secret and the derived key are zeroized in <c>finally</c> on every path.
@@ -39,7 +39,7 @@ public sealed class PayloadOpener : IPayloadOpener
         ArgumentNullException.ThrowIfNull(keyring);
         r_keyring = keyring;
 
-        // Salt + AAD bytes are fixed per recipient — non-secret, computed once.
+        // Salt + AAD bytes are fixed per recipient - non-secret, computed once.
         r_serviceIdBytes = SealedKeyDerivation.ServiceIdBytes(keyring.RecipientServiceId);
     }
 
@@ -99,7 +99,7 @@ public sealed class PayloadOpener : IPayloadOpener
     }
 
     /// <summary>
-    /// Returns the type name only — never includes keyring contents.
+    /// Returns the type name only - never includes keyring contents.
     /// </summary>
     public override string ToString() => nameof(PayloadOpener);
 }

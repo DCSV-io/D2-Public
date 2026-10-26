@@ -41,7 +41,7 @@ public sealed class TimeoutOptionsTests
     [Fact]
     public void ParameterizedCtor_ZeroDuration_PreservesZero()
     {
-        // Explicit Zero is preserved as-is — zero disables the timeout.
+        // An explicit Zero is kept unchanged; zero disables the timeout.
         var opts = new TimeoutOptions(TimeSpan.Zero);
 
         opts.Duration.Should().Be(TimeSpan.Zero);
@@ -50,7 +50,7 @@ public sealed class TimeoutOptionsTests
     [Fact]
     public void ParameterizedCtor_NegativeDuration_PreservesNegative()
     {
-        // Negative values are preserved (treated as ≤ zero = pass-through).
+        // Negative values are kept unchanged (a duration <= zero passes the call through).
         var opts = new TimeoutOptions(TimeSpan.FromSeconds(-1));
 
         opts.Duration.Should().Be(TimeSpan.FromSeconds(-1));

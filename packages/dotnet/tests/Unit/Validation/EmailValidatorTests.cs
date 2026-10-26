@@ -13,8 +13,8 @@ using DcsvIo.D2.Validation;
 using Xunit;
 
 /// <summary>
-/// Adversarial + property tests for <see cref="DefaultEmailValidator"/> beyond
-/// the cross-language parity corpus — idempotency, ReDoS timing, and the
+/// Adversarial and property tests for <see cref="DefaultEmailValidator"/> beyond
+/// the cross-language parity corpus: idempotency, ReDoS timing, and the
 /// null / empty / whitespace falsey paths.
 /// </summary>
 public sealed class EmailValidatorTests
@@ -29,7 +29,7 @@ public sealed class EmailValidatorTests
     {
         var result = sr_Validator.Validate(input);
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be("VALIDATION_FAILED");
+        result.ErrorCode.Should().Be("GEN_VALIDATION_FAILED");
         result.InputErrors[0].Field.Should().Be("email");
         result.InputErrors[0].Errors[0].Key.Should().Be(TK.Common.Validation.EMAIL_INVALID.Key);
     }
@@ -56,10 +56,10 @@ public sealed class EmailValidatorTests
     [Fact]
     public void ReturnsFast_OnPathologicalInput()
     {
-        // A long local-part run with a lone '@' and no valid domain — the
+        // A long local-part run with a lone '@' and no valid domain - the
         // shape a backtracking-vulnerable regex would hang on. The anchored,
-        // bounded pattern + 50 ms matchTimeout must short-circuit. A timeout
-        // is caught and mapped to a validation failure (Invalid()), not a hang.
+        // bounded pattern and the 50 ms matchTimeout must end the match early. A
+        // timeout is caught and mapped to a validation failure (Invalid()), not a hang.
         var pathological = new string('a', 50_000) + "@";
         var sw = Stopwatch.StartNew();
         var result = sr_Validator.Validate(pathological);
@@ -67,8 +67,8 @@ public sealed class EmailValidatorTests
 
         result.Success.Should().BeFalse();
 
-        // 500 ms = 10x the 50 ms matchTimeout; generous enough to absorb CI
-        // scheduling jitter while still catching a genuine ReDoS hang.
+        // 500 ms is 10x the 50 ms matchTimeout. The margin absorbs CI scheduling
+        // jitter and still fails on a genuine ReDoS hang.
         sw.ElapsedMilliseconds.Should().BeLessThan(500);
     }
 }

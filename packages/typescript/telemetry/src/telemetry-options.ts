@@ -14,17 +14,25 @@ export interface TelemetryOptions {
   readonly serviceName: string;
   /** Environment label (e.g. `"prod"`, `"local"`). */
   readonly environment?: string;
-  /** Per-signal OTLP endpoints. Per-signal env var overrides these. */
+  /**
+   * Per-signal OTLP endpoints. An endpoint set here overrides the
+   * `OTEL_EXPORTER_OTLP_<SIGNAL>_ENDPOINT` environment variable.
+   */
   readonly otlpTracesEndpoint?: string;
   readonly otlpMetricsEndpoint?: string;
   readonly otlpLogsEndpoint?: string;
-  /** Additional ActivitySources / meters / instrumentation paths. */
+  /**
+   * Additional ActivitySources / meters / instrumentation paths.
+   * `setupTelemetry` does not read `additionalActivitySources`,
+   * `additionalMeters` or `instrumentationExcludedPaths`.
+   */
   readonly additionalActivitySources?: readonly string[];
   readonly additionalMeters?: readonly string[];
   readonly instrumentationExcludedPaths?: readonly (string | RegExp)[];
   /**
-   * Set to `true` to short-circuit telemetry init — `setupTelemetry`
-   * returns no-op providers + a no-op shutdown. Mirrors `OTEL_SDK_DISABLED`
+   * Set to `true` to short-circuit telemetry init - `setupTelemetry`
+   * creates no provider and returns a handle with a no-op `shutdown` and
+   * `disabled` set to `true`. Mirrors `OTEL_SDK_DISABLED`
    * env var behavior.
    */
   readonly disabled?: boolean;

@@ -7,7 +7,7 @@
 namespace DcsvIo.D2.Encryption;
 
 /// <summary>
-/// Raised when a frame buffer is structurally invalid — too short for the
+/// Raised when a frame buffer is structurally invalid - too short for the
 /// minimum, declared kid_length overruns the buffer, kid is not valid
 /// UTF-8, etc.
 /// </summary>

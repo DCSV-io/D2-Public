@@ -22,7 +22,7 @@ using DcsvIo.D2.Validation.Abstractions;
 /// </summary>
 /// <remarks>
 /// <b>Self-redacting PII.</b> <see cref="Value"/> is marked
-/// <c>[RedactData(PersonalInformation)]</c> — an email address is directly
+/// <c>[RedactData(PersonalInformation)]</c> - an email address is directly
 /// identifying and is masked automatically by the Serilog destructuring policy.
 /// </remarks>
 public sealed record EmailAddress
@@ -47,7 +47,7 @@ public sealed record EmailAddress
     /// <returns>
     /// <c>Ok</c> wrapping the normalized address on success; the validator's
     /// failure (validator mode) or
-    /// <see cref="D2Result{TData}.ValidationFailed"/> carrying the common
+    /// <see cref="D2Result{TData}.ValidationFailed"/> with the common
     /// invalid-email key / the contacts too-long key (floor mode) otherwise.
     /// </returns>
     public static D2Result<EmailAddress> Create(string? value, IEmailValidator? validator = null)
@@ -64,21 +64,23 @@ public sealed record EmailAddress
         }
         else
         {
-            // Floor — reuse the shared TryParseEmail helper (trim + collapse +
-            // lowercase + local@domain.tld shape; bubbles common_validation_EMAIL_INVALID).
+            // The helper does not enforce the address-length ceiling, so it is checked
+            // first, on the value cleaned the way the helper cleans it, and the pattern
+            // never runs on more than EMAIL_MAX characters.
+            if (value.CleanStr() is { Length: > FieldConstraints.EMAIL_MAX })
+            {
+                return D2Result<EmailAddress>.ValidationFailed(
+                    messages: [TK.Contacts.Validation.EMAIL_TOO_LONG]);
+            }
+
+            // Floor - reuse the shared TryParseEmail helper (trim + collapse +
+            // lowercase + local@domain.tld shape; propagates common_validation_EMAIL_INVALID).
             var parse = value.TryParseEmail();
 
             if (!parse.Success)
                 return D2Result<EmailAddress>.BubbleFail(parse);
 
             normalized = parse.Data!;
-
-            // The helper does not enforce the address-length ceiling — add it here.
-            if (normalized.Length > FieldConstraints.EMAIL_MAX)
-            {
-                return D2Result<EmailAddress>.ValidationFailed(
-                    messages: [TK.Contacts.Validation.EMAIL_TOO_LONG]);
-            }
         }
 
         return D2Result<EmailAddress>.Ok(new EmailAddress { Value = normalized });
@@ -86,8 +88,8 @@ public sealed record EmailAddress
 
     /// <summary>
     /// Reconstructs an <see cref="EmailAddress"/> from a trusted, previously-validated
-    /// store value WITHOUT re-running validation. For the EF Core value-converter read
-    /// side only — use <see cref="Create"/> for all user-supplied input.
+    /// store value without re-running validation. For the EF Core value-converter read
+    /// side only - use <see cref="Create"/> for all user-supplied input.
     /// </summary>
     /// <param name="value">
     /// The stored email string retrieved from the database.

@@ -4,17 +4,17 @@
 
 /**
  * Classic Wagner-Fischer Levenshtein edit-distance with early-termination
- * at `maxDistance + 1`. Pure function — no I/O, no shared state, thread
+ * at `maxDistance + 1`. Pure function: no I/O, no shared state, thread
  * safe by design.
  *
  * Mirrors .NET `DcsvIo.D2.Geo.Abstractions.NameResolution.LevenshteinComparer`
- * byte-for-byte; the same input pair + `maxDistance` MUST produce the
+ * byte-for-byte; the same input pair and `maxDistance` must produce the
  * same numeric output on both runtimes. Cross-language parity is pinned
  * via the byte-equivalent fixture exercised by the parity test suite.
  *
  * Operates on UTF-16 code units (TS `string.length` and `charCodeAt`
  * semantics), which matches .NET `string` indexing. Inputs that contain
- * surrogate pairs are compared at the UTF-16 unit level — a code point
+ * surrogate pairs are compared at the UTF-16 unit level: a code point
  * outside the BMP counts as two distance units. This is intentional for
  * parity; supplementary-plane characters are exceedingly rare in geo
  * reference data (no entity name in the seeded catalog contains one).
@@ -26,12 +26,12 @@
  *   `isWithin` short-circuits to `false` before calling `compare` when
  *   `maxDistance < 0` (matches .NET `IsWithin`).
  * - **Length-difference shortcut**: if `|len(a) - len(b)| > cap`, no
- *   alignment can fit inside the cap, so we return `ceiling` without
- *   allocating DP buffers.
+ *   alignment can fit inside the cap, so the function returns `ceiling`
+ *   without allocating DP buffers.
  * - **Row-min early termination**: when every cell in a row of the DP
  *   table exceeds `cap`, no remaining cell can ever drop below it (the
  *   recurrence is monotonic), so the function returns `ceiling`
- *   immediately. Callers MUST treat any value greater than
+ *   immediately. Callers must treat any value greater than
  *   `maxDistance` as "exceeds bound" and never as a legitimate edit
  *   distance.
  *
@@ -49,8 +49,8 @@ export function compare(a: string, b: string, maxDistance: number): number {
   const cap = maxDistance < 0 ? 0 : maxDistance;
   const ceiling = cap + 1;
 
-  // Order so the SHORTER string is on the inner DP axis — O(min) memory.
-  // Matches .NET's `(first, second) = (second, first)` swap.
+  // Order so the shorter string is on the inner DP axis, which uses O(min)
+  // memory. Matches .NET's `(first, second) = (second, first)` swap.
   let first = a;
   let second = b;
   if (first.length < second.length) {
@@ -59,15 +59,15 @@ export function compare(a: string, b: string, maxDistance: number): number {
     second = swap;
   }
 
-  // Length-difference shortcut — distance is bounded below by the delta
+  // Length-difference shortcut: the distance is bounded below by the delta
   // and cannot fit inside the cap.
   if (first.length - second.length > cap) return ceiling;
 
-  // Trivial cases — second is empty, distance equals first.length.
+  // Trivial case: second is empty, so the distance equals first.length.
   if (second.length === 0) return first.length > cap ? ceiling : first.length;
 
-  // Two-row DP — previous row + current row over `second` (the shorter
-  // string). Initialize previous row to the empty-prefix distances
+  // Two-row DP: a previous row and a current row over `second` (the shorter
+  // string). Initialize the previous row to the empty-prefix distances
   // 0..second.length.
   let previous = new Array<number>(second.length + 1);
   let current = new Array<number>(second.length + 1);
@@ -80,7 +80,8 @@ export function compare(a: string, b: string, maxDistance: number): number {
 
     for (let j = 1; j <= second.length; j++) {
       const cost = firstChar === second.charCodeAt(j - 1) ? 0 : 1;
-      // previous[]! / current[]! safe — both arrays allocated with second.length+1 entries.
+      // previous[]! and current[]! are safe: both arrays are allocated with
+      // second.length+1 entries.
       const deletion = previous[j]! + 1;
       const insertion = current[j - 1]! + 1;
       const substitution = previous[j - 1]! + cost;
@@ -91,8 +92,8 @@ export function compare(a: string, b: string, maxDistance: number): number {
       if (cell < rowMin) rowMin = cell;
     }
 
-    // Early termination — entire row is above the cap, no later cell
-    // can reduce below it (DP recurrence is monotonic non-decreasing in
+    // Early termination: the entire row is above the cap, and no later cell
+    // can reduce below it (the DP recurrence is monotonic non-decreasing in
     // the row minimum).
     if (rowMin > cap) return ceiling;
 
@@ -107,20 +108,20 @@ export function compare(a: string, b: string, maxDistance: number): number {
 }
 
 /**
- * Convenience predicate — returns `true` when the bounded Levenshtein
+ * Convenience predicate: returns `true` when the bounded Levenshtein
  * edit distance between `a` and `b` is at most `maxDistance`.
  *
  * Matches .NET `LevenshteinComparer.IsWithin`: short-circuits to `false`
  * when `maxDistance < 0` (without calling `compare`), so a negative cap
- * always returns `false` regardless of input pair — preventing the
- * `a === b → 0 <= -1` false-positive that a naive
+ * always returns `false` regardless of input pair, which prevents the
+ * `a === b -> 0 <= -1` false-positive that a naive
  * `compare(...) <= maxDistance` would produce.
  *
  * @param a - the first string to compare.
  * @param b - the second string to compare.
  * @param maxDistance - the inclusive distance threshold. Negative values
  *   always return `false`.
- * @returns `true` iff `a` and `b` are within `maxDistance` edits AND
+ * @returns `true` iff `a` and `b` are within `maxDistance` edits and
  *   `maxDistance >= 0`.
  */
 export function isWithin(a: string, b: string, maxDistance: number): boolean {

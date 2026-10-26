@@ -6,23 +6,40 @@
 
 namespace DcsvIo.D2.Tests.Unit.Context.SourceGen;
 
+using System;
+using System.Collections.Generic;
+using System.Reflection;
 using AwesomeAssertions;
 using DcsvIo.D2.Context.SourceGen;
 using Xunit;
 
 /// <summary>
 /// Adversarial coverage for <see cref="PropagatedEmitter.EmitAll"/>. Asserts
-/// the shape of all three generated files (PropagatedContext.g.cs,
+/// the shape of every generated file (PropagatedContext.g.cs,
 /// PropagatedContextExtensions.g.cs, PropagatedContextSerializer.g.cs) with
-/// special focus on the <c>[JsonIgnore]</c> guard on <c>HasAnyField</c> —
-/// the regression-pin that proves the attribute never silently disappears from
-/// the emitted record and therefore never reaches the wire.
+/// special focus on the <c>[JsonIgnore]</c> guard on <c>HasAnyField</c>, a
+/// regression pin: the attribute must never silently disappear from the
+/// emitted record, because without it the computed member reaches the wire.
 /// </summary>
 public sealed class PropagatedEmitterTests
 {
     // ------------------------------------------------------------------
-    // EmitAll — output count and hint names
+    // EmitAll - output count and hint names
     // ------------------------------------------------------------------
+
+    [Fact]
+    public void ResolveCallPathEntryIdMax_NoListOfRecordsField_Throws()
+    {
+        var method = typeof(PropagatedEmitter).GetMethod(
+            "ResolveCallPathEntryIdMax",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var act = () => method.Invoke(null, [new List<PropertySpec>()]);
+
+        act.Should().Throw<TargetInvocationException>()
+            .WithInnerException<InvalidOperationException>()
+            .WithMessage("ResolveCallPathEntryIdMax requires a propagated list-of-records field*");
+    }
 
     [Fact]
     public void EmitAll_AlwaysProducesThreeFiles()
@@ -58,7 +75,7 @@ public sealed class PropagatedEmitterTests
     }
 
     // ------------------------------------------------------------------
-    // PropagatedContext.g.cs — record shape
+    // PropagatedContext.g.cs - record shape
     // ------------------------------------------------------------------
 
     [Fact]
@@ -83,14 +100,14 @@ public sealed class PropagatedEmitterTests
     }
 
     // ------------------------------------------------------------------
-    // [JsonIgnore] on HasAnyField — regression-pin target
+    // [JsonIgnore] on HasAnyField - regression-pin target
     // ------------------------------------------------------------------
 
     [Fact]
     public void EmitAll_RecordFile_HasAnyFieldCarriesJsonIgnoreAttribute()
     {
         // REGRESSION PIN: removing [JsonIgnore] from HasAnyField causes the
-        // computed helper to appear on the wire — breaking the
+        // computed helper to appear on the wire - breaking the
         // PropagatedHeaderWireShape invariant and the wire-shape test in
         // PropagatedHeaderWireShapeTests that asserts NotContain("\"hasAnyField\"").
         var (auth, request) = PropagateSpecs();
@@ -102,7 +119,7 @@ public sealed class PropagatedEmitterTests
         src.Should().Contain("[JsonIgnore]");
         src.Should().Contain("public bool HasAnyField =>");
 
-        // The attribute must appear IMMEDIATELY above the property declaration.
+        // The attribute must appear immediately above the property declaration.
         src.Should().Contain("[JsonIgnore]\n    public bool HasAnyField =>");
     }
 
@@ -123,9 +140,8 @@ public sealed class PropagatedEmitterTests
     [Fact]
     public void EmitAll_RecordFile_IncludesSystemTextJsonSerializationUsing()
     {
-        // [JsonIgnore] requires the using statement to compile — verify the
-        // emitter includes it so a future refactor doesn't silently break the
-        // generated file.
+        // [JsonIgnore] requires the using statement to compile. Verify that
+        // the emitter includes it, so that the generated file compiles.
         var (auth, request) = PropagateSpecs();
         var record = PropagatedEmitter.EmitAll(auth, request)
             .Single(r => r.HintName == "PropagatedContext.g.cs");
@@ -134,7 +150,7 @@ public sealed class PropagatedEmitterTests
     }
 
     // ------------------------------------------------------------------
-    // PropagatedContextExtensions.g.cs — shape
+    // PropagatedContextExtensions.g.cs - shape
     // ------------------------------------------------------------------
 
     [Fact]
@@ -169,7 +185,7 @@ public sealed class PropagatedEmitterTests
     }
 
     // ------------------------------------------------------------------
-    // PropagatedContextSerializer.g.cs — shape
+    // PropagatedContextSerializer.g.cs - shape
     // ------------------------------------------------------------------
 
     [Fact]
@@ -200,9 +216,9 @@ public sealed class PropagatedEmitterTests
     }
 
     // ------------------------------------------------------------------
-    // OQ-1 — propagated list-of-records field (CallPath). The first
-    // propagate:true list-of-records field; drives the type-aware emitter
-    // branch. The existing SCALAR emission must stay byte-stable when a
+    // Propagated list-of-records field (CallPath). It is the first
+    // propagate:true list-of-records field and drives the type-aware emitter
+    // branch. The existing scalar emission must stay byte-stable when a
     // list field is also present (the scalar regression pin at the emitter).
     // ------------------------------------------------------------------
 
@@ -242,8 +258,8 @@ public sealed class PropagatedEmitterTests
     public void EmitAll_RecordFile_ScalarFieldsStayByteStable_WhenListFieldPresent()
     {
         // The scalar regression pin: introducing the list field must not
-        // perturb scalar emission — string fields stay `string? X { get; init; }`
-        // (NOT nullable-doubled) and their HasAnyField arm stays `is not null`.
+        // change scalar emission. String fields stay `string? X { get; init; }`
+        // (not doubly nullable) and their HasAnyField arm stays `is not null`.
         var (auth, request) = PropagateSpecsWithCallPath();
         var record = PropagatedEmitter.EmitAll(auth, request)
             .Single(r => r.HintName == "PropagatedContext.g.cs");
@@ -272,7 +288,7 @@ public sealed class PropagatedEmitterTests
         src.Should().Contain("foreach (var entry in ctx.CallPath)");
         src.Should().Contain("if (entry.Id is { Length: > _CALL_PATH_ENTRY_ID_MAX })");
 
-        // Enum members serialize as human-readable strings for log-grep-ability.
+        // Enum members serialize as human-readable strings, so a log search can match them.
         src.Should().Contain("Converters = { new JsonStringEnumConverter() },");
     }
 
@@ -297,9 +313,9 @@ public sealed class PropagatedEmitterTests
     [Fact]
     public void EmitAll_ScalarOnlySpec_OmitsListMachinery()
     {
-        // A scalar-only spec must NOT carry any of the list-of-records machinery
-        // — the conditional emission keeps scalar-only outputs byte-identical to
-        // the pre-CallPath generation.
+        // A scalar-only spec must not carry any of the list-of-records machinery.
+        // The conditional emission keeps scalar-only outputs byte-identical to
+        // the generation from before CallPath existed.
         var (auth, request) = PropagateSpecs();
         var results = PropagatedEmitter.EmitAll(auth, request);
         var record = results.Single(r => r.HintName == "PropagatedContext.g.cs").GeneratedSource;
@@ -315,12 +331,12 @@ public sealed class PropagatedEmitterTests
     }
 
     // ------------------------------------------------------------------
-    // Helpers — mirrors MutableEmitterTests factory style
+    // Helpers - mirrors MutableEmitterTests factory style
     // (private members after public test methods per SA1202)
     // ------------------------------------------------------------------
 
     /// <summary>
-    /// Specs with two propagatable string fields — the minimum needed to
+    /// Specs with two propagatable string fields - the minimum needed to
     /// exercise the record / extensions / serializer emitters end-to-end.
     /// </summary>
     private static (ContextSpec Auth, ContextSpec Request) PropagateSpecs()
@@ -338,7 +354,7 @@ public sealed class PropagatedEmitterTests
     }
 
     /// <summary>
-    /// Specs with zero propagatable fields — the HasAnyField guard must still
+    /// Specs with zero propagatable fields - the HasAnyField guard must still
     /// appear even when the propagated set is empty.
     /// </summary>
     private static (ContextSpec Auth, ContextSpec Request) EmptyPropagateSpecs()
@@ -355,7 +371,7 @@ public sealed class PropagatedEmitterTests
     /// <summary>
     /// Specs that add the propagated list-of-records field <c>CallPath</c>
     /// (<c>IReadOnlyList&lt;CallPathEntry&gt;</c>, depth bound 16) alongside the
-    /// two scalar fields — exercises the OQ-1 type-aware emitter branch while
+    /// two scalar fields - exercises the type-aware emitter branch while
     /// keeping the scalar emission in the same output for the regression pin.
     /// </summary>
     private static (ContextSpec Auth, ContextSpec Request) PropagateSpecsWithCallPath()
@@ -400,6 +416,7 @@ public sealed class PropagatedEmitterTests
             name,
             type,
             Claim: null,
+            ClaimForm: null,
             TrinaryAuth: false,
             Derived: null,
             Default: null,

@@ -13,8 +13,8 @@ using DcsvIo.D2.SourceGen;
 
 /// <summary>
 /// Pure logic for parsing a context spec JSON file into a <see cref="ContextSpec"/>
-/// record. Responsible only for JSON-shape validation; semantic validation
-/// (closed type vocab, name collisions, etc.) lives in the emitters.
+/// record. It validates only the JSON shape; the emitters validate the content,
+/// for example the closed type vocabulary and name collisions.
 /// </summary>
 internal static class SpecLoader
 {
@@ -26,6 +26,7 @@ internal static class SpecLoader
     private const string _PROPERTIES_KEY = "properties";
     private const string _TYPE_KEY = "type";
     private const string _CLAIM_KEY = "claim";
+    private const string _CLAIM_FORM_KEY = "claimForm";
     private const string _TRINARY_AUTH_KEY = "trinaryAuth";
     private const string _DERIVED_KEY = "derived";
     private const string _DEFAULT_KEY = "default";
@@ -39,7 +40,7 @@ internal static class SpecLoader
     /// Parses raw JSON spec content into a <see cref="ContextSpec"/>. Returns
     /// either a populated spec or a single diagnostic explaining the parse failure.
     /// </summary>
-    /// <param name="path">Spec file path (used for diagnostic message context).</param>
+    /// <param name="path">Spec file path. Diagnostics report its file name.</param>
     /// <param name="json">Raw JSON content of the spec file.</param>
     /// <returns>A <see cref="LoadResult{TSpec}"/> wrapping <see cref="ContextSpec"/>.</returns>
     public static LoadResult<ContextSpec> Load(string path, string json)
@@ -201,6 +202,11 @@ internal static class SpecLoader
             claimElement.ValueKind == JsonValueKind.String)
             claim = claimElement.GetString();
 
+        string? claimForm = null;
+        if (element.TryGetProperty(_CLAIM_FORM_KEY, out var claimFormElement) &&
+            claimFormElement.ValueKind == JsonValueKind.String)
+            claimForm = claimFormElement.GetString();
+
         var trinaryAuth = false;
         if (element.TryGetProperty(_TRINARY_AUTH_KEY, out var trinaryElement) &&
             (trinaryElement.ValueKind == JsonValueKind.True ||
@@ -248,6 +254,7 @@ internal static class SpecLoader
             Name: name,
             Type: typeElement.GetString()!,
             Claim: claim,
+            ClaimForm: claimForm,
             TrinaryAuth: trinaryAuth,
             Derived: derived,
             Default: defaultValue,

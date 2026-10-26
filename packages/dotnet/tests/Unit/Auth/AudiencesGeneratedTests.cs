@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 // <copyright file="AudiencesGeneratedTests.cs" company="DCSV">
 // Copyright (c) DCSV. Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -6,12 +6,16 @@
 
 namespace DcsvIo.D2.Tests.Unit.Auth;
 
+using System.IO;
+using System.Linq;
+using System.Text.Json;
 using AwesomeAssertions;
 using DcsvIo.D2.Auth.Abstractions;
 using Xunit;
 
 /// <summary>
-/// Public-half <c>Audiences</c> catalog smoke tests (empty stub after product split).
+/// Tests for the public <c>Audiences</c> catalog, which contains the entries of the public
+/// audiences spec.
 /// </summary>
 public sealed class AudiencesGeneratedTests
 {
@@ -26,19 +30,20 @@ public sealed class AudiencesGeneratedTests
     }
 
     [Fact]
-    public void Audiences_PublicCatalog_IsEmptyStub()
+    public void Audiences_PublicCatalog_HoldsExactlyThePublicSpecEntries()
     {
-        Audiences.AllUrls.Should().BeEmpty(
-            "product service audiences moved to private ProductAudiences");
-        Audiences.ByName.Should().BeEmpty();
+        var spec = ReadPublicAudiencesSpec();
+
+        Audiences.AllUrls.Should().BeEquivalentTo(spec.Select(e => e.Url));
+        Audiences.ByName.Keys.Should().BeEquivalentTo(spec.Select(e => e.Name));
     }
 
     [Theory]
-    [InlineData("https://files.internal")]
-    [InlineData("https://notifications.internal")]
-    [InlineData("https://courier.internal")]
-    [InlineData("https://audit.internal")]
-    public void IsKnown_ProductUrls_AreNotInPublicCatalog(string url)
+    [InlineData("https://orders.example.internal")]
+    [InlineData("https://inventory.example.internal")]
+    [InlineData("https://shipping.example.internal")]
+    [InlineData("https://billing.example.internal")]
+    public void IsKnown_UrlTheSpecDoesNotDeclare_ReturnsFalse(string url)
     {
         Audiences.IsKnown(url).Should().BeFalse();
     }
@@ -52,7 +57,24 @@ public sealed class AudiencesGeneratedTests
     [Fact]
     public void Resolve_UnknownName_ReturnsNull()
     {
-        Audiences.Resolve("Files").Should().BeNull();
+        Audiences.Resolve("Catalog").Should().BeNull();
         Audiences.Resolve("not-a-real-audience").Should().BeNull();
+    }
+
+    private static (string Name, string Url)[] ReadPublicAudiencesSpec()
+    {
+        var specPath = Path.Combine(
+            TestPaths.PublicContractsRoot(),
+            "auth-audiences",
+            "audiences.spec.json");
+
+        using var doc = JsonDocument.Parse(File.ReadAllText(specPath));
+
+        return
+        [
+            .. doc.RootElement.GetProperty("audiences").EnumerateArray().Select(entry => (
+                entry.GetProperty("name").GetString()!,
+                entry.GetProperty("url").GetString()!)),
+        ];
     }
 }

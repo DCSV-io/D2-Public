@@ -5,7 +5,7 @@
     "ComputeNextFire UTC instant. Both languages must produce IDENTICAL",
     "expectedUtc under NodaTime's LenientResolver (.NET) and Temporal's",
     "disambiguation:'compatible' (TS). If the two engines ever diverge on",
-    "any fixture, the divergence must be surfaced + acknowledged — DO NOT",
+    "any fixture, the divergence must be surfaced + acknowledged - DO NOT",
     "silently adjust expectedUtc."
   ],
   "schemaVersion": 1,
@@ -69,9 +69,9 @@
     "and re-emit the identical wire string. The 'kind' selects the NodaTime /",
     "Temporal pattern. 'wire' is the on-the-wire form the emitter produces",
     "(DateTimeOffset 'O' for instant/offset; offset-free ISO for plain-local;",
-    "ISO-8601 P…T… for duration). 'offsetFree' marks values that MUST carry no",
+    "ISO-8601 P...T... for duration). 'offsetFree' marks values that MUST carry no",
     "offset (the no-invented-offset contract). If the two engines ever diverge on",
-    "any entry, surface + acknowledge — DO NOT silently adjust."
+    "any entry, surface + acknowledge - DO NOT silently adjust."
   ],
   "scalarRoundTripFixtures": [
     {

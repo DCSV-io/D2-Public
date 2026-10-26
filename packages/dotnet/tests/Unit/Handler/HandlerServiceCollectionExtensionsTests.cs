@@ -54,7 +54,7 @@ public sealed class HandlerServiceCollectionExtensionsTests
     {
         // IRequestContext is transport-specific (aspnetcore for HTTP,
         // messaging/rabbitmq for AMQP). AddD2Handler must NOT pre-register it
-        // with a default — otherwise the wrong implementation could win
+        // with a default - otherwise the wrong implementation could win
         // over the transport-specific scoped registration.
         var services = new ServiceCollection();
 
@@ -66,8 +66,8 @@ public sealed class HandlerServiceCollectionExtensionsTests
     [Fact]
     public void AddD2Handler_DoesNotRegisterIHandlerContext()
     {
-        // The interface is consumer-facing; HandlerContext<T> is what gets
-        // injected via the BaseHandler<TSelf,...> generic constraint. A
+        // IHandlerContext is the public-facing interface; HandlerContext<T> is
+        // what gets injected via the BaseHandler<TSelf,...> generic constraint. A
         // bare IHandlerContext registration would be ambiguous (which T?).
         var services = new ServiceCollection();
 
@@ -96,7 +96,7 @@ public sealed class HandlerServiceCollectionExtensionsTests
     public void AddD2Handler_DifferentHandlerTypes_GetIndependentContexts()
     {
         // Open-generic registration must produce DIFFERENT closed types for
-        // different T — verifying the open-generic shape works as intended.
+        // different T - verifying the open-generic shape works as intended.
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<IRequestContext>(new TestRequestContext());
@@ -130,9 +130,8 @@ public sealed class HandlerServiceCollectionExtensionsTests
     public void AddD2Handler_CalledTwice_RegistersOnlyOnce()
     {
         // Adversarial: idempotency check. AddD2Handler uses TryAdd so two
-        // calls produce a single descriptor — composition roots that compose
-        // multiple AddD2X helpers can call AddD2Handler from each without
-        // accumulating duplicate registrations.
+        // calls produce a single descriptor, so several AddD2X helpers can
+        // each call AddD2Handler without accumulating duplicate registrations.
         var services = new ServiceCollection();
 
         services.AddD2Handler();
@@ -145,9 +144,8 @@ public sealed class HandlerServiceCollectionExtensionsTests
     public void AddD2Handler_LoggerCategoryNameIsHandlerFullTypeName()
     {
         // End-to-end check: the typed ILogger<T> the framework injects
-        // produces logs categorized to the handler's full type name. This is
-        // the contract that downstream Serilog enrichers / OTel exporters
-        // depend on for source-context correlation.
+        // produces logs categorized to the handler's full type name. The
+        // category is the source context used for log correlation.
         var services = new ServiceCollection();
         var capturing_provider = new CapturingLoggerProvider();
         services.AddLogging(b => b.AddProvider(capturing_provider));
@@ -164,7 +162,7 @@ public sealed class HandlerServiceCollectionExtensionsTests
             formatter: (s, _) => s);
 
         // Logger<T> normalizes nested-type '+' separators to '.' when computing
-        // the category — assert against the normalized form, not the raw FullName.
+        // the category - assert against the normalized form, not the raw FullName.
         capturing_provider.LastCategory
             .Should().Be(typeof(SampleHandler).FullName!.Replace('+', '.'));
     }

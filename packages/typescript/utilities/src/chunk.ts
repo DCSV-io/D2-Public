@@ -4,8 +4,9 @@
 
 /**
  * Splits an array into consecutive chunks of at most `size` elements.
- * Throws on size &lt; 1 (rejects nonsense input rather than silently returning
- * an empty list). Mirrors the .NET `IEnumerable<T>.Chunk(int size)` shape.
+ * Throws on size &lt; 1 or a non-integer size (rejects invalid input rather
+ * than silently returning an empty list). Mirrors the .NET
+ * `IEnumerable<T>.Chunk(int size)` shape.
  */
 export function chunk<T>(arr: readonly T[], size: number): T[][] {
   if (!Number.isInteger(size) || size < 1)

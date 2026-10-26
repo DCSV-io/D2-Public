@@ -14,8 +14,9 @@ using Xunit;
 
 /// <summary>
 /// Verifies <c>AddD2Location()</c> registers the default postal-code
-/// validator as a singleton, the registration is idempotent, and
-/// consumer-side overrides via <c>Replace</c> work.
+/// validator as a singleton, the registration is idempotent, and a
+/// registration that replaces the default through <c>Replace</c> takes
+/// precedence.
 /// </summary>
 public sealed class DependencyInjectionTests
 {

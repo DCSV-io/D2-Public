@@ -11,9 +11,10 @@ using System.Reflection;
 using global::Npgsql;
 
 /// <summary>
-/// Helper for constructing <see cref="PostgresException"/> instances in
-/// tests. Npgsql 9.0.4 exposes two public constructors that take SqlState
-/// directly; we use the smaller 4-arg form.
+/// Builds <see cref="PostgresException"/> instances for tests. Npgsql 9.0.4
+/// exposes two public constructors that take SqlState directly; this class
+/// uses the smaller one, which takes the message text, the severity, the
+/// invariant severity and the SqlState.
 /// </summary>
 internal static class PgExceptionFactory
 {
@@ -39,11 +40,12 @@ internal static class PgExceptionFactory
 
     /// <summary>
     /// Constructs a <see cref="PostgresException"/> with a specific SqlState
-    /// AND a specific InnerException — used by the classifier-precedence
-    /// tests to verify pass-1 (SqlState) wins over pass-2 (network detection)
-    /// when both apply. Public ctors don't expose InnerException directly
-    /// (PostgresException isn't a wrapper exception by design); we use
-    /// reflection to set the BCL Exception._innerException field.
+    /// and a specific InnerException. The classifier-precedence tests use it
+    /// to check that pass 1 (SqlState) wins over pass 2 (network detection)
+    /// when both apply. The public constructors take no InnerException
+    /// argument, and PostgresException is not a wrapper exception by design,
+    /// so this method sets the BCL Exception._innerException field by
+    /// reflection.
     /// </summary>
     /// <param name="sqlState">PostgreSQL SQLSTATE string.</param>
     /// <param name="inner">Inner exception to attach via reflection.</param>

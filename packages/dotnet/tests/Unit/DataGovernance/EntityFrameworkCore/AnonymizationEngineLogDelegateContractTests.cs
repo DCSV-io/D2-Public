@@ -25,7 +25,7 @@ using Xunit;
 [Trait("Category", "Unit")]
 public sealed class AnonymizationEngineLogDelegateContractTests
 {
-    // All 9 delegates on AnonymizationEngineLog (EventIds 9400–9408).
+    // Every delegate on AnonymizationEngineLog (EventIds 9400-9408).
     public static TheoryData<string> AllDelegates => new()
     {
         nameof(AnonymizationEngineLog.SweepStarted),
@@ -52,7 +52,7 @@ public sealed class AnonymizationEngineLogDelegateContractTests
             .Any(p => typeof(Exception).IsAssignableFrom(p.ParameterType));
 
         hasExceptionParam.Should().BeFalse(
-            $"AnonymizationEngineLog.{method} must not accept a raw Exception — "
+            $"AnonymizationEngineLog.{method} must not accept a raw Exception - "
             + "log sinks format ex.ToString() verbatim, which can leak ex.Message "
             + "contents (e.g. DB connection strings, user input) into structured logs. "
             + "Use SanitizedExceptionRender.TypeName(ex) + FirstFrame(ex) as separate "

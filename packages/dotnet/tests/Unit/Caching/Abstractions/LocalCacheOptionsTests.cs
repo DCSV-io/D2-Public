@@ -12,14 +12,14 @@ using DcsvIo.D2.Caching;
 using Xunit;
 
 /// <summary>
-/// Pins the production defaults on <see cref="LocalCacheOptions"/>. The
-/// defaults are load-bearing: <c>MaxEntries</c> caps process RSS for
-/// services that run a single shared <see cref="ILocalCache"/> singleton,
-/// <c>DefaultExpiration</c> is what callers get when they pass <c>null</c>,
-/// and <c>KeyPrefix</c> being empty (not <c>null</c>) is what consumers
-/// rely on for safe string concatenation. A "tune for smaller services"
-/// PR that drops <c>MaxEntries</c> 10× without coordinating with Edge /
-/// Files / Auth services would silently cause prod-only LRU thrash.
+/// Pins the production defaults on <see cref="LocalCacheOptions"/>.
+/// <c>MaxEntries</c> caps process RSS when a service runs a single shared
+/// <see cref="ILocalCache"/> singleton, <c>DefaultExpiration</c> is the
+/// expiration used when a call passes <c>null</c>, and <c>KeyPrefix</c> is
+/// empty (not <c>null</c>) so that string concatenation is safe. A "tune for
+/// smaller services" change that drops <c>MaxEntries</c> by 10x, without
+/// checking the services that rely on the default, would silently cause LRU
+/// thrash in production only.
 /// </summary>
 public sealed class LocalCacheOptionsTests
 {
@@ -44,8 +44,8 @@ public sealed class LocalCacheOptionsTests
     {
         var options = new LocalCacheOptions();
 
-        // Pin: empty string, not null. Consumers concatenate `KeyPrefix + key`
-        // without a null guard.
+        // Pin: empty string, not null, because code that concatenates
+        // `KeyPrefix + key` does so without a null guard.
         options.KeyPrefix.Should().Be(string.Empty);
     }
 
@@ -53,8 +53,9 @@ public sealed class LocalCacheOptionsTests
     public void Properties_AreMutable_ForOptionsPatternBinding()
     {
         // Adversarial: `Microsoft.Extensions.Options` configure delegates need
-        // settable properties to bind from configuration. Pin all three remain
-        // settable — if any flips to init-only it silently breaks the binding.
+        // settable properties to bind from configuration. This test pins that
+        // MaxEntries, DefaultExpiration and KeyPrefix stay settable: a property
+        // that becomes init-only silently breaks the binding.
         var options = new LocalCacheOptions
         {
             MaxEntries = 10_000,

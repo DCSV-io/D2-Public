@@ -17,7 +17,7 @@ using Xunit;
 public sealed class PlusCodeEncoderTests
 {
     // -----------------------------------------------------------------------
-    // §1.2 IsValid — happy path
+    // IsValid - happy path
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -31,7 +31,7 @@ public sealed class PlusCodeEncoderTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 IsValid — invalid inputs
+    // IsValid - invalid inputs
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -50,7 +50,7 @@ public sealed class PlusCodeEncoderTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 Round-trip fidelity
+    // Round-trip fidelity
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -82,7 +82,7 @@ public sealed class PlusCodeEncoderTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 Edge coordinates
+    // Edge coordinates
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -98,7 +98,7 @@ public sealed class PlusCodeEncoderTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 OLC alphabet — no invalid characters
+    // OLC alphabet - no invalid characters
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -112,7 +112,7 @@ public sealed class PlusCodeEncoderTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 Determinism
+    // Determinism
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -128,7 +128,7 @@ public sealed class PlusCodeEncoderTests
     }
 
     // -----------------------------------------------------------------------
-    // §1.2 Decode produces center within cell
+    // Decode produces center within cell
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -145,21 +145,23 @@ public sealed class PlusCodeEncoderTests
     }
 
     // -----------------------------------------------------------------------
-    // Regression tests: pins the FULL_PAIRS = 4 invariant + Decode pair-count
-    // derivation.
+    // Regression tests: they pin the FULL_PAIRS = 4 invariant and the way
+    // Decode derives the pair count.
     // -----------------------------------------------------------------------
 
     [Fact]
     public void Encode_HasExactly8DigitsBeforePlusSeparator_PinsFullPairsCount()
     {
-        // Regression: prior bug computed fullPairs = pairDigits / 2 → 5 pairs (10 chars).
-        // OLC spec mandates 4 full pairs = 8 prefix digits before '+'.
+        // The OLC spec requires 4 full pairs, which is 8 prefix digits before
+        // '+'. Deriving fullPairs from the digit count of a 10-character code
+        // would give 5 pairs.
         var code = PlusCodeEncoder.Encode(40.7128, -74.006, codeLength: 10);
 
         var plusIdx = code.IndexOf('+');
         plusIdx.Should().Be(8);
 
-        // Belt-and-braces: prefix has 8 chars, suffix has 2 chars.
+        // A second check on the same code: the prefix has 8 characters and
+        // the suffix has 2.
         var prefix = code[..plusIdx];
         var suffix = code[(plusIdx + 1)..];
         prefix.Length.Should().Be(8);
@@ -169,32 +171,36 @@ public sealed class PlusCodeEncoderTests
     [Fact]
     public void Decode_FullPairCountDerivedFromSeparatorPosition_NotStrippedLength()
     {
-        // Regression: prior bug derived pair count from stripped-+ length → wrong fullPairs.
-        // The Decode pair count must come from the prefix.Length / 2 with the
-        // OLC-spec separator at position 8 → fullPairs = 4. Encoding then re-decoding
-        // a known-canonical input must round-trip with the same prefix length.
+        // Decode takes the pair count from prefix.Length / 2, with the
+        // OLC-spec separator at position 8, so fullPairs = 4. A pair count
+        // taken from the length of the code with '+' removed would be wrong.
+        // Encoding a known canonical input and decoding it again must
+        // round-trip with the same prefix length.
         var code = PlusCodeEncoder.Encode(40.7128, -74.006, codeLength: 10);
         var (decodedLat, decodedLon, latErr, lonErr) = PlusCodeEncoder.Decode(code);
 
-        // If fullPairs were wrong, decode would project to a completely different
-        // lat/lon — these bounds would blow up. Generous 4× error tolerance.
+        // If fullPairs were wrong, decode would return a very different
+        // latitude and longitude and these bounds would fail. The tolerance
+        // is 4 times the reported error.
         Math.Abs(decodedLat - 40.7128).Should().BeLessThanOrEqualTo(latErr * 4);
         Math.Abs(decodedLon - -74.006).Should().BeLessThanOrEqualTo(lonErr * 4);
 
-        // Re-encode the center and confirm idempotency (proves pair-count invariant on both sides).
+        // Encode the center again. The same code comes back, so the pair-count
+        // invariant holds in both Encode and Decode.
         var reEncoded = PlusCodeEncoder.Encode(decodedLat, decodedLon, codeLength: 10);
         reEncoded.Should().Be(code);
     }
 
     // -----------------------------------------------------------------------
-    // §1.1 Production codeLength:12 — direct coverage (pins 13-char output + round-trip)
+    // Production codeLength:12 - direct coverage (pins the 13-char output and the round-trip)
     // -----------------------------------------------------------------------
 
     [Fact]
     public void Encode_CodeLength12_ProducesTotalLength13_WithSuffix4()
     {
         // codeLength=12 is the production setting in Coordinates.BuildFromLatLon.
-        // 8 pair digits + '+' + 4 grid digits = 13 chars total; suffix (after '+') = 4.
+        // 8 pair digits + '+' + 4 grid digits = 13 characters in total, and
+        // the suffix after '+' has 4.
         const int expected_total_length = 13;
         const int expected_suffix_length = 4;
         const double lat = 40.7128;
@@ -210,7 +216,8 @@ public sealed class PlusCodeEncoderTests
     [Fact]
     public void Encode_ThenDecode_CodeLength12_ReturnsCoordinatesWithinError()
     {
-        // Round-trip at the production codeLength=12 — mirrors the codeLength:10 test above.
+        // Round-trip at the production codeLength=12, like the codeLength:10
+        // test above.
         const double lat = 40.7128;
         const double lon = -74.006;
 

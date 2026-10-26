@@ -9,7 +9,7 @@ namespace DcsvIo.D2.SourceGen;
 /// <summary>
 /// Value-equatable record used as the IIncrementalGenerator pipeline boundary.
 /// Equatable types at every step boundary are required for incremental
-/// caching to work — Roslyn re-runs steps only when input value-equality
+/// caching to work - Roslyn re-runs steps only when input value-equality
 /// changes, and a non-equatable boundary type defeats the cache.
 /// </summary>
 /// <param name="Path">The full path to the spec file (used in diagnostics).</param>

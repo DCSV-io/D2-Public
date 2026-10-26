@@ -38,8 +38,8 @@ public sealed class RedactDataAttributeTests
     [Fact]
     public void AttributeUsage_TargetsAll()
     {
-        // Adversarial: the attribute is reflectively consumed by the
-        // observability layer — guarantee it can be applied to any target.
+        // Adversarial: the observability layer reads the attribute through
+        // reflection, so it must be applicable to any target.
         var usage = (AttributeUsageAttribute)typeof(RedactDataAttribute)
             .GetCustomAttributes(typeof(AttributeUsageAttribute), inherit: false)[0];
 
@@ -49,7 +49,7 @@ public sealed class RedactDataAttributeTests
     [Fact]
     public void Reflection_ReadsAttributeOffDecoratedMember()
     {
-        // End-to-end shape: marker on a property is reflectively visible.
+        // End-to-end shape: reflection finds the marker on a property.
         var prop = typeof(SampleDecorated).GetProperty(nameof(SampleDecorated.Email))!;
         var attr = (RedactDataAttribute?)Attribute.GetCustomAttribute(
             prop,

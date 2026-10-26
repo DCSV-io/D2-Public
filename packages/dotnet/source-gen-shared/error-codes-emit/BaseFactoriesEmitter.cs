@@ -12,32 +12,33 @@ using System.Text;
 using DcsvIo.D2.SourceGen;
 
 /// <summary>
-/// Emits the generic cross-cutting catalog's CONSTRUCTING failure factories
+/// Emits the generic cross-cutting catalog's constructing failure factories
 /// (<see cref="FactoryHost.Base"/>): the semantic factories on the
 /// <c>D2Result</c> / <c>D2Result&lt;TData&gt;</c> partial classes plus the
 /// per-code boolean discriminators. Unlike the delegating
-/// <see cref="FailuresEmitter"/> (per-domain catalogs), these factories ARE
-/// the base — they call the <c>D2Result</c> constructor directly with the
+/// <see cref="FailuresEmitter"/> (per-domain catalogs), these factories are
+/// the base: they call the <c>D2Result</c> constructor directly with the
 /// status code + error code + default <c>userMessageKey</c> the spec declares.
-/// Stateless and unit-testable in isolation; consumes the same valid-entry
+/// Stateless and testable in isolation; uses the same valid-entry
 /// walk (<see cref="ConstantsEmitter.Validate"/>) so the constants, factories,
 /// and booleans files agree on the entry set.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The body shape is fully determined by the spec fields. <c>factoryShape</c>
+/// The spec fields fully determine the body shape. <c>factoryShape</c>
 /// is the universal <c>standard</c> shape for every error factory:
-/// <c>(messages?, inputErrors?, errorCode?, category?, traceId?)</c> — ALL
-/// optional, so any factory can stamp a domain code + category and optionally
-/// carry inputErrors. <c>httpStatus</c> maps to the BCL <c>HttpStatusCode</c>
-/// member; <c>code</c> maps to the <c>ErrorCodes.&lt;Code&gt;</c> default;
-/// <c>userMessageKey</c> is the default-message constant. Entries with shape
-/// <c>none</c> emit a boolean (when the code keys one) but no factory — their
+/// <c>(messages?, inputErrors?, errorCode?, category?, traceId?)</c>, with all
+/// parameters optional, so any factory can stamp a domain code + category and
+/// optionally carry inputErrors. <c>httpStatus</c> maps to the BCL
+/// <c>HttpStatusCode</c> member; <c>code</c> maps to the
+/// <c>ErrorCodes.&lt;Code&gt;</c> default; <c>userMessageKey</c> is the
+/// default-message constant. Entries with shape
+/// <c>none</c> emit a boolean (when the code keys one) but no factory - their
 /// data-carrying or factory-less semantics stay hand-rolled / call-site-emitted.
 /// </para>
 /// <para>
-/// The per-code booleans are emitted for every code whose shape is NOT
-/// <c>none</c> PLUS the explicit boolean-keyed <c>none</c> codes
+/// The per-code booleans are emitted for every code whose shape is not
+/// <c>none</c>, plus the explicit boolean-keyed <c>none</c> codes
 /// (<c>SOME_FOUND</c> / <c>PARTIAL_SUCCESS</c> / <c>IDEMPOTENCY_IN_FLIGHT</c>).
 /// The serialization codes (<c>COULD_NOT_BE_*</c>) key no boolean. The
 /// composite / status-based booleans (<c>IsOk</c> / <c>IsCreated</c> /
@@ -50,10 +51,12 @@ internal static class BaseFactoriesEmitter
     private const string _SHAPE_STANDARD = "standard";
     private const string _SHAPE_NONE = "none";
 
-    // The none-shape codes that nonetheless key a per-code boolean (matching
-    // the hand-rolled IsSomeFound / IsPartialSuccess / IsIdempotencyInFlight).
+    // REST suffixes (after DomainPrefix strip) of none-shape codes that
+    // nonetheless key a per-code boolean (matching the hand-rolled
+    // IsSomeFound / IsPartialSuccess / IsIdempotencyInFlight). Wire codes are
+    // GEN_SOME_FOUND etc.; the boolean names strip the GEN_ prefix first.
     // The serialization codes (COULD_NOT_BE_*) deliberately key no boolean.
-    private static readonly ImmutableHashSet<string> sr_booleanKeyedNoneCodes =
+    private static readonly ImmutableHashSet<string> sr_booleanKeyedNoneRestCodes =
         ImmutableHashSet.Create(
             System.StringComparer.Ordinal,
             "SOME_FOUND",
@@ -61,12 +64,12 @@ internal static class BaseFactoriesEmitter
             "IDEMPOTENCY_IN_FLIGHT");
 
     /// <summary>
-    /// Emits the non-generic constructing factories file (factories ONTO the
+    /// Emits the non-generic constructing factories file (factories on the
     /// <c>partial class D2Result</c>).
     /// </summary>
     /// <param name="spec">Parsed error-codes spec.</param>
     /// <param name="config">The catalog configuration.</param>
-    /// <returns>Generated source (no diagnostics — validation runs upstream).</returns>
+    /// <returns>Generated source (no diagnostics - validation runs upstream).</returns>
     public static EmitResult EmitFactories(ErrorCodesSpec spec, CatalogConfig config)
     {
         var discard = ImmutableArray.CreateBuilder<EmitDiagnostic>();
@@ -78,7 +81,7 @@ internal static class BaseFactoriesEmitter
 
     /// <summary>
     /// Emits the generic constructing factories file (the <c>&lt;TData&gt;</c>
-    /// twins ONTO the <c>partial class D2Result&lt;TData&gt;</c>).
+    /// twins on the <c>partial class D2Result&lt;TData&gt;</c>).
     /// </summary>
     /// <param name="spec">Parsed error-codes spec.</param>
     /// <param name="config">The catalog configuration.</param>
@@ -93,7 +96,7 @@ internal static class BaseFactoriesEmitter
     }
 
     /// <summary>
-    /// Emits the per-code boolean discriminators file (booleans ONTO the
+    /// Emits the per-code boolean discriminators file (booleans on the
     /// <c>partial class D2Result</c>).
     /// </summary>
     /// <param name="spec">Parsed error-codes spec.</param>
@@ -120,14 +123,38 @@ internal static class BaseFactoriesEmitter
 
     /// <summary>
     /// Whether a code keys a per-code boolean discriminator. Every non-<c>none</c>
-    /// code does, plus the explicit boolean-keyed <c>none</c> codes. The
+    /// code does, plus the explicit boolean-keyed <c>none</c> REST codes. The
     /// serialization codes key no boolean (matching the hand-rolled surface).
     /// </summary>
     /// <param name="entry">The error-code entry.</param>
+    /// <param name="domainPrefix">
+    /// Catalog <see cref="CatalogConfig.DomainPrefix"/> used to strip the owner
+    /// prefix before REST-set membership.
+    /// </param>
     /// <returns><c>true</c> when a boolean is emitted for the code.</returns>
-    internal static bool EmitsBoolean(ErrorCodeEntry entry) =>
+    internal static bool EmitsBoolean(ErrorCodeEntry entry, string domainPrefix) =>
         entry.FactoryShape != _SHAPE_NONE
-        || sr_booleanKeyedNoneCodes.Contains(entry.Code);
+        || sr_booleanKeyedNoneRestCodes.Contains(RestAfterPrefix(entry.Code, domainPrefix));
+
+    /// <summary>
+    /// REST after the catalog DomainPrefix (e.g. <c>GEN_NOT_FOUND</c> +
+    /// <c>GEN_</c> -> <c>NOT_FOUND</c>). Returns the full code when the prefix
+    /// is missing / empty (defensive).
+    /// </summary>
+    /// <param name="code">Full wire code.</param>
+    /// <param name="domainPrefix">Catalog DomainPrefix to strip.</param>
+    /// <returns>The REST suffix, or <paramref name="code"/> when not prefixed.</returns>
+    internal static string RestAfterPrefix(string code, string domainPrefix)
+    {
+        if (domainPrefix.Length > 0
+            && code.StartsWith(domainPrefix, System.StringComparison.Ordinal)
+            && code.Length > domainPrefix.Length)
+        {
+            return code.Substring(domainPrefix.Length);
+        }
+
+        return code;
+    }
 
     /// <summary>
     /// Maps an HTTP status int to the BCL <see cref="System.Net.HttpStatusCode"/>
@@ -155,7 +182,7 @@ internal static class BaseFactoriesEmitter
     /// <summary>
     /// Maps a spec category wire string (snake_case) to its
     /// <c>ErrorCategory</c> PascalCase enum member name
-    /// (<c>validation_failure</c> → <c>ValidationFailure</c>). The emitted
+    /// (<c>validation_failure</c> -> <c>ValidationFailure</c>). The emitted
     /// factory body references <c>ErrorCategory.&lt;member&gt;</c>. Mirrors the
     /// registry emitter's identical mapping so the per-code category baked into
     /// the factory matches the registry's <c>ErrorCodeInfo.Category</c>.
@@ -182,7 +209,7 @@ internal static class BaseFactoriesEmitter
 
     /// <summary>
     /// Converts a SCREAMING_SNAKE code to PascalCase for the boolean name
-    /// (<c>NOT_FOUND</c> → <c>NotFound</c>, so the boolean is <c>IsNotFound</c>).
+    /// (<c>NOT_FOUND</c> -> <c>NotFound</c>, so the boolean is <c>IsNotFound</c>).
     /// </summary>
     /// <param name="code">The SCREAMING_SNAKE code.</param>
     /// <returns>The PascalCase form.</returns>
@@ -230,7 +257,7 @@ internal static class BaseFactoriesEmitter
 
         // The non-generic host (D2Result) is the unsealed base; the generic host
         // (D2Result<TData>) is sealed and derives from it. The partial-class
-        // modifier MUST match the primary declaration on both — a sealed mismatch
+        // modifier must match the primary declaration on both - a sealed mismatch
         // breaks the inheritance (CS0509).
         var sealedModifier = generic ? "sealed " : string.Empty;
         sb.AppendLine($"public {sealedModifier}partial class {hostType}");
@@ -274,7 +301,7 @@ internal static class BaseFactoriesEmitter
 
         var categoryMember = CategoryMemberName(entry.Category!);
 
-        // Signature — the one universal error-factory shape: every parameter is
+        // Signature - the one universal error-factory shape: every parameter is
         // optional so any factory can stamp a domain code + category and
         // optionally carry inputErrors.
         var sig = new StringBuilder();
@@ -352,14 +379,14 @@ internal static class BaseFactoriesEmitter
         sb.AppendLine();
         EmitBlock(sb, config.BaseBooleansSummary!);
 
-        // Booleans land on the non-generic, unsealed D2Result partial.
+        // The booleans are emitted on the non-generic, unsealed D2Result partial.
         sb.AppendLine($"public partial class {config.BaseHostType}");
         sb.AppendLine("{");
 
         var first = true;
         foreach (var entry in entries)
         {
-            if (!EmitsBoolean(entry))
+            if (!EmitsBoolean(entry, config.DomainPrefix))
                 continue;
 
             if (!first)
@@ -375,7 +402,10 @@ internal static class BaseFactoriesEmitter
 
     private static void EmitBoolean(StringBuilder sb, ErrorCodeEntry entry, CatalogConfig config)
     {
-        var name = "Is" + PascalCase(entry.Code);
+        // Base host only: strip DomainPrefix so GEN_NOT_FOUND -> IsNotFound
+        // (not IsGenNotFound). The comparison still uses the full const member name.
+        var rest = RestAfterPrefix(entry.Code, config.DomainPrefix);
+        var name = "Is" + PascalCase(rest);
         sb.AppendLine("    /// <summary>");
         sb.AppendLine(
             $"    /// Gets a value indicating whether this result carries the "
@@ -398,7 +428,7 @@ internal static class BaseFactoriesEmitter
     /// <summary>
     /// Appends a newline-delimited config block one line at a time via
     /// <see cref="StringBuilder.AppendLine()"/>. Every emitted line is later
-    /// collapsed to a bare LF at the source funnels
+    /// collapsed to a bare LF at the return points that produce the source
     /// (<see cref="EmitFactoriesSource"/> / <see cref="EmitBooleansSource"/>
     /// each return <c>LfNormalized()</c>), so the generated source is LF-only
     /// regardless of the build host's <c>Environment.NewLine</c>.

@@ -10,7 +10,7 @@ using System;
 using DcsvIo.D2.Utilities.Extensions;
 
 /// <summary>
-/// Marks a handler class as a messaging subscriber. Carries one
+/// Marks a handler class as a messaging subscriber. Takes one
 /// <c>MqSubscriptions</c> constant; that constant resolves at runtime
 /// (via <c>MqSubscriptionsRegistry</c>) to the full subscription contract:
 /// queue name, pattern, routing-key binding, prefetch, idempotency,
@@ -37,7 +37,7 @@ public sealed class MqSubAttribute : Attribute
     /// class with the given <c>MqSubscriptions</c> constant.</summary>
     /// <param name="constant">A constant from the codegen-emitted
     /// <c>MqSubscriptions</c> static class (e.g.
-    /// <c>MqSubscriptions.KeyringRefresh</c>). Used as the lookup key into
+    /// <c>MqSubscriptions.YourConstant</c>). Used as the lookup key into
     /// <c>MqSubscriptionsRegistry</c>.</param>
     public MqSubAttribute(string constant)
     {

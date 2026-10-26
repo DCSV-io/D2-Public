@@ -23,53 +23,53 @@ import { SubdivisionLookup } from "../subdivisions.js";
 /**
  * Default implementation of `IGeoNameResolver` over the codegen-emitted
  * catalog data. Mirrors the .NET `DefaultGeoNameResolver` byte-for-byte
- * on the cascade algorithm + cache-aside discipline + ambiguity-sentinel
- * pattern + DoS-guard length cap. Both runtimes consume the
+ * on the cascade algorithm, cache-aside discipline, ambiguity-sentinel
+ * pattern and DoS-guard length cap. Both runtimes consume the
  * `confusables.fixture.json` parity fixture; any cross-language drift
- * surfaces on first fixture run.
+ * fails the first fixture run.
  *
- * Cascade — each public method runs the same pipeline:
+ * Cascade: each public method runs the same pipeline:
  *
- * 1. **Predicate 0 (DoS guard)** — reject input longer than
+ * 1. **Predicate 0 (DoS guard)**: reject input longer than
  *    `MAX_NAME_LENGTH` (256 chars) before normalization.
- * 2. **Predicate 1 (boundary validation)** — `truthyOrUndefined()` short-
+ * 2. **Predicate 1 (boundary validation)**: `truthyOrUndefined()` short-
  *    circuits null / undefined / empty / whitespace input to
  *    `validationFailed`. Normalize otherwise; if normalization collapses
  *    to empty, return `validationFailed`.
- * 3. **Pass 1 (exact match)** — always runs, no minimum length. Returns
+ * 3. **Pass 1 (exact match)**: always runs, no minimum length. Returns
  *    immediately on first non-ambiguous hit; an ambiguity-sentinel hit
  *    returns `notFound`.
- * 4. **Pass 2 (startsWith)** — skipped when normalized input shorter
+ * 4. **Pass 2 (startsWith)**: skipped when normalized input shorter
  *    than 4 chars; ambiguity at any pass returns `notFound`.
- * 5. **Pass 3 (contains)** — skipped when normalized input shorter than
+ * 5. **Pass 3 (contains)**: skipped when normalized input shorter than
  *    5 chars.
- * 6. **Pass 4 (Levenshtein)** — skipped when normalized input shorter
+ * 6. **Pass 4 (Levenshtein)**: skipped when normalized input shorter
  *    than 5 chars; `maxDistance = min(2, floor(len / 5))`.
  *
- * **Cache-aside** — the country map (`countryByName`) is built once per
+ * **Cache-aside**: the country map (`countryByName`) is built once per
  * process on first call (JS single-thread execution gives the build-once
  * guarantee). Per-country subdivision maps live in
  * `subdivisionByNameByCountry` and build lazily per parent on first
  * lookup for that parent. The catalog is immutable post-`initializeGeoData`
  * so the cache never invalidates.
  *
- * **Ambiguity sentinel** — when two records normalize to the same name
+ * **Ambiguity sentinel**: when two records normalize to the same name
  * the cache stores a single entry tagged `{ kind: "ambiguous" }`. Pass-1
  * lookups hitting the sentinel return `notFound`; Pass-2 / 3 / 4 walks
  * exclude ambiguous entries from the candidate pool. Both record-presence
  * and ambiguity status publish atomically because they live in one map
  * value (single assignment).
  *
- * **No observability instrumentation** — the resolver intentionally ships
- * without spans / counters / metrics. It runs at every third-party text
- * ingestion point; per-call instrumentation overhead is unacceptable.
+ * **No observability instrumentation**: the resolver deliberately has no
+ * spans, counters or metrics. It runs at every third-party text
+ * ingestion point, and per-call instrumentation overhead is unacceptable.
  *
- * **PII discipline** — the `name` parameter is treated as opaque PII.
+ * **PII discipline**: the `name` parameter is treated as opaque PII.
  * The resolver never logs the input, never attaches it to a `D2Result`
- * message field, and never emits it on any future telemetry surface.
+ * message field, and never emits it on any telemetry surface.
  *
- * **TraceId flow** — `D2Result` instances carry no `traceId`; callers
- * replay the handler-scoped traceId at the call site via
+ * **TraceId flow**: `D2Result` instances contain no `traceId`; the call
+ * site applies the handler-scoped traceId with
  * `result.withTraceId(context.traceId)`.
  */
 const MAX_NAME_LENGTH = 256;
@@ -79,10 +79,10 @@ const MIN_LENGTH_PASS_4 = 5;
 const PASS_4_MAX_DISTANCE = 2;
 const PASS_4_DISTANCE_SCALE = 5;
 
-// TK constants — sourced from the generated `@dcsv-io/d2-i18n-keys` catalog,
-// matching the .NET TK SrcGen output from the same spec. Using the
-// typed constant (not a raw string) prevents §G render-bug class:
-// catalog keys are snake_case, not dot-path.
+// TK constants, sourced from the generated `@dcsv-io/d2-i18n-keys` catalog
+// and matching the .NET TK SrcGen output from the same spec. The typed
+// constant (not a raw string) prevents a render bug: catalog keys are
+// snake_case, not dot-path.
 const TK_NOT_NULL_VIOLATION = TK.common.errors.NOT_NULL_VIOLATION;
 const TK_TOO_LONG = TK.common.errors.TOO_LONG;
 const TK_NAME_RESOLUTION_NOT_FOUND = TK.geo.errors.NAME_RESOLUTION_NOT_FOUND;
@@ -98,24 +98,24 @@ type SubdivisionCacheEntry =
 
 // Module-scoped cache-aside via Map. `undefined` over `null` per the TS
 // undefined-over-null convention. JS single-thread execution gives build-
-// once semantics under `Promise.all` first-callers — the cache-aside test
-// pins this via a build-count spy.
+// once semantics under `Promise.all` first-callers; the cache-aside test
+// pins this with a build-count spy.
 let countryByName: Map<string, CountryCacheEntry> | undefined;
 const subdivisionByNameByCountry = new Map<
   CountryCode,
   Map<string, SubdivisionCacheEntry>
 >();
 
-// Internal build-count tracker — exported via test-only surface so the
-// concurrent-first-caller test can assert the build factory ran exactly
-// once. Producers outside test code MUST NOT read this.
+// Internal build-count tracker, exported through a test-only surface so a
+// test can assert that the build factory ran exactly once. Code outside
+// tests must not read it.
 let countryBuildCount = 0;
 const subdivisionBuildCountByCountry = new Map<CountryCode, number>();
 
 /**
  * @internal
  * Returns the count of cache builds performed for the country name map.
- * Test-only surface — verifies cache-aside semantics.
+ * Test-only surface that verifies cache-aside semantics.
  */
 export function _internalCountryBuildCount(): number {
   return countryBuildCount;
@@ -132,8 +132,8 @@ export function _internalSubdivisionBuildCount(parent: CountryCode): number {
 
 /**
  * @internal
- * Resets the cache. Test-only surface — invoked between test runs so
- * cache-aside assertions are deterministic.
+ * Resets the cache. Test-only surface that makes cache-aside assertions
+ * deterministic across test runs.
  */
 export function _internalResetCache(): void {
   countryByName = undefined;
@@ -147,13 +147,13 @@ export function _internalResetCache(): void {
  * cascade + cache-aside + ambiguity-sentinel semantics.
  */
 export function tryResolveCountryByName(name: string): D2Result<Country> {
-  // Predicate 0 — DoS guard. Apply before truthy check so an oversized
+  // Predicate 0: DoS guard. Apply before the truthy check so an oversized
   // (but technically truthy) input is rejected cheaply.
   if (typeof name === "string" && name.length > MAX_NAME_LENGTH) {
     return validationFailed<Country>({ messages: [TK_TOO_LONG] });
   }
 
-  // Predicate 1 — boundary validation.
+  // Predicate 1: boundary validation.
   const trimmed = truthyOrUndefined(name);
   if (trimmed === undefined) {
     return validationFailed<Country>({ messages: [TK_NOT_NULL_VIOLATION] });
@@ -236,8 +236,8 @@ function getOrBuildSubdivisionMap(
 function buildCountryByName(): Map<string, CountryCacheEntry> {
   const map = new Map<string, CountryCacheEntry>();
 
-  // Deterministic ordering — cross-process / cross-runtime agreement on
-  // which entries become ambiguity sentinels. The .NET side orders by the
+  // Deterministic ordering gives cross-process and cross-runtime agreement
+  // on which entries become ambiguity sentinels. The .NET side orders by the
   // alpha-2 string via `StringComparer.Ordinal`; the JS string comparison
   // matches that exactly because alpha-2 is ASCII.
   const ordered = Object.values(CountryLookup.byCode).sort((a, b) =>
@@ -336,7 +336,7 @@ function runCascadeCountry(
   q: string,
   map: Map<string, CountryCacheEntry>,
 ): D2Result<Country> {
-  // Pass 1 — exact.
+  // Pass 1: exact.
   const hit = map.get(q);
   if (hit !== undefined) {
     if (hit.kind === "ambiguous") {
@@ -345,7 +345,7 @@ function runCascadeCountry(
     return ok<Country>(hit.record);
   }
 
-  // Pass 2 — startsWith.
+  // Pass 2: startsWith.
   if (q.length >= MIN_LENGTH_PASS_2) {
     const result = scanCountry(map, q, "startsWith");
     if (result.ambiguous) {
@@ -354,7 +354,7 @@ function runCascadeCountry(
     if (result.record !== undefined) return ok<Country>(result.record);
   }
 
-  // Pass 3 — contains.
+  // Pass 3: contains.
   if (q.length >= MIN_LENGTH_PASS_3) {
     const result = scanCountry(map, q, "contains");
     if (result.ambiguous) {
@@ -363,7 +363,7 @@ function runCascadeCountry(
     if (result.record !== undefined) return ok<Country>(result.record);
   }
 
-  // Pass 4 — bounded Levenshtein.
+  // Pass 4: bounded Levenshtein.
   if (q.length >= MIN_LENGTH_PASS_4) {
     const maxDistance = Math.min(
       PASS_4_MAX_DISTANCE,
